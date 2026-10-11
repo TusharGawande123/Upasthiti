@@ -12,6 +12,10 @@ Date: 2026-10-11 · Decided by: Tushar Gawande (project lead) · Status: Accepte
 - **Kiosk layout and fonts:** not decided yet; chosen later, when that
   milestone's screens are designed.
 - **Language:** English first (en-IN); Marathi/Hindi optional later.
+- **Design source (2026-10-12):** Tushar likes the designs on 21st.dev. In each
+  milestone, start screen design from 21st.dev components (through the Magic
+  MCP and the shadcn MCP), restyled to our light, premium look. Log each
+  copied component in docs/decisions/ui-component-sources.md.
 
 ## Visual reference
 Design canvas with both directions (kiosk, kiosk result states, admin):

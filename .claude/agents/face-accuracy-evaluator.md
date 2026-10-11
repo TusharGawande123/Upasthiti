@@ -16,10 +16,8 @@ Rules:
 - Models must be free to use (no paid model or API). The approved models
   are InsightFace buffalo_l (SCRFD + ArcFace, used everywhere). For anti-
   spoofing, compare MiniFASNet with CelebA-Spoof-trained models and recommend
-  the better one,
-  anti-spoofing. Also report RAM use and seconds per punch on the Render free
-  instance; see
-  docs/decisions/0001-tech-stack.md.
+  the better one. Also report RAM use and seconds per punch on the Render
+  free instance. See docs/decisions/0001-tech-stack.md.
 - You may write evaluation scripts under an evaluation/tests folder, but
   never change application code; report problems instead.
 
