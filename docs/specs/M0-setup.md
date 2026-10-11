@@ -61,7 +61,8 @@ M0 delivers:
      `alembic upgrade head` against a Postgres service container;
    - `frontend`: `npm ci`, Biome check, TypeScript check, Vitest, `npm run build`;
    - `e2e`: starts backend + frontend, runs the Playwright smoke test (Chromium only);
-   - `docker`: builds the backend image and calls its health endpoint.
+   - `docker`: builds the backend image and calls its health endpoint;
+   - `hooks`: runs every pre-commit hook on all files (added in the plan, 2026-10-12).
 6. **Pre-commit** (`.pre-commit-config.yaml`): Ruff (lint + format), Biome, trailing
    whitespace, end-of-file, YAML/JSON/TOML checks, merge-conflict markers, private-key
    detection, large-file block (> 1 MB, so face models and photos are never committed).
@@ -80,7 +81,7 @@ M0 delivers:
     - `docs/decisions/0003-dev-tooling.md`: short record of the M0 tooling choices.
 11. **Version pins:** `backend/.python-version` = 3.12; `frontend/package.json` `engines`
     = Node 24 LTS; `.nvmrc` = 24; lockfiles (`uv.lock`, `package-lock.json`) committed.
-12. **Branch protection update:** after the first green CI run, mark the four CI jobs as
+12. **Branch protection update:** after the first green CI run, mark the five CI jobs as
     required status checks on `main`.
 13. **Custom commands folder:** `.claude/commands/` exists (CLAUDE.md §2 fixed folders).
     Its contents are an extra (S-5).
@@ -289,8 +290,8 @@ M0 has no attendance rules. These are the engineering rules the skeleton enforce
   result is `1,00,000`.
 - **AC-10** Given an empty database, when `uv run alembic upgrade head` runs, then it
   succeeds and the database is at revision `0001_baseline`.
-- **AC-11** Given a pull request to `main`, when CI runs, then the four jobs `backend`,
-  `frontend`, `e2e` and `docker` all pass, and they are required status checks on `main`.
+- **AC-11** Given a pull request to `main`, when CI runs, then the five jobs `backend`,
+  `frontend`, `e2e`, `docker` and `hooks` all pass, and they are required status checks on `main`.
 - **AC-12** Given a commit that adds a private key or a file larger than 1 MB, when the
   developer commits with pre-commit installed, then the commit is blocked; when they bypass
   the hook, then CI fails.
@@ -345,7 +346,7 @@ Approved extras:
 - **End-to-end (Playwright, Chromium):** start backend + frontend, open `/admin`, expect
   "Server connected" — this proves the `/api` proxy and the whole chain (AC-7, AC-1 in CI).
 - **CI/manual checks:**
-  - open a test PR and confirm all four jobs pass and are required (AC-11);
+  - open a test PR and confirm all five jobs pass and are required (AC-11);
   - try committing a dummy private key and a 2 MB file (AC-12);
   - check the Dependabot page (AC-13);
   - run keep-alive manually from the Actions tab (AC-14);
@@ -422,6 +423,7 @@ Exact versions are fixed by the lockfiles at build time; major versions follow A
 | sqlalchemy | 2.1.x | MIT | ORM (ADR 0001) |
 | alembic | latest 1.x | MIT | Migrations (ADR 0001) |
 | psycopg (`psycopg[binary]`) | 3.x | LGPL-3.0 (approved, unmodified) | Postgres driver (ADR 0001) |
+| tzdata | latest | Apache-2.0 | Time-zone data for `zoneinfo` (Asia/Kolkata); Windows has no system copy. Added in the plan |
 | ruff | latest | MIT | Lint + format (dev) |
 | pyright | latest | MIT | Type check (dev) |
 | pytest | 9.x | MIT | Tests (dev) |
