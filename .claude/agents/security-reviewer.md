@@ -13,7 +13,9 @@ of QR snapshots, audit logging, and DPDP privacy rules.
 
 Try to break the anti-proxy engine: punches from unregistered devices,
 replayed or forged kiosk tokens, fake GPS or time from the kiosk, reused or
-revoked QR codes, photo/video spoofing, duplicate punches.
+revoked QR codes, photo/video spoofing, duplicate punches, replayed or
+edited offline-sync batches, and punches whose rejection reason is not
+stored.
 
 Report findings as: severity (Critical/High/Medium/Low), file and line,
 problem, and a concrete fix. Say clearly if nothing serious was found.

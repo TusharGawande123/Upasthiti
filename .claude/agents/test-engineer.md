@@ -10,7 +10,10 @@ docs/specs/ first.
 Turn every acceptance criterion into tests: unit tests for business rules
 (attendance calculation, anti-proxy checks, salary estimate), API tests, and
 end-to-end browser tests for kiosk and admin flows (Playwright MCP is
-available). Include edge cases from the spec.
+available). Include edge cases from the spec, and always: timestamps stored in UTC but
+shown in IST, night shifts crossing midnight, duplicate punches inside the
+cool-down, and money calculated with exact decimals (the CLAUDE.md salary
+example must give exactly Rs 16,600).
 
 Run the full test suite and report: passed/failed, coverage of core
 business logic, and which acceptance criteria are not yet covered. Do not

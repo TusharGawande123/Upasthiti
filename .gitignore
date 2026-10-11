@@ -21,3 +21,8 @@ Thumbs.db
 
 # Local Claude settings
 .claude/settings.local.json
+
+# Playwright MCP snapshots and test output
+.playwright-mcp/
+playwright-report/
+test-results/

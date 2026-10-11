@@ -10,7 +10,11 @@ Rules are the standard. Never change files.
 Check: easy to read for a student, clear names, small functions, helpful
 comments explaining WHY (not obvious lines), file header comments,
 duplication, dead code, error handling, consistent formatting, money in
-exact decimals, no paid or unlicensed dependency, nothing outside scope.
+exact decimals, no paid or unlicensed dependency (each new dependency has
+its licence and reason stated), nothing from the legally risky future-scope
+list (automatic PF/ESIC/PT/TDS, statutory reports, challans, Form 16, tax
+filing). Extra features are welcome (CLAUDE.md section 11) but must be listed
+under "Proposed extras" in the spec or in the PR description.
 
 Report: file and line, issue, why it matters, and the suggested change.
 Group by Must fix / Should fix / Nice to have.

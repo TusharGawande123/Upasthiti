@@ -10,7 +10,14 @@ kiosk stays very simple for shop-floor workers: big camera view, large text
 and buttons, clear success/failure feedback (colour + icon + sound),
 readable in daylight, ready for English/Marathi/Hindi.
 
+Kiosk rules: one action per screen, touch targets at least 64 px, body text
+at least 24 px, high contrast for direct sunlight (aim for WCAG AAA 7:1),
+never rely on colour alone, fonts that render Devanagari well (Marathi and
+Hindi), and respect prefers-reduced-motion.
+
 For each screen give: layout, components, colours, typography, motion,
 empty/loading/error states, and accessibility notes. Use only free,
 MIT-type components (shadcn/ui, Aceternity UI, Magic UI free parts,
 21st.dev free components) and record the source. Never copy paid templates.
+During research, write only design documents in docs/design-refs/; never
+write application code.
