@@ -235,6 +235,26 @@ MIT. The final stack decision happens in Part B (planning).
 | Rive | ❌ Reject | free exports show a Rive splash screen; removing it is paid | — |
 | Tremor | ❌ Avoid | Apache-2.0 but stagnant since joining Vercel | Use shadcn charts |
 
+### 6.1 More licence-safe sources (follow-up research, 2026-10-11)
+
+Full details: [research/alternatives-and-more-sources.md](research/alternatives-and-more-sources.md).
+
+| Source | Licence | Verdict | Best use |
+|---|---|---|---|
+| ReUI *or* tablecn (pick one) | MIT | ✅ Use | Admin data grid with filters (attendance, audit log) |
+| NumberFlow | MIT | ✅ Use | KPI counters and the kiosk clock (en-IN grouping, respects reduced motion) |
+| Cult UI, Smooth UI, Animata, Eldora UI, Dice UI, SyntaxUI, Fancy Components | MIT (free parts) | ✅ Use selected | Dynamic-Island style kiosk status pill, ring gauges, live badge, OTP input for kiosk pairing, loaders, tags input |
+| ui-layouts | MIT repo (not the website) | ✅ Copy from the repo only | Timeline, date-time picker |
+| anime.js v4 | MIT | Fallback engine | SVG ring-to-tick morph |
+| View Transitions API | web standard | ✅ Use | Kiosk state changes with no extra library |
+| Glaxnimate (GPL editor; the files we make are ours) | — | ✅ Tool | Make our own Lottie tick/cross animations for free |
+| Obra shadcn/ui Figma kit | CC BY 4.0 (credit required) | ✅ Use in Figma | Figma twin of our components |
+| Mantine / HeroUI | MIT / Apache | Not chosen | Would replace shadcn; don't mix design systems |
+| Animate UI, shadcn/studio, shadcnblocks, Skiper UI, Lukacho UI, Hover.dev | Commons Clause / no OSI licence / proprietary | ❌ Avoid as code | — |
+
+Rule learned: animate translatable text **per word or per line**, never letter by
+letter. Letter-by-letter effects break Devanagari when Marathi/Hindi are added.
+
 **Licence log:** every copied component goes in `docs/decisions/ui-component-sources.md`
 (name, source URL, licence, date), with a one-line source comment at the top of the copied
 file. MIT requires keeping the notice.

@@ -154,7 +154,8 @@
   Code we copy in: only components with an MIT/Apache/BSD/ISC licence
   (shadcn/ui, Magic UI free, Motion Primitives, Kibo UI, 21st.dev items marked
   MIT). NOT allowed as code: Aceternity UI (no open-source licence), React Bits
-  (Commons Clause), GSAP, Rive, Magic UI Pro, Motion+. Log every copied
+  (Commons Clause), Animate UI and shadcn/studio (Commons Clause),
+  shadcnblocks, Skiper UI, Hover.dev, GSAP, Rive, Magic UI Pro, Motion+. Log every copied
   component in docs/decisions/ui-component-sources.md.
 
 ## 11. Creative Freedom: Extra Features (Claude Code is encouraged to improve the product)
