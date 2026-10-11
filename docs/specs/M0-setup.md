@@ -180,10 +180,11 @@ Rules for these endpoints:
 
 ## 6. Data model changes
 - **No tables.** Alembic is initialised in `backend/migrations/` with one empty baseline
-  revision, `0001_baseline`.
+  revision `0001` (file `0001_baseline.py`).
 - The SQLAlchemy `MetaData` gets a fixed constraint naming convention (`pk_`, `fk_`, `uq_`,
   `ix_`, `ck_`), so later Alembic migrations have stable, readable names.
-- Migration file names: `<4-digit number>_<short_snake_case_what>.py`.
+- Migration file names: `<4-digit number>_<short_snake_case_what>.py`, created with
+  `--rev-id <number>` so the revision ID is the number.
 - Reminders for M1+: UUID keys, UTC `timestamptz`, `numeric(12,2)` for money, no hard
   deletes of punch, attendance or audit rows.
 
@@ -289,7 +290,7 @@ M0 has no attendance rules. These are the engineering rules the skeleton enforce
   date is `12/10/2026` and the time `06:00` (IST); when they format `100000`, then the
   result is `1,00,000`.
 - **AC-10** Given an empty database, when `uv run alembic upgrade head` runs, then it
-  succeeds and the database is at revision `0001_baseline`.
+  succeeds and the database is at revision `0001` (file `0001_baseline.py`).
 - **AC-11** Given a pull request to `main`, when CI runs, then the five jobs `backend`,
   `frontend`, `e2e`, `docker` and `hooks` all pass, and they are required status checks on `main`.
 - **AC-12** Given a commit that adds a private key or a file larger than 1 MB, when the
@@ -418,7 +419,7 @@ Exact versions are fixed by the lockfiles at build time; major versions follow A
 
 | Package | Version | Licence | Reason |
 |---|---|---|---|
-| fastapi (`fastapi[standard]`) | 0.14x | MIT | Backend framework (ADR 0001); `standard` brings uvicorn and the `fastapi dev` CLI |
+| fastapi, fastapi-cli, uvicorn[standard] | 0.14x / latest / latest | MIT / MIT / BSD-3-Clause | Backend framework (ADR 0001) and the `fastapi dev`/`run` commands. We do **not** use `fastapi[standard]`: it also installs the FastAPI Cloud CLI, Sentry and OpenTelemetry, which we don't need and which waste the 512 MB on Render |
 | pydantic-settings | 2.x | MIT | Reads settings from environment / `.env` with types and the missing-variable error. **New, not in ADR 0001** |
 | sqlalchemy | 2.1.x | MIT | ORM (ADR 0001) |
 | alembic | latest 1.x | MIT | Migrations (ADR 0001) |
@@ -427,7 +428,7 @@ Exact versions are fixed by the lockfiles at build time; major versions follow A
 | ruff | latest | MIT | Lint + format (dev) |
 | pyright | latest | MIT | Type check (dev) |
 | pytest | 9.x | MIT | Tests (dev) |
-| httpx | latest | BSD-3-Clause | Needed by FastAPI's TestClient (dev) |
+| httpx2 | latest | BSD-3-Clause | Needed by FastAPI's TestClient (dev); Starlette now asks for `httpx2` (by the pydantic team) instead of `httpx` |
 | vite, @vitejs/plugin-react | 8.x | MIT | Frontend build (ADR 0001) |
 | react, react-dom | 19.x | MIT | UI (ADR 0001) |
 | typescript | 5.x | Apache-2.0 | Types |
