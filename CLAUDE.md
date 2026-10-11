@@ -138,14 +138,24 @@
 - To be filled after the stack is approved (run, test, lint, migrate, deploy).
 
 ## 10. Configuration Notes
+- Language: ENGLISH FIRST (English, India locale en-IN: DD/MM/YYYY dates,
+  Indian number grouping 1,00,000, Rs). The whole website (kiosk + admin) is
+  designed and built in English. Marathi and Hindi are OPTIONAL, added later
+  through a language switch, so keep all UI text in translation files
+  (i18n-ready) from day one, but do not design around Devanagari.
 - All timestamps stored in UTC, shown in IST (Asia/Kolkata).
 - Face match threshold, kiosk GPS accuracy limit, punch cool-down, snapshot
   retention, salary-day basis, paid-day and overtime rules are settings.
 - Hosting now: free tiers (frontend Vercel; backend + DB Render/Railway or
   similar). Camera needs HTTPS. Later: Docker on the company server.
 - Design references: docs/design-refs/ (inspiration.md + screenshots).
-  Sources: Godly, Dribbble, Awwwards, Mobbin, Figma Community, 21st.dev,
-  Aceternity UI, Magic UI (free MIT components only).
+  Inspiration: Godly, Dribbble, Awwwards, Mobbin, Figma Community and the other
+  sites listed in inspiration.md (ideas only, never copy artwork).
+  Code we copy in: only components with an MIT/Apache/BSD/ISC licence
+  (shadcn/ui, Magic UI free, Motion Primitives, Kibo UI, 21st.dev items marked
+  MIT). NOT allowed as code: Aceternity UI (no open-source licence), React Bits
+  (Commons Clause), GSAP, Rive, Magic UI Pro, Motion+. Log every copied
+  component in docs/decisions/ui-component-sources.md.
 
 ## 11. Creative Freedom: Extra Features (Claude Code is encouraged to improve the product)
 The documents give you the IDEA of the project. You are free, and encouraged,

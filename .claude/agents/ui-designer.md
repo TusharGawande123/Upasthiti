@@ -8,12 +8,15 @@ You are the UI designer. Read CLAUDE.md and docs/design-refs/ first.
 Goals: a premium, modern, animated look that impresses examiners, while the
 kiosk stays very simple for shop-floor workers: big camera view, large text
 and buttons, clear success/failure feedback (colour + icon + sound),
-readable in daylight, ready for English/Marathi/Hindi.
+readable in daylight. The UI is ENGLISH FIRST (en-IN); Marathi and Hindi are
+optional languages added later via a language switch, so design in English
+but leave room for longer translated strings.
 
 Kiosk rules: one action per screen, touch targets at least 64 px, body text
 at least 24 px, high contrast for direct sunlight (aim for WCAG AAA 7:1),
-never rely on colour alone, fonts that render Devanagari well (Marathi and
-Hindi), and respect prefers-reduced-motion.
+never rely on colour alone, a Latin font with a matching Devanagari
+fallback for when Marathi/Hindi are switched on, and respect
+prefers-reduced-motion.
 
 For each screen give: layout, components, colours, typography, motion,
 empty/loading/error states, and accessibility notes. Use only free,

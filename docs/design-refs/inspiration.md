@@ -80,14 +80,15 @@ These are fixed whatever direction you pick:
 4. **Privacy shows on screen.** We store face templates, not photos, so the success screen shows the **live freeze-frame or initials**, never an enrolled photo. QR punches show "Photo saved for HR check". The footer always reads "Camera in use for attendance only".
 5. **Honest offline mode.** An amber banner reads "Offline – 12 punches saved". Result screens say **"Saved – will be confirmed when online"**, because the server has not verified those punches yet.
 6. **Worker-safe rejection messages.** The kiosk shows a simple reason and a next step ("Card expired – see HR"). The detailed anti-proxy reason goes only to the admin exception log, so cheaters don't learn which rule caught them.
-7. **Devanagari done right.**
-   - Set `lang="mr"` / `lang="hi"` on the text.
-   - Use no letter-spacing and no ALL CAPS.
-   - Give Devanagari 1.5–1.6 line height and render it about 1.1× the Latin size.
-   - Expect strings 20–40% longer, so buttons must grow rather than truncate.
-   - Language chips show each name in its own script: `English | मराठी | हिंदी`.
-   - The default language is set per plant.
-   - Note the spellings: Hindi "उपस्थिति", Marathi "उपस्थिती". A native speaker checks every string.
+7. **English first, other languages optional** (team decision, 2026-10-11).
+   - The whole website is designed and built in **English (India, `en-IN`)**: DD/MM/YYYY dates, 1,00,000 number grouping, ₹.
+   - **Marathi and Hindi come later** through a small language switch (`EN ▾`). All text therefore lives in translation files from day one, but we do **not** design around Devanagari.
+   - When a translation is switched on, only light rules apply:
+     - set `lang="mr"` / `lang="hi"`;
+     - load the Devanagari fallback font;
+     - let buttons grow (translated text can be 20–40% longer);
+     - no letter-spacing or ALL CAPS on Devanagari.
+   - A native speaker checks every translated string before release.
 8. **Motion budget on the kiosk.** Animate only `transform` and `opacity`. Use no WebGL backgrounds there (no globe, particles or shaders). Honour `prefers-reduced-motion` and add an admin "reduce kiosk animation" switch. No more than 3 flashes per second. Heavy effects stay on the admin dashboard.
 9. **One state machine:** idle → detecting → liveness prompt / QR scanning → verifying (≤ 2 s) → success / rejected / retry / cool-down, plus offline, camera-error, unregistered-device (pairing code) and first-start loading states. The full table is in the visual research, section 3.5.
 
@@ -109,8 +110,8 @@ factory: dark and premium in the admin, bright and high-contrast at the gate.*
 | Success / danger | `#3DD68C` / `#FF6B5E` | `#007A4D` / `#C4320A` | flood `#00704A` / `#C4320A` + yellow-black hazard stripes |
 | Warning / info | `#FFB224` / `#5EB1FF` | `#B45309` / `#0B66C3` | retry `#FFD23F`, info `#0B5CAD`, offline `#FFB224` |
 
-**Fonts** (all SIL OFL 1.1): **IBM Plex Sans** + **IBM Plex Sans Devanagari** (the same
-family, so Latin and Devanagari share rhythm). **IBM Plex Mono** for times, headcounts
+**Fonts** (all SIL OFL 1.1): **IBM Plex Sans** for the English UI, with **IBM Plex Sans
+Devanagari** loaded only when Marathi or Hindi is switched on (same family, so it matches). **IBM Plex Mono** for times, headcounts
 and employee codes, because tabular digits don't jump.
 
 **Motion:** mechanical and exact. 120 ms micro, 200 ms standard, 360 ms emphasis;
@@ -124,13 +125,13 @@ right 40%.
 
 ```
 +--------------------------------------------------------------------------+
-| Upasthiti   Plant 2 – Chakan   Shift A     English|मराठी|हिंदी   (o) Online |
+| Upasthiti   Plant 2 – Chakan   Shift A                  EN ▾   (o) Online |
 +-------------------------------------------+------------------------------+
 |        .------------------------.         |   08:57                      |
 |       /    LIVE CAMERA (mirror)  \        |   Monday, 12 Oct             |
 |      |      .----------.          |       |   [eye pictogram]            |
 |      |     |  face oval |         |       |   Look at the camera         |
-|      |      '----------'          |       |   कॅमेऱ्याकडे पहा               |
+|      |      '----------'          |       |                              |
 |       \  [ ] QR brackets on card /        |   1 Stand  2 Look  3 Done    |
 |        '------------------------'         |  (success: panel floods      |
 |                                           |   green, "IN 08:57", name)   |
@@ -163,9 +164,9 @@ for workers, airy and Stripe-like for HR.*
 | Success / danger | teal `#0F766E` / `#B42318` | `#4FD1B5` / `#FF7A6B` | flood `#0F766E` / `#B42318` + stripe texture |
 | Warning / info | `#A15C00` / `#2563EB` | `#FFB547` / — | retry `#FFB547`, info `#4338CA` |
 
-**Fonts** (all SIL OFL 1.1): **Anek Latin** + **Anek Devanagari** (Ek Type, Mumbai; a variable
-font with a *width* axis, which squeezes long Marathi labels into fixed buttons without shrinking
-the text). **Inter** for dense admin tables if Anek feels too characterful at 14 px. **Geist Mono**
+**Fonts** (all SIL OFL 1.1): **Anek Latin** for the English UI (Ek Type, Mumbai; a variable font
+with a *width* axis, handy for long labels), with **Anek Devanagari** as the matching fallback when
+Marathi or Hindi is switched on. **Inter** for dense admin tables if Anek feels too characterful at 14 px. **Geist Mono**
 for the clock and numbers.
 
 **Motion:** warm and soft. 150 ms micro, 240 ms standard, 450 ms emphasis; ease-out
@@ -174,19 +175,19 @@ for the clock and numbers.
 - **Admin:** sections blur-fade in on first load.
 
 **Kiosk idea – full-bleed camera.** The camera fills the screen. Solid bands at the top and
-bottom hold the clock and a **3-language rotating instruction**. Results appear as a large solid
+bottom hold the clock and one short instruction. Results appear as a large solid
 card in the centre, then slide away.
 
 ```
 +--------------------------------------------------------------------------+
-|  08:57   Mon 12 Oct          Upasthiti – Chakan        English|मराठी|हिंदी |
+|  08:57   Mon 12 Oct          Upasthiti – Chakan                     EN ▾ |
 +--------------------------------------------------------------------------+
 |                         FULL-BLEED LIVE CAMERA                           |
 |                 ( ( (    .--------------.    ) ) )   ripple rings        |
 |                        |    face oval     |      hold your QR            |
 |                          '--------------'        card here  ->  [  ]     |
 +--------------------------------------------------------------------------+
-|  (eye) Look at the camera · कॅमेऱ्याकडे पहा · कैमरे की ओर देखें     (o) Online  |
+|  (eye) Look at the camera            or  (card) Hold your ID card here  (o) |
 +--------------------------------------------------------------------------+
    SUCCESS card:  (tick)  IN 08:57 · Rahul Patil · EMP-0142 · "Have a safe shift!"
 ```
@@ -200,7 +201,7 @@ research, section 5.5.
 
 ## 5. Recommendation
 
-- **Kiosk:** use **A's split layout** (the camera is never covered, the queue keeps moving, a white panel survives sunlight best) and **A's safety-yellow scan language**. Borrow **B's rotating three-language instruction**.
+- **Kiosk:** use **A's split layout** (the camera is never covered, the queue keeps moving, a white panel survives sunlight best) and **A's safety-yellow scan language**. Borrow B's pictogram + short-instruction band.
 - **Admin:** the default theme is the real choice:
   - **A "Forge" dark** impresses examiners most.
   - **B "Prakash" light** is kinder for HR staff who sit with it all day.
@@ -240,8 +241,8 @@ file. MIT requires keeping the notice.
 
 **Fonts:** all candidates are SIL OFL 1.1 on Google Fonts, self-hosted through Fontsource
 (subset to latin + devanagari) so the kiosk needs no font CDN and works offline.
-- Safest fallback: **Noto Sans Devanagari**, whose metadata explicitly lists Marathi.
-- Before the final pick, test Marathi-specific shapes (ल, श, र्‍य) on the real kiosk tablet.
+- The English font is the main choice. A Devanagari fallback (the matching family, or **Noto Sans Devanagari**) is loaded only when Marathi/Hindi are switched on.
+- When translations are added, test Marathi-specific shapes (ल, श, र्‍य) on the real kiosk tablet.
 
 ---
 
@@ -256,7 +257,7 @@ file. MIT requires keeping the notice.
 | Printable A4 QR card sheet with crop marks (CR80 card size) | Saves HR time | S | none |
 | Kiosk health tile (heartbeat, queue size, camera, battery, app version) | Spots dead gate devices early; supports M4 | S–M | low |
 | Live punch feed + monthly attendance heatmap | Supervisors see patterns at a glance | S–M | low |
-| Team-recorded voice prompts (mr / hi / en) | Helps low-literacy workers; browser Marathi voices are unreliable | M | needs native speakers |
+| Voice prompts (English first; Marathi/Hindi clips later) | Helps low-literacy workers; browser Marathi voices are unreliable, so record our own | M | needs native speakers for mr/hi |
 | Emergency muster screen (who is inside now, works from cache) | Real fire-drill value for a factory | M | depends on workers punching OUT |
 | Supervisor PIN override when face fails, logged as an exception | Keeps the gate moving | M | must stay server-checked and audited |
 
@@ -266,8 +267,7 @@ file. MIT requires keeping the notice.
 
 1. **Direction:** A "Forge", B "Prakash", or a mix (recommended: A kiosk + your choice of admin default theme)?
 2. **Admin default theme:** dark or light?
-3. **Aceternity UI:** skip it (recommended)? CLAUDE.md §10 lists it as a "free MIT" source, but its free components carry no MIT licence. Once you decide, CLAUDE.md §10 should be corrected.
-4. **React Bits** ("MIT + Commons Clause"): allow, or stay strictly OSI (recommended)?
-5. **Kiosk default language per plant:** Marathi?
-6. **Who checks the Marathi and Hindi strings?**
-7. **Ask the client:** can kiosks go under a canopy or hood, away from direct sun? This is the cheapest fix for both readability and face recognition.
+3. ~~Aceternity UI / React Bits / GSAP / Rive~~ **Decided 2026-10-11:** not used as code (licence or cost problems). CLAUDE.md §10 is updated. Licence-safe alternatives are being collected in `research/alternatives-and-more-sources.md`.
+4. ~~Kiosk language~~ **Decided:** English first; Marathi/Hindi optional later.
+5. **Later, when translations are added:** who checks the Marathi and Hindi strings?
+6. **Ask the client:** can kiosks go under a canopy or hood, away from direct sun? This is the cheapest fix for both readability and face recognition.

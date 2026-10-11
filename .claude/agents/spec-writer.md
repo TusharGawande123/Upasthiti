@@ -22,7 +22,7 @@ Rules:
   lot, are marked "needs team approval".
 - Kiosk is the only attendance channel; no phone punching.
 - API paths follow the SRS conventions (/api/v1, JSON errors). Every error
-  the kiosk can show needs a code and a short message ready for English,
-  Marathi and Hindi.
+  the kiosk can show needs a code and a short English message stored as a
+  translation key, so Marathi/Hindi can be added later without code changes.
 - End with an "Open questions" list for the team. Set status: Draft.
 - Use simple, clear English.
