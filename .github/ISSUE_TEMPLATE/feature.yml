@@ -1,0 +1,30 @@
+name: Feature idea
+description: A new feature or improvement (CLAUDE.md §11)
+labels: [spec]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What is it?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why does it help Sheet Shapers?
+    validations:
+      required: true
+  - type: dropdown
+    id: effort
+    attributes:
+      label: Effort
+      options: [S (hours), M (a few days), L (a week or more)]
+  - type: checkboxes
+    id: rules
+    attributes:
+      label: Rules
+      options:
+        - label: It is free (no paid service, API or licence)
+          required: true
+        - label: It keeps punching at the kiosk only, and is not a statutory/payroll item from CLAUDE.md §5
+          required: true

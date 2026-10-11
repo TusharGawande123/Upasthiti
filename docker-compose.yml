@@ -10,7 +10,8 @@ services:
       POSTGRES_PASSWORD: upasthiti # local development only, never used on a server
       POSTGRES_DB: upasthiti
     ports:
-      - "5432:5432"
+      # Only this laptop can connect (not others on the same Wi-Fi): the password is weak.
+      - "127.0.0.1:5432:5432"
     volumes:
       - postgres-data:/var/lib/postgresql/data
     healthcheck:

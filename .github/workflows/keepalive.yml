@@ -1,0 +1,31 @@
+# Keeps the free Render backend awake during shift hours (docs/decisions/0002-hosting.md).
+# Every 10 minutes from 05:30 to about 22:20 IST (00:00–16:50 UTC) it calls the health URL.
+# Set the repository variable BACKEND_HEALTH_URL after the first deploy (M1); until then
+# the job skips. Note: GitHub pauses scheduled workflows after 60 days with no repository
+# activity; re-enable this one from the Actions tab if that happens.
+name: Keep backend awake
+
+on:
+  schedule:
+    - cron: "*/10 0-16 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  ping:
+    name: ping
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call the health endpoint
+        env:
+          BACKEND_HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
+        run: |
+          if [ -z "$BACKEND_HEALTH_URL" ]; then
+            echo "::notice::BACKEND_HEALTH_URL is not set yet (set it in M1) - skipped."
+            exit 0
+          fi
+          # A sleeping Render service takes about a minute to wake, so retry a few times.
+          curl --fail --silent --show-error --retry 3 --retry-delay 30 --retry-all-errors \
+            --max-time 60 "$BACKEND_HEALTH_URL"

@@ -1,0 +1,34 @@
+# Checks that pull request titles follow Conventional Commits, e.g. "feat: add plant geofence"
+# (spec S-3). With squash merges the PR title becomes the commit message on main.
+name: PR title
+
+on:
+  pull_request_target:
+    types: [opened, edited, synchronize, reopened]
+
+# pull_request_target runs with this repository's permissions, so this workflow must never
+# check out or run code from the pull request. It only reads the title.
+permissions:
+  pull-requests: read
+
+jobs:
+  conventional-title:
+    name: conventional title
+    runs-on: ubuntu-latest
+    steps:
+      - uses: amannn/action-semantic-pull-request@v6
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            test
+            refactor
+            chore
+            ci
+            build
+            perf
+            style
+            revert

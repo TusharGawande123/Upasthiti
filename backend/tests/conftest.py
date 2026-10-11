@@ -8,10 +8,11 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 # Port 1 on localhost refuses connections at once, so no test ever reaches a real database
-# by accident. Set before the app is imported.
+# by accident, even when DATABASE_URL is set on the machine (as in CI). Set before the app is
+# imported.
 UNREACHABLE_DATABASE_URL = "postgresql+psycopg://test:test@127.0.0.1:1/upasthiti_test"
-os.environ.setdefault("APP_ENV", "test")
-os.environ.setdefault("DATABASE_URL", UNREACHABLE_DATABASE_URL)
+os.environ["APP_ENV"] = "test"
+os.environ["DATABASE_URL"] = UNREACHABLE_DATABASE_URL
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.db import get_engine, get_session_factory  # noqa: E402

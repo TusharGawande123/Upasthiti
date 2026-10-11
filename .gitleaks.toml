@@ -15,4 +15,4 @@ keywords = ["postgres"]
 # Known fake passwords used only on laptops, in tests and in CI (never on a server).
 [[rules.allowlists]]
 regexTarget = "secret"
-regexes = ['''^(upasthiti|test|e2e|x|y|p|pass|password)$''']
+regexes = ['''^(upasthiti|test|e2e|ci|x|y|p|pass|password)$''']

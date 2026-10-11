@@ -1,0 +1,32 @@
+name: Bug
+description: Something does not work as the spec says
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: "This repository is public: do not paste real employee names, photos, passwords or database URLs."
+  - type: dropdown
+    id: area
+    attributes:
+      label: Where
+      options: [Kiosk screen, Admin dashboard, Backend / API, Deployment, Other]
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Open /kiosk\n2. Show a revoked QR card\n3. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected vs actual
+    validations:
+      required: true
+  - type: input
+    id: request-id
+    attributes:
+      label: X-Request-ID (if you have it)
+      description: Shown in the browser's network tab; helps find the server log line.
