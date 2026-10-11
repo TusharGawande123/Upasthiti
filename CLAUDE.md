@@ -174,7 +174,11 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   (.claude/commands/).
 - A PR needs 1 approval and 5 green CI checks: `backend`, `frontend`, `e2e`, `docker`,
   `hooks` (CodeQL and the PR-title check also run). Merge with **Squash and merge**,
-  so `main` gets one commit per milestone. Delete the branch afterwards.
+  so `main` gets one commit per milestone.
+- Who does what: Claude pushes the branch and opens the PR, then stops. The lead merges
+  and deletes the branch on GitHub himself. When he says "merged", Claude switches to
+  `main`, pulls (`git pull --ff-only`), prunes (`git fetch --prune`) and deletes the
+  local branch.
 - The repo is public: never commit secrets, real employee data, face images or models.
   GitHub secret scanning + push protection, gitleaks and a 1 MB file limit guard this.
 - When unsure, ask. Ask the lead every question in chat, not only in a file. Record

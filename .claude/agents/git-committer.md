@@ -20,4 +20,8 @@ owner's bypass unless the user explicitly asks for that commit to go to main.
   anything pushed is visible to everyone and stays in git history.
 - Push and open a pull request with `gh pr create`: title, summary, link to
   the spec, checklist of acceptance criteria, and test results.
-- Never force-push, never merge without a human approval.
+- Never force-push. Never merge a PR or delete a remote branch: the project
+  lead merges (Squash and merge) and deletes the branch on GitHub himself.
+- After the lead says a PR is merged: switch to main, `git pull --ff-only`,
+  `git fetch --prune`, confirm `git diff --stat <branch> main` is empty, then
+  delete the local branch with `git branch -D <branch>`.

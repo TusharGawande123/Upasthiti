@@ -14,3 +14,8 @@ Ship the current milestone branch ($ARGUMENTS) as a pull request to `main`.
    .github/pull_request_template.md: spec link, acceptance criteria ticked, tests run,
    reviews done, extras built.
 5. Watch the CI checks and report the PR link and which checks passed or failed.
+6. Stop there. The lead reviews, merges (Squash and merge) and deletes the branch on
+   GitHub himself. Never merge the PR or delete the remote branch.
+7. When the lead says it is merged: `git switch main`, `git pull --ff-only`,
+   `git fetch --prune`, check `git diff --stat <branch> main` is empty, then
+   `git branch -D <branch>` (needed after a squash merge) and report the new top commit.
