@@ -64,7 +64,9 @@
   Do not comment obvious lines.
 - Each file/module starts with a short comment saying what it is for.
 - Consistent formatting using the project's formatter and linter.
-- Conventional Commits: feat:, fix:, docs:, test:, refactor:, chore:.
+- Conventional Commits: feat:, fix:, docs:, test:, refactor:, chore:, ci:, build:.
+  PR titles follow the same format (CI checks it); no Claude co-author or
+  "Generated with" lines in commits or PRs (team rule).
 
 ## 4. Preferred Libraries & Tools
 Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
@@ -86,6 +88,13 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   opencv-python-headless.
 - Tooling: uv, Ruff, pyright, pytest · Biome, Vitest, Playwright ·
   pre-commit, Dependabot, GitHub Actions.
+- M0 choices that differ from the first plan (docs/decisions/0003-dev-tooling.md):
+  TypeScript 7; `fastapi` + `fastapi-cli` + `uvicorn[standard]` (NOT
+  `fastapi[standard]`: it adds Sentry/OpenTelemetry/cloud CLI that waste Render's
+  512 MB); `httpx2` for tests; `tzdata` for IST on Windows; gitleaks for secrets;
+  our own `frontend/scripts/check-translations.mjs` instead of i18next-cli (its
+  native module fails on some Windows setups). One root `biome.json` covers
+  `frontend/` and `e2e/`.
 - Rule: modern, actively maintained, and FREE (no fees, no paid tier needed).
 
 ## 5. Critical Rules (What to Avoid)
@@ -139,7 +148,9 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   - Wait for the client's answers (proposal Q9, Q10) before building it.
 
 ## 7. Development Roadmap (milestones)
-- [ ] M0 Setup: repo, plugins, MCP, subagents, tech stack + SRS approved, CI
+- [x] M0 Setup: repo, plugins, MCP, subagents, tech stack + SRS approved, CI
+      (merged 2026-10-12, PR #1: monorepo skeleton, 5 CI jobs, pre-commit, Dependabot,
+      spec docs/specs/M0-setup.md)
 - [ ] M1 Foundation: login/roles, plants, kiosk devices, employees, design
       system; deploy skeleton to free tier
 - [ ] M2 QR attendance end-to-end at the kiosk (with snapshot)
@@ -159,27 +170,52 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 5. Build on branch milestone/M<n>-<name>; tests + small commits
 6. test-engineer, code-quality-reviewer, security-reviewer + manual testing
    -> PR -> teammate approval -> merge
-- When unsure, ask. Record decisions in docs/decisions/.
+- Shortcuts: `/spec M<n>`, `/plan M<n>`, `/review-milestone`, `/ship`
+  (.claude/commands/).
+- A PR needs 1 approval and 5 green CI checks: `backend`, `frontend`, `e2e`, `docker`,
+  `hooks` (CodeQL and the PR-title check also run). Merge with **Squash and merge**,
+  so `main` gets one commit per milestone. Delete the branch afterwards.
+- The repo is public: never commit secrets, real employee data, face images or models.
+  GitHub secret scanning + push protection, gitleaks and a 1 MB file limit guard this.
+- When unsure, ask. Ask the lead every question in chat, not only in a file. Record
+  decisions in docs/decisions/ (accepted extras: docs/decisions/accepted-extras.md).
 
 ## 9. Commands
-The project skeleton is created in M0; until then these are the planned commands.
+The skeleton exists since M0; the README.md has the full first-time setup.
+- First time: install uv (`powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"`),
+  then `uv tool install pre-commit` and `pre-commit install` in the repo root. Copy
+  `.env.example` to `.env`.
+- Run everything: `.\scripts\dev.ps1` (Git Bash/Linux: `./scripts/dev.sh`) starts the
+  backend (port 8000) and frontend (port 5173). Admin: http://localhost:5173/admin.
+- Local database: `docker compose up -d` (Postgres 17, localhost only) or a native
+  PostgreSQL install (README.md).
 - Backend (from backend/):
   - `uv sync`: install dependencies.
-  - `uv run fastapi dev app/main.py`: run the API locally.
-  - `uv run pytest`: run the tests.
+  - `uv run fastapi dev app/main.py`: run the API locally (docs at /api/docs).
+  - `uv run pytest`: run the tests (coverage floor 60%, raised each milestone).
   - `uv run ruff check . && uv run ruff format .`: lint and format.
   - `uv run pyright`: type check.
   - `uv run alembic upgrade head`: migrate the database.
-  - `uv run alembic revision --autogenerate -m "<what>"`: create a new migration.
-  - `uv run python scripts/download_models.py`: download the face models (sha256 checked).
+  - `uv run alembic revision --autogenerate --rev-id <next number> -m "<what>"`: create
+    a new migration (files are numbered: 0002_..., 0003_...).
+  - `uv run python scripts/download_models.py`: download the face models (sha256 checked);
+    added in M3.
 - Frontend (from frontend/):
   - `npm install`, then `npm run dev` (Vite; proxies /api to the local backend).
-  - `npm test` (Vitest), `npm run lint` (Biome), `npm run build`.
-- End-to-end (from e2e/): `npx playwright test`.
+  - `npm test` (Vitest + coverage), `npm run lint` / `npm run lint:fix` (Biome),
+    `npm run typecheck`, `npm run build`.
+  - `npm run i18n:check`: every text key used in code exists in
+    `public/locales/en/common.json`.
+- End-to-end (from e2e/): `npx playwright test` (starts backend + frontend itself; add
+  `--headed` to watch the browser).
+- Every git hook on every file: `pre-commit run --all-files`.
 - Windows note: plain `python` on the lead's laptop is 3.7, so use `uv` or `py -3.12`.
-- Deploy:
+  uv lives in `~/.local/bin`; Git Bash may need it added to PATH.
+- Deploy (from M1):
   - Pushing to main deploys the frontend on Vercel and the backend on Render.
   - The database is Supabase (set `DATABASE_URL` in Render).
+  - Set the GitHub repository variable `BACKEND_HEALTH_URL` after the first deploy, so the
+    keep-alive workflow starts calling `/api/v1/health`.
   - Self-hosting on the client's server is optional and only if they ask.
 
 ## 10. Configuration Notes
@@ -197,6 +233,13 @@ The project skeleton is created in M0; until then these are the planned commands
   HTTPS. This is the final hosting if it performs well (no separate Docker
   hosting planned). The client should own these accounts at handover.
 - QR snapshot retention default: 60 days (a setting).
+- Backend settings come only from environment variables (`.env` locally):
+  `APP_ENV` (unset = production, which switches off /api/docs), `APP_VERSION`,
+  `DATABASE_URL` (required), `LOG_LEVEL`. A missing required variable stops the app
+  with a message that names it but never prints its value.
+- Every error response: `{ "error": { "code", "message", "details" } }`.
+  Server logs are JSON in UTC with an `X-Request-ID`; SQL parameter values are never
+  logged (they can contain personal data).
 - Design references: docs/design-refs/ (inspiration.md + screenshots).
   Inspiration: Godly, Dribbble, Awwwards, Mobbin, Figma Community and the other
   sites listed in inspiration.md (ideas only, never copy artwork).
@@ -226,7 +269,10 @@ How to use this freedom:
   directly; mention them in the PR description.
 - Large (L) extras, or anything that changes the data model or API contract a
   lot, must be approved by the team first.
-- Record every accepted extra in docs/decisions/ (one short line is enough).
+- Record every accepted extra in docs/decisions/ (one short line is enough). The
+  running list, including product features already approved for M1, M2, M5 and M6
+  (F-1, F-4 to F-7, F-9, F-15), is docs/decisions/accepted-extras.md: read it when
+  writing each spec.
 - Core scope always comes first: never delay or break a core milestone for an
   extra.
 
