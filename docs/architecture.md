@@ -18,7 +18,7 @@ Hosting: docs/decisions/0002-hosting.md. Requirements: docs/SRS.md.
              ▼                                          ▼
       ┌───────────────────────────────────────────────────────┐
       │ Same origin: Vercel serves the SPA, rewrites /api/* → │
-      │ backend (later: Caddy reverse proxy in Docker)        │
+      │ backend on Render                                     │
       └───────────────────────────┬───────────────────────────┘
                                   ▼
       ┌───────────────────────────────────────────────────────┐
@@ -29,8 +29,8 @@ Hosting: docs/decisions/0002-hosting.md. Requirements: docs/SRS.md.
       │  settings · salary (M7) · jobs (APScheduler)          │
       └───────────────┬───────────────────────┬───────────────┘
                       ▼                       ▼
-            PostgreSQL (Supabase →     File storage for QR snapshots
-            Docker Postgres later)     (Supabase Storage → local disk)
+            PostgreSQL (Supabase)      File storage for QR snapshots
+                                       (Supabase Storage)
 ```
 
 Principles:
@@ -38,8 +38,8 @@ Principles:
   device time, signature.
 - **One backend app, split into modules.** Students deploy and debug one thing.
 - **Same origin for the SPA and the API.** Plain cookies, no CORS headaches.
-- **Everything is configured through `.env`.** The same Docker image runs on Render now
-  and on the client's server later.
+- **Everything is configured through `.env`.** The app can move to another host if ever
+  needed.
 
 ## 2. Kiosk registration (pairing)
 1. HR/plant admin creates a kiosk → `POST /api/v1/kiosks` → server returns a 6-digit
@@ -95,8 +95,8 @@ Principles:
    2. The head-pose change between frames matches the challenge (`LIVENESS_FAILED`).
    3. The MiniFASNet anti-spoof score on the frontal frames is above the threshold
       (`SPOOF_SUSPECTED`).
-   4. InsightFace ArcFace 512-d embeddings (`buffalo_sc` on Render, `buffalo_l` on the client
-      server) show every frame is the same person (`FACE_INCONSISTENT`).
+   4. InsightFace ArcFace `buffalo_l` 512-d embeddings show every frame is the same person
+      (`FACE_INCONSISTENT`).
    5. 1:N match against the plant's decrypted templates. The best score must be at least
       the threshold **and** beat the second-best by the set margin.
       - If it does: accepted.
@@ -200,7 +200,7 @@ upasthiti/
     scripts/             download_models.py (verifies sha256; models are not committed)
     tests/
   e2e/                   Playwright
-  deploy/                render.yaml, Caddyfile, docker-compose.yml (later)
+  deploy/                render.yaml, vercel.json (backend/Dockerfile is used by Render)
   docs/                  client, specs, plans, decisions, design-refs, SRS.md, architecture.md
   .github/workflows/     ci.yml, keepalive.yml
   .env.example

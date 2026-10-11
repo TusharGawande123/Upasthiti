@@ -105,9 +105,9 @@ leaves our own system.
 - **Kiosk:** Android tablet, phone or laptop with a camera, running a current Chrome or Edge
   in full-screen mode. Location must be enabled. The plant uses Wi-Fi or 4G.
 - **Admin:** any modern desktop browser.
-- **Server now:** free tiers. Frontend on Vercel, backend on Render (Docker), database and
-  files on Supabase (Mumbai).
-- **Server later:** Docker Compose on the client's own server (4 cores, 8 GB RAM is enough).
+- **Server:** free tiers. Frontend on Vercel, backend on Render, database and files on
+  Supabase (Mumbai). This is the final hosting if it performs well; self-hosting is optional,
+  only if the client asks.
 - **HTTPS is mandatory,** because browsers require it for camera access.
 
 ### 3.4 Design and implementation constraints
@@ -319,13 +319,13 @@ unless the user is an admin).
 | NFR-04 | Privacy | DPDP: notice, consent, purpose limitation, minimisation (no raw face images kept), retention + auto-purge, data-subject requests, breach log |
 | NFR-05 | Accuracy | Face false-accept rate below 0.1%, false-reject rate below 3%, measured in M3 on consented test data |
 | NFR-06 | Usability | English first (en-IN), i18n-ready for Marathi/Hindi; kiosk text at least 24 px, touch targets at least 64 px, 7:1 contrast, never colour alone; light, modern, premium admin UI |
-| NFR-07 | Maintainability | Readable code (CLAUDE.md §3); one backend app; Docker one-command install; pinned versions; runbook; backups |
+| NFR-07 | Maintainability | Readable code (CLAUDE.md §3); one backend app; simple deploy (push to main); pinned versions; runbook; backups |
 | NFR-08 | Portability | Configuration only through environment variables; runs on any Linux server with 4 cores / 8 GB |
 | NFR-09 | Cost | Zero cost: only free tools and free tiers |
 
 ## 7. Constraints
 - **a.** Free and open-source only; no paid services or licence fees.
-- **b.** Free-tier hosting now, Docker on the client's server later; no vendor-only features.
+- **b.** Free-tier hosting (Vercel, Render, Supabase); no vendor-only features, so moving is possible.
 - **c.** Company-provided hardware; CPU-only face AI.
 - **d.** Indian legal compliance (see Appendix A); the academic timeline (final-year
   calendar).
@@ -377,7 +377,7 @@ ER summary and table dictionary: **docs/architecture.md §7**.
 | M3 Face | Consent, enrolment, encrypted templates, liveness challenge, server face pipeline, code fallback, FAR/FRR report | Zero-tap face punch works; spoofs are rejected; the accuracy targets are met; RAM fits the host |
 | M4 Anti-proxy + offline | Geofence/IP/impossible-travel rules, exceptions screen, offline queue + signed sync | Security-reviewer spoof tests all rejected; a 1-hour offline sync is correct |
 | M5 Attendance, dashboards, reports | Pairing, late/early/OT, night shifts, regularisation, leave/holidays, live dashboard, Excel/PDF reports | Hand-calculated test cases match; reports open in Excel |
-| M6 Testing and handover | Full tests, security and compliance review, manuals, runbook, backups, Docker compose | All must-fix items closed; a teammate follows the runbook successfully |
+| M6 Testing and handover | Full tests, security and compliance review, manuals, runbook, backups, final free-tier deploy and account handover | All must-fix items closed; a teammate follows the runbook successfully |
 | M7 Salary estimate | Structures, rules, manual deductions, sheet + Excel | ₹16,600 example passes; built only after client Q9/Q10 |
 
 Dates and owners are added when the team fixes the academic calendar and work split.
@@ -406,7 +406,8 @@ premium; each screen designed inside its milestone).
 | Render free tier: 512 MB RAM and cold starts | Face pipeline doesn't fit, or a slow first punch | Lean backend, keep-alive cron, offline queue; Plan B: Azure for Students or Oracle VM (decision 0002) |
 | Face accuracy below target on cheap cameras | False rejects at the gate | Calibrate in M3; employee-code fallback; better lighting / canopy advice |
 | Client answers delayed (plants, shifts, salary) | Rework | Everything is a setting; M7 is last |
-| Free-tier terms change | Hosting breaks | Portable Docker image; config through env |
+| Free-tier terms change | Hosting breaks | Portable app (config through env, backend Dockerfile) |
+| `buffalo_l` face model too heavy for Render free | Slow or failing face punches | Measure in M3; move the backend to a bigger free server (decision 0002 Plan B); keep the big model |
 | Team availability (exams) | Delays | Small milestones; demo-ready after M2 |
 
 ### Appendix D – Glossary

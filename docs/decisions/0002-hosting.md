@@ -4,12 +4,12 @@ Date: 2026-10-11 · Decided by: Tushar Gawande (project lead) · Status: Accepte
 
 Free-tier limits were checked on the providers' official pages on 2026-10-11.
 
-## Decision: free tiers now, Docker on the client's server later
+## Decision: free tiers are the hosting (now and after handover, if they perform well)
 
 | Part | Provider (free tier) | Limits that matter | How we live with them |
 |---|---|---|---|
 | Frontend SPA | **Vercel Hobby** | Free static hosting with HTTPS | The frontend is a plain static build, so it can also move to Netlify or Cloudflare Pages in minutes. `vercel.json` rewrites `/api/*` to the backend, so the browser sees one origin and cookies stay simple. |
-| Backend API | **Render Free**, Docker, Singapore region | 512 MB RAM, 0.1 CPU, 750 instance hours per month; sleeps after 15 min idle and takes about 1 min to wake | Keep the backend lean: one worker, onnxruntime with 1 thread, headless OpenCV, no server-side MediaPipe. A GitHub Actions keep-alive cron runs 05:30–22:00 IST, with UptimeRobot free as backup. The kiosk's offline queue covers any cold start. RAM use is measured in M3. |
+| Backend API | **Render Free**, Docker, Singapore region | 512 MB RAM, 0.1 CPU, 750 instance hours per month; sleeps after 15 min idle and takes about 1 min to wake | Render runs our backend `Dockerfile`. Keep the backend lean: one worker, onnxruntime with 1 thread, headless OpenCV, no server-side MediaPipe. A GitHub Actions keep-alive cron runs 05:30–22:00 IST, with UptimeRobot free as backup. The kiosk's offline queue covers any cold start. RAM use and speed of the InsightFace `buffalo_l` model are measured in M3; if they don't fit, use Plan B. |
 | Database + snapshot files | **Supabase Free**, Mumbai | Postgres 500 MB, Storage 1 GB; pauses after 1 week with no activity | Daily punches keep it awake. We use only plain Postgres and Storage (not Supabase Auth or its APIs), so moving away is easy. |
 
 ## Rejected
@@ -21,19 +21,14 @@ Free-tier limits were checked on the providers' official pages on 2026-10-11.
 - **Fly.io:** no free tier for new users.
 - **Koyeb, Northflank, Google Cloud Run:** a payment card is required.
 
-## Plan B (backend), if the 512 MB limit or cold starts hurt
+## Plan B (backend), if Render free is too small for the `buffalo_l` face model or cold starts hurt
+- **Oracle Cloud Always Free:** 2 OCPU / 12 GB RAM in Mumbai, always on; a card is needed only
+  for verification.
 - **Azure for Students VM:** college email, no card, $100 credit for 12 months.
-- **Oracle Cloud Always Free:** 2 OCPU / 12 GB in Mumbai, but a card is needed for
-  verification.
 
-Both run the same Docker image.
+Both run the same backend Dockerfile. Vercel and Supabase stay as they are.
 
-## Later: handover
-One `docker compose up` on the client's server runs:
-- Caddy (automatic HTTPS)
-- frontend
-- backend
-- Postgres
-- a local snapshot folder
-
-All configuration comes from `.env`. Face data then never leaves the company.
+## Handover
+- The client takes ownership of the Vercel, Render and Supabase accounts.
+- Self-hosting on the client's own server is **optional**, only if they ask for it. The app
+  stays portable (config through env), so it remains possible.

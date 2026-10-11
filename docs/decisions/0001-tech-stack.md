@@ -10,7 +10,7 @@ its licence and reason in its PR.
 
 | Layer | Choice (version at decision time) | Licence | Why it fits Upasthiti | Rejected alternatives |
 |---|---|---|---|---|
-| Frontend | Vite 8 + React 19.3 + TypeScript. One SPA with two areas: `/kiosk` and `/admin` | MIT | A static build runs anywhere (Vercel now, Docker later) and is simple for students | Next.js 16 and TanStack Start: they add a second server and server rendering we don't need |
+| Frontend | Vite 8 + React 19.3 + TypeScript. One SPA with two areas: `/kiosk` and `/admin` | MIT | A static build runs anywhere (Vercel; any static host) and is simple for students | Next.js 16 and TanStack Start: they add a second server and server rendering we don't need |
 | Routing / data | React Router 8 (data mode), TanStack Query 5 | MIT | Well-known patterns, with caching and retries | TanStack Router: harder for newcomers |
 | Forms | React Hook Form 7 + Zod 4 (`@hookform/resolvers` 5) | MIT | One validation schema per form | Formik: less active |
 | UI | Tailwind CSS 4 + shadcn/ui (CLI 4.21) + Lucide icons | MIT / ISC | Component code lives in our repo; light, premium theme | MUI and Chakra: heavier and harder to make look distinctive |
@@ -19,8 +19,8 @@ its licence and reason in its PR.
 | Tables / charts | TanStack Table (the version shadcn's examples use) + Recharts 3 via shadcn charts | MIT | Admin lists, registers, headcount charts | Tremor: stagnant since 2025 |
 | Backend | Python 3.12 + FastAPI 0.143 (native SSE) + Pydantic 2 | MIT | The face AI is Python-native; FastAPI documents the API itself (OpenAPI) | Node.js / NestJS: weak face tooling |
 | ORM / DB | PostgreSQL + SQLAlchemy 2.1 (sync) + Alembic + psycopg 3 | MIT; psycopg is LGPL-3.0 (approved by the lead, used unmodified) | Relational data for attendance, salary and audit; `numeric` type for money | MongoDB (weak joins and transactions); SQLModel (still 0.0.x); asyncpg (async adds complexity) |
-| Face detection (server) | **InsightFace SCRFD** (`det_500m` on Render; `det_10g` on the client server) | Free | Accurate, and gives 5 landmarks for alignment | YuNet (kept as a lightweight fallback) |
-| Face recognition (server) | **InsightFace ArcFace** models, 512-d embeddings:<br>• `buffalo_sc` (MobileFaceNet `w600k_mbf`, ~16 MB) on Render free (512 MB RAM)<br>• `buffalo_l` (`w600k_r50`) on the client server<br>Run directly with onnxruntime; alignment uses the OpenCV 5-point transform | Free | Much better at the zero-tap 1:N match with a very low false-accept rate. Runs on CPU | SFace (free but less accurate; kept as a fallback); DeepFace bundle (extra layer, heavy dependencies) |
+| Face detection (server) | **InsightFace SCRFD** (`det_10g`, from the `buffalo_l` pack) | Free | Accurate, and gives 5 landmarks for alignment | YuNet (kept as a lightweight fallback) |
+| Face recognition (server) | **InsightFace ArcFace `buffalo_l`** (`w600k_r50`, 512-d embeddings), the most accurate pack, used everywhere. Run directly with onnxruntime; alignment uses the OpenCV 5-point transform. **M3 measures RAM and speed on Render;** if Render free can't run it well, the backend moves to a bigger free server (decision 0002 Plan B). We keep the big model, not a smaller one | Free | Much better at the zero-tap 1:N match with a very low false-accept rate. Runs on CPU | SFace (free but less accurate; kept as a fallback); DeepFace bundle (extra layer, heavy dependencies) |
 | Anti-spoofing (server) | MiniFASNet V2 + V1SE (Silent-Face-Anti-Spoofing, ONNX) | Apache-2.0 | Rejects printed photos and phone-screen replays | Models trained on CelebA-Spoof (unclear licence) |
 | Liveness UX (browser) | MediaPipe Face Landmarker (tasks-vision 1.1) | Apache-2.0 | Guide oval plus blink and head-turn prompts. Used for UX only; the server never trusts its result | @vladmandic/human and face-api (archived; mixed model licences) |
 | Runtime | onnxruntime (CPU) + opencv-python-headless | MIT / Apache-2.0 | No GPU needed | — |

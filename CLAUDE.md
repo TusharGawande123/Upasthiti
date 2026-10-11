@@ -39,13 +39,13 @@
   dictionary) and docs/SRS.md (requirements FR-xx / NFR-xx).
 - Monorepo: frontend/ (Vite + React SPA: /kiosk and /admin), backend/ (one
   FastAPI app split into modules), e2e/ (Playwright), deploy/ (render.yaml,
-  Caddyfile, docker-compose later), .github/workflows/.
+  backend Dockerfile used by Render), .github/workflows/.
 - Backend layout: app/core (config, db, security, crypto, time, storage),
   app/modules/<name>/{models,schemas,service,router}.py, app/antiproxy/
   (one rule per file + engine.py), app/face/ (detector, embedder,
   antispoof, matcher), app/jobs/, migrations/ (Alembic), tests/.
-- Same origin for SPA and API (Vercel rewrites /api/* to the backend; Caddy
-  later), so admin auth uses plain session cookies.
+- Same origin for SPA and API (Vercel rewrites /api/* to the backend), so
+  admin auth uses plain session cookies.
 - The server decides every punch; the kiosk only sends signed evidence.
 - Fixed folders: docs/ (client/, specs/, plans/, decisions/, design-refs/),
   .claude/agents/ (subagents), .claude/commands/ (custom commands).
@@ -80,8 +80,8 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   psycopg 3, PostgreSQL, argon2-cffi, cryptography (Ed25519 QR signing,
   ECDSA verify, AES-256-GCM templates), Shapely, segno, XlsxWriter,
   ReportLab, APScheduler 3.
-- Face (server): InsightFace SCRFD + ArcFace via onnxruntime (buffalo_sc on
-  Render, buffalo_l on the client server), MiniFASNet anti-spoofing,
+- Face (server): InsightFace buffalo_l (SCRFD det_10g + ArcFace w600k_r50,
+  512-d) via onnxruntime, MiniFASNet anti-spoofing,
   opencv-python-headless.
 - Tooling: uv, Ruff, pyright, pytest · Biome, Vitest, Playwright ·
   pre-commit, Dependabot, GitHub Actions.
@@ -107,7 +107,8 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - Money uses exact decimal arithmetic, never floating point. Salary screens
   and exports are labelled "Estimate".
 - Keep the app portable: config via environment variables, no vendor-only
-  features, so free-tier hosting can later move to Docker.
+  features, so the app can move to another host (or the client's own server)
+  if ever needed.
 - Do not change an approved API contract without updating the spec.
 - Do not add a new dependency without stating its licence and reason.
 
@@ -146,7 +147,7 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - [ ] M5 Attendance processing, dashboards, reports
 - [ ] M6 Testing, security review, documentation, free-tier deployment
 - [ ] M7 Payable salary estimate + Excel export (after client answers Q9/Q10)
-- [ ] Later: Docker package for the company server
+- [ ] Optional: self-host package (Docker) only if the client asks for it
 - [ ] Future (not now): full payroll and statutory features
 
 ## 8. Workflow (Spec-Driven, milestone by milestone)
@@ -178,7 +179,7 @@ The project skeleton is created in M0; until then these are the planned commands
 - Deploy:
   - Pushing to main deploys the frontend on Vercel and the backend on Render.
   - The database is Supabase (set `DATABASE_URL` in Render).
-  - Later: `docker compose up -d` from deploy/ on the client's server.
+  - Self-hosting on the client's server is optional and only if they ask.
 
 ## 10. Configuration Notes
 - Language: ENGLISH FIRST (English, India locale en-IN: DD/MM/YYYY dates,
@@ -192,7 +193,8 @@ The project skeleton is created in M0; until then these are the planned commands
 - Hosting now (docs/decisions/0002-hosting.md): frontend on Vercel Hobby,
   backend on Render Free (Docker, 512 MB, sleeps after 15 min; keep-alive
   cron), Postgres + snapshot storage on Supabase Free (Mumbai). Camera needs
-  HTTPS. Later: Docker Compose on the company server.
+  HTTPS. This is the final hosting if it performs well (no separate Docker
+  hosting planned). The client should own these accounts at handover.
 - QR snapshot retention default: 60 days (a setting).
 - Design references: docs/design-refs/ (inspiration.md + screenshots).
   Inspiration: Godly, Dribbble, Awwwards, Mobbin, Figma Community and the other
