@@ -11,12 +11,21 @@ build/
 __pycache__/
 *.pyc
 .venv/
+.pytest_cache/
+.ruff_cache/
+.coverage
+coverage.xml
+htmlcov/
+coverage/
 venv/
 
 # OS / editor
 .DS_Store
 Thumbs.db
-.vscode/
+# Shared VS Code setup is committed; personal settings are not.
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
 .idea/
 
 # Local Claude settings

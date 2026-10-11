@@ -1,0 +1,41 @@
+# Weekly dependency update pull requests (spec M0). Minor and patch updates are grouped into
+# one PR per folder; major updates come one by one because they may need code changes.
+version: 2
+
+updates:
+  - package-ecosystem: uv
+    directory: /backend
+    schedule: { interval: weekly, day: monday, timezone: Asia/Kolkata }
+    open-pull-requests-limit: 5
+    groups:
+      backend-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /frontend
+    schedule: { interval: weekly, day: monday, timezone: Asia/Kolkata }
+    open-pull-requests-limit: 5
+    groups:
+      frontend-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: npm
+    directory: /e2e
+    schedule: { interval: weekly, day: monday, timezone: Asia/Kolkata }
+    open-pull-requests-limit: 5
+    groups:
+      e2e-minor-and-patch:
+        update-types: [minor, patch]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule: { interval: weekly, day: monday, timezone: Asia/Kolkata }
+    open-pull-requests-limit: 5
+    groups:
+      actions:
+        update-types: [major, minor, patch]
+
+  - package-ecosystem: docker
+    directory: /backend
+    schedule: { interval: weekly, day: monday, timezone: Asia/Kolkata }
+    open-pull-requests-limit: 5

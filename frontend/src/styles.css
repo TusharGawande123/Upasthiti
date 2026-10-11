@@ -1,0 +1,6 @@
+/* Global styles. The real design system (colours, fonts, shadcn/ui theme) is added in M1. */
+@import "tailwindcss";
+
+body {
+  @apply bg-slate-50 text-slate-900 antialiased;
+}

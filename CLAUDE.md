@@ -237,4 +237,3 @@ Guardrails that still apply to extras (these protect the team and the client):
   otherwise.
 - The legally risky payroll/statutory items in section 5 stay out.
 - Keep the code readable and simple to maintain after handover.
-

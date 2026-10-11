@@ -1,0 +1,207 @@
+# Main checks for every pull request and every push to main. All five jobs are required to
+# merge into main (spec M0, AC-11). The repository is public: never print secrets or data here.
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  UV_VERSION: "0.13.0"
+  NODE_VERSION: "24"
+
+jobs:
+  backend:
+    name: backend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: upasthiti
+          POSTGRES_PASSWORD: upasthiti
+          POSTGRES_DB: upasthiti
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U upasthiti" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install packages
+        run: uv sync --locked
+      - name: Lint (Ruff)
+        run: uv run ruff check .
+      - name: Format check (Ruff)
+        run: uv run ruff format --check .
+      - name: Type check (pyright)
+        run: uv run pyright
+      - name: Tests with coverage
+        run: uv run pytest --cov-report=markdown-append:"$GITHUB_STEP_SUMMARY"
+      - name: Database migrations run on a real Postgres
+        env:
+          DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti
+        run: |
+          uv run alembic upgrade head
+          uv run alembic current | tee alembic-current.txt
+          grep -q "(head)" alembic-current.txt
+
+  frontend:
+    name: frontend
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install packages
+        run: npm ci
+      - name: Lint and format check (Biome)
+        run: npx biome ci .
+      - name: Type check
+        run: npm run typecheck
+      - name: Translation keys exist in en/common.json
+        run: npm run i18n:check
+      - name: Tests with coverage
+        run: npm test
+      - name: Coverage summary
+        if: always()
+        run: |
+          node -e '
+            const total = require("./coverage/coverage-summary.json").total;
+            const rows = ["lines", "statements", "functions", "branches"]
+              .map((name) => `| ${name} | ${total[name].pct}% |`).join("\n");
+            console.log(`### Frontend coverage\n| Measure | Covered |\n|---|---|\n${rows}`);
+          ' >> "$GITHUB_STEP_SUMMARY"
+      - name: Production build
+        run: npm run build
+
+  e2e:
+    name: e2e
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: |
+            frontend/package-lock.json
+            e2e/package-lock.json
+      - name: Install backend and frontend
+        run: |
+          (cd backend && uv sync --locked)
+          (cd frontend && npm ci)
+      - name: Install Playwright and Chromium
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Run end-to-end tests
+        working-directory: e2e
+        run: npx playwright test
+      # Test data is synthetic, so the report is safe to keep in this public repo.
+      - name: Keep the report when tests fail
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: playwright-report
+          path: e2e/playwright-report/
+          retention-days: 7
+
+  docker:
+    name: docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - name: Build the backend image
+        run: docker build -t upasthiti-backend:ci backend
+      - name: Start it the way Render will (PORT set, production mode)
+        run: |
+          docker run -d --name backend -p 10000:10000 \
+            -e PORT=10000 -e APP_ENV=production -e APP_VERSION="${GITHUB_SHA}" \
+            -e DATABASE_URL=postgresql+psycopg://ci:ci@127.0.0.1:1/ci \
+            upasthiti-backend:ci
+      - name: Health endpoint answers
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl -fsS http://localhost:10000/api/v1/health; then exit 0; fi
+            sleep 1
+          done
+          docker logs backend
+          exit 1
+      - name: Server does not run as root
+        run: test "$(docker exec backend id -u)" != "0"
+      - name: API docs are off in production
+        run: |
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/docs)" = "404"
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/v1/openapi.json)" = "404"
+
+  hooks:
+    name: hooks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+          fetch-depth: 0 # full history, so gitleaks can scan every commit
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          version: ${{ env.UV_VERSION }}
+      - uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - name: Install Biome (used by a hook)
+        working-directory: frontend
+        run: npm ci
+      # The gitleaks hook only looks at staged files, which CI does not have; the next step
+      # scans the full history instead.
+      - name: Run every pre-commit hook on all files
+        env:
+          SKIP: gitleaks
+        run: uvx pre-commit run --all-files --show-diff-on-failure
+      - name: Scan the whole git history for secrets (gitleaks)
+        env:
+          GITLEAKS_VERSION: "8.30.1"
+        run: |
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          archive="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -sSfLO "${base}/${archive}"
+          curl -sSfLO "${base}/gitleaks_${GITLEAKS_VERSION}_checksums.txt"
+          # Only use the download if it matches the published checksum.
+          grep " ${archive}$" "gitleaks_${GITLEAKS_VERSION}_checksums.txt" | sha256sum --check
+          tar -xzf "${archive}" gitleaks
+          ./gitleaks git --redact --verbose --config .gitleaks.toml .

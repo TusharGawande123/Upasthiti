@@ -1,0 +1,24 @@
+# Local Postgres for development (spec S-10). Start: docker compose up -d   Stop: docker compose down
+# The data stays in the "postgres-data" volume between restarts.
+# No Docker? Install PostgreSQL 17 natively instead (see README.md, "Database").
+
+services:
+  postgres:
+    image: postgres:17
+    environment:
+      POSTGRES_USER: upasthiti
+      POSTGRES_PASSWORD: upasthiti # local development only, never used on a server
+      POSTGRES_DB: upasthiti
+    ports:
+      # Only this laptop can connect (not others on the same Wi-Fi): the password is weak.
+      - "127.0.0.1:5432:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U upasthiti -d upasthiti"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  postgres-data:

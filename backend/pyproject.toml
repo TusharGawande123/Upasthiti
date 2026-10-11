@@ -1,0 +1,49 @@
+[project]
+name = "upasthiti-backend"
+version = "0.1.0"
+description = "Upasthiti – Smart Attendance backend (FastAPI)"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "alembic>=1.20.0",
+    "fastapi>=0.143.0",
+    "fastapi-cli>=0.0.32",
+    "psycopg[binary]>=3.3.6",
+    "pydantic-settings>=2.15.0",
+    "sqlalchemy>=2.1.4",
+    "tzdata>=2026.5",
+    "uvicorn[standard]>=0.54.0",
+]
+
+[dependency-groups]
+dev = [
+    "httpx2>=2.13.1",
+    "pyright>=1.1.414",
+    "pytest>=9.1.1",
+    "pytest-cov>=7.1.0",
+    "ruff>=0.17.0",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F: errors, I: import order, B: likely bugs, UP: modern syntax, N: naming, S: security
+select = ["E", "F", "I", "B", "UP", "N", "S", "SIM"]
+# Database migrations are generated code; asserts are normal in tests.
+per-file-ignores = { "tests/**" = ["S101"], "migrations/**" = ["E501"] }
+
+[tool.pyright]
+pythonVersion = "3.12"
+typeCheckingMode = "standard"
+include = ["app", "tests", "migrations"]
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=60"
+
+[tool.coverage.run]
+branch = true

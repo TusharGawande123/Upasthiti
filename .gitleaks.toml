@@ -1,0 +1,18 @@
+# gitleaks settings: all default secret rules, plus one rule for database URLs that contain a
+# password (for example a Supabase DATABASE_URL), which the default rules do not catch.
+title = "Upasthiti gitleaks config"
+
+[extend]
+useDefault = true
+
+[[rules]]
+id = "database-url-with-password"
+description = "PostgreSQL connection URL with a password in it"
+regex = '''(?i)\bpostgres(?:ql)?(?:\+psycopg)?://[^:\s/@"']+:([^@\s"']+)@[^\s/"']+'''
+secretGroup = 1
+keywords = ["postgres"]
+
+# Known fake passwords used only on laptops, in tests and in CI (never on a server).
+[[rules.allowlists]]
+regexTarget = "secret"
+regexes = ['''^(upasthiti|test|e2e|ci|x|y|p|pass|password)$''']

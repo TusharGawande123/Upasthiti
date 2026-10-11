@@ -1,0 +1,44 @@
+# Checks that run on every `git commit` (install once with: pre-commit install).
+# CI runs the same hooks on all files, so skipping them locally does not get code merged.
+# Update hook versions with: pre-commit autoupdate
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+        args: [--markdown-linebreak-ext=md]
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-json
+        exclude: ^(frontend|e2e)/tsconfig.*\.json$ # tsconfig allows comments
+      - id: check-toml
+      - id: check-merge-conflict
+      - id: detect-private-key
+      # Blocks big files (face models, photos, exports) from ever reaching the public repo.
+      # --enforce-all: also check files that are already committed (CI has nothing staged).
+      - id: check-added-large-files
+        args: [--maxkb=1024, --enforce-all]
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.17.0
+    hooks:
+      - id: ruff-check
+        args: [--fix]
+      - id: ruff-format
+
+  # Finds API keys, passwords in URLs and other secrets (spec S-2).
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.30.0
+    hooks:
+      - id: gitleaks
+
+  - repo: local
+    hooks:
+      - id: biome
+        name: biome (format + lint TS/JS/JSON/CSS)
+        language: system
+        # Started with node so it works the same on Windows, macOS and Linux.
+        entry: node frontend/node_modules/@biomejs/biome/bin/biome check --write --no-errors-on-unmatched --files-ignore-unknown=true
+        files: ^(frontend|e2e)/
+        types_or: [ts, tsx, javascript, json, css]
