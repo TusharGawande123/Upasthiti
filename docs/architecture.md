@@ -93,7 +93,7 @@ Principles:
    pipeline:
    1. InsightFace SCRFD finds exactly one face per frame (`NO_FACE` / `MULTIPLE_FACES`).
    2. The head-pose change between frames matches the challenge (`LIVENESS_FAILED`).
-   3. The MiniFASNet anti-spoof score on the frontal frames is above the threshold
+   3. The anti-spoof score (model chosen in M3) on the frontal frames is above the threshold
       (`SPOOF_SUSPECTED`).
    4. InsightFace ArcFace `buffalo_l` 512-d embeddings show every frame is the same person
       (`FACE_INCONSISTENT`).

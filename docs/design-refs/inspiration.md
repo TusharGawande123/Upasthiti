@@ -228,8 +228,8 @@ MIT. The final stack decision happens in Part B (planning).
 | Lucide (+ Tabler as backup) | ✅ Use | ISC / MIT | Icons; Tabler's filled icons for big kiosk pictograms |
 | Recharts (via shadcn charts) | ✅ Use | MIT | Charts. Apache ECharts is optional, for a heavy calendar heatmap. |
 | Leaflet + a draw plugin, OpenStreetMap tiles | ✅ Use (decided in Part B) | BSD-2 / MIT; tiles ODbL with attribution | Geofence editor |
-| 21st.dev | ⚠️ Per component | varies | Only if the page says MIT/Apache/BSD/ISC; `unknown` means no. Free plan only. |
-| Lottie (dotlottie-web player) | ⚠️ Sparingly | player MIT; files under the Lottie Simple License | At most 2–4 tiny animations, or simply use SVG + Motion |
+| 21st.dev | ✅ Any free component (decided 2026-10-12) | varies | Free plan only; log the source |
+| Lottie (dotlottie-web player) | ✅ Use free LottieFiles animations (decided 2026-10-12) | free | Kiosk success/failure/scan animations, or simply use SVG + Motion |
 | uiverse.io | ⚠️ Ideas only | MIT | Rewrite as our own Tailwind code; keep the credit comment |
 | **Aceternity UI (free)** | ✅ Use (decided 2026-10-12: free is enough) | free components | Spotlight, beams, animated cards on the admin/login pages |
 | React Bits | ✅ Use (free) | MIT + Commons Clause | Text and background effects (keep WebGL ones off the kiosk) |
@@ -253,7 +253,7 @@ Full details: [research/alternatives-and-more-sources.md](research/alternatives-
 | Obra shadcn/ui Figma kit | CC BY 4.0 (credit required) | ✅ Use in Figma | Figma twin of our components |
 | Mantine / HeroUI | MIT / Apache | Not chosen | Would replace shadcn; don't mix design systems |
 | Animate UI, shadcn/studio (free parts) | free | ✅ Use (decided 2026-10-12) | Animated primitives, blocks |
-| shadcnblocks, Skiper UI, Lukacho UI, Hover.dev | free parts unclear / paid tiers | Use only free parts; never pay | — |
+| shadcnblocks, Skiper UI, Lukacho UI, Hover.dev | free parts | ✅ Use free parts (decided 2026-10-12); never pay | Blocks and effects |
 
 Rule learned: animate translatable text **per word or per line**, never letter by
 letter. Letter-by-letter effects break Devanagari when Marathi/Hindi are added.

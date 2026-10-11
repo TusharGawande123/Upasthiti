@@ -14,7 +14,9 @@ Rules:
   Sheet Shapers employee data, never upload faces anywhere, never commit
   face images or embeddings to git (keep them in an ignored folder).
 - Models must be free to use (no paid model or API). The approved models
-  are InsightFace buffalo_l (SCRFD + ArcFace, used everywhere) and MiniFASNet
+  are InsightFace buffalo_l (SCRFD + ArcFace, used everywhere). For anti-
+  spoofing, compare MiniFASNet with CelebA-Spoof-trained models and recommend
+  the better one,
   anti-spoofing. Also report RAM use and seconds per punch on the Render free
   instance; see
   docs/decisions/0001-tech-stack.md.

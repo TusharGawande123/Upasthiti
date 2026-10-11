@@ -79,9 +79,10 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - Backend: Python 3.12, FastAPI, Pydantic 2, SQLAlchemy 2.1 (sync) + Alembic,
   psycopg 3, PostgreSQL, argon2-cffi, cryptography (Ed25519 QR signing,
   ECDSA verify, AES-256-GCM templates), Shapely, segno, XlsxWriter,
-  ReportLab, APScheduler 3.
+  fpdf2, APScheduler 3.
 - Face (server): InsightFace buffalo_l (SCRFD det_10g + ArcFace w600k_r50,
-  512-d) via onnxruntime, MiniFASNet anti-spoofing,
+  512-d) via onnxruntime, anti-spoofing (MiniFASNet or a CelebA-Spoof model,
+  the better one chosen in M3),
   opencv-python-headless.
 - Tooling: uv, Ruff, pyright, pytest · Biome, Vitest, Playwright ·
   pre-commit, Dependabot, GitHub Actions.
@@ -201,7 +202,8 @@ The project skeleton is created in M0; until then these are the planned commands
   sites listed in inspiration.md (ideas only, never copy artwork).
   Code we copy in: any FREE component (shadcn/ui, Magic UI free, Motion
   Primitives, Kibo UI, Aceternity UI free, React Bits, Animate UI,
-  shadcn/studio free blocks, 21st.dev free items) and GSAP. NOT allowed:
+  shadcn/studio free blocks, free blocks from shadcnblocks/Skiper/Hover.dev,
+  any free 21st.dev component, free LottieFiles animations) and GSAP. NOT allowed:
   anything paid (Magic UI Pro, Motion+, Rive paid exports, Skiper Premium,
   paid templates). Log every copied component in
   docs/decisions/ui-component-sources.md.

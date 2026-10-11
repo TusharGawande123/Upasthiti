@@ -335,7 +335,7 @@ unless the user is an admin).
 |---|---|
 | GPS spoofing | Kiosk GPS is one signal among several (device key, IP allow-list, impossible travel). Mock-location reports and accuracy are checked (`OUTSIDE_GEOFENCE`, `GPS_ACCURACY_TOO_LOW`) |
 | Poor indoor GPS / boundary jitter | Geofence margin in metres; an accuracy limit setting; a borderline punch is flagged instead of rejected |
-| Photo, video or mask spoof | Liveness challenge + MiniFASNet anti-spoof (`LIVENESS_FAILED`, `SPOOF_SUSPECTED`) |
+| Photo, video or mask spoof | Liveness challenge + anti-spoof model (`LIVENESS_FAILED`, `SPOOF_SUSPECTED`) |
 | Twins, beard, helmet, safety glasses | Several enrolment shots; a margin over the second-best match → `NEED_EMPLOYEE_CODE`; re-enrolment option |
 | QR screenshot shared / card lent | Snapshot at each punch + cool-down + impossible travel; HR review |
 | Revoked, expired or damaged card | `QR_REVOKED`, `QR_EXPIRED`; unreadable → "Hold the card still / see HR" |
