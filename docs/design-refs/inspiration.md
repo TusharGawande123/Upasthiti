@@ -1,6 +1,8 @@
 # Upasthiti – Design inspiration and two directions
 
-Status: **Draft – team to choose a direction** · Researched 2026-10-11 by the
+Status: **Decided 2026-10-11** – Kiosk: A "Forge" · Admin: A "Forge" dark · Fonts: Anek Latin + Geist Mono
+(see [../decisions/0000-design-direction.md](../decisions/0000-design-direction.md); visual canvas:
+https://claude.ai/artifact/WqBk1FfhFe6xiK3rN4t4to). More inspiration sites: [research/inspiration-websites.md](research/inspiration-websites.md) · Researched 2026-10-11 by the
 ui-designer and feature-researcher subagents.
 
 This page is the short version you decide from. The full research (every
