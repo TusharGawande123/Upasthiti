@@ -6,9 +6,12 @@ Date: 2026-10-11 · Decided by: Tushar Gawande (project lead) · Status: Accepte
 - **Kiosk:** Direction A "Forge". Split screen: live camera on the left (never
   covered), solid result panel on the right. Safety-yellow scan frame, white
   panels and near-black text for sunlight.
-- **Admin dashboard:** Direction A "Forge", **dark theme** by default (left
-  sidebar, steel surfaces, safety-yellow accent). Light theme tokens exist
-  in inspiration.md and can be added later as a toggle.
+- **Theme: LIGHT** (updated 2026-10-11 by Tushar): the admin dashboard and
+  the whole website use a light theme. The look must be modern and premium,
+  not dark. (Earlier note "Forge dark admin" is replaced; a dark toggle may
+  come later as an extra.)
+- **When to design:** each screen is designed during its own milestone (in
+  the spec/plan step), not all up front.
 - **Fonts:** **Anek Latin** for UI text and **Geist Mono** for times,
   headcounts and codes (both SIL OFL 1.1, self-hosted). **Anek Devanagari** is the matching
   fallback when Marathi/Hindi are switched on later.
