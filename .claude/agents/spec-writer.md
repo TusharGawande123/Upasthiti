@@ -18,8 +18,10 @@ Rules:
 - Cover the core scope in CLAUDE.md first. Then think creatively: add a
   "Proposed extras" section (what, why it helps, effort S/M/L, risk) with
   ideas that would make the product better. See CLAUDE.md section 11.
-- Large (L) extras, or ones that change the data model or API contract a
-  lot, are marked "needs team approval".
+- Include suggestions that improve this milestone OR the whole project
+  (features, UX, security, performance, better libraries). Every suggestion
+  starts as "Pending" and is built only after the project lead approves it.
+  Ask about each one directly in chat, not only inside the file.
 - Kiosk is the only attendance channel; no phone punching.
 - API paths follow the SRS conventions (/api/v1, JSON errors). Every error
   the kiosk can show needs a code and a short English message stored as a

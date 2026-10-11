@@ -66,9 +66,21 @@ Which tests cover which ACs:
 - end-to-end (Playwright);
 - manual checks.
 
-## 12. Proposed extras (CLAUDE.md §11)
-| Extra | Why it helps | Effort S/M/L | Risk | Needs team approval? |
-|---|---|---|---|---|
+## 12. Suggestions and proposed extras (CLAUDE.md §11)
+Think like a product owner. List every idea that would make **this milestone or the whole
+project** better: features, screens, checks, UX polish, security, performance, or a better
+library or approach than the one planned.
+
+**Approval rule:** nothing in this section is built until the project lead approves it.
+- Ask the lead about each suggestion directly in chat as a simple choice; don't leave
+  questions only in this file.
+- Mark each row as Approved / Rejected / Later.
+- Copy approved items into the scope (§2), the acceptance criteria (§10) and
+  docs/decisions/.
+
+| # | Suggestion | Why it helps | Effort S/M/L | Risk | Status (Pending / Approved / Rejected / Later) |
+|---|---|---|---|---|---|
+| S-1 | … | … | … | … | Pending |
 
 ## 13. Dependencies to add
 | Package | Version | Licence | Reason |
