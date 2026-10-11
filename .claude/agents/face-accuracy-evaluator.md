@@ -13,8 +13,10 @@ Rules:
   licence allows this use (check and state the licence). Never use real
   Sheet Shapers employee data, never upload faces anywhere, never commit
   face images or embeddings to git (keep them in an ignored folder).
-- Check that the model WEIGHTS licence allows commercial use (no InsightFace
-  pretrained models).
+- Models must be free to use (no paid model or API). The approved models
+  are InsightFace SCRFD + ArcFace (buffalo_sc on Render, buffalo_l on the
+  client server) and MiniFASNet anti-spoofing; see
+  docs/decisions/0001-tech-stack.md.
 - You may write evaluation scripts under an evaluation/tests folder, but
   never change application code; report problems instead.
 

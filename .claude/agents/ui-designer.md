@@ -19,8 +19,10 @@ fallback for when Marathi/Hindi are switched on, and respect
 prefers-reduced-motion.
 
 For each screen give: layout, components, colours, typography, motion,
-empty/loading/error states, and accessibility notes. Use only free,
-MIT-type components (shadcn/ui, Aceternity UI, Magic UI free parts,
-21st.dev free components) and record the source. Never copy paid templates.
+empty/loading/error states, and accessibility notes. Use only free
+components (shadcn/ui, Magic UI free, Motion Primitives, Aceternity UI free,
+React Bits, Animate UI, shadcn/studio free blocks, 21st.dev free items; GSAP
+for special animation) and record the source. Never use paid templates or
+paid tiers (Magic UI Pro, Motion+, Rive paid exports).
 During research, write only design documents in docs/design-refs/; never
 write application code.

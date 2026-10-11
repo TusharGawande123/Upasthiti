@@ -35,9 +35,18 @@
   mobile PWA for phone punching (only if needed).
 
 ## 2. Architecture & Project Structure
-- To be finalised in the planning session. Claude Code recommends the
-  architecture and folder structure; after approval, record it here and in
-  docs/architecture.md.
+- Approved 2026-10-11; full detail in docs/architecture.md (flows, table
+  dictionary) and docs/SRS.md (requirements FR-xx / NFR-xx).
+- Monorepo: frontend/ (Vite + React SPA: /kiosk and /admin), backend/ (one
+  FastAPI app split into modules), e2e/ (Playwright), deploy/ (render.yaml,
+  Caddyfile, docker-compose later), .github/workflows/.
+- Backend layout: app/core (config, db, security, crypto, time, storage),
+  app/modules/<name>/{models,schemas,service,router}.py, app/antiproxy/
+  (one rule per file + engine.py), app/face/ (detector, embedder,
+  antispoof, matcher), app/jobs/, migrations/ (Alembic), tests/.
+- Same origin for SPA and API (Vercel rewrites /api/* to the backend; Caddy
+  later), so admin auth uses plain session cookies.
+- The server decides every punch; the kiosk only sends signed evidence.
 - Fixed folders: docs/ (client/, specs/, plans/, decisions/, design-refs/),
   .claude/agents/ (subagents), .claude/commands/ (custom commands).
 - Modules: org setup (plants, geofences, kiosk devices, shifts), employees,
@@ -58,14 +67,30 @@
 - Conventional Commits: feat:, fix:, docs:, test:, refactor:, chore:.
 
 ## 4. Preferred Libraries & Tools
-- TO BE FILLED after the planning session with the approved stack
-  (see docs/decisions/0001-tech-stack.md).
-- Rule: modern, actively maintained, free and open-source only.
+Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
+- Frontend: Vite 8, React 19, TypeScript, React Router 8 (data mode),
+  TanStack Query 5, React Hook Form + Zod 4, Tailwind CSS 4, shadcn/ui,
+  Lucide icons, Motion 14 (main animation engine), GSAP (special effects),
+  react-i18next, TanStack Table, Recharts.
+- Kiosk: MediaPipe Face Landmarker (liveness UX only), barcode-detector
+  (QR scan), WebCrypto P-256 device key, vite-plugin-pwa + Workbox + Dexie
+  (offline queue).
+- Maps: Leaflet 1.9 + Leaflet-Geoman free + OpenStreetMap tiles.
+- Backend: Python 3.12, FastAPI, Pydantic 2, SQLAlchemy 2.1 (sync) + Alembic,
+  psycopg 3, PostgreSQL, argon2-cffi, cryptography (Ed25519 QR signing,
+  ECDSA verify, AES-256-GCM templates), Shapely, segno, XlsxWriter,
+  ReportLab, APScheduler 3.
+- Face (server): InsightFace SCRFD + ArcFace via onnxruntime (buffalo_sc on
+  Render, buffalo_l on the client server), MiniFASNet anti-spoofing,
+  opencv-python-headless.
+- Tooling: uv, Ruff, pyright, pytest · Biome, Vitest, Playwright ·
+  pre-commit, Dependabot, GitHub Actions.
+- Rule: modern, actively maintained, and FREE (no fees, no paid tier needed).
 
 ## 5. Critical Rules (What to Avoid)
 - NEVER add anything that costs money: paid APIs, paid face/AI services,
-  paid maps, paid SMS, paid auth, commercial-licence UI kits or animation
-  libraries, InsightFace pretrained models. If unsure about a licence, ASK.
+  paid maps, paid SMS, paid auth, paid UI kits or paid tiers of animation
+  libraries. The test is simply: is it free? If unsure about cost, ASK.
 - Do NOT build an employee phone app or any non-kiosk punch path now
   (a mobile PWA is future scope, only if needed).
 - NEVER send face data to any outside AI service; store encrypted face
@@ -135,7 +160,25 @@
 - When unsure, ask. Record decisions in docs/decisions/.
 
 ## 9. Commands
-- To be filled after the stack is approved (run, test, lint, migrate, deploy).
+The project skeleton is created in M0; until then these are the planned commands.
+- Backend (from backend/):
+  - `uv sync`: install dependencies.
+  - `uv run fastapi dev app/main.py`: run the API locally.
+  - `uv run pytest`: run the tests.
+  - `uv run ruff check . && uv run ruff format .`: lint and format.
+  - `uv run pyright`: type check.
+  - `uv run alembic upgrade head`: migrate the database.
+  - `uv run alembic revision --autogenerate -m "<what>"`: create a new migration.
+  - `uv run python scripts/download_models.py`: download the face models (sha256 checked).
+- Frontend (from frontend/):
+  - `npm install`, then `npm run dev` (Vite; proxies /api to the local backend).
+  - `npm test` (Vitest), `npm run lint` (Biome), `npm run build`.
+- End-to-end (from e2e/): `npx playwright test`.
+- Windows note: plain `python` on the lead's laptop is 3.7, so use `uv` or `py -3.12`.
+- Deploy:
+  - Pushing to main deploys the frontend on Vercel and the backend on Render.
+  - The database is Supabase (set `DATABASE_URL` in Render).
+  - Later: `docker compose up -d` from deploy/ on the client's server.
 
 ## 10. Configuration Notes
 - Language: ENGLISH FIRST (English, India locale en-IN: DD/MM/YYYY dates,
@@ -146,17 +189,22 @@
 - All timestamps stored in UTC, shown in IST (Asia/Kolkata).
 - Face match threshold, kiosk GPS accuracy limit, punch cool-down, snapshot
   retention, salary-day basis, paid-day and overtime rules are settings.
-- Hosting now: free tiers (frontend Vercel; backend + DB Render/Railway or
-  similar). Camera needs HTTPS. Later: Docker on the company server.
+- Hosting now (docs/decisions/0002-hosting.md): frontend on Vercel Hobby,
+  backend on Render Free (Docker, 512 MB, sleeps after 15 min; keep-alive
+  cron), Postgres + snapshot storage on Supabase Free (Mumbai). Camera needs
+  HTTPS. Later: Docker Compose on the company server.
+- QR snapshot retention default: 60 days (a setting).
 - Design references: docs/design-refs/ (inspiration.md + screenshots).
   Inspiration: Godly, Dribbble, Awwwards, Mobbin, Figma Community and the other
   sites listed in inspiration.md (ideas only, never copy artwork).
-  Code we copy in: only components with an MIT/Apache/BSD/ISC licence
-  (shadcn/ui, Magic UI free, Motion Primitives, Kibo UI, 21st.dev items marked
-  MIT). NOT allowed as code: Aceternity UI (no open-source licence), React Bits
-  (Commons Clause), Animate UI and shadcn/studio (Commons Clause),
-  shadcnblocks, Skiper UI, Hover.dev, GSAP, Rive, Magic UI Pro, Motion+. Log every copied
-  component in docs/decisions/ui-component-sources.md.
+  Code we copy in: any FREE component (shadcn/ui, Magic UI free, Motion
+  Primitives, Kibo UI, Aceternity UI free, React Bits, Animate UI,
+  shadcn/studio free blocks, 21st.dev free items) and GSAP. NOT allowed:
+  anything paid (Magic UI Pro, Motion+, Rive paid exports, Skiper Premium,
+  paid templates). Log every copied component in
+  docs/decisions/ui-component-sources.md.
+- Design direction: light, modern, premium; each screen designed inside its
+  milestone (docs/decisions/0000-design-direction.md).
 
 ## 11. Creative Freedom: Extra Features (Claude Code is encouraged to improve the product)
 The documents give you the IDEA of the project. You are free, and encouraged,

@@ -8,11 +8,10 @@ You research for Upasthiti. Read CLAUDE.md first.
 
 For every library or service you suggest, report: what it does, licence,
 last release date, maintenance activity, and any cost (must be zero). Reject
-anything paid, non-commercial-only or abandoned. For AI/face models, check the
-licence of the MODEL WEIGHTS and their training data separately from the code
-licence (for example InsightFace code is MIT but its pretrained models are
-non-commercial, so they are banned). Prefer modern, actively
-maintained options.
+anything paid or abandoned. The only licence question that matters is: is it
+free to use, now and after handover (no fees, no paid tier needed, no
+watermark/splash)? For AI models, check that the MODEL WEIGHTS are free to
+download and use too. Prefer modern, actively maintained options.
 
 Give 2-3 options with a clear recommendation and reasons tied to this project
 (kiosk-only attendance, face + QR, low-cost gate devices, free-tier hosting).

@@ -231,9 +231,9 @@ MIT. The final stack decision happens in Part B (planning).
 | 21st.dev | ⚠️ Per component | varies | Only if the page says MIT/Apache/BSD/ISC; `unknown` means no. Free plan only. |
 | Lottie (dotlottie-web player) | ⚠️ Sparingly | player MIT; files under the Lottie Simple License | At most 2–4 tiny animations, or simply use SVG + Motion |
 | uiverse.io | ⚠️ Ideas only | MIT | Rewrite as our own Tailwind code; keep the credit comment |
-| **Aceternity UI** | ❌ Inspiration only | **No open-source licence stated for the free components**; its licence bans redistributing source | Re-create the effects with Motion or Magic UI instead |
-| React Bits | ❌ Ask the team (recommend no) | "MIT + Commons Clause" (not OSI) | — |
-| GSAP | ❌ Reject | proprietary "no charge" licence that Webflow can change or revoke | — |
+| **Aceternity UI (free)** | ✅ Use (decided 2026-10-12: free is enough) | free components | Spotlight, beams, animated cards on the admin/login pages |
+| React Bits | ✅ Use (free) | MIT + Commons Clause | Text and background effects (keep WebGL ones off the kiosk) |
+| GSAP | ✅ Use for special effects (free, all plugins) | free "no charge" licence | SVG morph, text split; Motion stays the main engine |
 | Rive | ❌ Reject | free exports show a Rive splash screen; removing it is paid | — |
 | Tremor | ❌ Avoid | Apache-2.0 but stagnant since joining Vercel | Use shadcn charts |
 
@@ -252,7 +252,8 @@ Full details: [research/alternatives-and-more-sources.md](research/alternatives-
 | Glaxnimate (GPL editor; the files we make are ours) | — | ✅ Tool | Make our own Lottie tick/cross animations for free |
 | Obra shadcn/ui Figma kit | CC BY 4.0 (credit required) | ✅ Use in Figma | Figma twin of our components |
 | Mantine / HeroUI | MIT / Apache | Not chosen | Would replace shadcn; don't mix design systems |
-| Animate UI, shadcn/studio, shadcnblocks, Skiper UI, Lukacho UI, Hover.dev | Commons Clause / no OSI licence / proprietary | ❌ Avoid as code | — |
+| Animate UI, shadcn/studio (free parts) | free | ✅ Use (decided 2026-10-12) | Animated primitives, blocks |
+| shadcnblocks, Skiper UI, Lukacho UI, Hover.dev | free parts unclear / paid tiers | Use only free parts; never pay | — |
 
 Rule learned: animate translatable text **per word or per line**, never letter by
 letter. Letter-by-letter effects break Devanagari when Marathi/Hindi are added.
@@ -289,7 +290,7 @@ file. MIT requires keeping the notice.
 
 1. **Direction:** A "Forge", B "Prakash", or a mix (recommended: A kiosk + your choice of admin default theme)?
 2. **Admin default theme:** dark or light?
-3. ~~Aceternity UI / React Bits / GSAP / Rive~~ **Decided 2026-10-11:** not used as code (licence or cost problems). CLAUDE.md §10 is updated. Licence-safe alternatives are being collected in `research/alternatives-and-more-sources.md`.
+3. **Decided 2026-10-12:** the only rule is "free". Aceternity free, React Bits, Animate UI, shadcn/studio free and GSAP are allowed; paid tiers (Magic UI Pro, Motion+, Rive paid exports) are not. See CLAUDE.md §10.
 4. ~~Kiosk language~~ **Decided:** English first; Marathi/Hindi optional later.
 5. **Later, when translations are added:** who checks the Marathi and Hindi strings?
 6. **Ask the client:** can kiosks go under a canopy or hood, away from direct sun? This is the cheapest fix for both readability and face recognition.

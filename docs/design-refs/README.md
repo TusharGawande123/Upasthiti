@@ -5,4 +5,5 @@ links in links.md). Claude Code's ui-designer subagent reads this folder and
 writes inspiration.md with design directions to choose from.
 
 Good sources: Godly, Dribbble, Awwwards, Mobbin, Figma Community, 21st.dev,
-Aceternity UI, Magic UI. Use free, MIT-type components only.
+Aceternity UI, Magic UI, React Bits. Any free component may be used (never a
+paid tier); log copied components in docs/decisions/ui-component-sources.md.
