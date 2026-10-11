@@ -9,6 +9,16 @@ test("admin page shows that the server is connected", async ({ page }) => {
   await expect(page.getByText(/Server time: \d{2}\/\d{2}\/\d{4}, \d{2}:\d{2} IST/)).toBeVisible();
 });
 
+test("admin page says the server is not reachable when the API is down", async ({ page }) => {
+  await page.route("**/api/v1/health", (route) => route.abort());
+
+  await page.goto("/admin");
+
+  await expect(page.getByText("Server not reachable. Is the backend running?")).toBeVisible({
+    timeout: 10_000, // the app retries once before showing the error
+  });
+});
+
 test("the home address opens the admin page", async ({ page }) => {
   await page.goto("/");
 

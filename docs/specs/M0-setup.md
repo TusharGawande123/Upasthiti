@@ -200,7 +200,7 @@ M0 has no attendance rules. These are the engineering rules the skeleton enforce
 
    | Variable | Where | Required | Default (dev) | Meaning |
    |---|---|---|---|---|
-   | `APP_ENV` | backend | yes | `development` | `development`, `test` or `production` |
+   | `APP_ENV` | backend | no | `production` (fail safe; `.env.example` sets `development`) | `development`, `test` or `production` |
    | `APP_VERSION` | backend | no | `dev` | shown by `/health`; CI/Render set it to the git commit |
    | `DATABASE_URL` | backend | yes | `postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti` | Postgres connection |
    | `LOG_LEVEL` | backend | no | `INFO` | log detail |

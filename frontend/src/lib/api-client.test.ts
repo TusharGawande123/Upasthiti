@@ -1,3 +1,4 @@
+// The API helper: relative /api/v1 paths and the standard error format.
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { ApiError, apiGet } from "./api-client";
 

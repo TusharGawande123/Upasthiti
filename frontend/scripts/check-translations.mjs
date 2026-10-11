@@ -1,6 +1,7 @@
 // Fails (exit code 1) if the code uses a translation key that is missing from the English file.
 // Without this check a missing key would show up on the kiosk as raw text like "kiosk.title".
 // Run: npm run i18n:check   (CI runs it on every pull request; spec S-9 / AC-25)
+// Optional arguments (used by its test): <source folder> <English JSON file>
 //
 // It looks for t("some.key") calls and i18nKey="some.key" props in src/. Keys built at
 // runtime (t(`status.${name}`)) cannot be checked this way, so write keys out in full.
@@ -8,8 +9,8 @@
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 
-const SOURCE_FOLDER = "src";
-const ENGLISH_FILE = "public/locales/en/common.json";
+const [SOURCE_FOLDER = "src", ENGLISH_FILE = "public/locales/en/common.json"] =
+  process.argv.slice(2);
 const KEY_PATTERNS = [/\bt\(\s*["']([\w.-]+)["']/g, /\bi18nKey=["']([\w.-]+)["']/g];
 
 /** Turns { health: { connected: "..." } } into ["health.connected"]. */

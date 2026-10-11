@@ -29,8 +29,8 @@ def get_readiness() -> ReadyResponse:
     try:
         check_database_connection()
     except Exception as error:
-        # Log the real reason for us; tell the caller only that the database is down.
-        # The driver's message can contain the host name or user, so it is never returned.
+        # Log only the error type; tell the caller only that the database is down.
+        # The driver's message can contain the host name or user, so it is never logged or returned.
         logger.warning("Database check failed: %s", type(error).__name__)
         raise ApiError(
             "DATABASE_UNAVAILABLE", "The database cannot be reached.", status_code=503

@@ -16,7 +16,9 @@ export default defineConfig({
     baseURL: FRONTEND_URL,
     locale: "en-IN",
     timezoneId: "Asia/Kolkata",
-    trace: "retain-on-failure",
+    // Traces hold screenshots and network data. CI artifacts are public, so no traces
+    // there (this matters from M2 on: QR snapshots, face frames).
+    trace: isCI ? "off" : "retain-on-failure",
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [

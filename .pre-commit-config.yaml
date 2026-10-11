@@ -16,8 +16,9 @@ repos:
       - id: check-merge-conflict
       - id: detect-private-key
       # Blocks big files (face models, photos, exports) from ever reaching the public repo.
+      # --enforce-all: also check files that are already committed (CI has nothing staged).
       - id: check-added-large-files
-        args: [--maxkb=1024]
+        args: [--maxkb=1024, --enforce-all]
 
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.17.0

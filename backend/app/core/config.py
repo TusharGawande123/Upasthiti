@@ -16,7 +16,9 @@ class Settings(BaseSettings):
     # The repo-root .env is read first, then backend/.env, which wins if both exist.
     model_config = SettingsConfigDict(env_file=("../.env", ".env"), extra="ignore")
 
-    app_env: Literal["development", "test", "production"] = "development"
+    # Fail safe: if APP_ENV is forgotten on a server, it behaves as production (docs off).
+    # Laptops get "development" from .env (copied from .env.example).
+    app_env: Literal["development", "test", "production"] = "production"
     app_version: str = "dev"
     database_url: str  # required: no default on purpose
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"

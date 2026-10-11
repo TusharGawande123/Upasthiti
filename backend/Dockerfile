@@ -22,8 +22,9 @@ RUN uv sync --locked --no-dev --no-install-project
 
 COPY . .
 
-# Never run the server as root.
-RUN useradd --create-home --uid 10001 app && chown -R app:app /app
+# Never run the server as root. The code stays owned by root, so the server cannot change
+# its own files; folders it must write to (e.g. a model cache in M3) get their own chown.
+RUN useradd --create-home --uid 10001 app
 USER app
 
 # Render sets PORT; 8000 is the default everywhere else.

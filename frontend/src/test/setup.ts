@@ -1,18 +1,16 @@
 // Runs before every test file: adds DOM matchers and loads the English texts directly
-// (no network), so components render real strings in tests.
+// (no network), with the same settings as the real app, so components render real strings.
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import i18n from "i18next";
 import { initReactI18next } from "react-i18next";
 import { afterEach } from "vitest";
 import englishTexts from "../../public/locales/en/common.json";
+import { sharedI18nOptions } from "../app/i18n-options";
 
 i18n.use(initReactI18next).init({
-  lng: "en",
-  ns: ["common"],
-  defaultNS: "common",
+  ...sharedI18nOptions,
   resources: { en: { common: englishTexts } },
-  interpolation: { escapeValue: false },
 });
 
 afterEach(() => {

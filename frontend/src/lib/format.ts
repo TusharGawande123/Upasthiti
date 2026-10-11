@@ -46,6 +46,5 @@ export function formatNumber(value: number): string {
  * string: that keeps every paisa exact (CLAUDE.md §5).
  */
 export function formatRupees(amount: string): string {
-  // Intl accepts decimal strings at runtime; TypeScript's types only list numbers.
-  return rupeeFormatter.format(amount as unknown as number);
+  return rupeeFormatter.format(amount as Intl.StringNumericLiteral);
 }

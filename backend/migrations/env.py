@@ -40,6 +40,7 @@ def run_migrations_online() -> None:
         alembic_config.get_section(alembic_config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        hide_parameters=True,  # keep row values out of error output
     )
     with engine.connect() as connection:
         context.configure(connection=connection, target_metadata=target_metadata)

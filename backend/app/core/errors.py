@@ -48,15 +48,14 @@ def error_response(
     return JSONResponse(status_code=status_code, content=body)
 
 
-async def handle_api_error(request: Request, error: Exception) -> JSONResponse:
-    assert isinstance(error, ApiError)  # noqa: S101  (registered only for ApiError)
+async def handle_api_error(request: Request, error: ApiError) -> JSONResponse:
     return error_response(error.status_code, error.code, error.message, error.details)
 
 
-async def handle_validation_error(request: Request, error: Exception) -> JSONResponse:
-    assert isinstance(error, RequestValidationError)  # noqa: S101
+async def handle_validation_error(request: Request, error: RequestValidationError) -> JSONResponse:
     # We list which fields are wrong and why, but never echo the submitted values:
-    # they could contain passwords or personal data.
+    # they could contain passwords or personal data. Rule for every module: messages of our
+    # own validators must never include the input value either.
     fields = [
         {
             "field": ".".join(str(part) for part in problem["loc"]),
@@ -67,8 +66,7 @@ async def handle_validation_error(request: Request, error: Exception) -> JSONRes
     return error_response(422, "VALIDATION_FAILED", "The request is not valid.", {"fields": fields})
 
 
-async def handle_http_error(request: Request, error: Exception) -> JSONResponse:
-    assert isinstance(error, StarletteHTTPException)  # noqa: S101
+async def handle_http_error(request: Request, error: StarletteHTTPException) -> JSONResponse:
     code = HTTP_STATUS_TO_CODE.get(error.status_code, "HTTP_ERROR")
     return error_response(error.status_code, code, str(error.detail))
 
@@ -86,7 +84,15 @@ async def handle_unexpected_error(request: Request, error: Exception) -> JSONRes
 
 
 def register_error_handlers(app: FastAPI) -> None:
-    app.add_exception_handler(ApiError, handle_api_error)
-    app.add_exception_handler(RequestValidationError, handle_validation_error)
-    app.add_exception_handler(StarletteHTTPException, handle_http_error)
+    # Starlette types every handler as taking a plain Exception, although it only calls each
+    # one with the class it is registered for. The pyright ignores say "this is fine".
+    app.add_exception_handler(ApiError, handle_api_error)  # pyright: ignore[reportArgumentType]
+    app.add_exception_handler(
+        RequestValidationError,
+        handle_validation_error,  # pyright: ignore[reportArgumentType]
+    )
+    app.add_exception_handler(
+        StarletteHTTPException,
+        handle_http_error,  # pyright: ignore[reportArgumentType]
+    )
     app.add_exception_handler(Exception, handle_unexpected_error)

@@ -48,5 +48,6 @@ def test_ready_reports_database_unavailable_without_leaking_details(client: Test
 
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "DATABASE_UNAVAILABLE"
-    assert "127.0.0.1" not in response.text
-    assert "test" not in response.json()["error"]["message"].lower()
+    assert set(response.json()) == {"error"}
+    for internal_detail in ("127.0.0.1", "psycopg", "upasthiti_test", "OperationalError"):
+        assert internal_detail not in response.text

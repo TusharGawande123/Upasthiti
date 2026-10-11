@@ -25,8 +25,16 @@ def clear_cached_settings() -> None:
     get_session_factory.cache_clear()
 
 
+@pytest.fixture(autouse=True)
+def fresh_settings() -> Iterator[None]:
+    """Every test starts and ends with empty settings and engine caches."""
+    clear_cached_settings()
+    yield
+    clear_cached_settings()
+
+
 @pytest.fixture
-def build_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[Callable[..., FastAPI]]:
+def build_app(monkeypatch: pytest.MonkeyPatch) -> Callable[..., FastAPI]:
     """Returns a function that builds the app with some environment variables changed."""
 
     def _build(**environment: str) -> FastAPI:
@@ -35,8 +43,7 @@ def build_app(monkeypatch: pytest.MonkeyPatch) -> Iterator[Callable[..., FastAPI
         clear_cached_settings()
         return create_app()
 
-    yield _build
-    clear_cached_settings()
+    return _build
 
 
 @pytest.fixture

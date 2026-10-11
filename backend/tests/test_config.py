@@ -8,7 +8,6 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from app.core.config import Settings, load_settings_or_exit
-from tests.conftest import clear_cached_settings
 
 
 def test_missing_database_url_stops_the_app_and_names_it(
@@ -19,25 +18,30 @@ def test_missing_database_url_stops_the_app_and_names_it(
     empty_folder.mkdir()
     monkeypatch.chdir(empty_folder)
     monkeypatch.delenv("DATABASE_URL", raising=False)
-    clear_cached_settings()
 
     with pytest.raises(SystemExit) as stopped:
         load_settings_or_exit()
 
     assert "Missing required setting: DATABASE_URL" in str(stopped.value)
-    clear_cached_settings()
+
+
+def test_app_env_defaults_to_production_when_not_set(monkeypatch: pytest.MonkeyPatch) -> None:
+    # Fail safe: a server where APP_ENV was forgotten must not show the API docs.
+    monkeypatch.delenv("APP_ENV", raising=False)
+
+    settings = Settings(database_url="postgresql://u:p@host/db", _env_file=None)  # pyright: ignore[reportCallIssue]
+
+    assert settings.is_production
 
 
 def test_invalid_value_is_named_but_not_printed(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("APP_ENV", "my-secret-value")
-    clear_cached_settings()
 
     with pytest.raises(SystemExit) as stopped:
         load_settings_or_exit()
 
     assert "APP_ENV" in str(stopped.value)
     assert "my-secret-value" not in str(stopped.value)
-    clear_cached_settings()
 
 
 @pytest.mark.parametrize(

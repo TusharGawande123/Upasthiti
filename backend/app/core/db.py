@@ -36,6 +36,8 @@ def get_engine() -> Engine:
     return create_engine(
         get_settings().database_url,
         pool_pre_ping=True,  # drop dead connections (Supabase closes idle ones)
+        # Keep row values (names, employee codes, punches) out of error messages and logs.
+        hide_parameters=True,
         connect_args={"connect_timeout": CONNECT_TIMEOUT_SECONDS},
     )
 

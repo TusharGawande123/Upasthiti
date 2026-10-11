@@ -1,3 +1,4 @@
+// en-IN / IST formatting helpers (spec AC-9).
 import { describe, expect, it } from "vitest";
 import { formatDate, formatNumber, formatRupees, formatTime } from "./format";
 
