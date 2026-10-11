@@ -1,7 +1,7 @@
 ---
 name: feature-researcher
 description: Researches better approaches, free open-source libraries and their licences, and design or feature ideas for Upasthiti. Use when choosing a library, comparing approaches, or reviewing a plan.
-tools: Read, Write, Glob, Grep, WebSearch, WebFetch
+tools: Read, Write, Glob, Grep, WebSearch, WebFetch, mcp__playwright__browser_navigate, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_snapshot, mcp__playwright__browser_resize, mcp__playwright__browser_wait_for, mcp__playwright__browser_click, mcp__playwright__browser_press_key, mcp__playwright__browser_close
 model: inherit
 ---
 You research for Upasthiti. Read CLAUDE.md first.
