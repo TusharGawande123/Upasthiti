@@ -28,9 +28,12 @@ request_logger = logging.getLogger("app.request")
 class JsonFormatter(logging.Formatter):
     """Writes each log record as one JSON object per line."""
 
+    # Log times are in UTC, like everything else on the server.
+    converter = time.gmtime
+
     def format(self, record: logging.LogRecord) -> str:
         entry = {
-            "time": self.formatTime(record, "%Y-%m-%dT%H:%M:%S%z"),
+            "time": self.formatTime(record, "%Y-%m-%dT%H:%M:%SZ"),
             "level": record.levelname,
             "logger": record.name,
             "message": record.getMessage(),
