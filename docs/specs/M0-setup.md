@@ -99,7 +99,7 @@ M0 delivers:
       lines using Python's standard `logging` (no new dependency);
     - S-8 coverage in CI: pytest-cov and Vitest v8 coverage, floor 60% for M0 (raised each
       milestone);
-    - S-9 translation key check in CI (`i18next-cli`);
+    - S-9 translation key check in CI (`frontend/scripts/check-translations.mjs`);
     - S-10 `docker-compose.yml` with Postgres 17 for local work, plus README steps for a
       native Postgres install (the fallback for laptops without Docker);
     - S-11 starter-kit files moved to `docs/archive/`;
@@ -431,19 +431,19 @@ Exact versions are fixed by the lockfiles at build time; major versions follow A
 | httpx2 | latest | BSD-3-Clause | Needed by FastAPI's TestClient (dev); Starlette now asks for `httpx2` (by the pydantic team) instead of `httpx` |
 | vite, @vitejs/plugin-react | 8.x | MIT | Frontend build (ADR 0001) |
 | react, react-dom | 19.x | MIT | UI (ADR 0001) |
-| typescript | 5.x | Apache-2.0 | Types |
+| typescript | 7.x | Apache-2.0 | Types (7.x is the new native compiler; latest at build time) |
 | react-router | 8.x | MIT | Routing, data mode (ADR 0001) |
 | @tanstack/react-query | 5.x | MIT | Server state, used for the health call (ADR 0001) |
 | tailwindcss, @tailwindcss/vite | 4.x | MIT | Styling (ADR 0001) |
 | i18next, react-i18next, i18next-http-backend | 26.x / 17.x / latest | MIT | Translations loaded from `public/locales/` (ADR 0001); the http backend is **new** |
 | lucide-react | latest | ISC | Status icons (ADR 0001) |
 | @biomejs/biome | 2.x | MIT / Apache-2.0 | Lint + format (dev) |
-| vitest, @testing-library/react, @testing-library/jest-dom, jsdom | 5.x / latest | MIT | Frontend unit tests (dev); Testing Library and jsdom are **new** |
+| vitest, @testing-library/react, @testing-library/jest-dom, @testing-library/user-event, jsdom | 5.x / latest | MIT | Frontend unit tests (dev); Testing Library and jsdom are **new** |
 | @playwright/test | 1.64.x | Apache-2.0 | End-to-end tests (ADR 0001) |
 | pre-commit | latest | MIT | Git hooks (ADR 0001) |
 | pytest-cov | latest | MIT | Backend coverage (S-8, dev) |
 | @vitest/coverage-v8 | same as vitest | MIT | Frontend coverage (S-8, dev) |
-| i18next-cli | latest | MIT | Missing translation key check (S-9, dev) |
+| ~~i18next-cli~~ | – | – | **Dropped during the build (2026-10-12):** its native SWC module refuses to load on some Windows setups. S-9 is done instead by a ~60-line script, `frontend/scripts/check-translations.mjs`, with no dependency |
 | gitleaks (pre-commit hook + `gitleaks/gitleaks-action` or CLI in CI) | 8.x | MIT | Secret scanning (S-2). If the official action asks for a paid licence for any repo type, run the free CLI directly instead |
 | amannn/action-semantic-pull-request | 5.x | MIT | PR title check (S-3) |
 | github/codeql-action | 3.x | MIT (action); CodeQL is free for public repos | Security scanning (S-1) |

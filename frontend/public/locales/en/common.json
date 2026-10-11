@@ -1,0 +1,22 @@
+{
+  "app": {
+    "name": "Upasthiti – Smart Attendance"
+  },
+  "admin": {
+    "comingSoon": "Admin dashboard – coming in M1"
+  },
+  "kiosk": {
+    "title": "Upasthiti Kiosk",
+    "comingSoon": "Gate screen – coming in M2"
+  },
+  "health": {
+    "checking": "Checking server…",
+    "connected": "Server connected",
+    "serverTime": "Server time: {{date}}, {{time}} IST",
+    "unreachable": "Server not reachable. Is the backend running?"
+  },
+  "common": {
+    "notFound": "Page not found",
+    "backToAdmin": "Go to the admin dashboard"
+  }
+}

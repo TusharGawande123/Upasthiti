@@ -12,7 +12,7 @@ Spec: docs/specs/M0-setup.md · Plan: docs/plans/M0-setup-plan.md
 - **Logging:** the standard library `logging` with a small JSON formatter and a request ID
   per request. No extra logging library.
 - **Node:** Node 24 LTS (`.nvmrc`); npm with committed lockfiles.
-- **Checks:** Ruff + pyright (backend), Biome + TypeScript + i18next-cli (frontend),
+- **Checks:** Ruff + pyright (backend), Biome + TypeScript 7 + our own translation-key script (frontend),
   Vitest, pytest and Playwright; coverage floor 60% in M0, raised each milestone.
 - **CI jobs (all required on `main`):** `backend`, `frontend`, `e2e`, `docker`, `hooks`.
   Plus CodeQL and a PR-title check.

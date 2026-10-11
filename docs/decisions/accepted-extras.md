@@ -13,7 +13,7 @@ On 2026-10-12 the lead (Tushar Gawande) let Claude Code choose; the choices belo
 - M0 · S-6 · One-command local start scripts (dev.ps1, dev.sh) · Approved · 2026-10-12
 - M0 · S-7 · Request ID + JSON logging (standard library only) · Approved · 2026-10-12
 - M0 · S-8 · Coverage reports in CI, 60% floor rising per milestone · Approved · 2026-10-12
-- M0 · S-9 · Translation key check in CI (i18next-cli) · Approved · 2026-10-12
+- M0 · S-9 · Translation key check in CI (own script; i18next-cli dropped, its native module fails on some Windows setups) · Approved · 2026-10-12
 - M0 · S-10 · docker-compose Postgres for local work + native install steps · Approved · 2026-10-12
 - M0 · S-11 · Move starter-kit files to docs/archive/ · Approved · 2026-10-12
 - M0 · S-12 · Shared VS Code extensions and settings · Approved · 2026-10-12
