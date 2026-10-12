@@ -23,7 +23,7 @@ Hosting: docs/decisions/0002-hosting.md. Requirements: docs/SRS.md.
       └───────────────────────────┬───────────────────────────┘
                                   ▼
       ┌───────────────────────────────────────────────────────┐
-      │ FastAPI backend (Python 3.12) – one deployable app    │
+      │ FastAPI backend (Python 3.14) – one deployable app    │
       │  auth · org · kiosks · employees · enrolment · qr     │
       │  punch → antiproxy engine → face pipeline             │
       │  attendance · dashboard (SSE) · reports · audit       │

@@ -1,6 +1,6 @@
 # Upasthiti backend
 
-FastAPI app (Python 3.12, managed by uv). Folder guide: docs/architecture.md §8.
+FastAPI app (Python 3.14, managed by uv). Folder guide: docs/architecture.md §8.
 Setup and commands: the root README.md.
 
 - `app/core/`: settings, database, error format, logging, time helpers (shared by every module).

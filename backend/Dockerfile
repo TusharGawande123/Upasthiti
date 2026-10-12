@@ -2,7 +2,7 @@
 # Build:  docker build -t upasthiti-backend backend
 # Run:    docker run -p 8000:8000 -e DATABASE_URL=... upasthiti-backend
 
-FROM python:3.12-slim
+FROM python:3.14-slim
 
 # uv installs the exact package versions from uv.lock.
 COPY --from=ghcr.io/astral-sh/uv:0.13.0 /uv /usr/local/bin/uv
