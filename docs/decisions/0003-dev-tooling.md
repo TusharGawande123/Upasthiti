@@ -4,7 +4,7 @@ Date: 2026-10-12 · Decided by: Tushar Gawande (project lead) · Status: Accepte
 Spec: docs/specs/M0-setup.md · Plan: docs/plans/M0-setup-plan.md
 
 ## Decision
-- **Python:** uv manages Python 3.12 and the backend packages (`backend/uv.lock`). Plain
+- **Python:** uv manages Python 3.14 and the backend packages (`backend/uv.lock`). Plain
   `python` on some laptops is 3.7, so always run Python through `uv run`.
 - **Settings:** pydantic-settings reads environment variables (and `.env` locally). The app
   stops at start-up when a required variable is missing.
@@ -20,6 +20,10 @@ Spec: docs/specs/M0-setup.md · Plan: docs/plans/M0-setup-plan.md
   limit. CI runs the same hooks, so skipping them locally does not help.
 - **Local database:** Postgres 17 through `docker-compose.yml`, or a native install.
 - **Updates:** Dependabot weekly, minor/patch grouped.
+- **Python 3.14 (2026-10-13):** upgraded from 3.12 after Dependabot suggested the new
+  Docker base image. All backend packages and the M3 face libraries (onnxruntime, OpenCV,
+  numpy, InsightFace, Shapely) have Python 3.14 wheels; all tests, the Docker image and
+  the migrations pass on 3.14. Longer security support (to about 2030) helps after handover.
 
 ## Why
 One tool per job keeps the setup small enough for students to understand and for the client

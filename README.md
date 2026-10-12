@@ -11,7 +11,7 @@ design: [docs/architecture.md](docs/architecture.md)
 
 | Folder | What is inside |
 |---|---|
-| `backend/` | FastAPI app (Python 3.12, uv), Alembic migrations, pytest tests, Dockerfile |
+| `backend/` | FastAPI app (Python 3.14, uv), Alembic migrations, pytest tests, Dockerfile |
 | `frontend/` | Vite + React + TypeScript SPA (`/kiosk` and `/admin`), Vitest tests |
 | `e2e/` | Playwright end-to-end tests (they start backend and frontend themselves) |
 | `deploy/` | Hosting config (Render, Vercel), filled in M1 |
@@ -22,12 +22,12 @@ design: [docs/architecture.md](docs/architecture.md)
 ## First-time setup (Windows)
 
 1. Install [Git](https://git-scm.com/), [Node.js 24 LTS](https://nodejs.org/) and **uv**
-   (it also installs Python 3.12 for the project):
+   (it also installs Python 3.14 for the project):
    ```powershell
    powershell -ExecutionPolicy ByPass -c "irm https://astral.sh/uv/install.ps1 | iex"
    ```
    Close and reopen the terminal afterwards. Do **not** use the plain `python` command: on
-   some laptops it is an old version. `uv run ...` always uses Python 3.12.
+   some laptops it is an old version. `uv run ...` always uses Python 3.14.
 2. Clone and install the git hooks (they format code and block secrets before each commit):
    ```powershell
    git clone https://github.com/TusharGawande123/Upasthiti.git

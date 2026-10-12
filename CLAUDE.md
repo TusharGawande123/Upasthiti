@@ -82,7 +82,7 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   (QR scan), WebCrypto P-256 device key, vite-plugin-pwa + Workbox + Dexie
   (offline queue).
 - Maps: Leaflet 1.9 + Leaflet-Geoman free + OpenStreetMap tiles.
-- Backend: Python 3.12, FastAPI, Pydantic 2, SQLAlchemy 2.1 (sync) + Alembic,
+- Backend: Python 3.14, FastAPI, Pydantic 2, SQLAlchemy 2.1 (sync) + Alembic,
   psycopg 3, PostgreSQL, argon2-cffi, cryptography (Ed25519 QR signing,
   ECDSA verify, AES-256-GCM templates), Shapely, segno, XlsxWriter,
   fpdf2, APScheduler 3.
@@ -226,7 +226,8 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - End-to-end (from e2e/): `npx playwright test` (starts backend + frontend itself; add
   `--headed` to watch the browser).
 - Every git hook on every file: `pre-commit run --all-files`.
-- Windows note: plain `python` on the lead's laptop is 3.7, so use `uv` or `py -3.12`.
+- Windows note: plain `python` on the lead's laptop is 3.7, so always use `uv run`
+  (uv installs the project's Python 3.14 itself).
   uv lives in `~/.local/bin`; Git Bash may need it added to PATH.
 - Deploy (from M1):
   - Pushing to main deploys the frontend on Vercel and the backend on Render.

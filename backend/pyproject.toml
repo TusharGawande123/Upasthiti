@@ -3,7 +3,7 @@ name = "upasthiti-backend"
 version = "0.1.0"
 description = "Upasthiti – Smart Attendance backend (FastAPI)"
 readme = "README.md"
-requires-python = ">=3.12,<3.13"
+requires-python = ">=3.14,<3.15"
 dependencies = [
     "alembic>=1.20.0",
     "fastapi>=0.143.0",
@@ -26,7 +26,7 @@ dev = [
 
 [tool.ruff]
 line-length = 100
-target-version = "py312"
+target-version = "py314"
 
 [tool.ruff.lint]
 # E/F: errors, I: import order, B: likely bugs, UP: modern syntax, N: naming, S: security
@@ -35,7 +35,7 @@ select = ["E", "F", "I", "B", "UP", "N", "S", "SIM"]
 per-file-ignores = { "tests/**" = ["S101"], "migrations/**" = ["E501"] }
 
 [tool.pyright]
-pythonVersion = "3.12"
+pythonVersion = "3.14"
 typeCheckingMode = "standard"
 include = ["app", "tests", "migrations"]
 venvPath = "."
