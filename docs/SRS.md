@@ -1,6 +1,6 @@
 # Upasthiti – Smart Attendance: Software Requirements Specification (SRS)
 
-Version 1.0 · 2026-10-11 · Status: Approved for M0 · Owner: Tushar Gawande (project lead)
+Version 1.1 · 2026-10-12 (client answers added, decision 0004) · Status: Approved for M0 · Owner: Tushar Gawande (project lead)
 Structure follows IEEE 830 / ISO/IEC/IEEE 29148. Related: CLAUDE.md, docs/architecture.md,
 docs/decisions/0001-tech-stack.md, 0002-hosting.md.
 
@@ -17,12 +17,14 @@ This document states what Upasthiti must do and how well. Readers:
 
 ### 1.2 Scope
 Upasthiti is **one website** with two parts:
-- the **gate kiosk screen**, where all employees check in and out;
-- the **admin dashboard**, used by HR, plant admins, supervisors and management.
+- the **gate kiosk screen**, the main place where employees check in and out;
+- the **admin dashboard**, used by admins, corporate and plant heads and management;
+- from M4b, an optional **phone punch** that an admin switches on per employee
+  (decision 0004).
 
-It covers every Sheet Shapers plant. Out of scope:
-- employee phone apps or any non-kiosk punch path (a phone PWA is future scope, only if
-  needed);
+It covers all seven plants of Sheet Shapers (one company;
+docs/client/client-answers-2026-10.md). Out of scope:
+- any phone punching other than the admin-controlled option above;
 - full payroll, automatic PF/ESIC/PT/TDS, statutory reports, challans, Form 16, tax filing,
   payslips;
 - document storage, compliance reminders, regulatory-change alerts.
@@ -84,6 +86,12 @@ Upasthiti is self-contained. There are no outside AI or paid services, and face 
 leaves our own system.
 
 ### 3.2 User classes and permissions
+The client asked for exactly three levels (decision 0004): **Super Admin**, **Corporate
+Head** (permanent employees across plants) and **Plant Head** (one plant). There are **no HR
+or supervisor users**. The table below is the earlier working draft; the M1 spec replaces it
+with the final roles and permissions. Until then, wherever this document says "HR" or
+"supervisor", read "the role the M1 spec gives that task".
+
 | Capability | SUPER_ADMIN | PLANT_ADMIN | HR | SUPERVISOR | KIOSK (device) |
 |---|---|---|---|---|---|
 | Manage users and roles | ✔ | own plant | – | – | – |
@@ -102,12 +110,16 @@ leaves our own system.
 | Submit punches / sync | – | – | – | – | ✔ (own plant only) |
 
 ### 3.3 Operating environment
-- **Kiosk:** Android tablet, phone or laptop with a camera, running a current Chrome or Edge
-  in full-screen mode. Location must be enabled. The plant uses Wi-Fi or 4G.
+- **Kiosk:** a phone or a PC with a camera (the client's choice), running a current Chrome
+  or Edge in full-screen mode. Location must be enabled where the device has GPS; a PC
+  without GPS relies on its device key and the plant network allow-list. The plant uses
+  Wi-Fi or 4G.
+- **Employee phone (from M4b, only when an admin allows it):** a current Chrome or Edge on
+  Android or iOS, with camera and location.
 - **Admin:** any modern desktop browser.
-- **Server:** free tiers. Frontend on Vercel, backend on Render, database and files on
-  Supabase (Mumbai). This is the final hosting if it performs well; self-hosting is optional,
-  only if the client asks.
+- **Server:** free tiers, for development and production (frontend on Vercel, backend on
+  Render, database and files on Supabase, Mumbai), as long as they handle the data. Only if
+  they are not enough does the system move to the client's own server (decision 0004).
 - **HTTPS is mandatory,** because browsers require it for camera access.
 
 ### 3.4 Design and implementation constraints
@@ -119,11 +131,14 @@ See §7, CLAUDE.md §5, and docs/decisions/0001–0002.
 - **Plant network:** a stable public IP or IP range per plant for the allow-list (optional
   per plant).
 - **Email:** an SMTP server from the client for email notifications (optional extra).
-- **Working assumptions until the client answers** (each is a setting, not hard-coded):
-  - 2 plants, 1 gate each.
-  - 3 shifts: A 06:00–14:00, B 14:00–22:00, C 22:00–06:00.
-  - 10 minutes grace; overtime after 8 hours worked.
-  - About 100 permanent and 100 temporary workers per plant.
+- **From the client's answers** (docs/client/client-answers-2026-10.md; each value is a
+  setting, not hard-coded):
+  - 7 plants, all of Sheet Shapers, in MIDC Waluj; one gate per plant for now.
+  - About 650 people in total: 300 permanent, 350 temporary.
+  - Default shift 07:00–19:00. Admins can add shifts at any time; each shift sets its own
+    grace, overtime start and overtime rate (until set: 10 minutes grace, overtime after 8
+    hours worked).
+  - Staff on fixed monthly salary (CTC); workers, operators and helpers on hourly rates.
   - QR snapshot retention: 60 days.
 
 ## 4. Functional requirements
@@ -135,8 +150,9 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 - **FR-02 (M, M1)** Draw each plant's geofence on a map as a polygon or circle, with an extra
   margin in metres. Old versions are kept.
 - **FR-03 (M, M1)** Keep a list of allowed plant networks (IP/CIDR) per plant; it may be empty.
-- **FR-04 (M, M1)** Manage departments and shifts: start, end, crosses-midnight, grace,
-  half-day and overtime thresholds.
+- **FR-04 (M, M1)** Manage departments and shifts: add new shifts at any time; per shift:
+  start, end, crosses-midnight, grace, half-day, after how many hours overtime starts, and
+  the overtime rate.
 - **FR-05 (S, M5)** Holiday calendar per plant (paid/unpaid) and weekly offs.
 - **FR-06 (M, M1)** Settings screen for every configurable rule, with defaults:
   - face threshold and margin;
@@ -272,6 +288,16 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 - **FR-42 (M, M6)** Privacy notice page; DPDP data-request handling (access, correction,
   erasure) with a log.
 
+### 4.m Phone punching (added after the client's answers, decision 0004)
+- **FR-43 (M, M4b)** Phone punch permission: an admin switches phone punching on or off for
+  one employee, with a reason; every change is audited. Off by default.
+- **FR-44 (M, M4b)** Phone punch checks: only the employee's registered phone; face +
+  liveness; the server re-checks everything. At the employee's own plant the geofence is
+  enforced; outside the plant (official work elsewhere) the GPS position is saved and the
+  punch is tagged "outside plant". Every phone punch appears in the punch review list.
+- **FR-45 (S, M4b)** Temporary workers may scan a changing QR shown on the gate screen with
+  their own phone (proposal Q1 option B), in addition to showing their ID card (FR-17).
+
 ## 5. API contracts
 
 ### 5.a Conventions
@@ -376,9 +402,10 @@ ER summary and table dictionary: **docs/architecture.md §7**.
 | M2 QR attendance | QR issue/revoke/expiry, ID card PDF, kiosk QR scan, snapshot, server checks, result screens | **First demo:** a valid card is accepted and a revoked card is rejected, with its reason, on the deployed kiosk |
 | M3 Face | Consent, enrolment, encrypted templates, liveness challenge, server face pipeline, code fallback, FAR/FRR report | Zero-tap face punch works; spoofs are rejected; the accuracy targets are met; RAM fits the host |
 | M4 Anti-proxy + offline | Geofence/IP/impossible-travel rules, exceptions screen, offline queue + signed sync | Security-reviewer spoof tests all rejected; a 1-hour offline sync is correct |
+| M4b Phone punching | Per-employee phone punch permission, registered phones, phone face + liveness, at-plant geofence / outside-plant tag, review list, temporary workers' phone scan of the gate QR | An allowed employee punches by phone inside the geofence (accepted) and outside the plant (accepted and tagged); a not-allowed employee is rejected |
 | M5 Attendance, dashboards, reports | Pairing, late/early/OT, night shifts, regularisation, leave/holidays, live dashboard, Excel/PDF reports | Hand-calculated test cases match; reports open in Excel |
-| M6 Testing and handover | Full tests, security and compliance review, manuals, runbook, backups, final free-tier deploy and account handover | All must-fix items closed; a teammate follows the runbook successfully |
-| M7 Salary estimate | Structures, rules, manual deductions, sheet + Excel | ₹16,600 example passes; built only after client Q9/Q10 |
+| M6 Testing and handover | Full tests, security and compliance review, manuals, runbook, backups, final free-tier deploy and account handover (own server only if the free tiers are not enough, decision 0004) | All must-fix items closed; a teammate follows the runbook successfully |
+| M7 Salary estimate | Structures, rules, manual deductions, sheet + Excel | ₹16,600 example passes; built only after the client's salary slip and the remaining Q9 answers |
 
 Dates and owners are added when the team fixes the academic calendar and work split.
 

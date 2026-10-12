@@ -1,6 +1,7 @@
 # Upasthiti – Architecture
 
-Status: Approved (Part B planning, 2026-10-11). Stack details: docs/decisions/0001-tech-stack.md.
+Status: Approved (Part B planning, 2026-10-11; updated 2026-10-12 with the client's answers,
+decision 0004: phone punching in M4b, three roles, free tiers stay unless they are not enough). Stack details: docs/decisions/0001-tech-stack.md.
 Hosting: docs/decisions/0002-hosting.md. Requirements: docs/SRS.md.
 
 ## 1. Big picture
@@ -121,6 +122,22 @@ Principles:
     from the stored frames, which are deleted after the check.
 - Per-punch results go back and the kiosk clears its queue.
 
+## 5b. Phone punch (M4b, only for employees an admin allows)
+- An admin switches phone punching on for one employee (with a reason; audited). The
+  employee registers their phone once: like a kiosk, the phone makes a non-extractable P-256
+  key and the server stores the public key against that employee.
+- Each phone punch is a signed request with face frames (liveness challenge from the
+  server), GPS position and accuracy. The server runs the same rules as for a kiosk punch,
+  with these differences:
+  - **at the employee's own plant:** the plant geofence is enforced;
+  - **outside the plant** (official work elsewhere): the GPS position is saved, not enforced,
+    and the punch is tagged `outside_plant`.
+- Every phone punch is listed for review. The phone, like the kiosk, is never trusted:
+  the server decides.
+- Temporary workers (FR-45): the gate screen shows a QR that changes every few seconds; the
+  worker scans it with their phone, which proves they are at the gate at that moment.
+- Details (exact checks, limits, reason codes) are written in the M4b spec.
+
 ## 6. Background jobs (APScheduler; a GitHub Actions cron calls the same endpoints as backup)
 - **Snapshot purge** (daily): delete files and set `purged_at` where `expires_at < now`.
 - **Attendance processing:** live during the day for the dashboard, and a nightly full
@@ -142,22 +159,23 @@ Conventions:
 | | `geofences` | plant_id, shape (polygon/circle), geojson, buffer_m, version, is_current |
 | | `plant_networks` | plant_id, cidr, label |
 | | `departments` | plant_id, name |
-| | `shifts` | plant_id, name, start_time, end_time, crosses_midnight, grace_min, half_day_min, ot_after_min |
+| | `shifts` | plant_id, name, start_time, end_time, crosses_midnight, grace_min, half_day_min, ot_after_min, ot_rate |
 | | `shift_assignments` | employee_id, shift_id, from_date, to_date |
 | | `holidays` | plant_id, date, name, is_paid |
 | | `settings` | key, value (typed JSON), updated_by |
-| People / access | `users` | name, email, password_hash (Argon2), role, is_active |
+| People / access | `users` | name, email, password_hash (Argon2), role (super_admin / corporate_head / plant_head; decision 0004), is_active |
 | | `user_plant_access` | user_id, plant_id |
 | | `sessions` | user_id, token_hash, expires_at, ip, user_agent |
 | | `contractors` | name, contact, is_active |
-| | `employees` | employee_code (4–6 digit), name, type (permanent/temporary), plant_id, department_id, contractor_id, punch_method (face/qr), hourly_rate, status (active/left), joined_on, left_on |
+| | `employees` | employee_code (4–6 digit), name, type (permanent/temporary), plant_id, department_id, contractor_id, punch_method (face/qr), phone_punch_enabled (M4b), hourly_rate, status (active/left), joined_on, left_on |
 | Enrolment | `face_consents` | employee_id, text_version, language, given_at, recorded_by, withdrawn_at |
 | | `face_templates` | employee_id, model_id, ciphertext, nonce, key_id, created_at, deleted_at |
 | | `qr_credentials` | employee_id, card_serial, valid_from, valid_until, revoked_at, revoke_reason |
 | Kiosks | `kiosk_devices` | plant_id, name, public_key, status, last_seen_at, last_counter, app_version |
 | | `kiosk_pairing_codes` | kiosk_id, code_hash, expires_at, used_at |
+| | `employee_phones` (M4b) | employee_id, public_key, status, registered_at, last_seen_at |
 | | `punch_challenges` | kiosk_id, nonce, challenge, expires_at, used_at |
-| Punches | `punches` | employee_id?, kiosk_id, plant_id, method, direction, server_received_at, device_claimed_at, was_offline, lat, lon, accuracy_m, ip, decision (accepted/rejected/flagged), reason_codes[], match_score, liveness_score |
+| Punches | `punches` | employee_id?, kiosk_id? or employee_phone_id? (M4b), plant_id, method, outside_plant (M4b), direction, server_received_at, device_claimed_at, was_offline, lat, lon, accuracy_m, ip, decision (accepted/rejected/flagged), reason_codes[], match_score, liveness_score |
 | | `punch_snapshots` | punch_id, storage_key, expires_at, purged_at |
 | Attendance | `attendance_days` | employee_id, date, shift_id, first_in, last_out, worked_min, late_min, early_exit_min, overtime_min, status (present/absent/half_day/leave/holiday/weekly_off), computed_at |
 | | `leave_records` | employee_id, from_date, to_date, kind, is_paid |

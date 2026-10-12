@@ -11,18 +11,23 @@
   Final-year engineering sponsored project, team of 4, lead: Tushar Gawande.
 - Problem: employees mark proxy attendance from outside the premises; temporary
   hourly workers change often, so face enrolment is impractical for them.
-- Solution: ONE website, ONE attendance channel = the gate KIOSK.
+- Solution: ONE website; the gate KIOSK is the main attendance channel.
   - Kiosk: a tablet/phone/laptop with camera fixed at each plant gate, running
     our kiosk screen in full-screen. All employees punch here (check-in/out).
   - Permanent employees -> face recognition + liveness (blink / head turn).
   - Temporary / hourly workers -> unique signed QR code on an ID card, shown to
-    the kiosk camera. A photo snapshot is saved at each QR punch for HR review.
-  - No employee phone app for now: all punches happen at the kiosk.
-    A mobile PWA may be added later, only if needed.
+    the kiosk camera. A photo snapshot is saved at each QR punch for admin review.
+  - Phone punching is OPTIONAL per employee: an admin switches it on when the
+    employee asks. At the own plant the geofence is enforced; on official work
+    outside, GPS is saved and the punch is tagged. Built in M4b (decision 0004).
   - Admin dashboard (same website): setup, employees, QR cards, face enrolment,
     live headcount, reports, corrections, salary estimate (built last).
   - The server re-checks every punch (anti-proxy engine). Never trust the client.
-- Roles: SUPER_ADMIN, PLANT_ADMIN, HR, SUPERVISOR (+ KIOSK device identity).
+- Roles (client's choice): exactly Super Admin, Corporate Head, Plant Head (+ KIOSK
+  device identity); NO HR or supervisor users. Exact permissions: M1 spec.
+- Client facts: 7 plants, all of Sheet Shapers (one company), in MIDC Waluj; one gate
+  each for now; about 650 people (300 permanent, 350 temporary):
+  docs/client/client-answers-2026-10.md.
 - Must: zero cost (no paid APIs/licences), Indian compliance (DPDP Act 2023,
   IT Act 43A, Labour Codes), simple to run after handover (students cannot
   provide long-term maintenance).
@@ -31,8 +36,7 @@
   to add extra features that make the product better (see section 11).
   Future scope (NOT now): full payroll, automatic PF/ESIC/PT/TDS calculation,
   statutory reports, challans, Form 16, tax filing, payslips, employee document
-  storage, compliance due-date reminders, regulatory-change alerts,
-  mobile PWA for phone punching (only if needed).
+  storage, compliance due-date reminders, regulatory-change alerts.
 
 ## 2. Architecture & Project Structure
 - Approved 2026-10-11; full detail in docs/architecture.md (flows, table
@@ -51,7 +55,7 @@
   .claude/agents/ (subagents), .claude/commands/ (custom commands).
 - Modules: org setup (plants, geofences, kiosk devices, shifts), employees,
   enrolment (face, QR), kiosk punch, anti-proxy engine, attendance processing,
-  dashboards, reports, audit, auth, salary estimate (last).
+  dashboards, reports, audit, auth, phone punch (M4b), salary estimate (last).
 
 ## 3. Coding Style
 - Readability first: code must be easy to read and understand for a student
@@ -101,8 +105,8 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - NEVER add anything that costs money: paid APIs, paid face/AI services,
   paid maps, paid SMS, paid auth, paid UI kits or paid tiers of animation
   libraries. The test is simply: is it free? If unsure about cost, ASK.
-- Do NOT build an employee phone app or any non-kiosk punch path now
-  (a mobile PWA is future scope, only if needed).
+- Phone punching ONLY as the admin-controlled option of M4b, with the same
+  server-side checks; no other non-kiosk punch path.
 - NEVER send face data to any outside AI service; store encrypted face
   templates, not raw photos. QR-punch snapshots are auto-deleted after the
   retention period set by admin.
@@ -123,19 +127,22 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - Do not add a new dependency without stating its licence and reason.
 
 ## 6. What Needs to Be Done (scope)
-- Org setup: plants, geofence on a map, kiosk device registration, shifts.
+- Org setup: plants, geofence on a map, kiosk device registration, shifts (admins
+  add shifts any time; each has its own overtime start and rate).
 - Employees: permanent/temporary, contractors, Excel import, QR ID cards.
-- Face enrolment with consent (done by HR); face + liveness punch at kiosk.
+- Face enrolment with consent (done by an admin); face + liveness punch at kiosk.
 - QR issue/revoke/expiry; QR punch at kiosk with photo snapshot.
 - Anti-proxy engine: kiosk device token, kiosk GPS inside geofence, plant
   network allow-list, face/QR validity, server time + cool-down, impossible
   travel; rejection reasons stored.
 - Offline kiosk: queue punches when internet drops, sync later (signed).
+- Optional phone punch per employee (M4b), and temporary workers scanning the
+  gate's changing QR with their phone.
 - Attendance processing: check-in/out, late, early, overtime, hours worked.
 - Dashboard (live headcount per plant), reports (Excel/PDF), roles, audit log.
 - LAST: payable salary estimate:
   - Monthly salary = Basic + DA + HRA + Travel + other allowances (fixed
-    structure per employee, saved by HR, with effective-from date).
+    structure per employee, saved by an admin, with effective-from date).
   - Per-day salary = monthly salary / salary days (26, 30 or actual: setting).
   - Payable days = present + paid leave + paid holidays/weekly offs (settings).
   - Earned = per-day x payable days; overtime pay = OT hours x OT rate.
@@ -156,10 +163,13 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - [ ] M2 QR attendance end-to-end at the kiosk (with snapshot)
 - [ ] M3 Face enrolment + face/liveness attendance at the kiosk
 - [ ] M4 Anti-proxy engine + kiosk geofence + offline kiosk sync
+- [ ] M4b Optional phone punching (admin-controlled per employee) + temp workers'
+      phone scan of the gate QR
 - [ ] M5 Attendance processing, dashboards, reports
-- [ ] M6 Testing, security review, documentation, free-tier deployment
-- [ ] M7 Payable salary estimate + Excel export (after client answers Q9/Q10)
-- [ ] Optional: self-host package (Docker) only if the client asks for it
+- [ ] M6 Testing, security review, documentation, final free-tier deployment
+      (client's own server only if the free tiers are not enough)
+- [ ] M7 Payable salary estimate + Excel export (after the client's salary slip
+      and the remaining Q9 answers)
 - [ ] Future (not now): full payroll and statutory features
 
 ## 8. Workflow (Spec-Driven, milestone by milestone)
@@ -223,7 +233,8 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   - The database is Supabase (set `DATABASE_URL` in Render).
   - Set the GitHub repository variable `BACKEND_HEALTH_URL` after the first deploy, so the
     keep-alive workflow starts calling `/api/v1/health`.
-  - Self-hosting on the client's server is optional and only if they ask.
+  - The client's own server is used only if the free tiers cannot handle the data
+    (decision 0004); the backend Dockerfile keeps that possible.
 
 ## 10. Configuration Notes
 - Language: ENGLISH FIRST (English, India locale en-IN: DD/MM/YYYY dates,
@@ -234,11 +245,15 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - All timestamps stored in UTC, shown in IST (Asia/Kolkata).
 - Face match threshold, kiosk GPS accuracy limit, punch cool-down, snapshot
   retention, salary-day basis, paid-day and overtime rules are settings.
-- Hosting now (docs/decisions/0002-hosting.md): frontend on Vercel Hobby,
-  backend on Render Free (Docker, 512 MB, sleeps after 15 min; keep-alive
-  cron), Postgres + snapshot storage on Supabase Free (Mumbai). Camera needs
-  HTTPS. This is the final hosting if it performs well (no separate Docker
-  hosting planned). The client should own these accounts at handover.
+- Hosting (decisions 0002, 0004): free tiers for development AND production
+  (frontend on Vercel Hobby; backend on Render Free, 512 MB, sleeps after 15 min,
+  keep-alive cron; Postgres + snapshot storage on Supabase Free, Mumbai). Move to
+  the client's own server only if the free tiers cannot handle the data. If the
+  face model does not fit, Plan B includes a smaller model (only if it meets
+  NFR-05). Camera needs HTTPS. The client should own these accounts at handover.
+- Gate devices are phones and PCs. A PC usually has no GPS: it relies on its device
+  key + plant network allow-list (GPS only where the device has it).
+- Default shift 07:00–19:00; admins can add shifts (setting, never hard-coded).
 - QR snapshot retention default: 60 days (a setting).
 - Backend settings come only from environment variables (`.env` locally):
   `APP_ENV` (unset = production, which switches off /api/docs), `APP_VERSION`,
@@ -286,7 +301,6 @@ How to use this freedom:
 Guardrails that still apply to extras (these protect the team and the client):
 - Zero cost: free and open-source only (section 5).
 - Privacy and security rules stay the same (face data, server-side checks).
-- Kiosk-only punching stays (no phone punching) unless the team decides
-  otherwise.
+- Kiosk first: phone punching only as decided in 0004 (admin-controlled, M4b).
 - The legally risky payroll/statutory items in section 5 stay out.
 - Keep the code readable and simple to maintain after handover.

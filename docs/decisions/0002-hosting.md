@@ -1,6 +1,10 @@
 # 0002 – Hosting
 
-Date: 2026-10-11 · Decided by: Tushar Gawande (project lead) · Status: Accepted
+Date: 2026-10-11 · Decided by: Tushar Gawande (project lead) · Status: Accepted, amended by 0004
+
+> **Update 2026-10-12 (decision 0004):** the client confirmed: **use these free tiers** for
+> now, also for production. The system moves to the client's own server only if the free tiers
+> cannot handle the data. A smaller face model was added to Plan B.
 
 Free-tier limits were checked on the providers' official pages on 2026-10-11.
 
@@ -25,10 +29,13 @@ Free-tier limits were checked on the providers' official pages on 2026-10-11.
 - **Oracle Cloud Always Free:** 2 OCPU / 12 GB RAM in Mumbai, always on; a card is needed only
   for verification.
 - **Azure for Students VM:** college email, no card, $100 credit for 12 months.
+- **A smaller face model** (added 2026-10-12): if `buffalo_l` does not fit, switch to a lighter
+  model, but only if it still meets the accuracy targets (NFR-05), measured in M3.
 
-Both run the same backend Dockerfile. Vercel and Supabase stay as they are.
+The two servers run the same backend Dockerfile. Vercel and Supabase stay as they are.
 
 ## Handover
 - The client takes ownership of the Vercel, Render and Supabase accounts.
-- Self-hosting on the client's own server is **optional**, only if they ask for it. The app
-  stays portable (config through env), so it remains possible.
+- Self-hosting on the client's own server is **optional**: only if they ask for it, or if the
+  free tiers cannot handle their data. The app stays portable (config through env), so it
+  remains possible.
