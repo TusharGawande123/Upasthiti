@@ -169,7 +169,10 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 4. Team reviews plan -> Approved
 5. Build on branch milestone/M<n>-<name>; tests + small commits
 6. test-engineer, code-quality-reviewer, security-reviewer + manual testing
-   -> PR -> teammate approval -> merge
+7. Before the PR, on the same branch: update CLAUDE.md (tick the roadmap; new commands,
+   libraries, rules; keep it short) and add decision lines to docs/decisions/. The lead
+   approves the CLAUDE.md diff first. Never update CLAUDE.md after the merge.
+8. PR -> lead approval -> merge
 - Shortcuts: `/spec M<n>`, `/plan M<n>`, `/review-milestone`, `/ship`
   (.claude/commands/).
 - A PR needs 1 approval and 5 green CI checks: `backend`, `frontend`, `e2e`, `docker`,

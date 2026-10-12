@@ -27,6 +27,8 @@
 - [ ] All visible text is in `public/locales/en/common.json`
 - [ ] Approved API contract unchanged, or the spec was updated with it
 - [ ] Extras built in this PR are listed here and in `docs/decisions/accepted-extras.md`
+- [ ] CLAUDE.md updated on this branch (roadmap ticked; new commands, libraries, rules) and approved by the lead
+- [ ] One line per important decision added to `docs/decisions/`
 
 ## Screenshots
 <!-- For any screen change. -->
