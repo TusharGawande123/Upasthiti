@@ -39,3 +39,24 @@ Chosen by the lead in chat on 2026-10-12.
 - `e2e` is a required CI check on every PR.
 - `enforce_admins` stays off on `main`.
 - CODEOWNERS lists only the lead until teammates' GitHub usernames are known.
+
+## M1 – Foundation (docs/specs/M1-foundation.md)
+Chosen by the lead in chat on 2026-10-13.
+
+- M1 · S-15 · Fake test-data command: 650 employees across the 7 plants (~300 permanent, ~350 temporary); refuses in production · Approved · 2026-10-13
+- M1 · S-17 · axe accessibility scan in Playwright · Approved · 2026-10-13
+- M1 · S-18 · Post-deploy smoke test on the live URL · Approved · 2026-10-13
+- M1 · S-20 · Keep-alive checks the database once a day (Supabase pause guard) · Approved · 2026-10-13
+- M1 · F-17 · Plant readiness card · Approved · 2026-10-13
+- M1 · F-18 · Kiosk pairing by QR · Approved · 2026-10-13
+- M1 · F-19 · Employee timeline (from the audit log) · Approved · 2026-10-13
+- M1 · F-20 · Plant transfer with effective date + plant history · Approved · 2026-10-13
+- M1 · F-23 · Active sessions + force logout · Approved · 2026-10-13
+- M2 · F-25 · Gate notice board on the kiosk idle screen · Approved · 2026-10-13
+- M5 · F-26 · Emergency muster list (SRS FR-34) · Approved · 2026-10-13
+- Rejected: F-21 Excel update mode (import stays create-only); F-22 automatic "left" by end
+  date (only the Super Admin marks people as left and expires QR cards, by hand) · 2026-10-13
+- Later: S-16 API type generation, S-19 migration round-trip check, S-21 strict CSP,
+  F-24 two-step login (TOTP) · 2026-10-13
+- Role matrix, approvals inbox, no network allow-list, Super Admin kiosk approval, OT rate
+  per employee, required category: decision 0005 (not extras) · 2026-10-13
