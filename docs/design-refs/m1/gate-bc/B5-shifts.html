@@ -1,0 +1,187 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate B – Screen B5: Shifts tab of a plant + add/edit shift form.
+  States (URL hash): (none) table · #edit "Edit shift" dialog (Night, ends next day) · #add new
+  shift with the defaults · #same-times start = end error · #plant-head read-only table.
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Shifts TP2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <style>
+    .time-cell { display: flex; align-items: center; gap: 10px; }
+    .time-cell svg { width: 18px; height: 18px; }
+    .span-mini { position: relative; width: 120px; height: 8px; border-radius: 99px; background: var(--muted); overflow: hidden; }
+    .span-mini i { position: absolute; top: 0; bottom: 0; background: var(--primary); border-radius: 99px; }
+    .time-input { display: flex; align-items: center; gap: 4px; height: 52px; padding: 0 12px; border: 1px solid var(--input-border); border-radius: var(--radius); background: var(--surface); box-shadow: var(--shadow-xs); }
+    .time-input svg { width: 18px; height: 18px; color: var(--muted-foreground); margin-right: 6px; }
+    .time-input b { font-size: 24px; font-weight: 700; letter-spacing: 0.02em; }
+    .time-input .seg { padding: 2px 4px; border-radius: 6px; }
+    .time-input .seg.is-focus { background: var(--primary-soft); box-shadow: 0 0 0 2px var(--primary); }
+    .time-input[aria-invalid="true"] { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(180,35,24,.12); }
+    .sentence { border-radius: 14px; padding: 16px 18px; background: linear-gradient(180deg, #f3f6fd, #eaeefb); border: 1px solid #cdd6f4; }
+    .sentence-main { display: flex; gap: 12px; align-items: flex-start; font-size: 16px; font-weight: 650; color: var(--primary-soft-foreground); }
+    .sentence-main svg { width: 22px; height: 22px; flex: none; margin-top: 1px; }
+    .sentence ul { margin: 10px 0 0 34px; padding: 0; list-style: none; display: grid; gap: 4px; font-size: 14px; color: #24324f; }
+    .sentence li { display: flex; gap: 8px; align-items: center; }
+    .sentence li svg { width: 15px; height: 15px; color: var(--primary); }
+    /* 24-hour band: shows the shift on a day line, wrapping past midnight */
+    .band { position: relative; height: 34px; margin-top: 14px; }
+    .band-track { position: absolute; left: 0; right: 0; top: 8px; height: 14px; border-radius: 99px; background: #fff; border: 1px solid #cdd6f4; overflow: hidden; }
+    .band-fill { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--primary) 0 8px, #2a4bb8 8px 16px); }
+    .band-ticks { position: absolute; left: 0; right: 0; top: 24px; display: flex; justify-content: space-between; font-size: 11.5px; color: var(--muted-foreground); font-weight: 600; }
+    .band-mid { position: absolute; top: 2px; bottom: 6px; width: 2px; background: var(--signal); left: 100%; }
+    .grid-3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+    @media (prefers-reduced-motion: no-preference) { .band-fill { animation: fillIn 600ms var(--ease-out) both 200ms; transform-origin: left; } }
+    @keyframes fillIn { from { transform: scaleX(0); } }
+  </style>
+</head>
+<body data-active="plants">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page">
+      <div id="plant-header" class="anim-fade-up"></div>
+      <div id="ro-slot"></div>
+      <div class="card anim-fade-up anim-delay-1" style="overflow:hidden">
+        <div class="card-head">
+          <div><h2 class="card-title">Shifts</h2><p class="muted" style="margin:2px 0 0;font-size:13.5px">Times are IST, 24-hour. The overtime rate is set on each employee, not here.</p></div>
+          <button class="btn btn-primary" data-edit><i data-lucide="plus" style="width:16px;height:16px"></i>Add shift</button>
+        </div>
+        <table class="table">
+          <thead><tr>
+            <th scope="col" style="padding-left:20px">Shift</th><th scope="col">Time</th><th scope="col">Late after</th>
+            <th scope="col">Half-day limit</th><th scope="col">Overtime after</th><th scope="col">Employees</th><th scope="col">Status</th><th scope="col" data-edit><span class="sr-only">Actions</span></th>
+          </tr></thead>
+          <tbody>
+            <tr>
+              <td style="padding-left:20px"><b>General</b> <span class="badge badge-neutral" style="height:20px;font-size:11.5px;margin-left:4px">Default</span></td>
+              <td><div class="time-cell tnum"><i data-lucide="sun" style="color:var(--warning)"></i><b>07:00 – 19:00</b></div><div class="muted tnum" style="font-size:12.5px;margin-left:28px">12 h 00 min · same day</div></td>
+              <td class="tnum">10 min</td><td class="tnum">4 h 00 min</td><td class="tnum">8 h 00 min</td><td class="tnum muted">0</td>
+              <td><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span></td>
+              <td data-edit style="text-align:right"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-ghost btn-icon btn-sm" aria-label="More for General"><i data-lucide="ellipsis" style="width:18px;height:18px"></i></button></td>
+            </tr>
+            <tr class="is-selected" id="night-row">
+              <td style="padding-left:20px"><b>Night</b></td>
+              <td><div class="time-cell tnum"><i data-lucide="moon" style="color:var(--primary)"></i><b>19:00 – 07:00</b></div><div style="margin:4px 0 0 28px"><span class="badge badge-info" style="height:22px;font-size:12px"><i data-lucide="moon-star"></i>Ends next day</span> <span class="muted tnum" style="font-size:12.5px">12 h 00 min</span></div></td>
+              <td class="tnum">10 min</td><td class="tnum">4 h 00 min</td><td class="tnum">8 h 00 min</td><td class="tnum muted">0</td>
+              <td><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span></td>
+              <td data-edit style="text-align:right"><button class="btn btn-ghost btn-sm">Edit</button><button class="btn btn-ghost btn-icon btn-sm" aria-label="More for Night"><i data-lucide="ellipsis" style="width:18px;height:18px"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+        <div class="table-foot"><button class="btn btn-ghost btn-sm" style="margin-left:-8px"><i data-lucide="chevron-right" style="width:15px;height:15px"></i>Inactive (0)</button><span>Editing a shift changes future days only.</span></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ===== Add / edit shift dialog ===== -->
+<div id="dlg" hidden>
+  <div class="overlay"></div>
+  <div class="dialog anim-scale-in" role="dialog" aria-modal="true" aria-labelledby="dlg-title" style="width:min(660px,calc(100vw - 32px))">
+    <div class="dlg-head flex items-start justify-between">
+      <div><h2 id="dlg-title" class="dlg-title">Edit shift</h2><p class="muted" style="margin:4px 0 0">TP2 · Tirupati Pressco, Unit 2</p></div>
+      <button class="btn btn-ghost btn-icon" aria-label="Close"><i data-lucide="x" style="width:20px;height:20px"></i></button>
+    </div>
+    <div class="dlg-body space-y-5">
+      <div><label class="label" for="s-name">Shift name</label><input id="s-name" class="input" value="Night" /></div>
+
+      <div class="grid grid-cols-2 gap-4">
+        <div><span class="label" id="lbl-start">Starts</span>
+          <div class="time-input tnum" role="group" aria-labelledby="lbl-start" id="start-box"><i data-lucide="clock-3"></i><b class="seg" id="start-h">19</b><b>:</b><b class="seg" id="start-m">00</b><span class="muted" style="margin-left:auto;font-size:13px">IST</span></div></div>
+        <div><span class="label" id="lbl-end">Ends</span>
+          <div class="time-input tnum" role="group" aria-labelledby="lbl-end" id="end-box"><i data-lucide="clock-9"></i><b class="seg is-focus" id="end-h">07</b><b>:</b><b class="seg" id="end-m">00</b><span class="muted" style="margin-left:auto;font-size:13px">IST</span></div></div>
+      </div>
+      <div id="time-error" class="field-error" hidden role="alert" style="margin-top:-8px"><i data-lucide="circle-alert" style="width:15px;height:15px"></i>Start and end cannot be the same.</div>
+
+      <!-- Live sentence (updates as the fields change; aria-live so screen readers hear it) -->
+      <div class="sentence" aria-live="polite" id="sentence">
+        <div class="sentence-main"><i data-lucide="moon"></i><span id="sentence-text">Night shift: starts 19:00, ends next day at 07:00 (12 h 00 min).</span></div>
+        <ul id="sentence-list">
+          <li><i data-lucide="alarm-clock"></i>Late if the first punch is after 19:10.</li>
+          <li><i data-lucide="split"></i>Half-day limit: 4 h 00 min of work.</li>
+          <li><i data-lucide="timer"></i>Overtime counts after 8 h 00 min of work, at each employee's own rate.</li>
+        </ul>
+        <div class="band" aria-hidden="true" id="band">
+          <div class="band-track"><div class="band-fill" style="left:79.17%;right:0"></div><div class="band-fill" style="left:0;width:29.17%"></div></div>
+          <div class="band-ticks tnum"><span>00</span><span>06</span><span>12</span><span>18</span><span>24</span></div>
+        </div>
+      </div>
+
+      <div class="grid-3">
+        <div><label class="label" for="s-grace">Grace</label>
+          <div class="unit-input"><input id="s-grace" class="input tnum" value="10" inputmode="numeric" /><span class="unit">min</span></div>
+          <div class="help">Late after start + this.</div></div>
+        <div><label class="label" for="s-half">Half-day limit</label>
+          <div class="unit-input"><input id="s-half" class="input tnum" value="240" inputmode="numeric" /><span class="unit">min</span></div>
+          <div class="help tnum">= 4 h 00 min</div></div>
+        <div><span class="label" id="lbl-ot">Overtime after</span>
+          <div class="flex gap-2" role="group" aria-labelledby="lbl-ot">
+            <div class="unit-input" style="flex:1"><input class="input tnum" value="8" aria-label="Overtime after, hours" inputmode="numeric" style="padding:0 10px" /><span class="unit">h</span></div>
+            <div class="unit-input" style="flex:1"><input class="input tnum" value="00" aria-label="Overtime after, minutes" inputmode="numeric" style="padding:0 10px" /><span class="unit">min</span></div>
+          </div>
+          <div class="help">Of work in the day.</div></div>
+      </div>
+
+      <div class="alert alert-info"><i data-lucide="info"></i><div>Changes apply from today. Days already worked out keep their values. No overtime rate here: it is set on each employee.</div></div>
+    </div>
+    <div class="dlg-foot"><button class="btn btn-outline">Cancel</button><button class="btn btn-primary" id="save-shift"><i data-lucide="save" style="width:16px;height:16px"></i>Save shift</button></div>
+  </div>
+</div>
+
+<div class="state-tag" id="state-tag">State: shifts table</div>
+<script src="../gate-a/shell.js"></script>
+<script src="plant.js"></script>
+<script>
+  // Mockup only.
+  function setTimes(startH, endH) {
+    document.getElementById("start-h").textContent = startH;
+    document.getElementById("end-h").textContent = endH;
+  }
+  window.onMockState = function (state) {
+    const readOnly = state === "plant-head";
+    const tag = document.getElementById("state-tag");
+    document.getElementById("plant-header").innerHTML = window.renderPlantHeader("shifts", readOnly);
+    if (state !== "edit") document.getElementById("night-row").classList.remove("is-selected");
+    if (state === "edit") { document.getElementById("dlg").hidden = false; tag.textContent = "State: Edit shift (Night, ends next day)"; }
+    if (state === "add") {
+      document.getElementById("dlg").hidden = false;
+      document.getElementById("dlg-title").textContent = "Add shift";
+      document.getElementById("s-name").value = "Second";
+      setTimes("15", "23");
+      document.querySelector("#sentence .sentence-main").innerHTML = '<i data-lucide="sunset"></i><span>Second shift: 15:00 to 23:00, same day (8 h 00 min).</span>';
+      document.getElementById("sentence-list").firstElementChild.innerHTML = '<i data-lucide="alarm-clock"></i>Late if the first punch is after 15:10.';
+      document.querySelector("#band .band-track").innerHTML = '<div class="band-fill" style="left:62.5%;width:33.33%"></div>';
+      document.getElementById("save-shift").innerHTML = '<i data-lucide="plus" style="width:16px;height:16px"></i>Add shift';
+      tag.textContent = "State: Add shift (defaults: grace 10, half-day 240, overtime after 8 h)";
+    }
+    if (state === "same-times") {
+      document.getElementById("dlg").hidden = false;
+      document.getElementById("dlg-title").textContent = "Add shift";
+      document.getElementById("s-name").value = "Short";
+      setTimes("07", "07");
+      document.getElementById("end-box").setAttribute("aria-invalid", "true");
+      document.getElementById("time-error").hidden = false;
+      document.getElementById("sentence").outerHTML = '<div class="sentence" style="background:var(--muted);border-color:var(--border)"><div class="sentence-main" style="color:var(--muted-foreground)"><i data-lucide="circle-help"></i><span>Choose an end time that is different from the start.</span></div></div>';
+      document.getElementById("save-shift").setAttribute("aria-disabled", "true");
+      tag.textContent = "State: start = end (inline error)";
+    }
+    if (readOnly) {
+      document.getElementById("ro-slot").innerHTML = window.readOnlyBanner("Only the Super Admin can add or change shifts.");
+      window.applyPlantHeadView();
+      tag.textContent = "State: read-only (Plant Head)";
+    }
+  };
+</script>
+</body>
+</html>

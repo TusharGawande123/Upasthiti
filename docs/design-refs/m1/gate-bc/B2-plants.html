@@ -1,0 +1,150 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate B – Screen B2: Plants list (/admin/plants).
+  States (URL hash): (none) 7 plants · #empty no plants yet (Super Admin) · #loading skeleton rows ·
+  #error could not load. MOCKUP ONLY – static HTML; plant codes/names are the client's real
+  business info (backend/app/modules/org/client_plants.py); all counts are fake.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Plants</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <style>
+    .summary { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+    .sum { display: flex; align-items: center; gap: 12px; padding: 14px 16px; }
+    .sum-icon { width: 40px; height: 40px; border-radius: 11px; display: grid; place-items: center; background: var(--primary-soft); color: var(--primary); flex: none; }
+    .sum-icon svg { width: 20px; height: 20px; }
+    .sum b { font-size: 22px; font-weight: 750; letter-spacing: -0.02em; display: block; line-height: 1.1; }
+    .sum span { font-size: 13px; color: var(--muted-foreground); }
+    .table tbody tr { cursor: pointer; }
+    .num { text-align: right; }
+    .table thead th.num { text-align: right; }
+    .seed-list { display: grid; grid-template-columns: repeat(4, auto); gap: 6px; justify-content: center; margin: 18px auto 0; }
+    .seed-list .badge { height: 28px; }
+  </style>
+</head>
+<body data-active="plants">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page">
+      <div class="page-head anim-fade-up">
+        <div>
+          <h1 class="page-title">Plants</h1>
+          <p class="page-desc">Each plant has its own geofence, shifts, categories and gate kiosk. Open a plant to set them up.</p>
+        </div>
+        <button class="btn btn-primary btn-lg" id="add-btn"><i data-lucide="plus" style="width:18px;height:18px"></i>Add a plant</button>
+      </div>
+
+      <section class="summary anim-fade-up anim-delay-1" id="summary" aria-label="Summary">
+        <div class="card sum"><span class="sum-icon"><i data-lucide="factory"></i></span><div><b class="tnum">7</b><span>Active plants</span></div></div>
+        <div class="card sum"><span class="sum-icon" style="background:var(--warning-soft);color:var(--warning)"><i data-lucide="map-pinned"></i></span><div><b class="tnum">3 <small style="font-size:14px;color:var(--muted-foreground);font-weight:600">of 7</small></b><span>Have a geofence</span></div></div>
+        <div class="card sum"><span class="sum-icon"><i data-lucide="tablet-smartphone"></i></span><div><b class="tnum">2</b><span>Active kiosks · 1 waiting</span></div></div>
+        <div class="card sum"><span class="sum-icon"><i data-lucide="users"></i></span><div><b class="tnum">648</b><span>Active employees</span></div></div>
+      </section>
+
+      <div class="card anim-fade-up anim-delay-2" style="overflow:hidden" id="list-card">
+        <div class="toolbar">
+          <label class="search-input"><i data-lucide="search"></i><span class="sr-only">Search plants</span><input class="input" placeholder="Search code or name" /></label>
+          <button class="btn btn-outline" style="height:42px"><i data-lucide="filter" style="width:16px;height:16px"></i>Status: Active</button>
+          <button class="btn btn-outline chip-btn"><i data-lucide="circle-plus" style="width:16px;height:16px"></i>Geofence</button>
+          <span class="ml-auto muted tnum" style="font-size:13px">7 plants · all in MIDC Waluj</span>
+        </div>
+        <div style="overflow-x:auto">
+        <table class="table">
+          <thead><tr>
+            <th scope="col" style="padding-left:20px">Code</th><th scope="col">Name</th><th scope="col">Status</th>
+            <th scope="col">Geofence</th><th scope="col">Kiosks</th><th scope="col" class="num">Employees</th><th scope="col"><span class="sr-only">Open</span></th>
+          </tr></thead>
+          <tbody id="rows"></tbody>
+        </table>
+        </div>
+        <div class="table-foot"><span>Click a row to open the plant.</span><span class="tnum">Showing 1–7 of 7</span></div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="state-tag" id="state-tag">State: 7 plants</div>
+<script src="../gate-a/shell.js"></script>
+<script>
+  // Mockup only. [code, name, geofence, kioskText, kioskKind, employees]
+  const PLANTS = [
+    ["K134", "Sheet Shapers India Pvt Ltd (K-134)", "K-134", "v3", "1 active", "ok", 142],
+    ["X280", "Sheet Shapers India Pvt Ltd (X-280)", "72, X-280", "v1", "1 active · 1 waiting", "ok", 118],
+    ["PC1", "Precise Cuts India Pvt Ltd, Unit 1", "E-70/22", null, "None", "none", 96],
+    ["PC2", "Precise Cuts India Pvt Ltd, Unit 2", "E-70/20", null, "None", "none", 74],
+    ["SPI", "Siddharth Pressings India Pvt Ltd", "C-97", null, "None", "none", 88],
+    ["TP1", "Tirupati Pressco, Unit 1", "9, S.L.U.Y.", null, "None", "none", 130],
+    ["TP2", "Tirupati Pressco, Unit 2", "9/1, S.L.U.Y.", "v2", "None", "none", 0],
+  ];
+
+  function plantRow(p) {
+    const geofence = p[3]
+      ? '<span class="badge badge-success"><i data-lucide="circle-check"></i>Set · ' + p[3] + '</span>'
+      : '<span class="badge badge-danger"><i data-lucide="circle-x"></i>Not set</span>';
+    const kiosk = p[5] === "ok"
+      ? '<span class="inline-flex items-center gap-2"><i data-lucide="tablet-smartphone" style="width:16px;height:16px;color:var(--success)"></i>' + p[4] + '</span>'
+      : '<span class="inline-flex items-center gap-2 muted"><i data-lucide="minus" style="width:16px;height:16px"></i>None</span>';
+    const employees = p[6] === 0 ? '<span class="muted">0</span>' : p[6].toLocaleString("en-IN");
+    return '<tr><td style="padding-left:20px"><b class="code" style="font-size:15px">' + p[0] + '</b></td>' +
+      '<td><div style="font-weight:600">' + p[1] + '</div><div class="muted" style="font-size:12.5px">' + p[2] + ', MIDC Waluj</div></td>' +
+      '<td><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span></td>' +
+      '<td>' + geofence + '</td><td>' + kiosk + '</td><td class="num tnum" style="font-weight:600">' + employees + '</td>' +
+      '<td style="width:48px"><a href="B3-plant-detail.html" class="btn btn-ghost btn-icon btn-sm" aria-label="Open ' + p[0] + '"><i data-lucide="chevron-right" style="width:18px;height:18px"></i></a></td></tr>';
+  }
+
+  function emptyState() {
+    const seeds = ["K134", "X280", "PC1", "PC2", "SPI", "TP1", "TP2"].map(function (code) {
+      return '<span class="badge badge-outline code"><i data-lucide="factory"></i>' + code + '</span>';
+    }).join("");
+    return `
+      <div class="empty" style="padding:64px 24px 60px">
+        <div class="empty-icon"><i data-lucide="factory"></i></div>
+        <h2>No plants yet</h2>
+        <p>Start with Sheet Shapers' 7 plants in MIDC Waluj. Each one gets the shift "General 07:00–19:00" and the categories Staff, Worker, Operator and Helper. Nothing is placed on the map yet; you draw each geofence on site.</p>
+        <div class="seed-list">${seeds}</div>
+        <div class="flex justify-center gap-2" style="margin-top:22px">
+          <button class="btn btn-primary btn-lg"><i data-lucide="sparkles" style="width:18px;height:18px"></i>Add Sheet Shapers' 7 plants</button>
+          <button class="btn btn-outline btn-lg"><i data-lucide="plus" style="width:18px;height:18px"></i>Add a plant</button>
+        </div>
+        <p style="font-size:13px;margin-top:14px">Safe to press twice: plants that already exist are skipped.</p>
+      </div>`;
+  }
+
+  window.onMockState = function (state) {
+    const tag = document.getElementById("state-tag");
+    const rows = document.getElementById("rows");
+    rows.innerHTML = PLANTS.map(plantRow).join("");
+    if (state === "empty") {
+      document.getElementById("summary").hidden = true;
+      document.getElementById("add-btn").hidden = true;
+      document.getElementById("list-card").innerHTML = emptyState();
+      const sbProgress = document.querySelector(".sb-progress");
+      if (sbProgress) sbProgress.textContent = "0 of 5";
+      tag.textContent = "State: no plants yet (empty)";
+    }
+    if (state === "loading") {
+      const row = "<tr>" + [44, 260, 70, 90, 90, 40, 24].map(function (w, i) {
+        return '<td' + (i === 0 ? ' style="padding-left:20px"' : '') + '><div class="skeleton" style="height:14px;width:' + w + 'px"></div></td>';
+      }).join("") + "</tr>";
+      rows.innerHTML = row.repeat(7);
+      document.querySelectorAll(".sum b").forEach(function (el) { el.innerHTML = '<div class="skeleton" style="height:22px;width:44px"></div>'; });
+      tag.textContent = "State: loading (skeleton rows)";
+    }
+    if (state === "error") {
+      rows.innerHTML = '<tr><td colspan="7" style="padding:40px 20px"><div class="alert alert-danger" role="alert" style="max-width:560px;margin:0 auto"><i data-lucide="circle-alert"></i><div style="flex:1"><b>Could not load the plants.</b><div>Check the internet connection and try again.</div></div><button class="btn btn-outline btn-sm"><i data-lucide="rotate-cw" style="width:15px;height:15px"></i>Try again</button></div></td></tr>';
+      tag.textContent = "State: could not load (error)";
+    }
+  };
+</script>
+</body>
+</html>
