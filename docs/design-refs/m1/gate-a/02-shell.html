@@ -1,0 +1,111 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate A – Screen 02: Admin shell + Dashboard placeholder.
+  Resize below 1024 px to see the icon rail. #menu opens the user menu.
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <style>
+    .stat { padding: 18px 20px; }
+    .stat-label { display: flex; align-items: center; gap: 8px; color: var(--muted-foreground); font-size: 13.5px; font-weight: 500; }
+    .stat-label svg { width: 17px; height: 17px; }
+    .stat-value { font-size: 30px; font-weight: 750; letter-spacing: -0.02em; margin-top: 8px; }
+    .stat-sub { font-size: 13px; color: var(--muted-foreground); margin-top: 2px; }
+    .steps li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+    .steps li:last-child { border-bottom: 0; }
+    .placeholder { position: relative; overflow: hidden; min-height: 340px; display: grid; place-items: center; text-align: center; }
+    .placeholder::before {
+      content: ""; position: absolute; inset: 0;
+      background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px);
+      background-size: 32px 32px; opacity: 0.55;
+      mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000 10%, transparent 70%);
+    }
+    .placeholder > * { position: relative; }
+    .bars { display: flex; align-items: flex-end; gap: 10px; height: 96px; margin: 0 auto 22px; width: max-content; }
+    .bars span { width: 22px; border-radius: 6px 6px 3px 3px; background: linear-gradient(180deg, #c9d3f2, #e6ebf9); border: 1px dashed #9fb0e3; }
+    .grid-dash { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-top: 16px; }
+    @media (max-width: 1023px) { .grid-dash { grid-template-columns: repeat(2, minmax(0, 1fr)); } .grid-main { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body data-active="dashboard">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page">
+      <div class="page-head anim-fade-up">
+        <div>
+          <h1 class="page-title">Good morning, Asha</h1>
+          <p class="page-desc"><span class="tnum">Tuesday, 13/10/2026</span> · Server time <b class="tnum" style="color:var(--foreground)">09:14 IST</b></p>
+        </div>
+        <span class="badge badge-neutral"><i data-lucide="building-2"></i>Showing: All 7 plants</span>
+      </div>
+
+      <!-- Quick numbers (Magic UI Number Ticker on load) -->
+      <section class="grid-dash" aria-label="Summary">
+        <div class="card stat anim-fade-up">
+          <div class="stat-label"><i data-lucide="factory"></i>Plants</div>
+          <div class="stat-value tnum">7</div>
+          <div class="stat-sub"><span class="inline-flex items-center gap-1" style="color:var(--warning);font-weight:600"><i data-lucide="triangle-alert" style="width:14px;height:14px"></i>5 without geofence</span></div>
+        </div>
+        <div class="card stat anim-fade-up anim-delay-1">
+          <div class="stat-label"><i data-lucide="tablet-smartphone"></i>Kiosks paired</div>
+          <div class="stat-value tnum">2 <span style="font-size:18px;color:var(--muted-foreground);font-weight:600">of 7</span></div>
+          <div class="stat-sub">Attendance starts in M2</div>
+        </div>
+        <div class="card stat anim-fade-up anim-delay-2">
+          <div class="stat-label"><i data-lucide="users"></i>Employees</div>
+          <div class="stat-value tnum">648</div>
+          <div class="stat-sub tnum">298 permanent · 350 temporary</div>
+        </div>
+        <div class="card stat anim-fade-up anim-delay-3">
+          <div class="stat-label"><i data-lucide="inbox"></i>Waiting for approval</div>
+          <div class="stat-value tnum">3</div>
+          <div class="stat-sub"><a href="#" style="color:var(--primary);font-weight:600;text-decoration:underline;text-underline-offset:3px">Review now</a></div>
+        </div>
+      </section>
+
+      <section class="grid-main">
+        <!-- Placeholder for M5 live headcount -->
+        <div class="card placeholder anim-fade-up anim-delay-2">
+          <div style="padding:32px">
+            <div class="bars" aria-hidden="true"><span style="height:40%"></span><span style="height:65%"></span><span style="height:52%"></span><span style="height:88%"></span><span style="height:74%"></span><span style="height:58%"></span><span style="height:80%"></span></div>
+            <span class="badge badge-info"><i data-lucide="clock"></i>Coming in M5</span>
+            <h2 style="font-size:20px;font-weight:700;margin:12px 0 6px;letter-spacing:-0.01em">Live headcount comes in M5</h2>
+            <p style="color:var(--muted-foreground);max-width:46ch;margin:0 auto">Here you will see who is inside each plant right now. First the kiosks must start recording punches (M2).</p>
+          </div>
+        </div>
+
+        <!-- Setup progress (F-5) -->
+        <div class="card anim-fade-up anim-delay-3" style="padding:20px 22px">
+          <div class="flex items-center justify-between">
+            <h2 style="font-size:16px;font-weight:700;margin:0">Finish setup</h2>
+            <span class="tnum" style="font-size:13px;font-weight:600;color:var(--muted-foreground)">3 of 5 done</span>
+          </div>
+          <div style="height:8px;border-radius:99px;background:var(--muted);margin:12px 0 6px;overflow:hidden" role="progressbar" aria-valuenow="60" aria-valuemin="0" aria-valuemax="100" aria-label="Setup progress"><div style="width:60%;height:100%;background:var(--primary);border-radius:99px"></div></div>
+          <ol class="steps" style="margin-top:6px">
+            <li><i data-lucide="circle-check" style="color:var(--success);width:20px;height:20px"></i><span>Plants</span><span class="ml-auto badge badge-success" style="height:22px">Done</span></li>
+            <li><i data-lucide="circle-dashed" style="color:var(--warning);width:20px;height:20px"></i><span>Geofence for each plant</span><span class="ml-auto badge badge-warning tnum" style="height:22px">2 of 7</span></li>
+            <li><i data-lucide="circle-check" style="color:var(--success);width:20px;height:20px"></i><span>Shifts and categories</span><span class="ml-auto badge badge-success" style="height:22px">Done</span></li>
+            <li><i data-lucide="circle" style="color:var(--subtle-foreground);width:20px;height:20px"></i><span>Kiosk for each plant</span><span class="ml-auto badge badge-neutral tnum" style="height:22px">2 of 7</span></li>
+            <li><i data-lucide="circle-check" style="color:var(--success);width:20px;height:20px"></i><span>Employees</span><span class="ml-auto badge badge-success" style="height:22px">Done</span></li>
+          </ol>
+          <button class="btn btn-primary w-full" style="margin-top:14px">Continue setup<i data-lucide="arrow-right" style="width:17px;height:17px"></i></button>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

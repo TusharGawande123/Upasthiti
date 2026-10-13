@@ -1,0 +1,97 @@
+/* Upasthiti – M1 gate A mockup: admin shell layout (sidebar, icon rail, top bar). */
+
+.app { display: grid; grid-template-columns: 264px 1fr; min-height: 100vh; }
+
+/* ---------- Sidebar ---------- */
+.sidebar {
+  position: sticky; top: 0; height: 100vh; display: flex; flex-direction: column;
+  background: var(--surface); border-right: 1px solid var(--border);
+}
+.sb-brand { display: flex; align-items: center; gap: 10px; height: 64px; padding: 0 18px; border-bottom: 1px solid var(--border); }
+.sb-brand-name { font-weight: 700; font-size: 17px; letter-spacing: -0.01em; }
+.sb-brand-sub { font-size: 12px; color: var(--muted-foreground); margin-top: 1px; }
+.sb-nav { flex: 1; overflow-y: auto; padding: 12px 12px 16px; }
+.sb-group { margin-top: 14px; }
+.sb-group:first-child { margin-top: 2px; }
+.sb-group-label { font-size: 11.5px; font-weight: 600; color: var(--subtle-foreground); text-transform: uppercase; letter-spacing: 0.06em; padding: 0 10px 6px; }
+.sb-item {
+  position: relative; display: flex; align-items: center; gap: 12px; height: 40px; padding: 0 10px;
+  border-radius: 9px; color: var(--muted-foreground); font-weight: 500; text-decoration: none;
+  transition: background var(--duration-micro), color var(--duration-micro);
+}
+.sb-item svg { width: 19px; height: 19px; stroke-width: 1.9; flex: none; }
+.sb-item:hover { background: var(--muted); color: var(--foreground); }
+.sb-item[aria-current="page"] { background: var(--primary-soft); color: var(--primary-soft-foreground); font-weight: 600; }
+/* Signal-yellow bar marks the active page (shape cue, not colour only: bold text + background too) */
+.sb-item[aria-current="page"]::before {
+  content: ""; position: absolute; left: -12px; top: 9px; bottom: 9px; width: 4px;
+  border-radius: 0 4px 4px 0; background: var(--signal); box-shadow: 0 0 0 1px rgba(14,23,38,0.08);
+}
+.sb-count {
+  margin-left: auto; min-width: 22px; height: 22px; padding: 0 7px; border-radius: 999px;
+  display: inline-grid; place-items: center; font-size: 12px; font-weight: 700;
+  background: var(--primary); color: #fff;
+}
+.sb-progress { margin-left: auto; font-size: 12px; font-weight: 600; color: var(--muted-foreground); }
+.sb-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sb-footer { border-top: 1px solid var(--border); padding: 12px 16px; font-size: 12px; color: var(--subtle-foreground); display: flex; align-items: center; gap: 8px; }
+
+/* ---------- Main + top bar ---------- */
+.main { min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  position: sticky; top: 0; z-index: 20; height: 64px; display: flex; align-items: center; gap: 12px;
+  padding: 0 24px; background: rgba(255,255,255,0.86); backdrop-filter: saturate(1.4) blur(10px);
+  border-bottom: 1px solid var(--border);
+}
+.search-trigger {
+  display: flex; align-items: center; gap: 10px; width: min(420px, 40vw); height: 40px; padding: 0 8px 0 12px;
+  border: 1px solid var(--border-strong); border-radius: var(--radius); background: var(--surface);
+  color: var(--subtle-foreground); font: 400 14px var(--font-sans); cursor: text; box-shadow: var(--shadow-xs);
+}
+.search-trigger svg { width: 18px; height: 18px; }
+.search-trigger .kbd-group { margin-left: auto; display: flex; gap: 4px; }
+.plant-filter { display: inline-flex; align-items: center; gap: 8px; height: 40px; padding: 0 12px; }
+.topbar-spacer { flex: 1; }
+.user-trigger { display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 8px 0 4px; border-radius: 12px; border: 1px solid transparent; background: none; cursor: pointer; font: inherit; color: inherit; }
+.user-trigger:hover { background: var(--muted); }
+.user-meta { text-align: left; line-height: 1.2; }
+.user-meta b { font-size: 14px; }
+.user-meta span { display: block; font-size: 12px; color: var(--muted-foreground); }
+
+.page { padding: 28px 32px 48px; max-width: 1400px; width: 100%; }
+.page-head { display: flex; align-items: flex-end; justify-content: space-between; gap: 16px; margin-bottom: 20px; flex-wrap: wrap; }
+.page-title { font-size: 26px; line-height: 1.2; font-weight: 700; letter-spacing: -0.02em; margin: 0; }
+.page-desc { color: var(--muted-foreground); margin: 6px 0 0; font-size: 14.5px; max-width: 68ch; }
+.crumbs { font-size: 13px; color: var(--muted-foreground); display: flex; gap: 6px; align-items: center; margin-bottom: 8px; }
+
+/* User menu dropdown */
+.menu {
+  position: absolute; right: 20px; top: 60px; width: 290px; z-index: 30;
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  padding: 6px;
+}
+.menu-item { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 10px; border-radius: 8px; color: var(--foreground); text-decoration: none; font-weight: 500; }
+.menu-item svg { width: 18px; height: 18px; color: var(--muted-foreground); }
+.menu-item:hover { background: var(--muted); }
+.menu-sep { height: 1px; background: var(--border); margin: 6px 4px; }
+
+/* ---------- Icon rail below 1024 px ---------- */
+@media (max-width: 1023px) {
+  .app { grid-template-columns: 72px 1fr; }
+  .sb-brand { justify-content: center; padding: 0; }
+  .sb-brand-text, .sb-group-label, .sb-label, .sb-progress, .sb-footer-text { display: none; }
+  .sb-nav { padding: 10px 12px; }
+  .sb-group { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); }
+  .sb-group:first-child { border-top: 0; padding-top: 0; }
+  .sb-item { justify-content: center; padding: 0; height: 46px; width: 46px; margin: 2px auto; }
+  .sb-item svg { width: 21px; height: 21px; }
+  .sb-item[aria-current="page"]::before { left: -13px; }
+  .sb-count { position: absolute; top: 2px; right: -2px; min-width: 20px; height: 20px; font-size: 11px; padding: 0 5px; border: 2px solid var(--surface); }
+  .sb-footer { justify-content: center; padding: 12px 0; }
+  .topbar { padding: 0 16px; }
+  .search-trigger { width: auto; flex: 1; max-width: 340px; }
+  .user-meta { display: none; }
+  .page { padding: 22px 20px 40px; }
+}
+.search-text { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; min-width: 0; text-align: left; }
+.search-trigger svg { flex: none; }

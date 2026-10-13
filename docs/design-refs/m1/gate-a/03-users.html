@@ -1,0 +1,244 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate A – Screen 03: Users (Super Admin only).
+  States (URL hash): (none) table · #add "Add user" dialog · #temp-password one-time
+  password dialog · #loading skeleton rows. MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Users</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <style>
+    .toolbar { display: flex; gap: 10px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+    .search-input { position: relative; width: 300px; }
+    .search-input svg { position: absolute; left: 12px; top: 12px; width: 18px; height: 18px; color: var(--subtle-foreground); }
+    .search-input .input { height: 42px; padding-left: 38px; }
+    .chip-btn { height: 42px; border-style: dashed; }
+    .muted { color: var(--muted-foreground); }
+    .table td { white-space: nowrap; }
+    .table thead th, .table tbody td { padding-left: 12px; padding-right: 12px; }
+    .table thead th:first-child, .table tbody td:first-child { padding-left: 16px; }
+    .role-card { display: flex; gap: 12px; padding: 14px; border: 1px solid var(--border-strong); border-radius: 12px; cursor: pointer; background: var(--surface); }
+    .role-card svg { width: 20px; height: 20px; color: var(--muted-foreground); flex: none; margin-top: 2px; }
+    .role-card[aria-checked="true"] { border-color: var(--primary); box-shadow: 0 0 0 3px rgba(31,58,147,0.15); background: #f7f9fe; }
+    .role-card[aria-checked="true"] svg { color: var(--primary); }
+    .radio-dot { width: 18px; height: 18px; border-radius: 99px; border: 2px solid var(--border-strong); margin-left: auto; flex: none; display: grid; place-items: center; }
+    .role-card[aria-checked="true"] .radio-dot { border-color: var(--primary); }
+    .role-card[aria-checked="true"] .radio-dot::after { content: ""; width: 8px; height: 8px; border-radius: 99px; background: var(--primary); }
+    .pw-box {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 14px 14px 14px 20px; border-radius: 14px; border: 1px dashed #9fb0e3; background: #f7f9fe;
+    }
+    .pw-chars { font-size: 26px; font-weight: 650; letter-spacing: 0.08em; color: var(--foreground); }
+    .pw-chars .grp { margin-right: 0.45em; }
+    .dlg-head { padding: 24px 24px 0; }
+    .dlg-body { padding: 20px 24px; }
+    .dlg-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border); background: #fafbfc; border-radius: 0 0 20px 20px; }
+    .check { width: 20px; height: 20px; border-radius: 6px; border: 2px solid var(--border-strong); display: grid; place-items: center; flex: none; }
+    .check.on { background: var(--primary); border-color: var(--primary); color: #fff; }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body data-active="users">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page">
+      <div class="page-head anim-fade-up">
+        <div>
+          <h1 class="page-title">Users</h1>
+          <p class="page-desc">People who can log in to this admin site. Workers are not users; they punch at the kiosk.</p>
+        </div>
+        <button class="btn btn-primary btn-lg"><i data-lucide="user-plus" style="width:18px;height:18px"></i>Add user</button>
+      </div>
+
+      <div class="card anim-fade-up anim-delay-1" style="overflow:hidden">
+        <div class="toolbar">
+          <label class="search-input"><i data-lucide="search"></i><span class="sr-only">Search users</span><input class="input" placeholder="Search name, username or email" /></label>
+          <button class="btn btn-outline chip-btn"><i data-lucide="circle-plus" style="width:16px;height:16px"></i>Role</button>
+          <button class="btn btn-outline chip-btn"><i data-lucide="circle-plus" style="width:16px;height:16px"></i>Plant</button>
+          <button class="btn btn-outline" style="height:42px"><i data-lucide="filter" style="width:16px;height:16px"></i>Status: Active, Locked<span class="badge badge-neutral" style="height:20px;padding:0 6px">2</span></button>
+          <span class="ml-auto muted tnum" style="font-size:13px">8 users · times in IST</span>
+        </div>
+
+        <div style="overflow-x:auto">
+        <table class="table">
+          <thead><tr>
+            <th scope="col">Name</th><th scope="col">Username / email</th><th scope="col">Role</th>
+            <th scope="col">Plant</th><th scope="col">Status</th><th scope="col">Last login</th><th scope="col"><span class="sr-only">Actions</span></th>
+          </tr></thead>
+          <tbody id="rows">
+            <tr>
+              <td><div class="flex items-center gap-3"><span class="avatar">AR</span><div><b>Asha Rao</b> <span class="badge badge-outline" style="height:20px;font-size:11.5px;margin-left:4px">You</span></div></div></td>
+              <td><div class="code" style="font-weight:600">asha.rao</div><div class="muted code" style="font-size:12.5px">asha.rao@sheetshapers.example</div></td>
+              <td><span class="badge badge-info"><i data-lucide="shield-check"></i>Super Admin</span></td>
+              <td class="muted">All plants</td>
+              <td><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span></td>
+              <td class="tnum">13/10/2026<br/><span class="muted">07:58</span></td>
+              <td><button class="btn btn-ghost btn-icon btn-sm" aria-label="Actions for Asha Rao"><i data-lucide="ellipsis" style="width:18px;height:18px"></i></button></td>
+            </tr>
+            <tr>
+              <td><div class="flex items-center gap-3"><span class="avatar">VD</span><b>Vikram Deshmukh</b></div></td>
+              <td><div class="code" style="font-weight:600">vikram.d</div><div class="muted code" style="font-size:12.5px">vikram.d@sheetshapers.example</div></td>
+              <td><span class="badge badge-outline"><i data-lucide="building-2"></i>Corporate Head</span></td>
+              <td class="muted">All plants</td>
+              <td><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span></td>
+              <td class="tnum">13/10/2026<br/><span class="muted">08:41</span></td>
+              <td><button class="btn btn-ghost btn-icon btn-sm" aria-label="Actions for Vikram Deshmukh"><i data-lucide="ellipsis" style="width:18px;height:18px"></i></button></td>
+            </tr>
+            <tr>
+              <td><div class="flex items-center gap-3"><span class="avatar">NK</span><b>Neha Kulkarni</b></div></td>
+              <td><div class="code" style="font-weight:600">neha.k134</div><div class="muted code" style="font-size:12.5px">neha.k@sheetshapers.example</div></td>
+              <td><span class="badge badge-outline"><i data-lucide="factory"></i>Plant Head</span></td>
+              <td style="white-space:nowrap"><div class="code" style="font-weight:600">K134</div><div class="muted" style="font-size:12.5px">Sheet Shapers (K-134)</div></td>
+              <td><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span></td>
+              <td class="tnum">12/10/2026<br/><span class="muted">18:05</span></td>
+              <td><button class="btn btn-ghost btn-icon btn-sm" aria-label="Actions for Neha Kulkarni"><i data-lucide="ellipsis" style="width:18px;height:18px"></i></button></td>
+            </tr>
+            <tr>
+              <td><div class="flex items-center gap-3"><span class="avatar">SJ</span><b>Sameer Joshi</b></div></td>
+              <td><div class="code" style="font-weight:600">sameer.x280</div><div class="muted" style="font-size:12.5px;font-style:italic">No email</div></td>
+              <td><span class="badge badge-outline"><i data-lucide="factory"></i>Plant Head</span></td>
+              <td style="white-space:nowrap"><div class="code" style="font-weight:600">X280</div><div class="muted" style="font-size:12.5px">Sheet Shapers (X-280)</div></td>
+              <td><span class="badge badge-warning"><i data-lucide="lock"></i>Locked · 12 min</span></td>
+              <td class="tnum">11/10/2026<br/><span class="muted">07:12</span></td>
+              <td><button class="btn btn-ghost btn-icon btn-sm" aria-label="Actions for Sameer Joshi"><i data-lucide="ellipsis" style="width:18px;height:18px"></i></button></td>
+            </tr>
+            <tr>
+              <td><div class="flex items-center gap-3"><span class="avatar">PS</span><b>Priya Shinde</b></div></td>
+              <td><div class="code" style="font-weight:600">priya.pc1</div><div class="muted code" style="font-size:12.5px">priya.s@sheetshapers.example</div></td>
+              <td><span class="badge badge-outline"><i data-lucide="factory"></i>Plant Head</span></td>
+              <td style="white-space:nowrap"><div class="code" style="font-weight:600">PC1</div><div class="muted" style="font-size:12.5px">Precise Cuts, Unit 1</div></td>
+              <td><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span></td>
+              <td class="tnum">13/10/2026<br/><span class="muted">06:55</span></td>
+              <td><button class="btn btn-ghost btn-icon btn-sm" aria-label="Actions for Priya Shinde"><i data-lucide="ellipsis" style="width:18px;height:18px"></i></button></td>
+            </tr>
+            <tr>
+              <td><div class="flex items-center gap-3"><span class="avatar">RP</span><b>Rohan Pawar</b></div></td>
+              <td><div class="code" style="font-weight:600">rohan.pawar</div><div class="muted" style="font-size:12.5px;font-style:italic">No email</div></td>
+              <td><span class="badge badge-outline"><i data-lucide="factory"></i>Plant Head</span></td>
+              <td style="white-space:nowrap"><div class="code" style="font-weight:600">TP1</div><div class="muted" style="font-size:12.5px">Tirupati Pressco, Unit 1</div></td>
+              <td><span class="badge badge-info"><i data-lucide="key-round"></i>Temp password</span></td>
+              <td class="muted">Never</td>
+              <td><button class="btn btn-ghost btn-icon btn-sm" aria-label="Actions for Rohan Pawar"><i data-lucide="ellipsis" style="width:18px;height:18px"></i></button></td>
+            </tr>
+            <tr>
+              <td><div class="flex items-center gap-3"><span class="avatar">KJ</span><b>Kavita Jadhav</b></div></td>
+              <td><div class="code" style="font-weight:600">kavita.j</div><div class="muted code" style="font-size:12.5px">kavita.j@sheetshapers.example</div></td>
+              <td><span class="badge badge-outline"><i data-lucide="building-2"></i>Corporate Head</span></td>
+              <td class="muted">All plants</td>
+              <td><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span></td>
+              <td class="tnum">09/10/2026<br/><span class="muted">11:30</span></td>
+              <td><button class="btn btn-ghost btn-icon btn-sm" aria-label="Actions for Kavita Jadhav"><i data-lucide="ellipsis" style="width:18px;height:18px"></i></button></td>
+            </tr>
+            <tr style="color:var(--muted-foreground)">
+              <td><div class="flex items-center gap-3"><span class="avatar" style="background:var(--muted);color:var(--muted-foreground);border-color:var(--border)">AM</span><b>Arjun Mehta</b></div></td>
+              <td><div class="code" style="font-weight:600">arjun.spi</div><div class="code" style="font-size:12.5px">arjun.m@sheetshapers.example</div></td>
+              <td><span class="badge badge-outline"><i data-lucide="factory"></i>Plant Head</span></td>
+              <td style="white-space:nowrap"><div class="code" style="font-weight:600">SPI</div><div style="font-size:12.5px">Siddharth Pressings</div></td>
+              <td><span class="badge badge-neutral"><i data-lucide="circle-slash"></i>Switched off</span></td>
+              <td class="tnum">28/09/2026<br/><span class="muted">17:44</span></td>
+              <td><button class="btn btn-ghost btn-icon btn-sm" aria-label="Actions for Arjun Mehta"><i data-lucide="ellipsis" style="width:18px;height:18px"></i></button></td>
+            </tr>
+          </tbody>
+        </table>
+        </div>
+        <div class="flex items-center justify-between" style="padding:12px 16px;border-top:1px solid var(--border);font-size:13px">
+          <span class="muted">Row menu: Edit · Reset password · Force logout · Switch off</span>
+          <span class="muted tnum">Showing 1–8 of 8</span>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ===== Add user dialog ===== -->
+<div id="dlg-add" hidden>
+  <div class="overlay"></div>
+  <div class="dialog anim-scale-in" role="dialog" aria-modal="true" aria-labelledby="add-title" style="width:min(600px,calc(100vw - 32px))">
+    <div class="dlg-head flex items-start justify-between">
+      <div><h2 id="add-title" style="font-size:20px;font-weight:700;margin:0">Add user</h2>
+        <p class="muted" style="margin:4px 0 0">They get a temporary password and choose their own at first login.</p></div>
+      <button class="btn btn-ghost btn-icon" aria-label="Close"><i data-lucide="x" style="width:20px;height:20px"></i></button>
+    </div>
+    <div class="dlg-body space-y-5">
+      <div class="grid grid-cols-2 gap-4">
+        <div><label class="label" for="f-name">Full name</label><input id="f-name" class="input" value="Rohan Pawar" /></div>
+        <div><label class="label" for="f-user">Username</label><input id="f-user" class="input code" value="rohan.pawar" />
+          <div class="help flex items-center gap-1" style="color:var(--success)"><i data-lucide="circle-check" style="width:14px;height:14px"></i>Available</div></div>
+      </div>
+      <div><label class="label" for="f-email">Email <span class="muted" style="font-weight:400">(optional)</span></label>
+        <input id="f-email" class="input" placeholder="name@sheetshapers.example" />
+        <div class="help">Without an email, they log in with the username.</div></div>
+
+      <fieldset>
+        <legend class="label">Role</legend>
+        <div class="grid gap-2" role="radiogroup">
+          <div class="role-card" role="radio" aria-checked="false" tabindex="-1"><i data-lucide="shield-check"></i><div><b>Super Admin</b><div class="muted" style="font-size:13px">Full control, all plants. Approves changes.</div></div><span class="radio-dot"></span></div>
+          <div class="role-card" role="radio" aria-checked="false" tabindex="-1"><i data-lucide="building-2"></i><div><b>Corporate Head</b><div class="muted" style="font-size:13px">Sees all plants. Employee changes go for approval.</div></div><span class="radio-dot"></span></div>
+          <div class="role-card" role="radio" aria-checked="true" tabindex="0"><i data-lucide="factory"></i><div><b>Plant Head</b><div class="muted" style="font-size:13px">Sees one plant, read-only.</div></div><span class="radio-dot"></span></div>
+        </div>
+      </fieldset>
+
+      <div><label class="label" for="f-plant">Plant</label>
+        <button id="f-plant" class="input flex items-center justify-between" style="text-align:left"><span><b class="code">TP1</b> · Tirupati Pressco, Unit 1</span><i data-lucide="chevrons-up-down" style="width:16px;height:16px;color:var(--subtle-foreground)"></i></button>
+        <div class="help">Shown only for a Plant Head.</div></div>
+    </div>
+    <div class="dlg-foot"><button class="btn btn-outline">Cancel</button><button class="btn btn-primary"><i data-lucide="user-plus" style="width:17px;height:17px"></i>Create user</button></div>
+  </div>
+</div>
+
+<!-- ===== One-time temporary password dialog ===== -->
+<div id="dlg-temp" hidden>
+  <div class="overlay"></div>
+  <div class="dialog anim-scale-in" role="alertdialog" aria-modal="true" aria-labelledby="tmp-title" aria-describedby="tmp-desc">
+    <div class="dlg-head" style="text-align:center;padding-top:28px">
+      <span style="display:inline-grid;place-items:center;width:56px;height:56px;border-radius:99px;background:var(--success-soft);color:var(--success);border:2px solid #bfe3d2"><i data-lucide="check" style="width:28px;height:28px;stroke-width:2.75"></i></span>
+      <h2 id="tmp-title" style="font-size:20px;font-weight:700;margin:14px 0 4px">User created: Rohan Pawar</h2>
+      <p id="tmp-desc" class="muted" style="margin:0">Give this temporary password to Rohan in person.</p>
+    </div>
+    <div class="dlg-body space-y-4">
+      <div>
+        <div class="label" style="display:flex;justify-content:space-between"><span>Temporary password</span><span class="muted code" style="font-weight:500">Username: rohan.pawar</span></div>
+        <div class="pw-box">
+          <span class="pw-chars code" aria-label="K q 7 m X p 2 R w d 9 T 4 z"><span class="grp">Kq7m</span><span class="grp">Xp2R</span><span class="grp">wd9T</span><span>4z</span></span>
+          <button class="btn btn-primary" id="copy-btn"><i data-lucide="copy" style="width:17px;height:17px"></i>Copy</button>
+        </div>
+        <div class="help">Groups of 4 are only for reading; type it without spaces. Letters that look alike (0/O, 1/l/I) are never used.</div>
+      </div>
+      <div class="alert alert-warning"><i data-lucide="eye-off"></i>
+        <div><b>Shown only once.</b> After you close this, nobody can see it again. If it is lost, use "Reset password". Rohan must choose a new password at first login.</div></div>
+      <label class="flex items-center gap-3" style="cursor:pointer;font-weight:500"><span class="check on"><i data-lucide="check" style="width:14px;height:14px;stroke-width:3"></i></span>I have copied or written down the password</label>
+    </div>
+    <div class="dlg-foot"><button class="btn btn-primary">Done</button></div>
+  </div>
+</div>
+
+<div class="state-tag" id="state-tag">State: table</div>
+<script src="shell.js"></script>
+<script>
+  // Mockup only: pick the state from the URL hash.
+  window.onMockState = function (state) {
+    const tag = document.getElementById("state-tag");
+    if (state === "add") { document.getElementById("dlg-add").hidden = false; tag.textContent = "State: Add user dialog"; }
+    if (state === "temp-password") {
+      document.getElementById("dlg-temp").hidden = false;
+      document.getElementById("copy-btn").innerHTML = '<i data-lucide="check" style="width:17px;height:17px;stroke-width:3"></i>Copied';
+      tag.textContent = "State: one-time temporary password (after Copy)";
+    }
+    if (state === "loading") {
+      const row = '<tr>' + [150, 200, 110, 120, 80, 110, 24].map(function (w) { return '<td><div class="skeleton" style="height:14px;width:' + w + 'px"></div></td>'; }).join("") + '</tr>';
+      document.getElementById("rows").innerHTML = row.repeat(8);
+      tag.textContent = "State: loading (skeleton rows)";
+    }
+  };
+</script>
+</body>
+</html>

@@ -191,6 +191,9 @@ General rules for all admin screens:
 
 Design reference: the screens are drawn (Figma or canvas, shown as images) in the plan step
 and linked here once approved.
+- Gate A (login, shell, users, settings, audit log, sessions): approved 13/10/2026,
+  `docs/design-refs/m1/gate-a/` (HTML mockups, screenshots, `tokens.md`; palette "Steel &
+  Signal", font Inter).
 
 ### 4.1 Login (`/admin/login`)
 - Centred card: product name, "Username or email", password (show/hide), "Log in".
