@@ -1,7 +1,7 @@
 # Upasthiti – Architecture
 
 Status: Approved (Part B planning, 2026-10-11; updated 2026-10-12 with the client's answers,
-decision 0004: phone punching in M4b, three roles, free tiers stay unless they are not enough; updated 2026-10-13 with decision 0005: final roles, no network allow-list, Super Admin kiosk approval). Stack details: docs/decisions/0001-tech-stack.md.
+decision 0004: phone punching in M4b, three roles, free tiers stay unless they are not enough; updated 2026-10-13 with decision 0005: final roles, no network allow-list, location required for every kiosk). Stack details: docs/decisions/0001-tech-stack.md.
 Hosting: docs/decisions/0002-hosting.md. Requirements: docs/SRS.md.
 
 ## 1. Big picture
@@ -55,8 +55,8 @@ Principles:
    - the code is valid and unused;
    - an accurate location (within the accuracy limit) must be inside the plant geofence;
      an accurate location outside is refused;
-   - without a usable location (most PCs) the kiosk waits for a Super Admin's approval
-     (decision 0005; no network / IP check).
+   - a location is required from every kiosk (location switched on, phone or PC)
+     (decision 0005; no network / IP check, no approval route).
 
    It then stores the public key and marks the kiosk active. The admin's screen updates.
 4. **Every later kiosk request** carries `X-Kiosk-Id`, `X-Kiosk-Nonce` and `X-Kiosk-Signature`.

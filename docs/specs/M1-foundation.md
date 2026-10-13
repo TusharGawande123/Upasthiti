@@ -20,8 +20,8 @@ M1 delivers:
   Super Admin approves them;
 - organisation setup: plants, geofence on a map, departments, shifts, employee categories,
   settings;
-- kiosk pairing and revoking (device key; location inside the geofence, or Super Admin
-  approval for devices without a usable location, such as most PCs);
+- kiosk pairing and revoking (device key + an accurate location inside the geofence, for
+  phones and PCs alike);
 - employees and contractors, Excel import, mark-as-left;
 - audit log writes for every change, and an audit viewer;
 - the design system (light, premium, English-first) and the admin shell;
@@ -73,9 +73,9 @@ imports employees from the Excel template. Every one of those steps is in the au
    - create a kiosk for a plant → one-time 6-digit pairing code, valid 10 minutes;
    - pairing screen at `/kiosk`: the device makes a non-extractable P-256 key, sends the code,
      its public key and its browser location if it has one (phones use GPS; a laptop on Wi-Fi
-     often gets a Wi-Fi based location; a desktop PC usually gets none or a rough one);
-   - one rule for every device (§7 rule 5): an accurate location inside the geofence pairs the
-     kiosk at once; a device without a usable location waits for a **Super Admin's approval**;
+     gets a Wi-Fi based location; location must be switched on in the device settings);
+   - one rule for every device (§7 rule 5): an accurate location inside the geofence is
+     **required**; a device that cannot give one cannot become a kiosk (lead, 2026-10-13);
    - revoke a kiosk; re-issue a code for a kiosk that is not yet paired;
    - signed kiosk requests (`X-Kiosk-*` headers) verified by the server; in M1 only
      `GET /kiosk/me` uses them (the kiosk's "paired" / "waiting" screen).
@@ -137,7 +137,7 @@ imports employees from the Excel template. Every one of those steps is in the au
     - docs/decisions/0005-m1-roles-pairing-employees.md (new);
     - SRS: §3.2 table replaced by §7 rule 1; FR-03 dropped; FR-04 overtime rate moved to the
       employee; FR-07 code format, category and OT rate; FR-25 rule 3 (network) dropped;
-      FR-22 approval path; §8 GPS-spoofing row;
+      FR-22 location required for every kiosk; §8 GPS-spoofing row;
     - architecture: §2 pairing step 3, §3 rule list (no `NETWORK_NOT_ALLOWED`), §7 tables;
     - CLAUDE.md (before the PR, per §8 step 7): network allow-list mentions in §1, §6, §10;
       overtime rate per employee in §6.
@@ -161,7 +161,7 @@ imports employees from the Excel template. Every one of those steps is in the au
 | US-3 | Super Admin | add the 7 Sheet Shapers plants with one click and draw each geofence on a map | setup takes minutes, not hours | FR-01, FR-02 |
 | US-4 | Super Admin | add departments, shifts and employee categories for each plant | later rules know each plant's working hours and worker types | FR-04 |
 | US-5 | Plant Head | create a kiosk for my gate and pair the gate phone or PC with a 6-digit code | only our registered device can be used to punch at my gate | FR-22 |
-| US-6 | Super Admin | approve or reject a gate PC that could not prove its location | a leaked pairing code alone never creates a working kiosk | FR-22 |
+| US-6 | Super Admin | be sure every kiosk, phone or PC, proved it is inside the plant's geofence | a leaked pairing code used away from the plant never creates a working kiosk | FR-22 |
 | US-7 | Plant Head | revoke a lost or stolen kiosk at once | nobody can punch with it | FR-23 |
 | US-8 | Super Admin | import 350 temporary workers from an Excel sheet and see every wrong row before anything is saved | no half-imported, messy data | FR-09 |
 | US-9 | Corporate Head | add, edit and import permanent and temporary employees of every plant | I can manage the workforce company-wide, with the Super Admin's check | §3.2, 0005 |
@@ -242,24 +242,20 @@ and linked here once approved.
 - Category form: name only (e.g. "Operator").
 
 ### 4.7 Kiosks
-- List per plant: name, status (Waiting for pairing / Waiting for approval / Active /
-  Revoked), how it proved its location (Location ✓ / Approved by <name>), paired on, last
-  seen.
+- List per plant: name, status (Waiting for pairing / Active / Revoked), location at pairing
+  (accuracy in metres), paired on, last seen.
 - "Add kiosk" → dialog shows the 6-digit code in large digits, a QR of the pairing link
   (F-18), a 10-minute countdown, and "Open `https://<site>/kiosk` on the gate device and type
   this code, or scan the QR". Copy button.
-- While the dialog is open the page polls every 3 s: "Paired ✓", or "Waiting for Super Admin
-  approval" (with a note that the Super Admin has been asked).
+- While the dialog is open the page polls every 3 s and shows "Paired ✓" when done.
 - Revoke: confirm dialog with a required reason.
 
 ### 4.8 Approvals (Super Admin) and My requests (Corporate Head)
 - **Approvals:** list of pending change requests: type (New employee, Edit, Transfer, Bulk
-  change, Import, Kiosk without location), summary ("Add Ravi Patil, 2041, TP1"), requested
+  change, Import), summary ("Add Ravi Patil, 2041, TP1"), requested
   by, requested at. Filters: type, plant, status.
 - Detail panel: before / after difference per field (for an import: the rows, with any rows
-  that no longer pass the checks marked); for a kiosk: plant, kiosk name, who created the
-  code, the device's IP, browser, the rough location on the map if any (with its accuracy
-  circle), and time. Buttons: "Approve", "Reject" (reason required).
+  that no longer pass the checks marked). Buttons: "Approve", "Reject" (reason required).
 - **My requests** (Corporate Head): own requests with status ⏳ Pending, ✓ Approved,
   ✗ Rejected (with reason), ↩ Withdrawn, ⚠ Could not apply (with the errors); "Withdraw" on
   pending ones.
@@ -274,10 +270,9 @@ word, full-screen.
 - **Finding location:** up to 20 seconds, showing the current accuracy ("± 35 m"); then sends.
 - **Paired:** big ✓ "Paired to <plant name>", kiosk name, server time (IST, live clock), and
   "Attendance starts in a later update" (M2 replaces this with the idle screen).
-- **Waiting for approval:** ⏳ "Waiting for the Super Admin to approve this device" with the
-  plant and kiosk name; checks every 30 s and switches to Paired or Rejected by itself.
-- **Errors** (§9): wrong or expired code, outside the geofence, rejected, browser not
-  supported, revoked. Each shows icon + short message + next step.
+- **Errors** (§9): wrong or expired code, location off or denied, location not accurate
+  enough (with tips: switch on Wi-Fi / location, move near a window), outside the geofence,
+  browser not supported, revoked. Each shows icon + short message + next step.
 - No camera is used in M1.
 
 ### 4.10 Employees list
@@ -421,9 +416,8 @@ server does not change the employee but stores a change request and answers
 | GET | /api/v1/kiosks/{id}/pairing-qr.svg | Super Admin, own Plant Head | – | SVG QR of `https://<site>/kiosk?code=<code>` (F-18; only while the code is valid) | `PAIRING_CODE_EXPIRED` |
 | PATCH | /api/v1/kiosks/{id} | Super Admin, own Plant Head | `{ name }` | `200` | – |
 | POST | /api/v1/kiosks/{id}/revoke | Super Admin, own Plant Head | `{ reason }` | `200 { kiosk }` | `KIOSK_REVOKED` |
-| POST | /api/v1/kiosks/{id}/approve · /reject | Super Admin | `{ reason }` (required for reject) | `200 { kiosk }` | `KIOSK_NOT_AWAITING_APPROVAL` |
-| POST | /api/v1/kiosk/register | pairing code | `{ pairing_code, public_key_spki (base64), location?: { lat, lon, accuracy_m }, app_version, user_agent }` | `200 { kiosk_id, kiosk_name, status: "active"\|"awaiting_approval", plant: { id, name, code }, server_time }` | `PAIRING_CODE_INVALID`, `PAIRING_CODE_EXPIRED`, `PAIRING_LOCKED`, `OUTSIDE_GEOFENCE`, `PUBLIC_KEY_INVALID` |
-| GET | /api/v1/kiosk/me | kiosk (signed) | headers §7 rule 6 | `200 { kiosk_id, kiosk_name, plant, status, server_time }` (also while `awaiting_approval`) | `DEVICE_SIGNATURE_INVALID`, `NONCE_REUSED`, `DEVICE_REVOKED`, `PAIRING_REJECTED` |
+| POST | /api/v1/kiosk/register | pairing code | `{ pairing_code, public_key_spki (base64), location: { lat, lon, accuracy_m }, app_version, user_agent }` | `200 { kiosk_id, kiosk_name, plant: { id, name, code }, server_time }` | `PAIRING_CODE_INVALID`, `PAIRING_CODE_EXPIRED`, `PAIRING_LOCKED`, `LOCATION_REQUIRED`, `GPS_ACCURACY_TOO_LOW`, `OUTSIDE_GEOFENCE`, `PUBLIC_KEY_INVALID` |
+| GET | /api/v1/kiosk/me | kiosk (signed) | headers §7 rule 6 | `200 { kiosk_id, kiosk_name, plant, status, server_time }` | `DEVICE_SIGNATURE_INVALID`, `NONCE_REUSED`, `DEVICE_REVOKED` |
 
 ### 5.6 Audit
 | Method | Path | Role / identity | Request | Response | Error codes |
@@ -473,7 +467,7 @@ No `plant_networks` table (decision 0005).
 **Migration `0005_kiosks`**
 | Table | Columns | Keys / constraints |
 |---|---|---|
-| `kiosk_devices` | plant_id (FK), name, status (`pending`/`awaiting_approval`/`active`/`rejected`/`revoked`), public_key (text, SPKI base64 null until registered), location_source (`geofence`/`super_admin_approval` null), approved_by (FK users null), approved_at (null), registered_at (null), registered_ip (inet null), registered_lat/lon/accuracy_m (null), last_seen_at (null), last_counter (bigint, default 0), app_version (null), revoked_at, revoke_reason | unique (plant_id, lower(name)) |
+| `kiosk_devices` | plant_id (FK), name, status (`pending`/`active`/`revoked`), public_key (text, SPKI base64 null until registered), registered_at (null), registered_ip (inet null), registered_lat/lon/accuracy_m (null), last_seen_at (null), last_counter (bigint, default 0), app_version (null), revoked_at, revoke_reason | unique (plant_id, lower(name)) |
 | `kiosk_pairing_codes` | kiosk_id (FK), code_hash (HMAC-SHA256 with `APP_SECRET_KEY`), created_by (FK users), expires_at, used_at (null), failed_attempts (int) | index (code_hash) |
 
 `login_attempts` is not a table: per-account counts live on `users`; per-IP limits live in
@@ -493,7 +487,6 @@ memory (one backend instance on Render; noted in §9).
    | Departments, shifts, employee categories | ✔ edit | read all | read own plant | – |
    | Settings | ✔ edit | read | read | – |
    | Kiosks: create, pairing code, revoke | ✔ all | read all | ✔ own plant | – |
-   | Approve / reject a kiosk without a usable location | ✔ | – | – | – |
    | Contractors | ✔ edit | read | read | – |
    | Employees (permanent and temporary): view | ✔ all | ✔ all | read own plant | – |
    | Employees: create, edit, transfer, bulk change (shift, department, category) | ✔ | ✔ via approval | – | – |
@@ -533,38 +526,40 @@ memory (one backend instance on Render; noted in §9).
    2. the code matches a `pending` kiosk, is unused and not expired (`pairing_code_minutes`,
       default 10);
    3. the public key is a valid P-256 SPKI key;
-   4. **location:**
-      - **accurate location** (`accuracy_m` ≤ `gps_accuracy_limit_m`, default 50) **inside**
-        the current geofence plus its margin → status `active`, `location_source` =
-        `geofence`;
-      - **accurate location outside** the geofence → refused, `OUTSIDE_GEOFENCE` (no
-        approval route: the device has shown it is somewhere else);
-      - **no usable location** (no permission, no location, or accuracy worse than the limit;
-        typical for a desktop PC) → status `awaiting_approval`. The code is used up. A change
-        request of kind "kiosk" appears in the Super Admin's Approvals list with the plant,
-        kiosk name, who created the code, the device's IP, browser, any rough location and
-        the time. **There is no time limit** for this approval (lead, 2026-10-13); it stays
-        until the Super Admin approves or rejects it, or the kiosk is revoked.
-   5. Only a **Super Admin** can approve (→ `active`, `location_source` =
-      `super_admin_approval`) or reject (→ `rejected`, final; a new kiosk must be created). A
-      Plant Head cannot approve, even for their own plant.
-   6. Audit: `kiosk.register` (actor = kiosk) with the result; `kiosk.approve` /
-      `kiosk.reject` (actor = Super Admin); `kiosk.register_failed` with the reason code (the
-      code value is never logged).
-   7. **Known risk (accepted by the lead):** a kiosk approved without location has only its
-      device key as proof. If such a PC is taken away from the gate it can still be used.
-      Mitigations: the Super Admin approves only after confirming the device is at the gate;
-      the kiosk list shows "Approved without location" clearly; QR punches save a snapshot
-      (M2) and face punches need the live face (M3); the M4 anti-proxy spec reviews this
-      again.
+   4. **location is required** (lead, 2026-10-13; no approval route, no network check):
+      - no location sent (permission denied, location off, none available) → refused,
+        `LOCATION_REQUIRED`;
+      - `accuracy_m` worse than `gps_accuracy_limit_m` (default 50) → refused,
+        `GPS_ACCURACY_TOO_LOW`; the kiosk first waits up to 20 s for a better reading;
+      - accurate location outside the current geofence plus its margin → refused,
+        `OUTSIDE_GEOFENCE`;
+      - accurate location inside → status `active`; the position and accuracy are stored.
+   5. **Device requirement (lead, 2026-10-13):** the kiosk device, phone or PC, must have
+      location switched on (Windows / Android settings) and allowed for the site in the
+      browser, and it must reach the accuracy limit. No extra hardware is planned. Note: a PC
+      computes its location from nearby Wi-Fi networks, so it needs its (usually built-in)
+      Wi-Fi switched on, but not connected; a PC without any Wi-Fi hardware gets only an
+      IP-based location (accuracy in km) and is refused. The setup steps go into the kiosk
+      setup guide; the client's real gate devices are tested during M1, and a gate whose PC
+      cannot reach the limit uses a laptop, phone or tablet instead. The limit and the
+      geofence margin can be tuned through settings. Plants in MIDC Waluj are close together, so the margin must stay
+      small enough not to reach a neighbouring plant.
+   6. **Every punch re-checks the location (M4):** the same rule (accurate and inside the
+      geofence) runs on every kiosk punch, so a phone or PC taken away from the plant stops
+      working. M1 only pairs; the per-punch check is built in M4 (FR-25 rule 4).
+   7. Audit: `kiosk.register` (actor = kiosk); `kiosk.register_failed` with the reason code and
+      the reported position (the code value is never logged).
+   8. **Remaining risk:** a technically skilled person can fake the browser's location (for
+      example with developer tools). The geofence is therefore a strong signal, not a full
+      proof; the device key, cool-down, impossible-travel rule, QR snapshot (M2) and live face
+      (M3) back it up, and the M4 spec reviews it again.
 6. **Signed kiosk requests:** headers `X-Kiosk-Id`, `X-Kiosk-Nonce` (16 random bytes,
    base64url), `X-Kiosk-Counter` (integer), `X-Kiosk-Signature` (ECDSA P-256 / SHA-256 over
    `METHOD \n PATH \n SHA256(body) hex \n nonce \n counter`, raw r‖s base64url as WebCrypto
    gives it). The server verifies the signature with the stored key and requires
    `counter > last_counter` (else `NONCE_REUSED`), then saves `last_counter` and
-   `last_seen_at`. `GET /kiosk/me` answers for `awaiting_approval` and `active` kiosks; every
-   later kiosk endpoint (punch, sync) accepts only `active`. `revoked` → `DEVICE_REVOKED`;
-   `rejected` → `PAIRING_REJECTED`. Device time is never used.
+   `last_seen_at`. Kiosk endpoints accept only `active` kiosks; `revoked` →
+   `DEVICE_REVOKED`. Device time is never used.
 7. **Geofence:** stored in WGS84 (GeoJSON order lon, lat). "Inside" = distance from the
    point to the shape ≤ `buffer_m` (inside the shape counts as 0). Distances are computed in
    metres by projecting around the plant (local equirectangular projection), exact enough
@@ -636,7 +631,6 @@ memory (one backend instance on Render; noted in §9).
     - Audit: `change_request.create`, `.approve`, `.reject`, `.withdraw`, `.failed`; the
       applied changes are audited as normal entries (`employee.create` …) with actor = the
       approving Super Admin and `change_request_id` set, so both people are recorded.
-    - Kiosk approvals (rule 5) appear in the same Approvals list.
 12. **Excel import (all-or-nothing, create-only):**
     - columns: employee_code, full_name, type, plant_code, category, department, shift,
       punch_method, contractor, hourly_rate, ot_rate_per_hour, joined_on (DD/MM/YYYY or an
@@ -676,8 +670,8 @@ memory (one backend instance on Render; noted in §9).
   (except the import upload).
 - **Client IP:** read from `X-Forwarded-For` counting `TRUSTED_PROXY_HOPS` from the right
   (env var, default 0 = socket address). It can be faked by calling Render directly, so it is
-  used **only** for logs, rate limits and as information for the Super Admin's kiosk
-  approval, never as proof (decision 0005: no network allow-list).
+  used **only** for logs and rate limits, never as proof (decision 0005: no network
+  allow-list).
 - **New environment variables:** `APP_SECRET_KEY` (required, 32+ random bytes; HMAC for
   pairing codes), `APP_PUBLIC_ORIGIN` (required in production), `TRUSTED_PROXY_HOPS`
   (default 0). Added to `.env.example` with comments; never printed.
@@ -725,11 +719,9 @@ memory (one backend instance on Render; noted in §9).
 | Code older than 10 min | 400 | `PAIRING_CODE_EXPIRED` | "This code has expired. Ask the admin for a new code." `kiosk.pair.codeExpired` |
 | 5 wrong tries on one code / IP limit | code invalidated / 429 | `PAIRING_LOCKED` / `TOO_MANY_REQUESTS` | "Too many tries. Ask the admin for a new code." `kiosk.pair.locked` |
 | Kiosk created for a plant without geofence | refused | `GEOFENCE_NOT_SET` | "Draw this plant's geofence first." `kiosks.needGeofence` |
-| Location permission denied, or no location (PC) | sent without location → waits for Super Admin approval | – | "Waiting for the Super Admin to approve this device." `kiosk.pair.awaitingApproval` |
-| Location found but accuracy worse than 50 m after 20 s | treated as no usable location → waits for approval | – | same as above |
+| Location permission denied, location off, or no location | refused | `LOCATION_REQUIRED` | "Turn on location on this device and allow it for this site, then try again." `kiosk.pair.locationRequired` |
+| Accuracy still worse than 50 m after 20 s | refused | `GPS_ACCURACY_TOO_LOW` | "Location is not accurate enough. Turn on Wi-Fi or move near a window, then try again." `kiosk.pair.gpsWeak` |
 | Accurate location outside the geofence + margin | refused, position saved in the audit entry | `OUTSIDE_GEOFENCE` | "This device is not at the plant." `kiosk.pair.outside` |
-| Super Admin rejects the device | kiosk `rejected`; a new kiosk and code are needed | `PAIRING_REJECTED` | "Pairing was not approved. Ask the admin." `kiosk.pair.rejected` |
-| Plant Head tries to approve a kiosk | 403 | `FORBIDDEN` | – |
 | Browser without WebCrypto / IndexedDB / HTTPS | pairing screen explains | `BROWSER_NOT_SUPPORTED` (client side) | "Open this page in the latest Chrome or Edge." `kiosk.browserUnsupported` |
 | Kiosk's stored key lost (browser data cleared) | `/kiosk/me` fails; screen shows "Pair this device"; admin revokes the old kiosk and creates a new one | `DEVICE_SIGNATURE_INVALID` | "This device is not paired. Ask the admin." `kiosk.notPaired` |
 | Revoked kiosk calls `/kiosk/me` | 403 | `DEVICE_REVOKED` | "This device has been switched off by the admin." `kiosk.revoked` |
@@ -794,19 +786,17 @@ Core:
   settings.
 - **AC-13** Given a new kiosk, when its pairing code is used from a phone with a location of
   accuracy ≤ 50 m inside the geofence within 10 minutes, then the kiosk becomes active
-  (`location_source` = `geofence`), the kiosk screen shows "Paired to <plant>", and the admin
+  with its position stored, the kiosk screen shows "Paired to <plant>", and the admin
   dialog shows "Paired ✓" within 5 seconds.
 - **AC-14** Given a pending kiosk, when pairing is tried with (a) an expired code, (b) a used
   code, (c) an accurate location outside the geofence, then each is refused with
   `PAIRING_CODE_EXPIRED`, `PAIRING_CODE_INVALID`, `OUTSIDE_GEOFENCE`, and an audit entry
   `kiosk.register_failed` is written each time.
-- **AC-15** Given a desktop PC with no location (or accuracy 800 m), when it pairs, then its
-  status is `awaiting_approval`, the kiosk shows "Waiting for the Super Admin…", the request
-  appears in the Super Admin's Approvals with IP and browser, and a Plant Head's approve
-  returns `FORBIDDEN`; when the Super Admin approves (even days later), then it becomes
-  `active` with `location_source` = `super_admin_approval` and the kiosk switches to "Paired"
-  by itself; when the Super Admin rejects, then the kiosk shows "not approved" and can never
-  become active.
+- **AC-15** Given a device (phone or PC) that sends no location, or a location with accuracy
+  800 m, when it pairs, then it is refused with `LOCATION_REQUIRED` or `GPS_ACCURACY_TOO_LOW`,
+  the kiosk stays "pending", the screen shows how to fix it, and `kiosk.register_failed` is
+  audited; given a Wi-Fi laptop whose location is accurate and inside the geofence, then it
+  pairs like a phone.
 - **AC-16** Given a paired kiosk, when it calls `GET /kiosk/me` with a valid signature, then it
   gets its plant, status and server time; with a changed body or wrong key, then
   `DEVICE_SIGNATURE_INVALID`; with a repeated counter, then `NONCE_REUSED`; after the admin
@@ -909,7 +899,7 @@ Accepted extras:
   - plant seed and defaults, geofence versions, settings ranges (AC-6, AC-7, AC-12);
   - approvals: create → approve, reject, withdraw, failed re-check, import request (AC-9,
     AC-10, AC-22);
-  - full pairing flow, refusal cases, Super Admin approval and rejection (AC-13 to AC-16);
+  - full pairing flow and every refusal case (AC-13 to AC-16);
   - employees, categories, shift and plant history, mark left, bulk all-or-nothing (AC-18 to
     AC-21, AC-33, AC-41);
   - audit trigger refuses UPDATE/DELETE (AC-24); docs access in production mode (AC-29).
@@ -923,15 +913,15 @@ Accepted extras:
   2. create a kiosk → open `/kiosk` in a second browser context with a fake geolocation
      inside the geofence → type the code → "Paired to …" (AC-13);
   3. same with an accurate geolocation outside → refused (AC-14c);
-  4. a third context with no geolocation permission → "Waiting for approval" → Super Admin
-     approves in Approvals → kiosk shows "Paired" (AC-15);
+  4. a third context with no geolocation permission → refused with the "turn on location"
+     message (AC-15);
   5. Super Admin imports the template with errors, then fixed (AC-22);
   6. Corporate Head adds an employee → Super Admin approves → employee visible (AC-9);
   7. log in as Plant Head → sees only own plant, no edit buttons (AC-3 sample, AC-32);
   8. axe scan on every page visited (AC-35).
 - **Manual checks:**
-  - pair a real Android phone (GPS), a Wi-Fi laptop (Wi-Fi location) and a desktop on a
-    cable (Super Admin approval) at a test location;
+  - pair a real Android phone, a laptop and the client's gate PC (location switched on) at
+    a test location; record the accuracy each reaches (input for the limit and margin);
   - deployed site check (AC-28), keep-alive run, cold-start message;
   - keyboard-only walk through each screen (AC-27);
   - a teammate who did not build it sets up one plant with only the wizard (F-5 usability).
@@ -1019,10 +1009,12 @@ included.
 4. **Contractors:** one company-wide list; contractors supply operators and helpers (client).
 5. **Employee codes:** Sheet Shapers' existing codes, typed in by the admin; no suggestion.
    Format kept flexible (1–12 letters, digits, `-`, `/`) until Sachin K. shares samples.
-6. **Kiosk location proof:** accurate location inside the geofence, or Super Admin approval.
-   No network / IP check anywhere (client: most PC kiosks will have no GPS; phones must not
-   need the plant Wi-Fi).
-7. **Approval time limit for kiosks without location:** none.
+6. **Kiosk location proof:** every kiosk, phone or PC, must give an accurate location inside
+   the geofence, at pairing and (from M4) at every punch. No network / IP check anywhere
+   (client: phones must not need the plant Wi-Fi). The device must have location switched
+   on; no extra hardware is planned.
+7. **Kiosks without location:** not allowed. The earlier "Super Admin approval" route was
+   dropped by the lead on 2026-10-13, because the geofence must protect every kiosk.
 8. **Login:** username + password or email + password; username required, email optional.
 9. **Session length:** 60 minutes idle, 12 hours maximum (settings).
 10. **Excel import:** create-only; Super Admin directly, Corporate Head through approval.

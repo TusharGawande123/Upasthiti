@@ -24,7 +24,10 @@
     live headcount, reports, corrections, salary estimate (built last).
   - The server re-checks every punch (anti-proxy engine). Never trust the client.
 - Roles (client's choice): exactly Super Admin, Corporate Head, Plant Head (+ KIOSK
-  device identity); NO HR or supervisor users. Exact permissions: M1 spec.
+  device identity); NO HR or supervisor users; employees never log in. Matrix: M1 spec
+  §7 rule 1 (decision 0005). Super Admin does everything (only this role marks people
+  as left and handles QR cards); Corporate Head's employee changes wait for Super Admin
+  approval (approvals inbox); Plant Head reads own plant and manages its kiosks.
 - Client facts: 7 plants, all of Sheet Shapers (one company), in MIDC Waluj; one gate
   each for now; about 650 people (300 permanent, 350 temporary):
   docs/client/client-answers-2026-10.md.
@@ -128,13 +131,14 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 
 ## 6. What Needs to Be Done (scope)
 - Org setup: plants, geofence on a map, kiosk device registration, shifts (admins
-  add shifts any time; each has its own overtime start and rate).
-- Employees: permanent/temporary, contractors, Excel import, QR ID cards.
+  add shifts any time; each has its own overtime start), employee categories per plant.
+- Employees: permanent/temporary, the company's existing codes, required category,
+  overtime rate per employee, contractors, Excel import, QR ID cards.
 - Face enrolment with consent (done by an admin); face + liveness punch at kiosk.
 - QR issue/revoke/expiry; QR punch at kiosk with photo snapshot.
-- Anti-proxy engine: kiosk device token, kiosk GPS inside geofence, plant
-  network allow-list, face/QR validity, server time + cool-down, impossible
-  travel; rejection reasons stored.
+- Anti-proxy engine: kiosk device token, kiosk GPS inside geofence, face/QR
+  validity, server time + cool-down, impossible travel; rejection reasons stored.
+  NO plant network / IP allow-list (decision 0005).
 - Offline kiosk: queue punches when internet drops, sync later (signed).
 - Optional phone punch per employee (M4b), and temporary workers scanning the
   gate's changing QR with their phone.
@@ -252,8 +256,9 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   the client's own server only if the free tiers cannot handle the data. If the
   face model does not fit, Plan B includes a smaller model (only if it meets
   NFR-05). Camera needs HTTPS. The client should own these accounts at handover.
-- Gate devices are phones and PCs. A PC usually has no GPS: it relies on its device
-  key + plant network allow-list (GPS only where the device has it).
+- Gate devices are phones and PCs. Every kiosk must give an accurate location inside the
+  geofence (pairing, and every punch from M4): location switched on, phone or PC. No
+  approval route, no network check, no extra hardware (decision 0005).
 - Default shift 07:00–19:00; admins can add shifts (setting, never hard-coded).
 - QR snapshot retention default: 60 days (a setting).
 - Backend settings come only from environment variables (`.env` locally):

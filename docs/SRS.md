@@ -105,9 +105,8 @@ task".
 
 ### 3.3 Operating environment
 - **Kiosk:** a phone or a PC with a camera (the client's choice), running a current Chrome
-  or Edge in full-screen mode. Location must be enabled where the device has GPS; a PC
-  without a usable location is paired only after a Super Admin's approval and then relies
-  on its device key (decision 0005). The plant uses
+  or Edge in full-screen mode. Location must be switched on (phone or PC), and every
+  kiosk must give an accurate location inside the geofence (decision 0005). The plant uses
   Wi-Fi or 4G.
 - **Employee phone (from M4b, only when an admin allows it):** a current Chrome or Edge on
   Android or iOS, with camera and location.
@@ -212,9 +211,8 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 
 ### 4.f Kiosk device registration and verification
 - **FR-22 (M, M1)** Pair a kiosk with a one-time 6-digit code (10 minutes). The kiosk
-  registers a non-extractable device public key. An accurate location must be inside the
-  geofence; a device without a usable location (most PCs) waits for a Super Admin's
-  approval.
+  registers a non-extractable device public key. Every kiosk (phone or PC) must give an
+  accurate location inside the geofence (location switched on in the device).
 - **FR-23 (M, M1)** Revoke a kiosk. A revoked device can no longer punch.
 - **FR-24 (S, M4)** Kiosk heartbeat. The admin sees each kiosk's online/offline state, last
   punch and queue size.

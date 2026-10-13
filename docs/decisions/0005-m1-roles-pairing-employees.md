@@ -23,11 +23,13 @@ Changes on approval: docs/SRS.md, docs/architecture.md, CLAUDE.md (before the M1
 2. **No plant network allow-list.** SRS FR-03 and anti-proxy rule 3 (network) are dropped.
    Reason: phones must punch without joining the plant Wi-Fi, and the client IP behind
    Vercel can be faked, so it was a weak proof anyway.
-3. **Kiosk pairing, one rule for phones and PCs:** an accurate location (≤ 50 m, a setting)
-   inside the geofence pairs at once; an accurate location outside is refused; a device
-   without a usable location (most PCs, the client says) waits for a **Super Admin's
-   approval**, with no time limit. Known risk: such a kiosk has only its device key as proof;
-   accepted, and reviewed again in the M4 spec.
+3. **Kiosk pairing, one rule for phones and PCs:** every kiosk must give an accurate location
+   (≤ 50 m, a setting) inside the geofence, at pairing and (from M4) at every punch. No
+   approval route and no extra hardware: the device (phone or PC) must have location
+   switched on and reach the accuracy limit; real gate devices are tested in M1. An earlier idea, "Super Admin
+   approves devices without location", was dropped the same day because such a PC could be
+   taken home and still work. Remaining risk: browser location can be faked by a skilled
+   person, so the geofence is a strong signal, not full proof (reviewed in the M4 spec).
 4. **Overtime rate is per employee** (₹ per OT hour), not per shift (client). Shifts keep
    "overtime starts after N minutes".
 5. **Employee codes** are Sheet Shapers' existing codes, typed in by the admin; the system
