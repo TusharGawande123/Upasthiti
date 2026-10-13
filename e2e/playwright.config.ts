@@ -35,6 +35,7 @@ export default defineConfig({
       url: `${BACKEND_URL}/api/v1/health`,
       env: {
         APP_ENV: "test",
+        RUN_SCHEDULER: "false",
         DATABASE_URL: E2E_DATABASE_URL,
         // Fake values, used only by these tests.
         APP_SECRET_KEY: "e2e-only-secret-key-not-used-anywhere-else-0123",

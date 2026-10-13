@@ -15,6 +15,7 @@ from typing import Any
 from sqlalchemy.orm import Session
 
 from app.core.logging import current_request_id
+from app.core.time import utc_now
 from app.modules.audit.models import AuditLog
 
 HIDDEN = "[hidden]"
@@ -101,6 +102,8 @@ def record_audit(
     safe_before, safe_after = changed_fields(safe_before, safe_after)
 
     entry = AuditLog(
+        # The real moment (the database's now() is the start of the transaction).
+        at=utc_now(),
         actor_type=actor.actor_type,
         actor_id=actor.actor_id,
         action=action,

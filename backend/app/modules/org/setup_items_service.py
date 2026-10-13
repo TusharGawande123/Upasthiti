@@ -1,8 +1,7 @@
 """Departments, shifts and employee categories of a plant (spec §5.2, §7 rule 9).
 
 Only the Super Admin changes them (decision 0005). Nothing is deleted: "remove" means
-"deactivate", and an item still used by active employees cannot be deactivated (that
-check is added together with the employees table in slice D).
+"deactivate", and an item still used by active employees cannot be deactivated.
 """
 
 import uuid
@@ -13,6 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
 from app.modules.audit.service import Actor, record_audit
+from app.modules.employees.models import Employee, EmployeeStatus, ShiftAssignment
 from app.modules.org.models import Department, EmployeeCategory, Shift
 
 SetupItem = Department | Shift | EmployeeCategory
@@ -148,8 +148,35 @@ def set_item_active(
 
 
 def _check_not_in_use(session: Session, item: SetupItem) -> None:
-    # Employees arrive in slice D; until then nothing can be in use.
-    return None
+    """Refuse to switch off a shift, category or department active employees still use."""
+    active = Employee.status == EmployeeStatus.ACTIVE.value
+    if isinstance(item, Shift):
+        users = (
+            select(func.count())
+            .select_from(ShiftAssignment)
+            .join(Employee, Employee.id == ShiftAssignment.employee_id)
+            .where(ShiftAssignment.shift_id == item.id, ShiftAssignment.to_date.is_(None), active)
+        )
+        code = "SHIFT_IN_USE"
+    elif isinstance(item, EmployeeCategory):
+        users = (
+            select(func.count())
+            .select_from(Employee)
+            .where(Employee.category_id == item.id, active)
+        )
+        code = "CATEGORY_IN_USE"
+    else:
+        users = (
+            select(func.count())
+            .select_from(Employee)
+            .where(Employee.department_id == item.id, active)
+        )
+        code = "DEPARTMENT_IN_USE"
+    count = session.scalar(users) or 0
+    if count:
+        raise ApiError(
+            code, "Active employees still use this. Move them first.", 409, {"count": count}
+        )
 
 
 def _check_name_free(

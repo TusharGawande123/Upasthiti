@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 # imported.
 UNREACHABLE_DATABASE_URL = "postgresql+psycopg://test:test@127.0.0.1:1/upasthiti_test"
 os.environ["APP_ENV"] = "test"
+os.environ["RUN_SCHEDULER"] = "false"
 os.environ["DATABASE_URL"] = UNREACHABLE_DATABASE_URL
 # Test-only values, not secrets.
 os.environ["APP_SECRET_KEY"] = "test-secret-key-for-pytest-only-0123456789"
@@ -99,7 +100,16 @@ def db_session(migrated_engine: Engine) -> Iterator[Session]:
 @pytest.fixture
 def db_app(build_app: Callable[..., FastAPI], db_session: Session) -> FastAPI:
     app = build_app()
-    app.dependency_overrides[get_session] = lambda: db_session
+
+    # Like get_session: a failed request undoes what it had not committed.
+    def test_session() -> Iterator[Session]:
+        try:
+            yield db_session
+        except Exception:
+            db_session.rollback()
+            raise
+
+    app.dependency_overrides[get_session] = test_session
     return app
 
 

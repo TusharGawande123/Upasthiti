@@ -4,7 +4,7 @@ Rule (CLAUDE.md §10): all timestamps are stored in UTC and shown in IST (Asia/K
 The server never trusts a client's clock, so "now" always comes from utc_now().
 """
 
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from zoneinfo import ZoneInfo
 
 IST = ZoneInfo("Asia/Kolkata")
@@ -24,3 +24,8 @@ def to_ist(moment: datetime) -> datetime:
     if moment.tzinfo is None:
         raise ValueError("to_ist() needs a timezone-aware datetime")
     return moment.astimezone(IST)
+
+
+def today_ist() -> date:
+    """Today's date at the plants (IST). Shift and plant changes take effect on IST days."""
+    return utc_now().astimezone(IST).date()

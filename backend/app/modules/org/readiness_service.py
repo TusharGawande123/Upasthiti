@@ -4,7 +4,6 @@
   stored. A step is done when at least one active plant has it.
 - Readiness card (F-17): the same checks for one plant.
 
-Employee counts are filled in by slice D; until then they are 0.
 """
 
 import uuid
@@ -13,6 +12,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.modules.employees.models import Employee, EmployeeStatus
 from app.modules.kiosks.models import KioskDevice, KioskStatus
 from app.modules.org.models import EmployeeCategory, Geofence, Plant, Shift
 
@@ -81,7 +81,14 @@ def count_active_kiosks(session: Session, plant_id: uuid.UUID) -> int:
 
 
 def count_active_employees(session: Session, plant_id: uuid.UUID) -> int:
-    return 0  # employees arrive in slice D
+    return (
+        session.scalar(
+            select(func.count())
+            .select_from(Employee)
+            .where(Employee.plant_id == plant_id, Employee.status == EmployeeStatus.ACTIVE.value)
+        )
+        or 0
+    )
 
 
 def _has_geofence(session: Session, plant_id: uuid.UUID) -> bool:

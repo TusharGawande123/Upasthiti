@@ -36,6 +36,8 @@ class Settings(BaseSettings):
     trusted_proxy_hops: int = Field(default=0, ge=0, le=5)
     # Render's free plan has no pre-deploy step, so the container can migrate on start.
     run_migrations_on_start: bool = False
+    # The daily job runs inside the backend. Tests and one-off scripts switch it off.
+    run_scheduler: bool = True
 
     @field_validator("database_url")
     @classmethod

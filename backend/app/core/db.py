@@ -48,9 +48,18 @@ def get_session_factory() -> sessionmaker[Session]:
 
 
 def get_session() -> Iterator[Session]:
-    """FastAPI dependency: one database session per request, always closed afterwards."""
+    """FastAPI dependency: one database session per request, always closed afterwards.
+
+    If the request fails, everything it did and had not committed is undone at once, so a
+    half-done change (for example a bulk action that failed on employee 30 of 40) is never
+    saved.
+    """
     with get_session_factory()() as session:
-        yield session
+        try:
+            yield session
+        except Exception:
+            session.rollback()
+            raise
 
 
 def check_database_connection() -> None:
