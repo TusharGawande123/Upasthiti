@@ -1,0 +1,34 @@
+# Render Blueprint for the Upasthiti backend (free plan, decisions 0002 and 0004).
+# In Render: New → Blueprint → this repository → Blueprint file path "deploy/render.yaml".
+# Secret values are never written here: Render asks for them ("sync: false") or makes one.
+services:
+  - type: web
+    name: upasthiti-backend
+    runtime: docker
+    plan: free
+    region: singapore # closest free region to Maharashtra
+    rootDir: backend
+    dockerfilePath: ./Dockerfile
+    dockerContext: .
+    healthCheckPath: /api/v1/health
+    autoDeploy: true # every push to main deploys
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: LOG_LEVEL
+        value: INFO
+      # Free plan has no pre-deploy step: the container migrates before it starts.
+      - key: RUN_MIGRATIONS_ON_START
+        value: "true"
+      # Vercel + Render's own proxy. Checked once after the first deploy (deploy/README.md).
+      - key: TRUSTED_PROXY_HOPS
+        value: "2"
+      # Supabase connection pooler URL, session mode (port 5432). Typed in Render, never here.
+      - key: DATABASE_URL
+        sync: false
+      # The website address, e.g. https://upasthiti.vercel.app
+      - key: APP_PUBLIC_ORIGIN
+        sync: false
+      # Render creates a long random value once.
+      - key: APP_SECRET_KEY
+        generateValue: true

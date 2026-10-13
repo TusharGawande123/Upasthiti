@@ -5,6 +5,7 @@ Run locally with:  uv run fastapi dev app/main.py
 
 from fastapi import APIRouter, Depends, FastAPI
 
+from app.api_docs import DOCS_URL, add_protected_docs
 from app.core.config import load_settings_or_exit
 from app.core.errors import register_error_handlers
 from app.core.logging import add_request_id_middleware, setup_logging
@@ -23,15 +24,19 @@ def create_app() -> FastAPI:
     settings = load_settings_or_exit()
     setup_logging(settings.log_level)
 
-    # The interactive API docs are switched off in production (docs/SRS.md §5.c).
-    docs_enabled = not settings.is_production
+    # The interactive API docs are open in development; in production only a logged-in
+    # Super Admin sees them (docs/SRS.md §5.c, app/api_docs.py).
+    openapi_url = f"{API_PREFIX}/openapi.json"
+    docs_open_to_all = not settings.is_production
     app = FastAPI(
         title="Upasthiti API",
         version=settings.app_version,
-        docs_url="/api/docs" if docs_enabled else None,
+        docs_url=DOCS_URL if docs_open_to_all else None,
         redoc_url=None,
-        openapi_url=f"{API_PREFIX}/openapi.json" if docs_enabled else None,
+        openapi_url=openapi_url if docs_open_to_all else None,
     )
+    if not docs_open_to_all:
+        add_protected_docs(app, openapi_url)
 
     add_security_headers_middleware(app)
     add_request_id_middleware(app)

@@ -69,7 +69,7 @@ def check_same_origin(request: Request) -> None:
     raise ApiError("ORIGIN_NOT_ALLOWED", "This request did not come from Upasthiti.", 403)
 
 
-def _load_current_user(request: Request, session: Session) -> CurrentUser:
+def load_current_user(request: Request, session: Session) -> CurrentUser:
     token = request.cookies.get(SESSION_COOKIE_NAME)
     found = find_valid_session(session, token) if token else None
     if found is None:
@@ -87,7 +87,7 @@ def get_user_even_if_password_change_pending(
     request: Request, session: Session = Depends(get_session)
 ) -> CurrentUser:
     """Only for "me", "change password" and "logout"."""
-    return _load_current_user(request, session)
+    return load_current_user(request, session)
 
 
 def get_current_user(

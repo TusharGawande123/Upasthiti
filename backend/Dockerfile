@@ -29,4 +29,5 @@ USER app
 
 # Render sets PORT; 8000 is the default everywhere else.
 EXPOSE 8000
-CMD ["sh", "-c", "fastapi run app/main.py --host 0.0.0.0 --port ${PORT:-8000}"]
+# Migrates first when RUN_MIGRATIONS_ON_START=true (Render), then starts the server.
+CMD ["sh", "scripts/start.sh"]
