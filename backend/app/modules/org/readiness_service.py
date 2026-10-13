@@ -4,7 +4,7 @@
   stored. A step is done when at least one active plant has it.
 - Readiness card (F-17): the same checks for one plant.
 
-Kiosk and employee counts are filled in by their slices (C and D); until then they are 0.
+Employee counts are filled in by slice D; until then they are 0.
 """
 
 import uuid
@@ -13,6 +13,7 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.modules.kiosks.models import KioskDevice, KioskStatus
 from app.modules.org.models import EmployeeCategory, Geofence, Plant, Shift
 
 
@@ -69,7 +70,14 @@ def setup_status(session: Session) -> list[SetupStep]:
 
 
 def count_active_kiosks(session: Session, plant_id: uuid.UUID) -> int:
-    return 0  # kiosk devices arrive in slice C
+    return (
+        session.scalar(
+            select(func.count())
+            .select_from(KioskDevice)
+            .where(KioskDevice.plant_id == plant_id, KioskDevice.status == KioskStatus.ACTIVE.value)
+        )
+        or 0
+    )
 
 
 def count_active_employees(session: Session, plant_id: uuid.UUID) -> int:

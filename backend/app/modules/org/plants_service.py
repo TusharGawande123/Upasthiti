@@ -18,6 +18,7 @@ from app.core.pagination import PageParams, fetch_page
 from app.modules.audit.service import Actor, record_audit
 from app.modules.org.client_plants import CLIENT_PLANTS
 from app.modules.org.models import EmployeeCategory, Plant, Shift
+from app.modules.org.readiness_service import count_active_kiosks
 
 PLANT_CODE_PATTERN = re.compile(r"^[A-Z0-9]{2,10}$")
 DEFAULT_SHIFT_NAME = "General"
@@ -199,8 +200,14 @@ def _add_new_plant_defaults(session: Session, plant: Plant) -> None:
 
 
 def _check_no_active_kiosks(session: Session, plant: Plant) -> None:
-    # Kiosk devices arrive in slice C; until then no plant can have one.
-    return None
+    active_kiosks = count_active_kiosks(session, plant.id)
+    if active_kiosks:
+        raise ApiError(
+            "PLANT_HAS_ACTIVE_KIOSKS",
+            "Revoke this plant's kiosks first.",
+            409,
+            {"count": active_kiosks},
+        )
 
 
 def _clean_code(code: str) -> str:
