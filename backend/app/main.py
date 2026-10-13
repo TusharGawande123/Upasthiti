@@ -12,6 +12,7 @@ from app.core.security_headers import add_security_headers_middleware
 from app.modules.auth.dependencies import check_same_origin
 from app.modules.auth.router import router as auth_router
 from app.modules.health.router import router as health_router
+from app.modules.users.router import router as users_router
 
 API_PREFIX = "/api/v1"
 
@@ -38,6 +39,7 @@ def create_app() -> FastAPI:
     api_router = APIRouter(prefix=API_PREFIX, dependencies=[Depends(check_same_origin)])
     api_router.include_router(health_router)
     api_router.include_router(auth_router)
+    api_router.include_router(users_router)
     app.include_router(api_router)
     return app
 
