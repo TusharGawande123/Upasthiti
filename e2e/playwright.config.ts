@@ -5,6 +5,10 @@ import { defineConfig, devices } from "@playwright/test";
 const isCI = Boolean(process.env.CI);
 const FRONTEND_URL = "http://localhost:5173";
 const BACKEND_URL = "http://localhost:8000";
+// The name must end in _e2e: the seed script refuses any other database.
+const E2E_DATABASE_URL =
+  process.env.E2E_DATABASE_URL ??
+  "postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_e2e";
 
 export default defineConfig({
   testDir: "./tests",
@@ -23,15 +27,18 @@ export default defineConfig({
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: [
     {
-      // The smoke test does not need a database: /api/v1/health never opens a connection,
-      // so a placeholder DATABASE_URL is enough.
-      command: "uv run fastapi run app/main.py --port 8000",
+      // A real Postgres database, wiped and filled with fake users by e2e_seed before the
+      // server starts. Locally: `docker compose up -d`; CI: the job's Postgres service.
+      command:
+        "uv run python -m app.scripts.e2e_seed && uv run fastapi run app/main.py --port 8000",
       cwd: "../backend",
       url: `${BACKEND_URL}/api/v1/health`,
       env: {
         APP_ENV: "test",
-        DATABASE_URL: "postgresql+psycopg://e2e:e2e@127.0.0.1:1/e2e",
+        DATABASE_URL: E2E_DATABASE_URL,
+        // Fake values, used only by these tests.
         APP_SECRET_KEY: "e2e-only-secret-key-not-used-anywhere-else-0123",
+        APP_PUBLIC_ORIGIN: FRONTEND_URL,
       },
       reuseExistingServer: !isCI,
       timeout: 120_000,

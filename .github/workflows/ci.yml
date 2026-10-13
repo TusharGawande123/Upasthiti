@@ -105,6 +105,20 @@ jobs:
   e2e:
     name: e2e
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: upasthiti
+          POSTGRES_PASSWORD: upasthiti
+          POSTGRES_DB: upasthiti
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U upasthiti" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    env:
+      # e2e_seed creates and wipes this database before the tests (fake data only).
+      E2E_DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_e2e
     steps:
       - uses: actions/checkout@v7
         with:
