@@ -9,10 +9,10 @@ from logging.config import fileConfig
 from alembic import context
 from sqlalchemy import engine_from_config, pool
 
+# Importing every table model lets --autogenerate see all tables.
+import app.modules.all_models  # noqa: E402, F401
 from app.core.config import load_settings_or_exit
 from app.core.db import Base
-
-# Table models must be imported here (from M1 on) so --autogenerate can see them.
 
 alembic_config = context.config
 if alembic_config.config_file_name is not None:
