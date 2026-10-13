@@ -3,11 +3,14 @@
 # Set the repository variable BACKEND_HEALTH_URL after the first deploy (M1); until then
 # the job skips. Note: GitHub pauses scheduled workflows after 60 days with no repository
 # activity; re-enable this one from the Actions tab if that happens.
+# Once a day (06:00 IST) it also checks the database (/health/ready): Supabase Free pauses a
+# project after a week without activity, e.g. during plant holidays (spec S-20).
 name: Keep backend awake
 
 on:
   schedule:
     - cron: "*/10 0-16 * * *"
+    - cron: "30 0 * * *" # daily database check
   workflow_dispatch:
 
 permissions:
@@ -29,3 +32,14 @@ jobs:
           # A sleeping Render service takes about a minute to wake, so retry a few times.
           curl --fail --silent --show-error --retry 3 --retry-delay 30 --retry-all-errors \
             --max-time 60 "$BACKEND_HEALTH_URL"
+      - name: Daily database check (keeps Supabase awake)
+        if: github.event.schedule == '30 0 * * *' || github.event_name == 'workflow_dispatch'
+        env:
+          BACKEND_HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
+        run: |
+          if [ -z "$BACKEND_HEALTH_URL" ]; then
+            echo "::notice::BACKEND_HEALTH_URL is not set yet - skipped."
+            exit 0
+          fi
+          curl --fail --silent --show-error --retry 3 --retry-delay 30 --retry-all-errors \
+            --max-time 60 "${BACKEND_HEALTH_URL}/ready"
