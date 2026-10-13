@@ -14,6 +14,7 @@ from app.modules.audit.router import router as audit_router
 from app.modules.auth.dependencies import check_same_origin
 from app.modules.auth.router import router as auth_router
 from app.modules.health.router import router as health_router
+from app.modules.org.router import router as org_router
 from app.modules.settings.router import router as settings_router
 from app.modules.users.router import router as users_router
 
@@ -49,6 +50,7 @@ def create_app() -> FastAPI:
     api_router.include_router(users_router)
     api_router.include_router(settings_router)
     api_router.include_router(audit_router)
+    api_router.include_router(org_router)
     app.include_router(api_router)
     return app
 

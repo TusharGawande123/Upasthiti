@@ -7,7 +7,7 @@ kept, and secret fields are always replaced by "[hidden]".
 
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime, time
 from decimal import Decimal
 from enum import Enum
 from typing import Any
@@ -56,7 +56,7 @@ def to_json_safe(value: Any) -> Any:
         return str(value)
     if isinstance(value, Decimal):
         return str(value)  # exact, never a float
-    if isinstance(value, datetime | date):
+    if isinstance(value, datetime | date | time):
         return value.isoformat()
     if isinstance(value, Enum):
         return value.value
