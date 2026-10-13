@@ -41,7 +41,7 @@ target-version = "py314"
 # E/F: errors, I: import order, B: likely bugs, UP: modern syntax, N: naming, S: security
 select = ["E", "F", "I", "B", "UP", "N", "S", "SIM"]
 # Database migrations are generated code; asserts are normal in tests.
-per-file-ignores = { "tests/**" = ["S101"], "migrations/**" = ["E501"] }
+per-file-ignores = { "tests/**" = ["S101", "S105", "S106"], "migrations/**" = ["E501"] }
 
 [tool.pyright]
 pythonVersion = "3.14"

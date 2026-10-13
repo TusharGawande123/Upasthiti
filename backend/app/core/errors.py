@@ -19,8 +19,11 @@ logger = logging.getLogger(__name__)
 
 # Codes for the plain HTTP errors that FastAPI/Starlette raise themselves.
 HTTP_STATUS_TO_CODE = {
+    401: "NOT_AUTHENTICATED",
+    403: "FORBIDDEN",
     404: "NOT_FOUND",
     405: "METHOD_NOT_ALLOWED",
+    429: "TOO_MANY_REQUESTS",
 }
 
 

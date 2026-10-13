@@ -13,6 +13,9 @@ from fastapi.testclient import TestClient
 UNREACHABLE_DATABASE_URL = "postgresql+psycopg://test:test@127.0.0.1:1/upasthiti_test"
 os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = UNREACHABLE_DATABASE_URL
+# Test-only values, not secrets.
+os.environ["APP_SECRET_KEY"] = "test-secret-key-for-pytest-only-0123456789"
+os.environ["APP_PUBLIC_ORIGIN"] = "http://testserver"
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.db import get_engine, get_session_factory  # noqa: E402

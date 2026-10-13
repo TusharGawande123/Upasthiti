@@ -53,9 +53,48 @@ def test_invalid_value_is_named_but_not_printed(monkeypatch: pytest.MonkeyPatch)
     ],
 )
 def test_database_url_always_uses_psycopg_3(given_url: str, expected_url: str) -> None:
-    settings = Settings(database_url=given_url)
+    settings = Settings(database_url=given_url)  # pyright: ignore[reportCallIssue]  (secret from env)
 
     assert settings.database_url == expected_url
+
+
+def test_short_secret_key_is_refused_without_printing_it(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("APP_SECRET_KEY", "too-short")
+
+    with pytest.raises(SystemExit) as stopped:
+        load_settings_or_exit()
+
+    assert "APP_SECRET_KEY" in str(stopped.value)
+    assert "too-short" not in str(stopped.value)
+
+
+def test_public_origin_is_required_in_production(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.delenv("APP_PUBLIC_ORIGIN", raising=False)
+
+    with pytest.raises(SystemExit) as stopped:
+        load_settings_or_exit()
+
+    assert "Missing required setting: APP_PUBLIC_ORIGIN" in str(stopped.value)
+
+
+def test_development_falls_back_to_the_vite_origin(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("APP_ENV", "development")
+    monkeypatch.delenv("APP_PUBLIC_ORIGIN", raising=False)
+
+    settings = Settings(database_url="postgresql://u:p@host/db", _env_file=None)  # pyright: ignore[reportCallIssue]
+
+    assert settings.allowed_origin == "http://localhost:5173"
+
+
+def test_every_response_has_security_headers(client: TestClient) -> None:
+    response = client.get("/api/v1/health")
+
+    assert response.headers["X-Frame-Options"] == "DENY"
+    assert response.headers["X-Content-Type-Options"] == "nosniff"
+    assert "geolocation=(self)" in response.headers["Permissions-Policy"]
 
 
 def test_api_docs_are_off_in_production(build_app: Callable[..., FastAPI]) -> None:

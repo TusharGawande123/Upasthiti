@@ -8,6 +8,7 @@ from fastapi import APIRouter, FastAPI
 from app.core.config import load_settings_or_exit
 from app.core.errors import register_error_handlers
 from app.core.logging import add_request_id_middleware, setup_logging
+from app.core.security_headers import add_security_headers_middleware
 from app.modules.health.router import router as health_router
 
 API_PREFIX = "/api/v1"
@@ -27,6 +28,7 @@ def create_app() -> FastAPI:
         openapi_url=f"{API_PREFIX}/openapi.json" if docs_enabled else None,
     )
 
+    add_security_headers_middleware(app)
     add_request_id_middleware(app)
     register_error_handlers(app)
 

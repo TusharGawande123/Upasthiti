@@ -31,6 +31,7 @@ export default defineConfig({
       env: {
         APP_ENV: "test",
         DATABASE_URL: "postgresql+psycopg://e2e:e2e@127.0.0.1:1/e2e",
+        APP_SECRET_KEY: "e2e-only-secret-key-not-used-anywhere-else-0123",
       },
       reuseExistingServer: !isCI,
       timeout: 120_000,

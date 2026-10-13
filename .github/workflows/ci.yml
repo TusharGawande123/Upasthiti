@@ -152,6 +152,8 @@ jobs:
           docker run -d --name backend -p 10000:10000 \
             -e PORT=10000 -e APP_ENV=production -e APP_VERSION="${GITHUB_SHA}" \
             -e DATABASE_URL=postgresql+psycopg://ci:ci@127.0.0.1:1/ci \
+            -e APP_SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123 \
+            -e APP_PUBLIC_ORIGIN=https://ci.example.invalid \
             upasthiti-backend:ci
       - name: Health endpoint answers
         run: |
