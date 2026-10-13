@@ -9,9 +9,11 @@ from app.core.config import load_settings_or_exit
 from app.core.errors import register_error_handlers
 from app.core.logging import add_request_id_middleware, setup_logging
 from app.core.security_headers import add_security_headers_middleware
+from app.modules.audit.router import router as audit_router
 from app.modules.auth.dependencies import check_same_origin
 from app.modules.auth.router import router as auth_router
 from app.modules.health.router import router as health_router
+from app.modules.settings.router import router as settings_router
 from app.modules.users.router import router as users_router
 
 API_PREFIX = "/api/v1"
@@ -40,6 +42,8 @@ def create_app() -> FastAPI:
     api_router.include_router(health_router)
     api_router.include_router(auth_router)
     api_router.include_router(users_router)
+    api_router.include_router(settings_router)
+    api_router.include_router(audit_router)
     app.include_router(api_router)
     return app
 
