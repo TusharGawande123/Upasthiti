@@ -17,7 +17,7 @@
   - Permanent employees -> face recognition + liveness (blink / head turn).
   - Temporary / hourly workers -> unique signed QR code on an ID card, shown to
     the kiosk camera. A photo snapshot is saved at each QR punch for admin review.
-  - Phone punching is OPTIONAL per employee: an admin switches it on when the
+  - Phone punching is OPTIONAL per employee: the Super Admin switches it on when the
     employee asks. At the own plant the geofence is enforced; on official work
     outside, GPS is saved and the punch is tagged. Built in M4b (decision 0004).
   - Admin dashboard (same website): setup, employees, QR cards, face enrolment,
@@ -28,9 +28,11 @@
   §7 rule 1 (decision 0005). Super Admin does everything (only this role marks people
   as left and handles QR cards); Corporate Head's employee changes wait for Super Admin
   approval (approvals inbox); Plant Head reads own plant and manages its kiosks.
+  Admin login: username or email + password (username required, email optional).
 - Client facts: 7 plants, all of Sheet Shapers (one company), in MIDC Waluj; one gate
-  each for now; about 650 people (300 permanent, 350 temporary):
-  docs/client/client-answers-2026-10.md.
+  each for now; about 650 people (300 permanent, 350 temporary); contractors
+  (company-wide list) supply operators and helpers; employees keep the company's
+  existing employee codes: docs/client/client-answers-2026-10.md, decision 0005.
 - Must: zero cost (no paid APIs/licences), Indian compliance (DPDP Act 2023,
   IT Act 43A, Labour Codes), simple to run after handover (students cannot
   provide long-term maintenance).
@@ -56,9 +58,11 @@
 - The server decides every punch; the kiosk only sends signed evidence.
 - Fixed folders: docs/ (client/, specs/, plans/, decisions/, design-refs/),
   .claude/agents/ (subagents), .claude/commands/ (custom commands).
-- Modules: org setup (plants, geofences, kiosk devices, shifts), employees,
-  enrolment (face, QR), kiosk punch, anti-proxy engine, attendance processing,
-  dashboards, reports, audit, auth, phone punch (M4b), salary estimate (last).
+- Modules: org setup (plants, geofences, kiosk devices, departments, shifts,
+  employee categories, settings), employees + contractors, approvals (change
+  requests), enrolment (face, QR), kiosk punch, anti-proxy engine, attendance
+  processing, dashboards, reports, audit, auth, phone punch (M4b), salary estimate
+  (last).
 
 ## 3. Coding Style
 - Readability first: code must be easy to read and understand for a student
@@ -115,7 +119,10 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   retention period set by admin.
 - NEVER trust client time, kiosk location or client face-match result;
   the server verifies every punch.
-- NEVER hard-delete attendance or audit records.
+- NEVER hard-delete attendance, audit or employee records ("delete employee" means
+  "mark as left", Super Admin only; history stays for the Labour Codes).
+- NEVER let a Corporate Head's employee change take effect without a Super Admin's
+  approval; the server decides this from the role, never from a client flag.
 - NEVER commit secrets; use .env (ignored) + .env.example.
 - NEVER start building a milestone before its spec and plan are approved.
 - NEVER build the legally risky future-scope items (section 1): automatic
@@ -130,10 +137,14 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - Do not add a new dependency without stating its licence and reason.
 
 ## 6. What Needs to Be Done (scope)
-- Org setup: plants, geofence on a map, kiosk device registration, shifts (admins
-  add shifts any time; each has its own overtime start), employee categories per plant.
+- Org setup (Super Admin): plants, geofence on a map, kiosk device registration,
+  departments, shifts (added any time; each has its own overtime start), employee
+  categories per plant, settings.
 - Employees: permanent/temporary, the company's existing codes, required category,
-  overtime rate per employee, contractors, Excel import, QR ID cards.
+  overtime rate per employee (Rs per OT hour), contractors, Excel import (create-only),
+  plant transfer with history, mark as left (Super Admin), QR ID cards.
+- Approvals inbox: Corporate Head creates/edits/transfers/bulk-changes/imports
+  employees as change requests; the Super Admin approves or rejects (with reason).
 - Face enrolment with consent (done by an admin); face + liveness punch at kiosk.
 - QR issue/revoke/expiry; QR punch at kiosk with photo snapshot.
 - Anti-proxy engine: kiosk device token, kiosk GPS inside geofence, face/QR
@@ -149,7 +160,7 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
     structure per employee, saved by an admin, with effective-from date).
   - Per-day salary = monthly salary / salary days (26, 30 or actual: setting).
   - Payable days = present + paid leave + paid holidays/weekly offs (settings).
-  - Earned = per-day x payable days; overtime pay = OT hours x OT rate.
+  - Earned = per-day x payable days; overtime pay = OT hours x the employee's OT rate.
   - Deductions (PF, ESIC, TDS, advances) are TYPED IN by the admin.
   - Net payable = earned + overtime - deductions.
   - Temporary workers: hours x hourly rate (+ overtime).
@@ -162,8 +173,9 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - [x] M0 Setup: repo, plugins, MCP, subagents, tech stack + SRS approved, CI
       (merged 2026-10-12, PR #1: monorepo skeleton, 5 CI jobs, pre-commit, Dependabot,
       spec docs/specs/M0-setup.md)
-- [ ] M1 Foundation: login/roles, plants, kiosk devices, employees, design
-      system; deploy skeleton to free tier
+- [ ] M1 Foundation: login/roles, approvals inbox, plants + geofence, shifts,
+      categories, kiosk pairing, employees + Excel import, audit, design system; deploy
+      skeleton to free tier (spec approved 2026-10-13: docs/specs/M1-foundation.md)
 - [ ] M2 QR attendance end-to-end at the kiosk (with snapshot)
 - [ ] M3 Face enrolment + face/liveness attendance at the kiosk
 - [ ] M4 Anti-proxy engine + kiosk geofence + offline kiosk sync
@@ -219,6 +231,10 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   - `uv run alembic upgrade head`: migrate the database.
   - `uv run alembic revision --autogenerate --rev-id <next number> -m "<what>"`: create
     a new migration (files are numbered: 0002_..., 0003_...).
+  - `uv run python -m app.scripts.create_super_admin`: create the first Super Admin
+    (asks in the terminal; no default account). Added in M1.
+  - `uv run python -m app.scripts.make_fake_data`: 650 fake employees across the 7
+    plants for local testing; refuses in production. Added in M1.
   - `uv run python scripts/download_models.py`: download the face models (sha256 checked);
     added in M3.
 - Frontend (from frontend/):
@@ -248,8 +264,9 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   through a language switch, so keep all UI text in translation files
   (i18n-ready) from day one, but do not design around Devanagari.
 - All timestamps stored in UTC, shown in IST (Asia/Kolkata).
-- Face match threshold, kiosk GPS accuracy limit, punch cool-down, snapshot
-  retention, salary-day basis, paid-day and overtime rules are settings.
+- Face match threshold, kiosk GPS accuracy limit (50 m), geofence margin, pairing-code
+  life, session and lockout limits, punch cool-down, snapshot retention, salary-day
+  basis, paid-day and overtime rules are settings (Super Admin edits them).
 - Hosting (decisions 0002, 0004): free tiers for development AND production
   (frontend on Vercel Hobby; backend on Render Free, 512 MB, sleeps after 15 min,
   keep-alive cron; Postgres + snapshot storage on Supabase Free, Mumbai). Move to
@@ -259,12 +276,14 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - Gate devices are phones and PCs. Every kiosk must give an accurate location inside the
   geofence (pairing, and every punch from M4): location switched on, phone or PC. No
   approval route, no network check, no extra hardware (decision 0005).
-- Default shift 07:00–19:00; admins can add shifts (setting, never hard-coded).
+- Default shift 07:00–19:00; the Super Admin can add shifts (setting, never
+  hard-coded). Each new plant also gets the categories Staff, Worker, Operator, Helper.
 - QR snapshot retention default: 60 days (a setting).
 - Backend settings come only from environment variables (`.env` locally):
   `APP_ENV` (unset = production, which switches off /api/docs), `APP_VERSION`,
-  `DATABASE_URL` (required), `LOG_LEVEL`. A missing required variable stops the app
-  with a message that names it but never prints its value.
+  `DATABASE_URL` (required), `LOG_LEVEL`; from M1 also `APP_SECRET_KEY` (required),
+  `APP_PUBLIC_ORIGIN` (required in production), `TRUSTED_PROXY_HOPS`. A missing required
+  variable stops the app with a message that names it but never prints its value.
 - Every error response: `{ "error": { "code", "message", "details" } }`.
   Server logs are JSON in UTC with an `X-Request-ID`; SQL parameter values are never
   logged (they can contain personal data).
@@ -299,8 +318,8 @@ How to use this freedom:
   lot, must be approved by the team first.
 - Record every accepted extra in docs/decisions/ (one short line is enough). The
   running list, including product features already approved for M1, M2, M5 and M6
-  (F-1, F-4 to F-7, F-9, F-15), is docs/decisions/accepted-extras.md: read it when
-  writing each spec.
+  (F-1, F-4 to F-7, F-9, F-15, F-17 to F-20, F-23, F-25, F-26), is
+  docs/decisions/accepted-extras.md: read it when writing each spec.
 - Core scope always comes first: never delay or break a core milestone for an
   extra.
 
