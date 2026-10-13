@@ -26,7 +26,13 @@ export default defineConfig(({ mode }) => {
       coverage: {
         provider: "v8",
         include: ["src/**/*.{ts,tsx}"],
-        exclude: ["src/main.tsx", "src/test/**", "src/**/*.test.{ts,tsx}"],
+        exclude: [
+          "src/main.tsx",
+          "src/test/**",
+          "src/**/*.test.{ts,tsx}",
+          // The Leaflet map cannot run in jsdom; the end-to-end test draws on it for real.
+          "src/features/plants/geofence-map.tsx",
+        ],
         reporter: ["text", "json-summary"],
         // Coverage floor: 60% in M0, 70% from M1; raised in each milestone (spec S-8).
         thresholds: { lines: 70, functions: 70, branches: 70, statements: 70 },

@@ -13,6 +13,9 @@ const E2E_DATABASE_URL =
 export default defineConfig({
   testDir: "./tests",
   fullyParallel: true,
+  // Every login runs a deliberately slow password hash; many workers at once starve a laptop.
+  workers: isCI ? 2 : 3,
+  expect: { timeout: 10_000 },
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
   reporter: isCI ? [["list"], ["html", { open: "never" }]] : "list",

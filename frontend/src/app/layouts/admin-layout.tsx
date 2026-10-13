@@ -1,6 +1,14 @@
 // The admin shell: left menu, top bar with the user menu, and the page itself.
 // The menu shows only what the user's role may use; the server checks it again anyway.
-import { LayoutDashboard, type LucideIcon, ScrollText, Settings, Users } from "lucide-react";
+import {
+  Factory,
+  LayoutDashboard,
+  ListChecks,
+  type LucideIcon,
+  ScrollText,
+  Settings,
+  Users,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { NavLink, Outlet } from "react-router";
 import { BrandMark } from "@/features/auth/brand-mark";
@@ -21,6 +29,8 @@ const ALL_ROLES: Role[] = ["super_admin", "corporate_head", "plant_head"];
 // New pages are added here as their features arrive.
 const NAV_ITEMS: NavItem[] = [
   { to: "/admin", labelKey: "nav.dashboard", icon: LayoutDashboard, roles: ALL_ROLES, end: true },
+  { to: "/admin/setup", labelKey: "nav.setup", icon: ListChecks, roles: ["super_admin"] },
+  { to: "/admin/plants", labelKey: "nav.plants", icon: Factory, roles: ALL_ROLES },
   { to: "/admin/users", labelKey: "nav.users", icon: Users, roles: ["super_admin"] },
   { to: "/admin/settings", labelKey: "nav.settings", icon: Settings, roles: ALL_ROLES },
   { to: "/admin/audit", labelKey: "nav.audit", icon: ScrollText, roles: ALL_ROLES },

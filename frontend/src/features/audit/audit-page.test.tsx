@@ -63,6 +63,11 @@ describe("menu by role", () => {
 
     expect(labels("super_admin")).toContain("nav.users");
     expect(labels("corporate_head")).not.toContain("nav.users");
-    expect(labels("plant_head")).toEqual(["nav.dashboard", "nav.settings", "nav.audit"]);
+    expect(labels("plant_head")).toEqual([
+      "nav.dashboard",
+      "nav.plants",
+      "nav.settings",
+      "nav.audit",
+    ]);
   });
 });

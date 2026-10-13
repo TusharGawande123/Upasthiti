@@ -48,7 +48,10 @@ function findUsedKeys() {
 
 const knownKeys = new Set(flattenKeys(JSON.parse(readFileSync(ENGLISH_FILE, "utf8"))));
 const usedKeys = findUsedKeys();
-const missingKeys = [...usedKeys].filter(([key]) => !knownKeys.has(key));
+// i18next stores plurals as "key_one" / "key_other"; the code still asks for plain "key".
+const isKnown = (key) =>
+  knownKeys.has(key) || knownKeys.has(`${key}_one`) || knownKeys.has(`${key}_other`);
+const missingKeys = [...usedKeys].filter(([key]) => !isKnown(key));
 
 if (missingKeys.length > 0) {
   console.error(`Missing from ${ENGLISH_FILE}:`);

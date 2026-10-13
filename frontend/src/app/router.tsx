@@ -5,6 +5,9 @@ import { AuditPage } from "../features/audit/audit-page";
 import { LoginPage } from "../features/auth/login-page";
 import { NewPasswordPage } from "../features/auth/new-password-page";
 import { SessionsPage } from "../features/auth/sessions-page";
+import { PlantDetailPage } from "../features/plants/plant-detail-page";
+import { PlantsPage } from "../features/plants/plants-page";
+import { SetupWizardPage } from "../features/plants/setup-wizard-page";
 import { SettingsPage } from "../features/settings/settings-page";
 import { UsersPage } from "../features/users/users-page";
 import { KioskPlaceholderPage } from "../kiosk/kiosk-placeholder-page";
@@ -25,6 +28,9 @@ export const routes: RouteObject[] = [
         element: <AdminLayout />,
         children: [
           { path: "/admin", element: <DashboardPage /> },
+          { path: "/admin/setup", element: <SetupWizardPage /> },
+          { path: "/admin/plants", element: <PlantsPage /> },
+          { path: "/admin/plants/:plantId", element: <PlantDetailPage /> },
           { path: "/admin/users", element: <UsersPage /> },
           { path: "/admin/settings", element: <SettingsPage /> },
           { path: "/admin/audit", element: <AuditPage /> },

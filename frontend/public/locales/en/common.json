@@ -25,7 +25,8 @@
     "tryAgain": "Try again",
     "actions": "Actions",
     "reason": "Reason",
-    "reasonExplain": "Every change is saved in the audit log with the reason."
+    "reasonExplain": "Every change is saved in the audit log with the reason.",
+    "save": "Save"
   },
   "roles": {
     "super_admin": "Super Admin",
@@ -33,11 +34,24 @@
     "plant_head": "Plant Head"
   },
   "validation": {
-    "login": { "required": "Type your username or email." },
-    "password": { "required": "Type your password." },
-    "name": { "required": "Type a name." },
-    "username": { "invalid": "Use 3–30 small letters, digits, dots or underscores." },
-    "plant": { "required": "Choose a plant for a Plant Head." }
+    "login": {
+      "required": "Type your username or email."
+    },
+    "password": {
+      "required": "Type your password."
+    },
+    "name": {
+      "required": "Type a name."
+    },
+    "username": {
+      "invalid": "Use 3–30 small letters, digits, dots or underscores."
+    },
+    "plant": {
+      "required": "Choose a plant for a Plant Head."
+    },
+    "plantCode": {
+      "invalid": "Use 2–10 capital letters or digits."
+    }
   },
   "errors": {
     "UNKNOWN": "Something went wrong. Please try again.",
@@ -64,14 +78,32 @@
     "CANNOT_DEACTIVATE_SELF": "You cannot switch off your own account.",
     "SETTING_OUT_OF_RANGE": "This value is outside the allowed range.",
     "SETTING_UNKNOWN": "This setting does not exist.",
-    "SETTING_NOT_EDITABLE_YET": "This setting is used from a later milestone."
+    "SETTING_NOT_EDITABLE_YET": "This setting is used from a later milestone.",
+    "PLANT_CODE_EXISTS": "This plant code is already used.",
+    "PLANT_CODE_INVALID": "Use 2–10 capital letters or digits.",
+    "PLANT_HAS_ACTIVE_KIOSKS": "Revoke the plant's active kiosks first.",
+    "PLANT_INACTIVE": "This plant is switched off.",
+    "PLANT_POSITION_INVALID": "The plant position is not valid.",
+    "DEPARTMENT_EXISTS": "This department already exists in the plant.",
+    "DEPARTMENT_IN_USE": "Employees use this department. Move them first.",
+    "CATEGORY_EXISTS": "This category already exists in the plant.",
+    "CATEGORY_IN_USE": "Employees use this category. Move them first.",
+    "SHIFT_EXISTS": "A shift with this name already exists in the plant.",
+    "SHIFT_IN_USE": "Employees use this shift. Move them first.",
+    "SHIFT_TIMES_INVALID": "Start and end time cannot be the same.",
+    "GEOFENCE_INVALID": "The shape is not valid. Draw it again.",
+    "GEOFENCE_TOO_SMALL": "The shape is too small (at least 100 m², or a 20 m circle).",
+    "GEOFENCE_TOO_LARGE": "The shape is too large (at most 2 km², or a 1,000 m circle).",
+    "GEOFENCE_NOT_SET": "This plant has no geofence yet."
   },
   "nav": {
     "label": "Main menu",
     "dashboard": "Dashboard",
     "users": "Users",
     "settings": "Settings",
-    "audit": "Audit log"
+    "audit": "Audit log",
+    "plants": "Plants",
+    "setup": "Setup wizard"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -298,5 +330,219 @@
     "unknownBrowser": "Unknown browser",
     "lastActive": "Last active {{date}}, {{time}} IST",
     "note": "You are logged out automatically after 60 minutes of no activity, and after 12 hours at most."
+  },
+  "plants": {
+    "title": "Plants",
+    "subtitle": "Each plant has its own geofence, shifts, categories and gate kiosk. Open a plant to set it up.",
+    "add": "Add a plant",
+    "backToList": "Back to plants",
+    "editDetails": "Edit details",
+    "deactivate": "Switch off",
+    "reactivate": "Switch on",
+    "deactivateTitle": "Switch off {{name}}?",
+    "reactivateTitle": "Switch on {{name}}?",
+    "readOnly": "You can view this plant but not change it. Only the Super Admin changes plant setup.",
+    "searchPlaceholder": "Search code or name",
+    "statusFilter": "Status",
+    "shownCount_one": "{{count}} shown",
+    "shownCount_other": "{{count}} shown",
+    "noMatch": "No plant matches.",
+    "kioskCount_one": "{{count}} active",
+    "kioskCount_other": "{{count}} active",
+    "noKiosk": "None",
+    "itemName": "Name",
+    "renameItem": "Edit {{name}}",
+    "status": {
+      "active": "Active",
+      "inactive": "Off"
+    },
+    "filter": {
+      "active": "Status: Active",
+      "inactive": "Status: Off",
+      "all": "All plants"
+    },
+    "geofence": {
+      "set": "Set",
+      "notSet": "Not set",
+      "noneReader": "No geofence is set for this plant yet. The Super Admin must draw it.",
+      "noneAdmin": "No geofence yet. Draw the plant boundary on the map, then save.",
+      "previewing": "Showing version {{version}} (old). Nothing is changed.",
+      "backToCurrent": "Back to current",
+      "mapLabel": "Map of the plant geofence",
+      "drawHelp": "Use the tools on the map: draw a polygon or a circle, edit its corners, or delete it. Only one shape is kept.",
+      "shape": "Shape",
+      "currentVersion": "Version {{version}} · current",
+      "type": "Type",
+      "area": "Area",
+      "allowed": "Allowed",
+      "noShape": "No shape drawn yet.",
+      "circle": "Circle · {{radius}} m radius",
+      "polygon_one": "Polygon · {{count}} corner",
+      "polygon_other": "Polygon · {{count}} corners",
+      "problem": {
+        "too_small": "The shape is too small. Draw a larger area.",
+        "too_large": "The shape is too large (over 2 km²).",
+        "crosses_itself": "The shape crosses itself. Move a corner so the lines do not cross.",
+        "radius_range": "A circle must have a radius of 20 to 1,000 m."
+      },
+      "saveTitle": "Save as a new version",
+      "margin": "Margin",
+      "marginHint": "0–{{max}} m. A kiosk this far outside the line still counts as inside. Keep it small.",
+      "marginRange": "Use 0–{{max}} metres.",
+      "metres": "metres",
+      "reason": "Reason (optional, saved in the audit log)",
+      "notSaved": "Not saved",
+      "discard": "Discard",
+      "saveVersion": "Save new version",
+      "saveNote": "Saving never changes an old version. Kiosks always use the current one.",
+      "history": "Versions",
+      "noHistory": "No versions yet.",
+      "current": "Current",
+      "preview": "Preview"
+    },
+    "summary": {
+      "active": "Active plants",
+      "ofTotal": "{{count}} of {{total}}",
+      "geofence": "Have a geofence",
+      "kiosks": "Active kiosks",
+      "employees": "Active employees"
+    },
+    "columns": {
+      "code": "Code",
+      "name": "Name",
+      "status": "Status",
+      "geofence": "Geofence",
+      "kiosks": "Kiosks",
+      "employees": "Employees"
+    },
+    "empty": {
+      "title": "No plants yet",
+      "textAdmin": "Add the client's 7 plants in one click, or add a plant yourself.",
+      "textReader": "No plants are set up yet. Ask the Super Admin.",
+      "addClientPlants": "Add Sheet Shapers' 7 plants"
+    },
+    "addDialog": {
+      "title": "Add a plant",
+      "description": "A new plant gets the General shift and the categories Staff, Worker, Operator and Helper.",
+      "codeHint": "2–10 capital letters or digits. It cannot be changed later."
+    },
+    "editDialog": {
+      "title": "Edit {{code}}",
+      "description": "The plant code cannot be changed."
+    },
+    "details": {
+      "title": "Plant details",
+      "address": "Address"
+    },
+    "tabs": {
+      "overview": "Overview",
+      "geofence": "Geofence",
+      "departments": "Departments",
+      "shifts": "Shifts",
+      "categories": "Categories"
+    },
+    "readiness": {
+      "title": "Ready for attendance?",
+      "description": "A plant is ready when all five checks pass.",
+      "ready": "Ready",
+      "notReady_one": "Not ready · {{count}} left",
+      "notReady_other": "Not ready · {{count}} left",
+      "state": {
+        "done": "Done",
+        "missing": "Missing",
+        "none": "None yet"
+      },
+      "check": {
+        "geofence": "Geofence",
+        "shifts": "Shifts",
+        "categories": "Employee categories",
+        "kiosk": "Kiosk at the gate",
+        "employees": "Employees"
+      },
+      "geofenceOk": "A geofence is set.",
+      "geofenceNo": "No geofence. Draw it on the Geofence tab.",
+      "shiftsCount_one": "{{count}} active shift",
+      "shiftsCount_other": "{{count}} active shifts",
+      "categoriesCount_one": "{{count}} active category",
+      "categoriesCount_other": "{{count}} active categories",
+      "kioskCount_one": "{{count}} active kiosk",
+      "kioskCount_other": "{{count}} active kiosks",
+      "kioskNo": "No active kiosk. Pair a phone, tablet or PC at the gate.",
+      "employeesCount_one": "{{count}} active employee",
+      "employeesCount_other": "{{count}} active employees"
+    },
+    "departments": {
+      "description": "Departments of this plant (for example Press shop or Stores).",
+      "add": "Add department",
+      "addTitle": "Add a department",
+      "renameTitle": "Rename department",
+      "empty": "No departments yet."
+    },
+    "categories": {
+      "description": "Employee categories of this plant. Every employee needs one.",
+      "add": "Add category",
+      "addTitle": "Add a category",
+      "renameTitle": "Rename category",
+      "empty": "No categories yet."
+    },
+    "shifts": {
+      "description": "Each shift has its own late limit and overtime start. Add a night shift any time.",
+      "add": "Add shift",
+      "addTitle": "Add a shift",
+      "editTitle": "Edit shift",
+      "empty": "No shifts yet.",
+      "name": "Shift name",
+      "starts": "Starts",
+      "ends": "Ends",
+      "times": "Times",
+      "nextDay": "(next day)",
+      "grace": "Grace",
+      "halfDay": "Half-day limit",
+      "overtimeAfter": "Overtime after",
+      "min": "min",
+      "minutes_one": "{{count}} min",
+      "minutes_other": "{{count}} min",
+      "length": "{{hours}} h {{minutes}} min",
+      "thisShift": "This shift",
+      "sentenceSameDay": "{{name}}: starts {{start}}, ends {{end}} ({{length}}).",
+      "sentenceNextDay": "{{name}}: starts {{start}}, ends next day at {{end}} ({{length}}).",
+      "lateIf": "Late if the first punch is after {{time}}.",
+      "halfDayRule": "A half day needs at least {{length}} of work.",
+      "overtimeRule": "Overtime counts after {{length}} of work, at each employee's own rate.",
+      "futureOnly": "Changes apply from today. Days already worked out keep their values. The overtime rate is set on each employee.",
+      "save": "Save shift"
+    }
+  },
+  "setup": {
+    "title": "Setup wizard",
+    "subtitle": "Five steps before the first attendance. Do them in order.",
+    "progress": "{{done}} of {{total}} steps done",
+    "allDone": "All steps are done. The system is ready for attendance.",
+    "done": "Done",
+    "todo": "Not done",
+    "open": "Open",
+    "drawGeofence": "Draw geofence",
+    "steps": {
+      "plants": {
+        "title": "Add the plants",
+        "text": "Add the client's plants, or all 7 in one click."
+      },
+      "geofence": {
+        "title": "Draw each plant's geofence",
+        "text": "The boundary of the plant on a map. Kiosks must be inside it."
+      },
+      "shifts_and_categories": {
+        "title": "Check shifts and categories",
+        "text": "Every plant starts with a General shift and four categories. Add more if needed."
+      },
+      "kiosk": {
+        "title": "Pair a gate kiosk",
+        "text": "Pair a phone, tablet or PC at the gate of the plant."
+      },
+      "employees": {
+        "title": "Add the employees",
+        "text": "Add people one by one or import an Excel file."
+      }
+    }
   }
 }
