@@ -25,8 +25,8 @@ export default defineConfig(({ mode }) => {
         include: ["src/**/*.{ts,tsx}"],
         exclude: ["src/main.tsx", "src/test/**", "src/**/*.test.{ts,tsx}"],
         reporter: ["text", "json-summary"],
-        // Coverage floor for M0; raised in each milestone (spec S-8).
-        thresholds: { lines: 60, functions: 60, branches: 60, statements: 60 },
+        // Coverage floor: 60% in M0, 70% from M1; raised in each milestone (spec S-8).
+        thresholds: { lines: 70, functions: 70, branches: 70, statements: 70 },
       },
     },
   };

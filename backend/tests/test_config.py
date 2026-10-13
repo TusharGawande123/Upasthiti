@@ -70,7 +70,13 @@ def test_short_secret_key_is_refused_without_printing_it(
     assert "too-short" not in str(stopped.value)
 
 
-def test_public_origin_is_required_in_production(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_public_origin_is_required_in_production(
+    monkeypatch: pytest.MonkeyPatch, tmp_path: Path
+) -> None:
+    # Run from an empty folder so no .env file can supply the value.
+    empty_folder = tmp_path / "backend"
+    empty_folder.mkdir()
+    monkeypatch.chdir(empty_folder)
     monkeypatch.setenv("APP_ENV", "production")
     monkeypatch.delenv("APP_PUBLIC_ORIGIN", raising=False)
 
