@@ -7,6 +7,8 @@ next one. The value can still be faked by calling the backend directly, so it is
 for logs and rate limits, never as proof of location (decision 0005).
 """
 
+import ipaddress
+
 from fastapi import Request
 
 from app.core.config import get_settings
@@ -16,7 +18,11 @@ UNKNOWN_IP = "unknown"
 
 
 def pick_client_ip(forwarded_for: str | None, socket_ip: str | None, trusted_hops: int) -> str:
-    """Pure helper so the rule is easy to test."""
+    """Pure helper so the rule is easy to test. Anything that is not an IP becomes "unknown"."""
+    return _valid_or_unknown(_pick_address(forwarded_for, socket_ip, trusted_hops))
+
+
+def _pick_address(forwarded_for: str | None, socket_ip: str | None, trusted_hops: int) -> str:
     socket_address = socket_ip or UNKNOWN_IP
     if trusted_hops == 0 or not forwarded_for:
         return socket_address
@@ -28,6 +34,14 @@ def pick_client_ip(forwarded_for: str | None, socket_ip: str | None, trusted_hop
     if len(addresses) <= trusted_hops:
         return addresses[0]
     return addresses[-(trusted_hops + 1)]
+
+
+def _valid_or_unknown(address: str) -> str:
+    # The header is written by the caller, so it may hold anything; only real IPs are kept.
+    try:
+        return str(ipaddress.ip_address(address))
+    except ValueError:
+        return UNKNOWN_IP
 
 
 def get_client_ip(request: Request) -> str:

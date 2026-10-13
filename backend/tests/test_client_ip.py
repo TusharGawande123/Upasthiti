@@ -19,6 +19,9 @@ from app.core.client_ip import pick_client_ip
         ("203.0.113.7", "10.0.0.9", 3, "203.0.113.7"),
         (None, "10.0.0.9", 2, "10.0.0.9"),
         (None, None, 0, "unknown"),
+        # Junk in the header or a test client name is never passed on.
+        ("not-an-ip, 76.76.21.1", "10.0.0.9", 2, "unknown"),
+        (None, "testclient", 0, "unknown"),
     ],
 )
 def test_pick_client_ip(

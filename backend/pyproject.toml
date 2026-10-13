@@ -43,6 +43,10 @@ select = ["E", "F", "I", "B", "UP", "N", "S", "SIM"]
 # Database migrations are generated code; asserts are normal in tests.
 per-file-ignores = { "tests/**" = ["S101", "S105", "S106"], "migrations/**" = ["E501"] }
 
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI reads Depends(...)/Query(...) in default arguments on purpose.
+extend-immutable-calls = ["fastapi.Depends", "fastapi.Query", "fastapi.File", "fastapi.Form", "fastapi.Body", "fastapi.Path", "fastapi.Header"]
+
 [tool.pyright]
 pythonVersion = "3.14"
 typeCheckingMode = "standard"

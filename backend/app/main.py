@@ -3,12 +3,14 @@
 Run locally with:  uv run fastapi dev app/main.py
 """
 
-from fastapi import APIRouter, FastAPI
+from fastapi import APIRouter, Depends, FastAPI
 
 from app.core.config import load_settings_or_exit
 from app.core.errors import register_error_handlers
 from app.core.logging import add_request_id_middleware, setup_logging
 from app.core.security_headers import add_security_headers_middleware
+from app.modules.auth.dependencies import check_same_origin
+from app.modules.auth.router import router as auth_router
 from app.modules.health.router import router as health_router
 
 API_PREFIX = "/api/v1"
@@ -32,8 +34,10 @@ def create_app() -> FastAPI:
     add_request_id_middleware(app)
     register_error_handlers(app)
 
-    api_router = APIRouter(prefix=API_PREFIX)
+    # Every write request must come from our own site (CSRF protection, spec §8).
+    api_router = APIRouter(prefix=API_PREFIX, dependencies=[Depends(check_same_origin)])
     api_router.include_router(health_router)
+    api_router.include_router(auth_router)
     app.include_router(api_router)
     return app
 

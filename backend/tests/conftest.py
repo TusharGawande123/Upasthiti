@@ -17,11 +17,13 @@ os.environ["APP_ENV"] = "test"
 os.environ["DATABASE_URL"] = UNREACHABLE_DATABASE_URL
 # Test-only values, not secrets.
 os.environ["APP_SECRET_KEY"] = "test-secret-key-for-pytest-only-0123456789"
-os.environ["APP_PUBLIC_ORIGIN"] = "http://testserver"
+TEST_ORIGIN = "http://testserver"
+os.environ["APP_PUBLIC_ORIGIN"] = TEST_ORIGIN
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.db import get_engine, get_session, get_session_factory  # noqa: E402
 from app.main import create_app  # noqa: E402
+from app.modules.auth.rate_limit import login_limiter, pairing_limiter  # noqa: E402
 from tests.database import create_fresh_test_database, read_test_database_url  # noqa: E402
 
 
@@ -103,4 +105,13 @@ def db_app(build_app: Callable[..., FastAPI], db_session: Session) -> FastAPI:
 
 @pytest.fixture
 def db_client(db_app: FastAPI) -> TestClient:
-    return TestClient(db_app, raise_server_exceptions=False)
+    # Browsers send Origin on every write; the app refuses writes without our own origin.
+    return TestClient(db_app, raise_server_exceptions=False, headers={"Origin": TEST_ORIGIN})
+
+
+@pytest.fixture(autouse=True)
+def fresh_rate_limits() -> Iterator[None]:
+    """Rate limits are kept in memory; each test starts with empty counters."""
+    login_limiter.reset()
+    pairing_limiter.reset()
+    yield
