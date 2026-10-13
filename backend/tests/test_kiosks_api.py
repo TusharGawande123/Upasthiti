@@ -87,7 +87,7 @@ def new_kiosk(client: TestClient, plant: dict, name: str = "Gate 1") -> dict:
 
 
 def register(client: TestClient, code: str, device: Device, location: dict | None):
-    body = {"pairing_code": code, "public_key_spki": device.public_key}
+    body: dict[str, object] = {"pairing_code": code, "public_key_spki": device.public_key}
     if location is not None:
         body["location"] = location
     return client.post(REGISTER, json=body)
@@ -139,7 +139,7 @@ def test_pairing_is_refused_without_a_good_location(
     entry = db_session.scalars(
         select(AuditLog).where(AuditLog.action == "kiosk.register_failed")
     ).one()
-    assert entry.after["reason"] == code
+    assert entry.after is not None and entry.after["reason"] == code
     assert created["pairing_code"] not in str(entry.after)
 
 
