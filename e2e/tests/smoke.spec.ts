@@ -28,10 +28,10 @@ test("the home address opens the login screen when nobody is logged in", async (
   await expect(page).toHaveURL(/\/admin\/login$/);
 });
 
-test("kiosk placeholder renders", async ({ page }) => {
+test("kiosk pairing screen renders", async ({ page }) => {
   await page.goto("/kiosk");
 
-  await expect(page.getByRole("heading", { name: "Upasthiti Kiosk" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Pair this device" })).toBeVisible();
 });
 
 test("unknown address shows 'Page not found'", async ({ page }) => {

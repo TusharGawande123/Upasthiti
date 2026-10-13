@@ -41,10 +41,14 @@ describe("routes", () => {
     expect(router.state.location.pathname).toBe("/admin/new-password");
   });
 
-  it("shows the kiosk placeholder at /kiosk without a login", () => {
+  it("shows the kiosk pairing screen at /kiosk without a login", async () => {
+    // A browser with location; the device is not paired yet.
+    vi.stubGlobal("navigator", { ...navigator, geolocation: {} });
+    mockApi({});
+
     renderRoute("/kiosk");
 
-    expect(screen.getByRole("heading", { name: "Upasthiti Kiosk" })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: "Pair this device" })).toBeInTheDocument();
   });
 
   it("shows 'Page not found' with a way back for unknown addresses", () => {

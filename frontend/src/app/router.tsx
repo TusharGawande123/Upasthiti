@@ -5,12 +5,13 @@ import { AuditPage } from "../features/audit/audit-page";
 import { LoginPage } from "../features/auth/login-page";
 import { NewPasswordPage } from "../features/auth/new-password-page";
 import { SessionsPage } from "../features/auth/sessions-page";
+import { KiosksPage } from "../features/kiosks/kiosks-page";
 import { PlantDetailPage } from "../features/plants/plant-detail-page";
 import { PlantsPage } from "../features/plants/plants-page";
 import { SetupWizardPage } from "../features/plants/setup-wizard-page";
 import { SettingsPage } from "../features/settings/settings-page";
 import { UsersPage } from "../features/users/users-page";
-import { KioskPlaceholderPage } from "../kiosk/kiosk-placeholder-page";
+import { KioskPairingPage } from "../kiosk/kiosk-pairing-page";
 import { AdminLayout } from "./layouts/admin-layout";
 import { RequireAuth } from "./layouts/require-auth";
 import { NotFoundPage } from "./not-found-page";
@@ -31,6 +32,7 @@ export const routes: RouteObject[] = [
           { path: "/admin/setup", element: <SetupWizardPage /> },
           { path: "/admin/plants", element: <PlantsPage /> },
           { path: "/admin/plants/:plantId", element: <PlantDetailPage /> },
+          { path: "/admin/kiosks", element: <KiosksPage /> },
           { path: "/admin/users", element: <UsersPage /> },
           { path: "/admin/settings", element: <SettingsPage /> },
           { path: "/admin/audit", element: <AuditPage /> },
@@ -39,7 +41,7 @@ export const routes: RouteObject[] = [
       },
     ],
   },
-  { path: "/kiosk", element: <KioskPlaceholderPage /> },
+  { path: "/kiosk", element: <KioskPairingPage /> },
   { path: "*", element: <NotFoundPage /> },
 ];
 

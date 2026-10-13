@@ -38,6 +38,18 @@
   --radius: 10px;
 }
 
+/* The gate kiosk is read from a step away, so its status colours are darker than the
+   admin ones (7:1 contrast or better; design gate C). Admin tokens stay as they are. */
+.kiosk-theme {
+  --destructive: #8a1a10;
+  --destructive-soft: #fdecea;
+  --success: #035a40;
+  --success-soft: #e6f5ee;
+  --warning: #6b3f00;
+  --warning-soft: #fff3d6;
+  --muted-foreground: #3b4658;
+}
+
 @theme inline {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
   --color-background: var(--background);

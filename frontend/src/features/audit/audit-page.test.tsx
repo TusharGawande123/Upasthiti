@@ -66,6 +66,7 @@ describe("menu by role", () => {
     expect(labels("plant_head")).toEqual([
       "nav.dashboard",
       "nav.plants",
+      "nav.kiosks",
       "nav.settings",
       "nav.audit",
     ]);

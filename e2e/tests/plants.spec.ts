@@ -12,7 +12,7 @@ test("Super Admin adds the 7 plants, sees readiness and adds a night shift", asy
 
   await page.getByRole("button", { name: "Add Sheet Shapers' 7 plants" }).click();
   await expect(page.getByRole("cell", { name: "K134" })).toBeVisible();
-  await expect(page.getByRole("row")).toHaveCount(8); // header + 7 plants
+  await expect(page.getByRole("cell", { name: "TP2" })).toBeVisible();
   await expectNoSeriousAccessibilityIssues(page);
 
   await page

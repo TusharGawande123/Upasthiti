@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { describeError } from "@/features/auth/error-message";
 import { useMe } from "@/features/auth/use-auth";
+import { PlantKiosksTab } from "@/features/kiosks/plant-kiosks-tab";
 import { cn } from "@/lib/utils";
 import { EditPlantDialog } from "./add-plant-dialog";
 import { GeofenceTab } from "./geofence-tab";
@@ -121,6 +122,7 @@ export function PlantDetailPage() {
   const { plantId = "" } = useParams();
   const me = useMe();
   const canEdit = me.data?.role === "super_admin";
+  const canKioskManage = canEdit || me.data?.role === "plant_head";
   const plant = usePlant(plantId);
   const readiness = useReadiness(plantId);
   const [tab, setTab] = useState("overview");
@@ -197,6 +199,7 @@ export function PlantDetailPage() {
           <TabsTrigger value="departments">{t("plants.tabs.departments")}</TabsTrigger>
           <TabsTrigger value="shifts">{t("plants.tabs.shifts")}</TabsTrigger>
           <TabsTrigger value="categories">{t("plants.tabs.categories")}</TabsTrigger>
+          <TabsTrigger value="kiosks">{t("plants.tabs.kiosks")}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview">
@@ -243,6 +246,9 @@ export function PlantDetailPage() {
             plantLabel={`${data.code} · ${data.name}`}
             canEdit={canEdit}
           />
+        </TabsContent>
+        <TabsContent value="kiosks">
+          <PlantKiosksTab plantId={plantId} canManage={canKioskManage} />
         </TabsContent>
         <TabsContent value="categories">
           <NamedItemsTab plantId={plantId} kind="categories" canEdit={canEdit} />

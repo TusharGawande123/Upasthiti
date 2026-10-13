@@ -4,8 +4,115 @@
     "shortName": "Upasthiti"
   },
   "kiosk": {
-    "title": "Upasthiti Kiosk",
-    "comingSoon": "Gate screen – coming in M2"
+    "brand": "Upasthiti",
+    "subtitle": "Gate kiosk · Sheet Shapers",
+    "help": "Need help? Ask the plant office.",
+    "version": "Upasthiti v{{version}}",
+    "chip": {
+      "paired": "Paired",
+      "notPaired": "Not paired"
+    },
+    "pairing": {
+      "title": "Pair this device",
+      "instruction": "Type the 6-digit code from the admin screen: Kiosks › Add kiosk.",
+      "codeLabel": "Pairing code",
+      "filledFromLink": "Code filled in from the link.",
+      "wrongCode": "This code is not right. Type it again.",
+      "locationTitle": "Location is needed once",
+      "locationText": "It proves this device is at the plant gate. When the browser asks, press Allow.",
+      "clear": "Clear",
+      "back": "Back",
+      "pair": "Pair this device",
+      "typeAll": "Type all {{count}} digits",
+      "locatingTitle": "Finding this device's location…",
+      "checkingTitle": "Pairing…",
+      "checkingText": "Checking with the server…",
+      "accuracyNow": "accuracy now · needs ± {{metres}} m or better · waits up to 20 s",
+      "needed": "± {{metres}} m needed"
+    },
+    "paired": {
+      "title": "Paired",
+      "to": "Paired to {{code}} – {{name}}",
+      "nameAndAccuracy": "{{name}} · location ± {{metres}} m",
+      "clockLabel": "Server time",
+      "clockCaption": "IST · {{date}} · server time",
+      "later": "Attendance starts in a later update. Keep this screen open; the admin can see it is online."
+    },
+    "problem": {
+      "newCode": "Type a new code",
+      "tryAgain": "Try again",
+      "forAdmin": "For the admin:",
+      "code-expired": {
+        "title": "Code expired",
+        "message": "This code has expired. Ask the admin for a new code.",
+        "steps": [
+          "On the admin screen, press “Make a new code”.",
+          "Type the new code here within 10 minutes."
+        ]
+      },
+      "locked": {
+        "title": "Too many tries",
+        "message": "Too many tries. Ask the admin for a new code.",
+        "steps": [
+          "The old code does not work any more.",
+          "Ask the admin to make a new code, then type it here."
+        ]
+      },
+      "location-off": {
+        "title": "Location is off",
+        "message": "Turn on location on this device and allow it for this site, then try again.",
+        "steps": [
+          "Turn on Location in the phone or Windows settings.",
+          "When the browser asks, press “Allow”."
+        ]
+      },
+      "gps-weak": {
+        "title": "Location not accurate enough",
+        "message": "Location is not accurate enough. Turn on Wi‑Fi or move near a window, then try again.",
+        "best": "Best: ± {{metres}} m",
+        "steps": [
+          "Turn on Wi‑Fi. It does not need to connect to a network.",
+          "Move the device near a window or the open gate.",
+          "Press “Try again”."
+        ]
+      },
+      "outside": {
+        "title": "Not at the plant",
+        "message": "This device is not at the plant.",
+        "steps": [
+          "Take this device to the plant gate.",
+          "Press “Try again” there.",
+          "Already at the gate? Ask the admin to check the plant's geofence."
+        ]
+      },
+      "unsupported": {
+        "title": "Browser not supported",
+        "message": "Open this page in the latest Chrome or Edge.",
+        "steps": [
+          "Open Chrome or Edge on this device (update it if it asks).",
+          "Open the kiosk address again.",
+          "This page needs a secure (https) connection."
+        ]
+      },
+      "revoked": {
+        "title": "Switched off",
+        "message": "This device has been switched off by the admin.",
+        "steps": [
+          "To use it again, the admin adds it as a new kiosk.",
+          "Then type the new code on this device."
+        ]
+      },
+      "network": {
+        "title": "No connection",
+        "message": "The server cannot be reached. Check the internet and try again.",
+        "steps": ["Check that the device is online.", "Press “Try again”."]
+      },
+      "unknown": {
+        "title": "Something went wrong",
+        "message": "Pairing did not work. Try again, or ask the admin for help.",
+        "steps": ["Press “Try again”.", "If it keeps failing, tell the admin the code below."]
+      }
+    }
   },
   "health": {
     "checking": "Checking server…",
@@ -94,7 +201,18 @@
     "GEOFENCE_INVALID": "The shape is not valid. Draw it again.",
     "GEOFENCE_TOO_SMALL": "The shape is too small (at least 100 m², or a 20 m circle).",
     "GEOFENCE_TOO_LARGE": "The shape is too large (at most 2 km², or a 1,000 m circle).",
-    "GEOFENCE_NOT_SET": "This plant has no geofence yet."
+    "GEOFENCE_NOT_SET": "This plant has no geofence yet.",
+    "KIOSK_NAME_EXISTS": "This plant already has a kiosk with this name.",
+    "KIOSK_REVOKED": "This kiosk was switched off.",
+    "KIOSK_ALREADY_PAIRED": "This kiosk is already paired.",
+    "PAIRING_CODE_INVALID": "This code is not right.",
+    "PAIRING_CODE_EXPIRED": "This code has expired. Make a new code.",
+    "PAIRING_LOCKED": "Too many tries with this code. Make a new code.",
+    "GPS_ACCURACY_TOO_LOW": "The location is not accurate enough.",
+    "OUTSIDE_GEOFENCE": "This device is not at the plant.",
+    "LOCATION_REQUIRED": "The device did not report its location.",
+    "DEVICE_REVOKED": "This device has been switched off.",
+    "DEVICE_SIGNATURE_INVALID": "This device is not paired."
   },
   "nav": {
     "label": "Main menu",
@@ -103,7 +221,8 @@
     "settings": "Settings",
     "audit": "Audit log",
     "plants": "Plants",
-    "setup": "Setup wizard"
+    "setup": "Setup wizard",
+    "kiosks": "Kiosks"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -439,7 +558,8 @@
       "geofence": "Geofence",
       "departments": "Departments",
       "shifts": "Shifts",
-      "categories": "Categories"
+      "categories": "Categories",
+      "kiosks": "Kiosks"
     },
     "readiness": {
       "title": "Ready for attendance?",
@@ -543,6 +663,71 @@
         "title": "Add the employees",
         "text": "Add people one by one or import an Excel file."
       }
+    }
+  },
+  "kiosks": {
+    "title": "Kiosks",
+    "subtitle": "The phones, tablets and PCs at the plant gates. To pair, a device must be at the plant with location switched on.",
+    "never": "Never",
+    "newCode": "New code",
+    "filter": {
+      "allPlants": "All plants",
+      "anyStatus": "Any status"
+    },
+    "columns": {
+      "kiosk": "Kiosk",
+      "plant": "Plant",
+      "status": "Status",
+      "accuracy": "Location at pairing",
+      "lastSeen": "Last seen"
+    },
+    "status": {
+      "active": "Active",
+      "pending": "Waiting for pairing",
+      "revoked": "Revoked"
+    },
+    "empty": {
+      "title": "No kiosks yet",
+      "text": "Add a kiosk for a plant gate. The plant needs a geofence first."
+    },
+    "add": {
+      "button": "Add kiosk",
+      "title": "Add a kiosk",
+      "description": "Name the device and choose the plant whose gate it will stand at.",
+      "choosePlant": "Choose a plant",
+      "noGeofenceOption": "no geofence yet",
+      "name": "Kiosk name",
+      "nameHint": "For example: Main gate tablet.",
+      "submit": "Make pairing code",
+      "drawGeofence": "Draw the geofence"
+    },
+    "code": {
+      "title": "Pair \"{{name}}\"",
+      "step1": "1. On the gate device, open this page in Chrome or Edge",
+      "step2": "2. Type this code there",
+      "left": "left",
+      "worksOnce": "The code works once, for 10 minutes.",
+      "expired": "The code has expired. Make a new code.",
+      "qrAlt": "QR code that opens the pairing page for {{name}}",
+      "qrText": "Or scan with the gate device. Opens the page with the code filled in.",
+      "waiting": "Waiting for the device…",
+      "waitingText": "Checking every 3 seconds. The device must be at the {{plant}} gate with location switched on.",
+      "makeNew": "Make a new code",
+      "paired": "{{name}} is paired",
+      "pairedText": "The kiosk is active. You can close this window."
+    },
+    "rename": {
+      "title": "Rename kiosk",
+      "for": "Rename {{name}}"
+    },
+    "revoke": {
+      "button": "Revoke",
+      "title": "Revoke {{name}}?"
+    },
+    "plantTab": {
+      "description": "Kiosks at this plant's gate.",
+      "all": "All kiosks",
+      "empty": "No kiosk at this plant yet."
     }
   }
 }

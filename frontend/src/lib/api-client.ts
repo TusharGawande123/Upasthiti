@@ -42,6 +42,8 @@ async function readApiError(response: Response): Promise<ApiError> {
 type RequestOptions = {
   method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
   body?: unknown;
+  // Extra request headers. The kiosk uses this for its signature headers.
+  headers?: Record<string, string>;
 };
 
 // Called when any request answers "please log in" (the session ended). The app sets it once
@@ -51,13 +53,14 @@ export function setNotAuthenticatedHandler(handler: (() => void) | null) {
   onNotAuthenticated = handler;
 }
 
-async function request<T>(path: string, { method, body }: RequestOptions): Promise<T> {
+async function request<T>(path: string, { method, body, headers }: RequestOptions): Promise<T> {
   let response: Response;
   try {
     response = await fetch(`${API_PREFIX}${path}`, {
       method,
       headers: {
         Accept: "application/json",
+        ...headers,
         ...(body === undefined ? {} : { "Content-Type": "application/json" }),
       },
       body: body === undefined ? undefined : JSON.stringify(body),
@@ -86,3 +89,7 @@ export const apiPut = <T>(path: string, body: unknown) => request<T>(path, { met
 export const apiPatch = <T>(path: string, body: unknown) =>
   request<T>(path, { method: "PATCH", body });
 export const apiDelete = <T>(path: string) => request<T>(path, { method: "DELETE" });
+
+// For callers that need their own headers (the signed kiosk requests).
+export const apiSend = <T>(options: RequestOptions & { path: string }) =>
+  request<T>(options.path, options);
