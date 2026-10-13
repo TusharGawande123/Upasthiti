@@ -1,25 +1,47 @@
-// Which page each address shows (spec AC-8).
+// Which page each address shows, and who may see it (spec AC-8, AC-3).
 import { screen } from "@testing-library/react";
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { apiError, mockApi, SUPER_ADMIN } from "../test/mock-api";
 import { renderRoute } from "../test/render";
 
-beforeEach(() => {
-  // /admin asks for the server status; these tests only check which page shows.
-  vi.stubGlobal(
-    "fetch",
-    vi.fn(() => new Promise(() => {})),
-  );
+afterEach(() => {
+  vi.unstubAllGlobals();
 });
 
-describe("routes (spec AC-8)", () => {
-  it("sends / to the admin page", async () => {
+describe("routes", () => {
+  it("sends a visitor who is not logged in from / to the login screen", async () => {
+    mockApi({ "GET /auth/me": apiError(401, "NOT_AUTHENTICATED") });
+
     const router = renderRoute("/");
 
-    expect(await screen.findByText("Admin dashboard – coming in M1")).toBeInTheDocument();
-    expect(router.state.location.pathname).toBe("/admin");
+    expect(await screen.findByRole("heading", { name: "Log in" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/admin/login");
   });
 
-  it("shows the kiosk placeholder at /kiosk", () => {
+  it("shows the dashboard to a logged-in user", async () => {
+    mockApi({
+      "GET /auth/me": { body: SUPER_ADMIN },
+      "GET /health": {
+        body: { status: "ok", version: "dev", server_time: "2026-10-12T00:30:00Z" },
+      },
+    });
+
+    renderRoute("/admin");
+
+    expect(await screen.findByText("Welcome, Tushar Gawande")).toBeInTheDocument();
+    expect(await screen.findByText("Server connected")).toBeInTheDocument();
+  });
+
+  it("keeps a user with a temporary password on the new-password screen", async () => {
+    mockApi({ "GET /auth/me": { body: { ...SUPER_ADMIN, must_change_password: true } } });
+
+    const router = renderRoute("/admin/users");
+
+    expect(await screen.findByRole("heading", { name: "Set a new password" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/admin/new-password");
+  });
+
+  it("shows the kiosk placeholder at /kiosk without a login", () => {
     renderRoute("/kiosk");
 
     expect(screen.getByRole("heading", { name: "Upasthiti Kiosk" })).toBeInTheDocument();

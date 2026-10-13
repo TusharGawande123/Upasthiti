@@ -1,4 +1,5 @@
 // Vite settings: React, Tailwind, the /api proxy for local development, and Vitest.
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
@@ -12,6 +13,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    // "@/..." means "frontend/src/..." (same as tsconfig paths; used by shadcn/ui components).
+    resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
     server: {
       port: 5173,
       proxy: { "/api": { target: apiProxyTarget, changeOrigin: true } },

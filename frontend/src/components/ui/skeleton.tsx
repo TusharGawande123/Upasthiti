@@ -1,0 +1,9 @@
+// Grey placeholder shown while data loads.
+import type * as React from "react";
+import { cn } from "@/lib/utils";
+
+export function Skeleton({ className, ...props }: React.ComponentProps<"div">) {
+  return (
+    <div aria-hidden className={cn("animate-pulse rounded-md bg-muted", className)} {...props} />
+  );
+}

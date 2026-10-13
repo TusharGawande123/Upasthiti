@@ -39,16 +39,50 @@ async function readApiError(response: Response): Promise<ApiError> {
   return new ApiError("HTTP_ERROR", response.statusText, response.status);
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
+type RequestOptions = {
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  body?: unknown;
+};
+
+// Called when any request answers "please log in" (the session ended). The app sets it once
+// (see app/auth-redirect.ts) so every page returns to the login screen.
+let onNotAuthenticated: (() => void) | null = null;
+export function setNotAuthenticatedHandler(handler: (() => void) | null) {
+  onNotAuthenticated = handler;
+}
+
+async function request<T>(path: string, { method, body }: RequestOptions): Promise<T> {
   let response: Response;
   try {
-    response = await fetch(`${API_PREFIX}${path}`, { headers: { Accept: "application/json" } });
+    response = await fetch(`${API_PREFIX}${path}`, {
+      method,
+      headers: {
+        Accept: "application/json",
+        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+      },
+      body: body === undefined ? undefined : JSON.stringify(body),
+    });
   } catch {
     // fetch only throws when the server cannot be reached at all.
     throw new ApiError("NETWORK_ERROR", "The server cannot be reached.", 0);
   }
   if (!response.ok) {
-    throw await readApiError(response);
+    const error = await readApiError(response);
+    if (error.code === "NOT_AUTHENTICATED") {
+      onNotAuthenticated?.();
+    }
+    throw error;
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   return (await response.json()) as T;
 }
+
+export const apiGet = <T>(path: string) => request<T>(path, { method: "GET" });
+export const apiPost = <T>(path: string, body?: unknown) =>
+  request<T>(path, { method: "POST", body: body ?? {} });
+export const apiPut = <T>(path: string, body: unknown) => request<T>(path, { method: "PUT", body });
+export const apiPatch = <T>(path: string, body: unknown) =>
+  request<T>(path, { method: "PATCH", body });
+export const apiDelete = <T>(path: string) => request<T>(path, { method: "DELETE" });

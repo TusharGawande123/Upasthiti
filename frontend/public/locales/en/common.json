@@ -1,9 +1,7 @@
 {
   "app": {
-    "name": "Upasthiti – Smart Attendance"
-  },
-  "admin": {
-    "comingSoon": "Admin dashboard – coming in M1"
+    "name": "Upasthiti – Smart Attendance",
+    "shortName": "Upasthiti"
   },
   "kiosk": {
     "title": "Upasthiti Kiosk",
@@ -17,6 +15,288 @@
   },
   "common": {
     "notFound": "Page not found",
-    "backToAdmin": "Go to the admin dashboard"
+    "backToAdmin": "Go to the admin dashboard",
+    "serverWaking": "Waking up the server… this can take up to a minute.",
+    "close": "Close",
+    "cancel": "Cancel",
+    "done": "Done",
+    "copy": "Copy",
+    "copied": "Copied",
+    "tryAgain": "Try again",
+    "actions": "Actions",
+    "reason": "Reason",
+    "reasonExplain": "Every change is saved in the audit log with the reason."
+  },
+  "roles": {
+    "super_admin": "Super Admin",
+    "corporate_head": "Corporate Head",
+    "plant_head": "Plant Head"
+  },
+  "validation": {
+    "login": { "required": "Type your username or email." },
+    "password": { "required": "Type your password." },
+    "name": { "required": "Type a name." },
+    "username": { "invalid": "Use 3–30 small letters, digits, dots or underscores." },
+    "plant": { "required": "Choose a plant for a Plant Head." }
+  },
+  "errors": {
+    "UNKNOWN": "Something went wrong. Please try again.",
+    "NETWORK_ERROR": "The server cannot be reached. Check your internet and try again.",
+    "INTERNAL_ERROR": "Something went wrong on the server. Please try again.",
+    "VALIDATION_FAILED": "Some of the values are not valid. Check the form.",
+    "NOT_AUTHENTICATED": "Please log in again.",
+    "FORBIDDEN": "You are not allowed to do this.",
+    "NOT_FOUND": "Not found.",
+    "ORIGIN_NOT_ALLOWED": "This request did not come from Upasthiti.",
+    "TOO_MANY_REQUESTS": "Too many tries. Please wait a little and try again.",
+    "INVALID_CREDENTIALS": "Username/email or password is wrong.",
+    "ACCOUNT_LOCKED": "Too many tries. Try again in {{minutes_left}} min.",
+    "ACCOUNT_INACTIVE": "Your account is switched off. Contact the Super Admin.",
+    "PASSWORD_TOO_WEAK": "The new password does not follow the rules below.",
+    "PASSWORD_CHANGE_REQUIRED": "Please set a new password first.",
+    "USERNAME_EXISTS": "This username is already used.",
+    "USERNAME_INVALID": "Use 3–30 small letters, digits, dots or underscores.",
+    "EMAIL_EXISTS": "This email is already used.",
+    "EMAIL_INVALID": "This email address does not look right.",
+    "PLANT_REQUIRED_FOR_ROLE": "A Plant Head needs a plant.",
+    "PLANT_NOT_FOUND": "This plant does not exist.",
+    "LAST_SUPER_ADMIN": "At least one active Super Admin is needed.",
+    "CANNOT_DEACTIVATE_SELF": "You cannot switch off your own account.",
+    "SETTING_OUT_OF_RANGE": "This value is outside the allowed range.",
+    "SETTING_UNKNOWN": "This setting does not exist.",
+    "SETTING_NOT_EDITABLE_YET": "This setting is used from a later milestone."
+  },
+  "nav": {
+    "label": "Main menu",
+    "dashboard": "Dashboard",
+    "users": "Users",
+    "settings": "Settings",
+    "audit": "Audit log"
+  },
+  "userMenu": {
+    "sessions": "My sessions",
+    "changePassword": "Change password",
+    "logout": "Log out"
+  },
+  "login": {
+    "headline": "Every punch, checked at the gate.",
+    "subheadline": "Attendance for Sheet Shapers, with a kiosk at every plant gate.",
+    "footer": "Upasthiti – Smart Attendance",
+    "title": "Log in",
+    "subtitle": "Use the username or email the Super Admin gave you.",
+    "loginLabel": "Username or email",
+    "passwordLabel": "Password",
+    "show": "Show",
+    "hide": "Hide",
+    "submit": "Log in",
+    "forgot": "Forgot your password? Ask the Super Admin to reset it."
+  },
+  "newPassword": {
+    "title": "Set a new password",
+    "subtitleFirst": "You logged in with a temporary password. Choose your own to continue.",
+    "subtitleLater": "Choose a new password for your account.",
+    "current": "Current password",
+    "new": "New password",
+    "repeat": "Type it again",
+    "mismatch": "The two passwords are different.",
+    "ruleLength": "At least {{count}} characters",
+    "ruleNotDigits": "Not only digits",
+    "ruleNotLogin": "Not the same as your username",
+    "ruleMatch": "Both passwords match",
+    "done": "done",
+    "notYet": "not yet",
+    "logsOutOthers": "Saving logs you out on every other device.",
+    "submit": "Save password"
+  },
+  "dashboard": {
+    "welcome": "Welcome, {{name}}",
+    "placeholderTitle": "Live headcount comes in M5",
+    "placeholderText": "Setup, people and kiosk screens arrive in the next updates."
+  },
+  "users": {
+    "title": "Users",
+    "subtitle": "People who can log in to the admin dashboard.",
+    "add": "Add user",
+    "searchPlaceholder": "Search by name or username",
+    "empty": "No users match.",
+    "neverLoggedIn": "Never",
+    "columns": {
+      "name": "Name",
+      "username": "Username / email",
+      "role": "Role",
+      "plant": "Plant",
+      "status": "Status",
+      "lastLogin": "Last login"
+    },
+    "status": {
+      "active": "Active",
+      "tempPassword": "Temp password",
+      "inactive": "Switched off"
+    },
+    "actions": {
+      "deactivate": "Switch off",
+      "reactivate": "Switch on",
+      "resetPassword": "Reset password",
+      "forceLogout": "Log out everywhere",
+      "resetFor": "Reset password of {{name}}",
+      "forceLogoutFor": "Log out {{name}} on all devices"
+    },
+    "reasonTitle": {
+      "deactivate": "Switch off {{name}}?",
+      "reactivate": "Switch on {{name}}?",
+      "reset-password": "Reset the password of {{name}}?",
+      "force-logout": "Log {{name}} out on all devices?"
+    },
+    "addDialog": {
+      "title": "Add user",
+      "description": "A one-time temporary password is shown after saving.",
+      "name": "Full name",
+      "username": "Username",
+      "usernameHint": "Small letters, digits, dots or underscores.",
+      "email": "Email (optional)",
+      "emailHint": "Leave empty if the person has no email. They can log in with the username.",
+      "choosePlant": "Choose a plant…",
+      "submit": "Add user"
+    },
+    "temporaryPassword": {
+      "title": "Temporary password",
+      "description": "Give this password to {{name}}. They must choose their own at the first login.",
+      "shownOnce": "It is shown only once. It cannot be looked up later; you can reset it again."
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "subtitleEdit": "Company-wide rules. Every change is saved in the audit log with a reason.",
+    "subtitleReadOnly": "Company-wide rules. Only the Super Admin can change them.",
+    "defaultIs": "Default: {{value}}",
+    "setLater": "set later",
+    "range": "allowed {{min}}–{{max}}",
+    "usedFrom": "Used from M{{milestone}}",
+    "outOfRange": "Use a value from {{min}} to {{max}}.",
+    "resetToDefault": "Reset to default",
+    "unsaved": "{{count}} unsaved change(s)",
+    "discard": "Discard",
+    "save": "Save changes",
+    "saved": "Settings saved.",
+    "reasonTitle": "Why are you changing these settings?",
+    "groups": {
+      "kiosk": {
+        "title": "Kiosk and location",
+        "description": "How a gate device proves it is at the plant."
+      },
+      "security": {
+        "title": "Security",
+        "description": "Login sessions and lockout."
+      },
+      "punch": {
+        "title": "Punch rules",
+        "description": "Cool-down and travel checks."
+      },
+      "snapshots": {
+        "title": "Snapshots",
+        "description": "How long QR-punch photos are kept."
+      },
+      "face": {
+        "title": "Face recognition",
+        "description": "Matching limits, chosen after the accuracy tests."
+      },
+      "salary": {
+        "title": "Salary estimate",
+        "description": "Used only for the salary estimate."
+      }
+    },
+    "items": {
+      "gps_accuracy_limit_m": {
+        "label": "GPS accuracy limit",
+        "help": "A device must report its location at least this precisely to pair."
+      },
+      "geofence_default_buffer_m": {
+        "label": "Default geofence margin",
+        "help": "Extra metres around a drawn geofence, so GPS jitter at the edge does not refuse a device."
+      },
+      "pairing_code_minutes": {
+        "label": "Pairing code life",
+        "help": "How long a kiosk pairing code works."
+      },
+      "session_idle_minutes": {
+        "label": "Log out after being idle",
+        "help": "A user who does nothing for this long must log in again."
+      },
+      "session_max_hours": {
+        "label": "Longest login",
+        "help": "After this many hours everyone must log in again."
+      },
+      "login_max_failures": {
+        "label": "Wrong passwords before lock",
+        "help": "After this many wrong passwords the account is locked for a while."
+      },
+      "login_lock_minutes": {
+        "label": "Lock time",
+        "help": "How long a locked account stays locked."
+      },
+      "punch_cooldown_minutes": {
+        "label": "Punch cool-down",
+        "help": "A second punch by the same person within this time is refused."
+      },
+      "snapshot_retention_days": {
+        "label": "Snapshot retention",
+        "help": "QR-punch photos are deleted after this many days."
+      },
+      "face_match_threshold": {
+        "label": "Face match threshold",
+        "help": "How similar a face must be to count as a match."
+      },
+      "face_match_margin": {
+        "label": "Face match margin",
+        "help": "How much better the best match must be than the second best."
+      },
+      "impossible_travel_kmh": {
+        "label": "Impossible travel speed",
+        "help": "Punches at two plants that would need a faster trip are flagged."
+      },
+      "salary_day_basis": {
+        "label": "Salary day basis",
+        "help": "Days used to work out the per-day salary (26, 30 or actual days)."
+      }
+    }
+  },
+  "audit": {
+    "title": "Audit log",
+    "subtitle": "Who changed what, when and from where. Entries can never be changed or deleted.",
+    "empty": "No entries match these filters.",
+    "details": "Entry details",
+    "before": "Before",
+    "after": "After",
+    "reason": "Reason",
+    "noFieldChanges": "No field values were recorded for this entry.",
+    "readOnlyNote": "Read-only. The database refuses any change to audit entries.",
+    "columns": {
+      "time": "Time (IST)",
+      "actor": "Who",
+      "action": "Action",
+      "entity": "About",
+      "ip": "IP address"
+    },
+    "filters": {
+      "from": "From",
+      "to": "To",
+      "actor": "Who",
+      "anyone": "Anyone",
+      "action": "Action"
+    },
+    "actors": {
+      "user": "User",
+      "kiosk": "Kiosk",
+      "system": "System"
+    }
+  },
+  "sessions": {
+    "title": "My sessions",
+    "subtitle": "The devices where you are logged in.",
+    "thisDevice": "This device",
+    "logOut": "Log out",
+    "unknownBrowser": "Unknown browser",
+    "lastActive": "Last active {{date}}, {{time}} IST",
+    "note": "You are logged out automatically after 60 minutes of no activity, and after 12 hours at most."
   }
 }
