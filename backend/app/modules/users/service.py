@@ -282,7 +282,8 @@ def _clean_email(email: str | None) -> str | None:
     if email is None or not email.strip():
         return None
     cleaned = email.strip().lower()
-    if not EMAIL_PATTERN.match(cleaned) or len(cleaned) > 254:
+    # Length first: the pattern only ever sees short text, so it cannot be made slow.
+    if len(cleaned) > 254 or not EMAIL_PATTERN.match(cleaned):
         raise ApiError("EMAIL_INVALID", "This email address does not look right.", 422)
     return cleaned
 

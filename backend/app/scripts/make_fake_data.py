@@ -122,7 +122,8 @@ def main() -> int:
         return 1
     with get_session_factory()() as session:
         counts = make_fake_data(session)
-    print(f"Done: {counts['plants']} plants and {counts['employees']} fake employees.")
+    plant_count, employee_count = int(counts["plants"]), int(counts["employees"])
+    print(f"Done: {plant_count} plants and {employee_count} fake employees.")
     return 0
 
 

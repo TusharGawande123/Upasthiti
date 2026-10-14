@@ -60,6 +60,8 @@ jobs:
       - name: Database migrations run on a real Postgres
         env:
           DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti
+          # A fake value: the app refuses to start without a secret of 32+ characters.
+          APP_SECRET_KEY: ci-only-fake-secret-key-0123456789-abcdef
         run: |
           uv run alembic upgrade head
           uv run alembic current | tee alembic-current.txt
