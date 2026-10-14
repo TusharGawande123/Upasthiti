@@ -9,6 +9,16 @@ type Answer =
 
 export type RecordedCall = { method: string; path: string; body: unknown };
 
+// JSON bodies are parsed; an upload records only the file name (the file is not needed).
+function readBody(body: BodyInit | null | undefined): unknown {
+  if (!body) return undefined;
+  if (body instanceof FormData) {
+    const file = body.get("file");
+    return { file: file instanceof File ? file.name : null };
+  }
+  return JSON.parse(String(body));
+}
+
 export function mockApi(answers: Record<string, Answer>) {
   const calls: RecordedCall[] = [];
 
@@ -20,7 +30,7 @@ export function mockApi(answers: Record<string, Answer>) {
       const call: RecordedCall = {
         method,
         path,
-        body: init?.body ? JSON.parse(String(init.body)) : undefined,
+        body: readBody(init?.body),
       };
       calls.push(call);
 

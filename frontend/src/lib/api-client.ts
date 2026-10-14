@@ -54,6 +54,7 @@ export function setNotAuthenticatedHandler(handler: (() => void) | null) {
 }
 
 async function request<T>(path: string, { method, body, headers }: RequestOptions): Promise<T> {
+  const isUpload = body instanceof FormData;
   let response: Response;
   try {
     response = await fetch(`${API_PREFIX}${path}`, {
@@ -61,9 +62,10 @@ async function request<T>(path: string, { method, body, headers }: RequestOption
       headers: {
         Accept: "application/json",
         ...headers,
-        ...(body === undefined ? {} : { "Content-Type": "application/json" }),
+        // A file upload (FormData) sets its own content type with the boundary.
+        ...(body === undefined || isUpload ? {} : { "Content-Type": "application/json" }),
       },
-      body: body === undefined ? undefined : JSON.stringify(body),
+      body: body === undefined ? undefined : isUpload ? body : JSON.stringify(body),
     });
   } catch {
     // fetch only throws when the server cannot be reached at all.
@@ -89,6 +91,13 @@ export const apiPut = <T>(path: string, body: unknown) => request<T>(path, { met
 export const apiPatch = <T>(path: string, body: unknown) =>
   request<T>(path, { method: "PATCH", body });
 export const apiDelete = <T>(path: string) => request<T>(path, { method: "DELETE" });
+
+/** Sends one file as multipart/form-data in the field `file` (the Excel import). */
+export const apiUpload = <T>(path: string, file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  return request<T>(path, { method: "POST", body: form });
+};
 
 // For callers that need their own headers (the signed kiosk requests).
 export const apiSend = <T>(options: RequestOptions & { path: string }) =>

@@ -1,0 +1,106 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate D – Screen D8: top-bar plant filter (open dropdown) and the sidebar with the new items
+  (Employees, Contractors, Approvals with a waiting count, Import).
+  States (URL hash, join with "+"): (none) dropdown open, All plants picked · #k134 (dropdown open, K134 picked) ·
+  #search (typing "tir") · #closed (K134 filter active, dropdown closed, page filtered) · #annotated (numbered pins on the new
+  sidebar items) · roles: +ch Corporate Head sidebar ("My requests") · +ph Plant Head (plant locked, fewer items).
+  Narrow check: open at 1024 px width for the icon rail with the badge. MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Plant filter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="../gate-bc/bc.css" />
+  <link rel="stylesheet" href="d.css" />
+</head>
+<body data-active="employees">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="../gate-a/shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script>
+  const picked = D.has("k134") || D.has("closed") ? "K134" : "all";
+  const open = !D.has("closed") && D.role !== "ph";
+
+  function plantRow(p, isPicked, active) {
+    return '<div class="plant-opt ' + (isPicked ? "is-picked " : "") + (active ? "is-active" : "") + '" role="option" aria-selected="' + isPicked + '"><span class="pc code">' + p.code + '</span><span class="t"><b>' + p.name + "</b><small>" + (p.count ? p.count + " people" : "No people yet") + "</small></span>" + (isPicked ? '<span class="chk">' + D.icon("check", 20) + "</span>" : "") + "</div>";
+  }
+
+  function dropdown(btn) {
+    const q = D.has("search") ? "tir" : "";
+    const plants = D.PLANTS.filter(function (p) { return !q || p.name.toLowerCase().split(/[\s(),]+/).some(function (w) { return w.indexOf(q) === 0; }); });
+    const left = btn.offsetLeft;
+    const list = (q ? "" : '<div class="plant-opt ' + (picked === "all" ? "is-picked is-active" : "") + '" role="option" aria-selected="' + (picked === "all") + '"><span class="pc" style="background:var(--surface)">' + D.icon("layers", 16) + '</span><span class="t"><b>All plants</b><small>648 people in 7 plants</small></span>' + (picked === "all" ? '<span class="chk">' + D.icon("check", 20) + "</span>" : "") + '</div><div class="pop-sep"></div>') +
+      plants.map(function (p) { return plantRow(p, picked === p.code, picked === p.code && q === ""); }).join("");
+    return '<div class="popover dd-plant anim-fade-up" style="left:' + left + 'px;z-index:35" role="dialog" aria-label="Choose a plant">' +
+      '<div style="padding:6px 6px 4px"><label class="search-input" style="width:100%"><i data-lucide="search" style="top:11px"></i><span class="sr-only">Find a plant</span><input class="input" style="height:40px" placeholder="Find a plant or code" value="' + q + '" role="combobox" aria-expanded="true" /></label></div>' +
+      '<div class="pop-label">Show data for</div><div role="listbox" aria-label="Plants" style="max-height:430px;overflow:auto">' + list +
+      (plants.length === 0 ? '<div class="pal-empty" style="padding:20px"><b>No plant matches</b></div>' : "") + "</div>" +
+      '<div class="pop-sep"></div><div class="field-hint" style="padding:4px 10px 8px;margin:0">' + D.icon("info") + "<span>Filters the lists and (later) the dashboard and reports. It never changes what you are allowed to do.</span></div></div>";
+  }
+
+  function render() {
+    const topbar = document.getElementById("topbar");
+    const btn = topbar.querySelector(".plant-filter");
+    if (btn && picked === "K134") {
+      btn.classList.add("filter-pill-on");
+      btn.setAttribute("aria-label", "Plant filter: K134");
+      btn.querySelector(".pf-text").innerHTML = '<b class="code">K134</b>&nbsp;Sheet Shapers (K-134)';
+      btn.querySelector("svg, i").style.color = "var(--primary-soft-foreground)";
+    }
+    if (btn) { btn.setAttribute("aria-haspopup", "listbox"); btn.setAttribute("aria-expanded", String(open)); }
+
+    const isK = picked === "K134";
+    const rows = D.EMP.filter(function (e) { return e[9] === "active" && (!isK || e[3] === "K134"); }).slice(0, 8);
+    const filteredChip = isK ? '<div class="filter-row" style="padding:0 0 14px"><span class="fchip is-on"><small style="color:inherit">Plant</small> K134 · Sheet Shapers (K-134)<button aria-label="Clear plant filter">' + D.icon("x", 13) + '</button></span><span class="muted" style="align-self:center;font-size:13px">From the plant filter at the top. <b>142 people</b></span></div>' : "";
+    document.getElementById("page").innerHTML = D.pageHead({ title: "Employees", desc: isK ? "People at K134 only." : "Everyone at Sheet Shapers, permanent and temporary.", actions: D.role === "ph" ? '<span class="badge badge-neutral">' + D.icon("lock") + "Read-only</span>" : '<a class="btn btn-primary btn-lg" href="D2-employee-form.html">' + D.icon("plus", 18) + "Add employee</a>" }) + filteredChip +
+      '<div class="card" style="overflow:hidden"><div style="overflow-x:auto"><table class="table emp rt">' + D.empTableHead({ selectable: D.role !== "ph" }) + "<tbody>" + rows.map(function (e) { return D.empRow(e, { selectable: D.role !== "ph" }); }).join("") + "</tbody></table></div></div>";
+
+    if (open && btn) { topbar.insertAdjacentHTML("beforeend", dropdown(btn)); }
+  }
+
+  function annotate() {
+    if (!D.has("annotated")) return;
+    const spots = [["Employees", "Employees: list, add, bulk actions"], ["Import", "Import: Excel wizard (new)"], ["Contractors", "Contractors: company-wide list (new)"], ["Approvals", "Approvals: count of waiting requests"]];
+    const items = [];
+    spots.forEach(function (s, i) {
+      const el = document.querySelector('#sidebar .sb-item[title="' + s[0] + '"]');
+      if (!el) return;
+      const r = el.getBoundingClientRect();
+      const pin = document.createElement("span");
+      pin.className = "pin"; pin.style.left = r.right - 4 + "px"; pin.style.top = r.top + r.height / 2 - 13 + "px"; pin.textContent = String(i + 1); pin.setAttribute("aria-hidden", "true");
+      document.body.appendChild(pin);
+    });
+    const plant = document.querySelector(".plant-filter");
+    if (plant) { const r = plant.getBoundingClientRect(); const pin = document.createElement("span"); pin.className = "pin"; pin.style.left = r.right - 8 + "px"; pin.style.top = r.top - 10 + "px"; pin.textContent = "5"; document.body.appendChild(pin); }
+    const legend = document.createElement("div");
+    legend.className = "card legend";
+    legend.innerHTML = '<b style="font-size:14px">What is new here</b><ul style="list-style:none;margin:8px 0 0;padding:0">' +
+      ["Employees: opens the list; bulk bar and Add live there", "Import: its own item, for Super Admin and Corporate Head", "Contractors: one company-wide list", "Approvals: a count of waiting requests (the Corporate Head sees My requests)", "Plant filter: opens a list of the 7 plants with people counts"].map(function (t, i) { return '<li><i class="n">' + (i + 1) + "</i><span>" + t + "</span></li>"; }).join("") + "</ul>";
+    document.body.appendChild(legend);
+  }
+
+  window.onMockState = function () {
+    D.patchShell();
+    render();
+    annotate();
+    const titles = { k134: "dropdown open, K134 picked", search: "dropdown: typing \"tir\"", closed: "K134 filter active, dropdown closed", annotated: "sidebar annotated" };
+    const key = Object.keys(titles).filter(D.has)[0];
+    D.tag((key ? titles[key] : "dropdown open, All plants") + " · " + D.roleName);
+  };
+</script>
+</body>
+</html>
