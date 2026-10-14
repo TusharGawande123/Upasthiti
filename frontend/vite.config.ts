@@ -22,6 +22,8 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: "jsdom",
       globals: true,
+      // Form tests type many characters; under coverage a laptop needs more than the default 5 s.
+      testTimeout: 15_000,
       setupFiles: ["./src/test/setup.ts"],
       coverage: {
         provider: "v8",
