@@ -67,8 +67,15 @@ describe("menu by role", () => {
       "nav.dashboard",
       "nav.plants",
       "nav.kiosks",
+      "nav.employees",
+      "nav.contractors",
       "nav.settings",
       "nav.audit",
     ]);
+    // Approvals only for the Super Admin; "My requests" and Import for the Corporate Head.
+    expect(labels("super_admin")).toContain("nav.approvals");
+    expect(labels("corporate_head")).toContain("nav.myRequests");
+    expect(labels("corporate_head")).toContain("nav.import");
+    expect(labels("plant_head")).not.toContain("nav.import");
   });
 });

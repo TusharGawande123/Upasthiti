@@ -212,7 +212,30 @@
     "OUTSIDE_GEOFENCE": "This device is not at the plant.",
     "LOCATION_REQUIRED": "The device did not report its location.",
     "DEVICE_REVOKED": "This device has been switched off.",
-    "DEVICE_SIGNATURE_INVALID": "This device is not paired."
+    "DEVICE_SIGNATURE_INVALID": "This device is not paired.",
+    "EMPLOYEE_CODE_EXISTS": "This employee code is already used. Codes are never reused.",
+    "EMPLOYEE_CODE_PENDING": "This code is waiting for approval in another request.",
+    "EMPLOYEE_NOT_FOUND": "This employee was not found.",
+    "EMPLOYEE_LEFT": "This employee has left. Reactivate them first.",
+    "EMPLOYEE_NOT_LEFT": "This employee has not left.",
+    "HOURLY_RATE_REQUIRED": "A temporary worker needs an hourly rate.",
+    "NOT_FOR_PERMANENT": "Permanent employees have no hourly rate or contractor.",
+    "CONTRACTOR_NOT_FOUND": "Choose an active contractor.",
+    "CONTRACTOR_EXISTS": "A contractor with this name already exists.",
+    "CONTRACTOR_IN_USE": "This contractor still has active workers. Move or switch them off first.",
+    "JOINED_DATE_INVALID": "The joining date is too far ahead.",
+    "LEFT_DATE_INVALID": "The date the person left is not valid.",
+    "SHIFT_DATE_INVALID": "The shift start date is not valid.",
+    "SHIFT_NOT_IN_PLANT": "This shift does not belong to the plant.",
+    "TRANSFER_SAME_PLANT": "Choose a different plant.",
+    "TRANSFER_DATE_INVALID": "Choose a date from today up to 60 days ahead.",
+    "CHANGE_ALREADY_PENDING": "A change for this employee is already waiting for approval.",
+    "REQUEST_NOT_PENDING": "This request was already decided.",
+    "REQUEST_CHECK_FAILED": "This change can no longer be applied. Nothing was changed.",
+    "BULK_TOO_LARGE": "At most 500 people at once.",
+    "IMPORT_FILE_INVALID": "This is not a valid employee file. Use the template.",
+    "IMPORT_TOO_LARGE": "The file is too large (2 MB and 2,000 rows at most).",
+    "IMPORT_HAS_ERRORS": "The file has errors. Nothing was saved."
   },
   "nav": {
     "label": "Main menu",
@@ -222,7 +245,13 @@
     "audit": "Audit log",
     "plants": "Plants",
     "setup": "Setup wizard",
-    "kiosks": "Kiosks"
+    "kiosks": "Kiosks",
+    "employees": "Employees",
+    "import": "Import",
+    "contractors": "Contractors",
+    "approvals": "Approvals",
+    "myRequests": "My requests",
+    "waiting": "waiting"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -728,6 +757,396 @@
       "description": "Kiosks at this plant's gate.",
       "all": "All kiosks",
       "empty": "No kiosk at this plant yet."
+    }
+  },
+  "plantFilter": {
+    "label": "Plant filter",
+    "all": "All plants",
+    "yourPlant": "Your plant"
+  },
+  "palette": {
+    "title": "Search",
+    "description": "Search employees, plants, kiosks and pages.",
+    "placeholder": "Search employees, plants, pages…",
+    "open": "Open search",
+    "typeMore": "Type at least {{count}} characters to search people.",
+    "loading": "Searching…",
+    "error": "The search did not work. Try again.",
+    "noResult": "Nothing found for “{{text}}”.",
+    "employees": "Employees",
+    "plants": "Plants",
+    "kiosks": "Kiosks",
+    "pages": "Pages",
+    "hintMove": "move",
+    "hintOpen": "open",
+    "hintClose": "close"
+  },
+  "employees": {
+    "title": "Employees",
+    "subtitle": "Everyone at Sheet Shapers, permanent and temporary. Codes are the company's own employee codes.",
+    "importExcel": "Import from Excel",
+    "add": "Add employee",
+    "edit": "Edit",
+    "markLeft": "Mark as left",
+    "sendForApproval": "Send for approval",
+    "changeWaiting": "Change waiting",
+    "missing": "Missing",
+    "searchPlaceholder": "Search code or name",
+    "noMatch": "No employee matches these filters.",
+    "empty": "No employees yet. Add one or import an Excel file.",
+    "backToList": "Back to employees",
+    "selectPage": "Select all people on this page",
+    "selectOne": "Select {{name}}",
+    "selected": "selected",
+    "clearSelection": "Clear selection",
+    "showing": "Showing {{from}}–{{to}} of {{total}}",
+    "previousPage": "Previous page",
+    "nextPage": "Next page",
+    "pageOf": "Page {{page}} of {{pages}}",
+    "approvalBanner": {
+      "title": "Your changes wait for the Super Admin.",
+      "text": "Add, edit, transfer, bulk change and import all go to the approvals inbox first. You can follow them in"
+    },
+    "type": {
+      "permanent": "Permanent",
+      "temporary": "Temporary"
+    },
+    "status": {
+      "active": "Active",
+      "left": "Left"
+    },
+    "punch": {
+      "face": "Marks with face",
+      "qr": "Marks with QR card"
+    },
+    "filter": {
+      "status": "Status",
+      "active": "Status: Active",
+      "left": "Status: Left",
+      "type": "Type",
+      "anyType": "Any type",
+      "category": "Category",
+      "anyCategory": "Any category",
+      "contractor": "Contractor",
+      "anyContractor": "Any contractor"
+    },
+    "columns": {
+      "code": "Code",
+      "name": "Name",
+      "type": "Type",
+      "plant": "Plant",
+      "category": "Category",
+      "department": "Department",
+      "shift": "Shift",
+      "contractor": "Contractor",
+      "otRate": "OT rate",
+      "status": "Status"
+    },
+    "bulk": {
+      "mixedPlants": "Choose people from one plant only.",
+      "tooMany": "At most {{max}} people at once.",
+      "sendForApprovalLabel": "Send for approval:",
+      "approvalNote": "This will wait for the Super Admin. Nothing changes until it is approved.",
+      "allOrNothing": "All or nothing: if one person cannot be changed, nobody is changed.",
+      "pick": "Choose…",
+      "noDepartment": "No department",
+      "fromDate": "Applies from",
+      "leftOn": "Left on",
+      "sent": "Sent for approval ({{count}} people).",
+      "done": "{{count}} people changed.",
+      "title": {
+        "change_shift": "Move {{count}} people to a shift",
+        "change_category": "Move {{count}} people to a category",
+        "change_department": "Change the department of {{count}} people",
+        "mark_left": "Mark {{count}} people as left"
+      },
+      "choose": {
+        "change_shift": "New shift",
+        "change_category": "New category",
+        "change_department": "New department"
+      },
+      "button": {
+        "change_shift": "Move to shift",
+        "change_category": "Move category",
+        "change_department": "Change department",
+        "mark_left": "Mark as left"
+      },
+      "confirm": {
+        "change_shift": "Move to shift",
+        "change_category": "Move to category",
+        "change_department": "Change department",
+        "mark_left": "Mark as left"
+      }
+    },
+    "form": {
+      "addTitle": "Add an employee",
+      "editTitle": "Edit employee",
+      "person": "Person",
+      "work": "Work",
+      "pay": "Pay rates",
+      "fullName": "Full name",
+      "type": "Type",
+      "typeHint": {
+        "permanent": "Marks attendance with face recognition.",
+        "temporary": "Marks attendance with a QR card. Paid by the hour."
+      },
+      "punch": {
+        "permanent": "Punch method: face recognition (set automatically).",
+        "temporary": "Punch method: QR card (set automatically)."
+      },
+      "codeHint": "The company's code, 1–12 letters or digits. Never reused.",
+      "codeLocked": "The code cannot be changed after saving.",
+      "plantLocked": "To move a person, use Transfer on their page.",
+      "choosePlant": "Choose a plant",
+      "chooseCategory": "Choose a category",
+      "chooseShift": "Choose a shift",
+      "noDepartment": "No department",
+      "noContractor": "No contractor",
+      "shiftFrom": "New shift applies from",
+      "shiftFromHint": "Earlier days keep the old shift.",
+      "joinedOn": "Joined on",
+      "hourlyRate": "Hourly rate",
+      "rupeesPerHour": "Rs per hour",
+      "otRate": "Overtime rate",
+      "otRateHint": "Rs per overtime hour. Leave empty if not set yet.",
+      "reason": "Reason (optional)",
+      "saved": "Saved.",
+      "sent": "Sent for approval.",
+      "waitBanner": {
+        "title": "This change will wait for the Super Admin.",
+        "text": "Nothing changes until it is approved."
+      },
+      "errors": {
+        "code": "Use 1–12 letters or digits.",
+        "plant": "Choose a plant.",
+        "category": "Choose a category.",
+        "shift": "Choose a shift.",
+        "hourlyRate": "Type the rate in Rs, for example 85 or 85.50.",
+        "money": "Type an amount in Rs, for example 150 or 150.50.",
+        "joinedOn": "Choose the joining date."
+      }
+    },
+    "detail": {
+      "codeLine": "Employee code {{code}}",
+      "details": "Details",
+      "plantHistory": "Plant history",
+      "shiftHistory": "Shift history",
+      "timeline": "Timeline",
+      "timelineNote": "Newest first · times in IST",
+      "pendingTitle": "A change is waiting for the Super Admin.",
+      "pendingText": "The details below show the current values until it is approved.",
+      "review": "Review request",
+      "leftNote": "Left on {{date}}. Reason: {{reason}}. The history is kept.",
+      "sinceTo": "{{from}} to {{to}}",
+      "now": "now",
+      "current": "Current",
+      "past": "Past"
+    },
+    "events": {
+      "employee.create": "Added",
+      "employee.update": "Details edited",
+      "employee.transfer": "Transferred",
+      "employee.bulk": "Changed in bulk",
+      "employee.import": "Added by Excel import",
+      "employee.mark_left": "Marked as left",
+      "employee.reactivate": "Reactivated",
+      "approved": "approved by the Super Admin"
+    },
+    "fields": {
+      "full_name": "Name",
+      "type": "Type",
+      "category_id": "Category",
+      "department_id": "Department",
+      "shift_id": "Shift",
+      "contractor_id": "Contractor",
+      "hourly_rate": "Hourly rate",
+      "ot_rate_per_hour": "Overtime rate",
+      "joined_on": "Joined on",
+      "plant_id": "Plant",
+      "status": "Status",
+      "left_on": "Left on",
+      "left_reason": "Left reason",
+      "punch_method": "Punch method"
+    },
+    "transfer": {
+      "button": "Transfer to another plant",
+      "title": "Transfer {{name}}",
+      "description": "Choose the new plant, category and shift, and the date the move starts.",
+      "toPlant": "New plant",
+      "effectiveFrom": "Starts on",
+      "dateHint": "Today or up to 60 days ahead.",
+      "historyNote": "Reports use the plant history, so past months stay with the old plant.",
+      "confirm": "Transfer",
+      "done": "Transfer saved."
+    },
+    "left": {
+      "title": "Mark {{name}} as left",
+      "description": "The person stays in the system with all their history; nothing is deleted.",
+      "leftOn": "Left on",
+      "done": "Marked as left."
+    },
+    "reactivate": {
+      "button": "Reactivate",
+      "title": "Reactivate {{name}}",
+      "description": "The person becomes active again from the joining date you choose.",
+      "confirm": "Reactivate",
+      "done": "Reactivated."
+    }
+  },
+  "contractors": {
+    "title": "Contractors",
+    "subtitle": "The agencies that supply temporary workers. One list for the whole company.",
+    "add": "Add contractor",
+    "addTitle": "Add a contractor",
+    "editTitle": "Edit contractor",
+    "edit": "Edit {{name}}",
+    "dialogNote": "The agency's office details. Workers' own phone numbers are never stored.",
+    "contactName": "Contact person",
+    "officePhone": "Office phone",
+    "phoneHint": "Optional. Digits, spaces, + and - only.",
+    "phoneInvalid": "Use digits, spaces, + and - only.",
+    "columns": {
+      "name": "Agency",
+      "workers": "Active workers",
+      "status": "Status"
+    },
+    "summary": {
+      "agencies": "Active agencies",
+      "workers": "Active temporary workers"
+    },
+    "empty": {
+      "title": "No contractors yet",
+      "text": "Add an agency before adding temporary workers."
+    }
+  },
+  "approvals": {
+    "title": "Approvals",
+    "subtitle": "Changes the Corporate Head sent. Check each one, then approve or reject. Nothing is applied before you approve.",
+    "myTitle": "My requests",
+    "mySubtitle": "The changes you sent for approval and what happened to them.",
+    "approve": "Approve",
+    "reject": "Reject",
+    "rejectTitle": "Reject this request",
+    "withdraw": "Withdraw",
+    "approved": "Approved and applied.",
+    "rejected": "Rejected.",
+    "withdrawn": "Withdrawn.",
+    "anyKind": "Any kind",
+    "tab": {
+      "waiting": "Waiting",
+      "history": "History"
+    },
+    "status": {
+      "pending": "Waiting",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
+      "failed": "Could not apply"
+    },
+    "kind": {
+      "employee.create": "Add",
+      "employee.update": "Edit",
+      "employee.transfer": "Transfer",
+      "employee.bulk": "Bulk change",
+      "employee.import": "Import"
+    },
+    "columns": {
+      "kind": "Kind",
+      "what": "What is asked",
+      "requestedBy": "Asked by",
+      "sent": "Sent",
+      "status": "Status"
+    },
+    "empty": {
+      "waiting": "Nothing is waiting",
+      "history": "No decided requests yet",
+      "text": "New requests from the Corporate Head show up here.",
+      "mineText": "When you send a change for approval it shows up here."
+    },
+    "drawer": {
+      "nothingChanged": "Nothing has changed yet.",
+      "approveApplies": "Approving applies the change at once. The audit log records both of you.",
+      "failedTitle": "This change could not be applied.",
+      "failedText": "Something changed since it was sent. Nothing was changed.",
+      "decided": "Decided",
+      "decisionReason": "Reason",
+      "why": "Why they asked",
+      "what": "What changes"
+    },
+    "fields": {
+      "people": "People",
+      "action": "Action",
+      "rows": "Rows",
+      "file": "File",
+      "employee_code": "Code",
+      "full_name": "Name",
+      "type": "Type",
+      "hourly_rate": "Hourly rate",
+      "ot_rate_per_hour": "Overtime rate",
+      "joined_on": "Joined on",
+      "effective_from": "Starts on",
+      "shift_from": "Shift from",
+      "from_date": "From",
+      "left_on": "Left on",
+      "reason": "Reason",
+      "punch_method": "Punch method"
+    }
+  },
+  "import": {
+    "title": "Import employees",
+    "subtitle": "Add many people at once from an Excel file. The file is checked first; nothing is saved until it has no errors.",
+    "subtitleApproval": "Add many people from an Excel file. The Super Admin must approve the import before anyone is added.",
+    "steps": "Import steps",
+    "step": {
+      "1": "Choose the file",
+      "2": "Check",
+      "3": "Done"
+    },
+    "template": {
+      "title": "1. Download the template",
+      "text": "Use the template so the columns are right. Example rows are fake; replace them with your people.",
+      "download": "Download template (.xlsx)",
+      "required": "Required columns: employee_code, full_name, type, plant_code, category, shift and joined_on (DD/MM/YYYY)."
+    },
+    "drop": {
+      "title": "Drop the Excel file here, or press to choose",
+      "text": ".xlsx only, up to 2 MB and 2,000 rows.",
+      "checking": "Checking the file…",
+      "chooseFile": "Choose an Excel file"
+    },
+    "errors": {
+      "notExcel": "This is not an Excel (.xlsx) file.",
+      "tooLarge": "The file is larger than 2 MB."
+    },
+    "report": {
+      "ok": "rows are fine",
+      "errors": "rows have errors",
+      "allOrNothingTitle": "All or nothing.",
+      "allOrNothingText": "Nothing is saved until the file has zero errors. Fix the rows in Excel and choose the file again.",
+      "row": "Row",
+      "column": "Column",
+      "problem": "Problem",
+      "moreErrors": "{{count}} more errors are not shown. Fix these first.",
+      "chooseAnother": "Choose another file",
+      "clean": "The file is clean. Press the button to save all the rows.",
+      "cleanApproval": "The file is clean. Press the button to send it for approval.",
+      "save": "Import {{count}} employees",
+      "sendApproval": "Send {{count}} employees for approval"
+    },
+    "done": {
+      "created": "{{count}} created",
+      "sent": "Sent for approval ({{count}} employees)",
+      "createdText": "The people are in the system now.",
+      "sentText": "The Super Admin will check the import. Nobody is added before that.",
+      "another": "Import another file",
+      "viewEmployees": "View employees"
+    },
+    "codes": {
+      "PLANT_NOT_FOUND": "This plant code does not exist.",
+      "EMPLOYEE_CODE_DUPLICATE_IN_FILE": "This employee code appears twice in the file.",
+      "EMPLOYEE_CODE_EXISTS": "This employee code is already used.",
+      "HOURLY_RATE_REQUIRED": "A temporary worker needs an hourly rate.",
+      "IMPORT_CELL_FORMULA": "This cell starts with = + - or @. Type plain text."
     }
   }
 }

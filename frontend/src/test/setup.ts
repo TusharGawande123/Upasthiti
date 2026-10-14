@@ -15,6 +15,14 @@ i18n.use(initReactI18next).init({
   resources: { en: { common: englishTexts } },
 });
 
+// jsdom has no layout engine; the command palette (cmdk) needs these two browser features.
+globalThis.ResizeObserver ??= class {
+  observe() {}
+  unobserve() {}
+  disconnect() {}
+};
+Element.prototype.scrollIntoView ??= () => {};
+
 // Pages load data and render big tables; under coverage a laptop can need more than 1 second.
 configure({ asyncUtilTimeout: 4000 });
 
