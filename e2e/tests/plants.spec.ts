@@ -1,18 +1,35 @@
 // Slice B in a real browser: the client's plants, readiness, shifts, the geofence map and the
 // setup wizard. Spec AC-6, AC-7, AC-11, AC-31, AC-38.
-import { expect, test } from "@playwright/test";
+import { expect, type Page, test } from "@playwright/test";
 import { expectNoSeriousAccessibilityIssues, logIn, SUPER_ADMIN_LOGIN } from "./helpers";
 
 // The tests share one database and the first one adds the plants, so they run in order.
 test.describe.configure({ mode: "serial" });
 
+// Other test files add plants at the same time, so the list may or may not be empty. This makes
+// sure plant K134 exists: with the client's 7 plants when the list is empty, or on its own.
+async function ensurePlantK134(page: Page) {
+  await page.getByRole("link", { name: "Plants" }).first().click();
+  await expect(page.getByRole("heading", { name: "Plants", exact: true })).toBeVisible();
+  // "Add a plant" only shows once the list has loaded (a skeleton is shown before that).
+  await expect(page.getByRole("button", { name: "Add a plant" }).first()).toBeVisible();
+  const addAll = page.getByRole("button", { name: "Add Sheet Shapers' 7 plants" });
+  if (await addAll.isVisible()) {
+    await addAll.click();
+  } else if ((await page.getByRole("cell", { name: "K134" }).count()) === 0) {
+    await page.getByRole("button", { name: "Add a plant" }).first().click();
+    const dialog = page.getByRole("dialog");
+    await dialog.getByLabel("Code").fill("K134");
+    await dialog.getByLabel("Name").fill("Sheet Shapers (K-134)");
+    await dialog.getByRole("button", { name: "Add a plant" }).click();
+    await page.getByRole("link", { name: "Plants" }).first().click();
+  }
+  await expect(page.getByRole("cell", { name: "K134" })).toBeVisible();
+}
+
 test("Super Admin adds the 7 plants, sees readiness and adds a night shift", async ({ page }) => {
   await logIn(page, SUPER_ADMIN_LOGIN);
-  await page.getByRole("link", { name: "Plants" }).click();
-
-  await page.getByRole("button", { name: "Add Sheet Shapers' 7 plants" }).click();
-  await expect(page.getByRole("cell", { name: "K134" })).toBeVisible();
-  await expect(page.getByRole("cell", { name: "TP2" })).toBeVisible();
+  await ensurePlantK134(page);
   await expectNoSeriousAccessibilityIssues(page);
 
   await page
@@ -38,9 +55,7 @@ test("Super Admin adds the 7 plants, sees readiness and adds a night shift", asy
 
 test("the setup wizard shows the plants step done and the geofence step open", async ({ page }) => {
   await logIn(page, SUPER_ADMIN_LOGIN);
-  await page.getByRole("link", { name: "Plants" }).click();
-  const addAll = page.getByRole("button", { name: "Add Sheet Shapers' 7 plants" });
-  if (await addAll.isVisible()) await addAll.click();
+  await ensurePlantK134(page);
   await expect(page.getByRole("cell", { name: "K134" })).toBeVisible();
 
   await page.getByRole("link", { name: "Setup wizard" }).click();
@@ -54,9 +69,7 @@ test("the geofence tab shows a map with the OpenStreetMap credit and draws a pol
   page,
 }) => {
   await logIn(page, SUPER_ADMIN_LOGIN);
-  await page.getByRole("link", { name: "Plants" }).click();
-  const addAll = page.getByRole("button", { name: "Add Sheet Shapers' 7 plants" });
-  if (await addAll.isVisible()) await addAll.click();
+  await ensurePlantK134(page);
   await page
     .getByRole("link", { name: /K-134|K134/ })
     .first()

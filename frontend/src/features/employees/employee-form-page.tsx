@@ -332,11 +332,14 @@ export function EmployeeFormPage() {
                   disabled={editing}
                   aria-invalid={Boolean(errors.plant_id)}
                   onChange={(event) => {
-                    set("plant_id", event.target.value);
+                    // Read the value now: inside the state updater below the select may
+                    // already have been reset by React.
+                    const chosenPlant = event.target.value;
+                    setErrors((current) => ({ ...current, plant_id: undefined }));
                     // Categories, departments and shifts belong to one plant.
                     setValues((current) => ({
                       ...current,
-                      plant_id: event.target.value,
+                      plant_id: chosenPlant,
                       category_id: "",
                       department_id: "",
                       shift_id: "",

@@ -12,9 +12,10 @@ const E2E_DATABASE_URL =
 
 export default defineConfig({
   testDir: "./tests",
-  fullyParallel: true,
-  // Every login runs a deliberately slow password hash; many workers at once starve a laptop.
-  workers: isCI ? 2 : 3,
+  // All tests share ONE database (plants, people, kiosks) and every login runs a deliberately
+  // slow password hash, so the tests run one after another. That keeps them reliable.
+  fullyParallel: false,
+  workers: 1,
   expect: { timeout: 10_000 },
   forbidOnly: isCI,
   retries: isCI ? 1 : 0,
@@ -39,6 +40,8 @@ export default defineConfig({
       env: {
         APP_ENV: "test",
         RUN_SCHEDULER: "false",
+        // One run logs in many times from one laptop (the limit is 20 per 10 minutes).
+        E2E_LOGIN_LIMIT: "500",
         DATABASE_URL: E2E_DATABASE_URL,
         // Fake values, used only by these tests.
         APP_SECRET_KEY: "e2e-only-secret-key-not-used-anywhere-else-0123",
