@@ -27,7 +27,6 @@ from app.modules.users.plant_access import load_plant_ids, set_user_plant
 
 USERNAME_PATTERN = re.compile(r"^[a-z0-9._]{3,30}$")
 # A light check only: we never send email in M1, we only need a sensible, unique value.
-EMAIL_PATTERN = re.compile(r"^[^@\s]+@[^@\s]+\.[^@\s]+$")
 
 
 @dataclass(frozen=True)
@@ -278,12 +277,21 @@ def _clean_username(username: str) -> str:
     return cleaned
 
 
+def _looks_like_email(text: str) -> bool:
+    """name@domain.tld with no spaces. Plain string checks instead of a regular expression, so
+    no input can make the check slow."""
+    if any(character.isspace() for character in text) or text.count("@") != 1:
+        return False
+    local, domain = text.split("@")
+    return bool(local) and "." in domain.strip(".") and not domain.startswith(".")
+
+
 def _clean_email(email: str | None) -> str | None:
     if email is None or not email.strip():
         return None
     cleaned = email.strip().lower()
     # Length first: the pattern only ever sees short text, so it cannot be made slow.
-    if len(cleaned) > 254 or not EMAIL_PATTERN.match(cleaned):
+    if len(cleaned) > 254 or not _looks_like_email(cleaned):
         raise ApiError("EMAIL_INVALID", "This email address does not look right.", 422)
     return cleaned
 

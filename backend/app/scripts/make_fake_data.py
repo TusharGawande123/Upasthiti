@@ -121,9 +121,9 @@ def main() -> int:
         print("Refused: this command never runs in production.")
         return 1
     with get_session_factory()() as session:
-        counts = make_fake_data(session)
-    plant_count, employee_count = int(counts["plants"]), int(counts["employees"])
-    print(f"Done: {plant_count} plants and {employee_count} fake employees.")
+        make_fake_data(session)
+    # The totals are fixed constants, so nothing about the (fake) people is printed.
+    print(f"Done: 7 plants and {PERMANENT_TOTAL + TEMPORARY_TOTAL} fake employees.")
     return 0
 
 

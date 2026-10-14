@@ -149,3 +149,24 @@ def test_first_super_admin_is_created_only_once(db_session: Session) -> None:
             db_session, name="Other", username="other", email=None, password="Gate-Kiosk-2026!"
         )
     assert refused.value.code == "SUPER_ADMIN_EXISTS"
+
+
+@pytest.mark.parametrize(
+    ("text", "ok"),
+    [
+        ("asha@example.com", True),
+        ("a.b@plant.co.in", True),
+        ("no-at-sign.com", False),
+        ("two@@example.com", False),
+        ("space @example.com", False),
+        ("asha@localhost", False),
+        ("asha@.com", False),
+        # The old regular expression was very slow on this text; now it is answered at once.
+        ("!@!." + "!." * 5000, True),
+    ],
+    ids=["plain", "subdomain", "no-at", "two-at", "space", "no-dot", "dot-start", "long"],
+)
+def test_email_check(text: str, ok: bool) -> None:
+    from app.modules.users.service import _looks_like_email  # pyright: ignore[reportPrivateUsage]
+
+    assert _looks_like_email(text) is ok
