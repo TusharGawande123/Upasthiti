@@ -88,7 +88,10 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - Kiosk: MediaPipe Face Landmarker (liveness UX only), barcode-detector
   (QR scan), WebCrypto P-256 device key, vite-plugin-pwa + Workbox + Dexie
   (offline queue).
-- Maps: Leaflet 1.9 + Leaflet-Geoman free + OpenStreetMap tiles.
+- Maps: Leaflet 1.9 + Leaflet-Geoman free + Turf (area, kinks, buffer) + OpenStreetMap tiles.
+- Also used since M1: cmdk (Ctrl+K palette), Sonner (toasts), Radix (dialogs, tabs, menus),
+  Dexie (kiosk device storage), fake-indexeddb (tests), openpyxl + XlsxWriter (Excel),
+  Faker (fake data), APScheduler (daily job). All free licences.
 - Backend: Python 3.14, FastAPI, Pydantic 2, SQLAlchemy 2.1 (sync) + Alembic,
   psycopg 3, PostgreSQL, argon2-cffi, cryptography (Ed25519 QR signing,
   ECDSA verify, AES-256-GCM templates), Shapely, segno, XlsxWriter,
@@ -173,9 +176,10 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - [x] M0 Setup: repo, plugins, MCP, subagents, tech stack + SRS approved, CI
       (merged 2026-10-12, PR #1: monorepo skeleton, 5 CI jobs, pre-commit, Dependabot,
       spec docs/specs/M0-setup.md)
-- [ ] M1 Foundation: login/roles, approvals inbox, plants + geofence, shifts,
+- [x] M1 Foundation: login/roles, approvals inbox, plants + geofence, shifts,
       categories, kiosk pairing, employees + Excel import, audit, design system; deploy
-      skeleton to free tier (spec approved 2026-10-13: docs/specs/M1-foundation.md)
+      files ready (the lead creates the Supabase/Render/Vercel accounts: deploy/README.md)
+      (spec docs/specs/M1-foundation.md, decisions 0005 and 0006; branch milestone/M1-foundation)
 - [ ] M2 QR attendance end-to-end at the kiosk (with snapshot)
 - [ ] M3 Face enrolment + face/liveness attendance at the kiosk
 - [ ] M4 Anti-proxy engine + kiosk geofence + offline kiosk sync
@@ -244,7 +248,9 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   - `npm run i18n:check`: every text key used in code exists in
     `public/locales/en/common.json`.
 - End-to-end (from e2e/): `npx playwright test` (starts backend + frontend itself; add
-  `--headed` to watch the browser).
+  `--headed` to watch the browser). It needs the local Postgres (`docker compose up -d`),
+  uses its own database `upasthiti_e2e` (wiped each run) and runs tests one after another.
+  Do not run it at the same time as `npm test` or `pytest` (they share the machine and the DB).
 - Every git hook on every file: `pre-commit run --all-files`.
 - Windows note: plain `python` on the lead's laptop is 3.7, so always use `uv run`
   (uv installs the project's Python 3.14 itself).
@@ -282,7 +288,10 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - Backend settings come only from environment variables (`.env` locally):
   `APP_ENV` (unset = production, which switches off /api/docs), `APP_VERSION`,
   `DATABASE_URL` (required), `LOG_LEVEL`; from M1 also `APP_SECRET_KEY` (required),
-  `APP_PUBLIC_ORIGIN` (required in production), `TRUSTED_PROXY_HOPS`. A missing required
+  `APP_PUBLIC_ORIGIN` (required in production), `TRUSTED_PROXY_HOPS`; also
+  `RUN_MIGRATIONS_ON_START` (Render free has no pre-deploy step), `RUN_SCHEDULER`,
+  `TEST_DATABASE_URL` (tests; the name must end in `_test`) and `E2E_LOGIN_LIMIT` (honoured
+  only when `APP_ENV=test`; production always allows 20 logins per IP per 10 minutes). A missing required
   variable stops the app with a message that names it but never prints its value.
 - Every error response: `{ "error": { "code", "message", "details" } }`.
   Server logs are JSON in UTC with an `X-Request-ID`; SQL parameter values are never
