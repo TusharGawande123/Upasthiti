@@ -16,6 +16,7 @@ case "$RUN_MIGRATIONS_ON_START" in
 esac
 
 # exec: the server replaces this shell, so it receives Render's stop signal directly.
-# --no-access-log: its lines contain the query string (pairing code, search words).
-# The app writes its own request log with the path only.
-exec fastapi run app/main.py --host 0.0.0.0 --port "${PORT:-8000}" --no-access-log
+# uvicorn directly (not `fastapi run`, which cannot switch the access log off): its access log
+# lines contain the query string (pairing code, search words). The app writes its own request
+# log with the path only.
+exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}" --no-access-log
