@@ -219,3 +219,18 @@ def test_contractor_with_active_workers_cannot_be_switched_off(
     )
 
     assert response.json()["error"]["code"] == "CONTRACTOR_IN_USE"
+
+
+def test_a_zip_that_unpacks_huge_is_refused(boss: TestClient, k134: PlantIds) -> None:
+    import zipfile
+
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_DEFLATED) as archive:
+        archive.writestr("xl/sharedStrings.xml", b"a" * (25 * 1024 * 1024))  # compresses to ~25 KB
+
+    response = boss.post(
+        f"{IMPORT}?dry_run=true", files={"file": ("bomb.xlsx", buffer.getvalue(), "text/plain")}
+    )
+
+    assert len(buffer.getvalue()) < 2 * 1024 * 1024
+    assert response.json()["error"]["code"] == "IMPORT_TOO_LARGE"

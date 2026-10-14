@@ -11,6 +11,7 @@ How an import works:
 import io
 import re
 import uuid
+import zipfile
 from dataclasses import dataclass, field
 from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
@@ -165,10 +166,25 @@ def build_template(session: Session) -> bytes:
 # --- Reading and checking --------------------------------------------------------------------
 
 
+MAX_UNPACKED_BYTES = 20 * 1024 * 1024  # an .xlsx is a zip; refuse one that unpacks huge
+MAX_ROWS_SCANNED = MAX_ROWS + 500  # rows looked at, empty lines included
+
+
+def _refuse_zip_bomb(file_bytes: bytes) -> None:
+    try:
+        with zipfile.ZipFile(io.BytesIO(file_bytes)) as archive:
+            unpacked = sum(item.file_size for item in archive.infolist())
+    except zipfile.BadZipFile:
+        raise ApiError("IMPORT_FILE_INVALID", "Use the Upasthiti template (.xlsx).", 422) from None
+    if unpacked > MAX_UNPACKED_BYTES:
+        raise ApiError("IMPORT_TOO_LARGE", "The file is larger than 2 MB.", 413)
+
+
 def read_rows(file_bytes: bytes) -> list[tuple[int, dict[str, Any]]]:
     """The data rows as (excel row number, {column: value}). Refuses a wrong file."""
     if len(file_bytes) > MAX_FILE_BYTES:
         raise ApiError("IMPORT_TOO_LARGE", "The file is larger than 2 MB.", 413)
+    _refuse_zip_bomb(file_bytes)
     try:
         # read_only + data_only=False: formulas come back as text and are never calculated.
         workbook = load_workbook(io.BytesIO(file_bytes), read_only=True, data_only=False)
@@ -182,6 +198,9 @@ def read_rows(file_bytes: bytes) -> list[tuple[int, dict[str, Any]]]:
 
     data: list[tuple[int, dict[str, Any]]] = []
     for row_number, cells in enumerate(rows, start=2):
+        if row_number > MAX_ROWS_SCANNED:
+            # A tiny file can hold millions of empty rows; stop reading instead of looping.
+            raise ApiError("IMPORT_TOO_LARGE", "At most 2,000 rows per file.", 413)
         values: dict[str, Any] = dict(zip(COLUMNS, cells[: len(COLUMNS)], strict=False))
         if all(value in (None, "") for value in values.values()):
             continue  # skip empty lines

@@ -24,7 +24,11 @@ os.environ["APP_PUBLIC_ORIGIN"] = TEST_ORIGIN
 from app.core.config import get_settings  # noqa: E402
 from app.core.db import get_engine, get_session, get_session_factory  # noqa: E402
 from app.main import create_app  # noqa: E402
-from app.modules.auth.rate_limit import login_limiter, pairing_limiter  # noqa: E402
+from app.modules.auth.rate_limit import (  # noqa: E402
+    failed_pairing_limiter,
+    login_limiter,
+    pairing_limiter,
+)
 from tests.database import create_fresh_test_database, read_test_database_url  # noqa: E402
 
 
@@ -124,4 +128,5 @@ def fresh_rate_limits() -> Iterator[None]:
     """Rate limits are kept in memory; each test starts with empty counters."""
     login_limiter.reset()
     pairing_limiter.reset()
+    failed_pairing_limiter.reset()
     yield

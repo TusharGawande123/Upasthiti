@@ -216,7 +216,8 @@ def pending_count(session: Session) -> int:
 
 
 def get_request(session: Session, request_id: uuid.UUID) -> ChangeRequest:
-    request = session.get(ChangeRequest, request_id)
+    # FOR UPDATE: a second admin deciding the same request waits, then sees it is decided.
+    request = session.get(ChangeRequest, request_id, with_for_update=True)
     if request is None:
         raise ApiError("NOT_FOUND", "Request not found.", 404)
     return request

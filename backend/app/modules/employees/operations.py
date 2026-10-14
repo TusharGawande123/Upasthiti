@@ -356,6 +356,20 @@ def bulk_change(
         raise ApiError("VALIDATION_FAILED", "Choose at least one employee.", 422)
     if len(employees) > MAX_BULK_SIZE:
         raise ApiError("BULK_TOO_LARGE", "At most 500 employees at once.", 422)
+    try:
+        return _apply_bulk(session, context, employees, action, params, reason)
+    except KeyError, ValueError:
+        raise ApiError("VALIDATION_FAILED", "The bulk change is missing a value.", 422) from None
+
+
+def _apply_bulk(
+    session: Session,
+    context: AuditContext,
+    employees: list[Employee],
+    action: str,
+    params: dict[str, Any],
+    reason: str,
+) -> int:
     for employee in employees:
         if action == "change_shift":
             update_employee(

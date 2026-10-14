@@ -40,6 +40,17 @@ def test_secret_fields_are_hidden() -> None:
     assert hidden == {"password_hash": HIDDEN, "token": HIDDEN, "name": "Ravi"}
 
 
+def test_secrets_are_hidden_inside_nested_values_too() -> None:
+    hidden = hide_secrets(
+        {"payload": {"values": {"password": "x", "name": "Ravi"}}, "rows": [{"token": "t"}]}
+    )
+
+    assert hidden == {
+        "payload": {"values": {"password": HIDDEN, "name": "Ravi"}},
+        "rows": [{"token": HIDDEN}],
+    }
+
+
 def test_values_become_plain_json() -> None:
     some_id = uuid.uuid4()
 

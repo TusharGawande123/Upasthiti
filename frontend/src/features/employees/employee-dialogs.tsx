@@ -18,6 +18,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { describeError } from "@/features/auth/error-message";
 import { useNamedItems, usePlants, useShifts } from "@/features/plants/use-plants";
+import { todayIst } from "@/lib/format";
 import {
   type Employee,
   isPendingApproval,
@@ -26,7 +27,7 @@ import {
   useTransferEmployee,
 } from "./use-employees";
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayIst;
 const MIN_REASON = 3;
 
 type DialogProps = { employee: Employee; onClose: () => void };

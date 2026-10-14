@@ -33,6 +33,9 @@ function SettingRow({
   onChange: (value: string) => void;
 }) {
   const { t } = useTranslation();
+  // The server sends the unit as a short code ("min", "m"); the words come from our texts.
+  const unitLabel = (unit: string | null) =>
+    unit ? t(`settings.units.${unit}`, { defaultValue: unit }) : "";
   const locked = !setting.editable || !canEdit;
   const hasRange = setting.minimum !== null && setting.maximum !== null;
   const numeric = Number(draft);
@@ -58,7 +61,7 @@ function SettingRow({
             value:
               setting.default === null
                 ? t("settings.setLater")
-                : `${setting.default} ${setting.unit}`,
+                : `${setting.default} ${unitLabel(setting.unit)}`,
           })}
           {hasRange
             ? ` · ${t("settings.range", { min: setting.minimum, max: setting.maximum })}`
@@ -82,7 +85,9 @@ function SettingRow({
             className="tnum"
             onChange={(event) => onChange(event.target.value)}
           />
-          <span className="w-10 text-[13px] text-muted-foreground">{setting.unit}</span>
+          <span className="min-w-10 shrink-0 text-[13px] text-muted-foreground">
+            {unitLabel(setting.unit)}
+          </span>
         </div>
         {outOfRange ? (
           <p className="mt-1 text-[13px] font-medium text-destructive">

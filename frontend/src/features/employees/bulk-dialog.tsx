@@ -19,6 +19,7 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { describeError } from "@/features/auth/error-message";
 import { useNamedItems, useShifts } from "@/features/plants/use-plants";
+import { todayIst } from "@/lib/format";
 import { type BulkAction, isPendingApproval, useBulkChange } from "./use-employees";
 
 type Props = {
@@ -37,7 +38,7 @@ export function BulkDialog({ action, plantId, employeeIds, forApproval, onClose,
   const departments = useNamedItems(plantId, "departments");
   const change = useBulkChange();
   const [choice, setChoice] = useState("");
-  const [fromDate, setFromDate] = useState(new Date().toISOString().slice(0, 10));
+  const [fromDate, setFromDate] = useState(todayIst());
   const [reason, setReason] = useState("");
 
   if (!action) return null;

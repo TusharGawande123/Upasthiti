@@ -17,7 +17,11 @@ from sqlalchemy.orm import Session
 from app.core.errors import ApiError
 from app.core.time import utc_now
 from app.modules.audit.service import Actor, record_audit
-from app.modules.auth.rate_limit import pairing_limiter
+from app.modules.auth.rate_limit import (
+    FAILED_PAIRINGS_ALL,
+    failed_pairing_limiter,
+    pairing_limiter,
+)
 from app.modules.kiosks.crypto import (
     generate_pairing_code,
     hash_pairing_code,
@@ -199,7 +203,14 @@ def register_device(
     if not pairing_limiter.allow(ip):
         raise ApiError("TOO_MANY_REQUESTS", "Too many pairing attempts. Try again later.", 429)
 
-    code_row = _find_code(session, pairing_code)
+    if failed_pairing_limiter.blocked(FAILED_PAIRINGS_ALL):
+        raise ApiError("TOO_MANY_REQUESTS", "Too many pairing attempts. Try again later.", 429)
+    try:
+        code_row = _find_code(session, pairing_code)
+    except ApiError as refusal:
+        if refusal.code == "PAIRING_CODE_INVALID":
+            failed_pairing_limiter.record(FAILED_PAIRINGS_ALL)
+        raise
     kiosk = session.get(KioskDevice, code_row.kiosk_id)
     if kiosk is None or kiosk.status != KioskStatus.PENDING.value:
         raise ApiError("PAIRING_CODE_INVALID", "This code is not right.", 400)

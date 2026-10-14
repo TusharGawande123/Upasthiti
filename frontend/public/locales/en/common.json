@@ -26,16 +26,19 @@
       "typeAll": "Type all {{count}} digits",
       "locatingTitle": "Finding this device's location…",
       "checkingTitle": "Pairing…",
-      "checkingText": "Checking with the server…",
+      "checkingText": "Checking…",
       "accuracyNow": "accuracy now · needs ± {{metres}} m or better · waits up to 20 s",
-      "needed": "± {{metres}} m needed"
+      "needed": "± {{metres}} m needed",
+      "scaleWorst": "± 200 m",
+      "scaleBest": "± 5 m",
+      "accuracyValue": "± {{metres}} m"
     },
     "paired": {
       "title": "Paired",
       "to": "Paired to {{code}} – {{name}}",
       "nameAndAccuracy": "{{name}} · location ± {{metres}} m",
-      "clockLabel": "Server time",
-      "clockCaption": "IST · {{date}} · server time",
+      "clockLabel": "Time",
+      "clockCaption": "IST · {{date}}",
       "later": "Attendance starts in a later update. Keep this screen open; the admin can see it is online."
     },
     "problem": {
@@ -68,7 +71,7 @@
       },
       "gps-weak": {
         "title": "Location not accurate enough",
-        "message": "Location is not accurate enough. Turn on Wi‑Fi or move near a window, then try again.",
+        "message": "The device cannot find its place well enough. Turn on Wi‑Fi or move near a window, then try again.",
         "best": "Best: ± {{metres}} m",
         "steps": [
           "Turn on Wi‑Fi. It does not need to connect to a network.",
@@ -82,7 +85,7 @@
         "steps": [
           "Take this device to the plant gate.",
           "Press “Try again” there.",
-          "Already at the gate? Ask the admin to check the plant's geofence."
+          "Already at the gate? Ask the admin to check the plant boundary."
         ]
       },
       "unsupported": {
@@ -91,7 +94,7 @@
         "steps": [
           "Open Chrome or Edge on this device (update it if it asks).",
           "Open the kiosk address again.",
-          "This page needs a secure (https) connection."
+          "Use the site address that starts with https."
         ]
       },
       "revoked": {
@@ -104,7 +107,7 @@
       },
       "network": {
         "title": "No connection",
-        "message": "The server cannot be reached. Check the internet and try again.",
+        "message": "The internet is not reachable. Check the connection and try again.",
         "steps": ["Check that the device is online.", "Press “Try again”."]
       },
       "unknown": {
@@ -133,7 +136,8 @@
     "actions": "Actions",
     "reason": "Reason",
     "reasonExplain": "Every change is saved in the audit log with the reason.",
-    "save": "Save"
+    "save": "Save",
+    "breadcrumb": "Breadcrumb"
   },
   "roles": {
     "super_admin": "Super Admin",
@@ -235,7 +239,11 @@
     "BULK_TOO_LARGE": "At most 500 people at once.",
     "IMPORT_FILE_INVALID": "This is not a valid employee file. Use the template.",
     "IMPORT_TOO_LARGE": "The file is too large (2 MB and 2,000 rows at most).",
-    "IMPORT_HAS_ERRORS": "The file has errors. Nothing was saved."
+    "IMPORT_HAS_ERRORS": "The file has errors. Nothing was saved.",
+    "NONCE_REUSED": "This request was already used. Please try again.",
+    "PUBLIC_KEY_INVALID": "The device key is not valid. Ask the admin for help.",
+    "DATABASE_UNAVAILABLE": "The database is not reachable right now. Please try again in a minute.",
+    "SUPER_ADMIN_EXISTS": "A Super Admin already exists."
   },
   "nav": {
     "label": "Main menu",
@@ -438,6 +446,14 @@
         "label": "Salary day basis",
         "help": "Days used to work out the per-day salary (26, 30 or actual days)."
       }
+    },
+    "units": {
+      "m": "m",
+      "min": "min",
+      "h": "h",
+      "tries": "tries",
+      "days": "days",
+      "km/h": "km/h"
     }
   },
   "audit": {
@@ -894,7 +910,7 @@
         "permanent": "Punch method: face recognition (set automatically).",
         "temporary": "Punch method: QR card (set automatically)."
       },
-      "codeHint": "The company's code, 1–12 letters or digits. Never reused.",
+      "codeHint": "The company's code, 1–12 letters, digits, / or -. Never reused.",
       "codeLocked": "The code cannot be changed after saving.",
       "plantLocked": "To move a person, use Transfer on their page.",
       "choosePlant": "Choose a plant",
@@ -917,7 +933,7 @@
         "text": "Nothing changes until it is approved."
       },
       "errors": {
-        "code": "Use 1–12 letters or digits.",
+        "code": "Use 1–12 letters, digits, / or -.",
         "plant": "Choose a plant.",
         "category": "Choose a category.",
         "shift": "Choose a shift.",
@@ -1089,7 +1105,14 @@
       "from_date": "From",
       "left_on": "Left on",
       "reason": "Reason",
-      "punch_method": "Punch method"
+      "punch_method": "Punch method",
+      "category_id": "Category",
+      "department_id": "Department",
+      "shift_id": "Shift",
+      "contractor_id": "Contractor",
+      "plant_id": "Plant",
+      "to_plant_id": "New plant",
+      "left_reason": "Left reason"
     }
   },
   "import": {

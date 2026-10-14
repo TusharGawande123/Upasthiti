@@ -74,7 +74,7 @@ export function EmployeeDetailPage() {
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
-      <nav aria-label="Breadcrumb" className="text-[13px] text-muted-foreground">
+      <nav aria-label={t("common.breadcrumb")} className="text-[13px] text-muted-foreground">
         <Link to="/admin/employees" className="hover:underline">
           {t("employees.title")}
         </Link>

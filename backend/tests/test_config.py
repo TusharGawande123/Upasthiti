@@ -115,3 +115,17 @@ def test_api_docs_are_on_in_development(build_app: Callable[..., FastAPI]) -> No
 
     assert client.get("/api/docs").status_code == 200
     assert client.get("/api/v1/openapi.json").status_code == 200
+
+
+def test_production_refuses_the_example_secret_key(monkeypatch: pytest.MonkeyPatch) -> None:
+    from pydantic import ValidationError
+
+    from app.core.config import Settings
+
+    monkeypatch.setenv("APP_ENV", "production")
+    monkeypatch.setenv("APP_PUBLIC_ORIGIN", "https://example.invalid")
+    monkeypatch.setenv("DATABASE_URL", "postgresql://u:p@localhost/db")
+    monkeypatch.setenv("APP_SECRET_KEY", "local-development-only-change-me-0123456789")
+
+    with pytest.raises(ValidationError):
+        Settings()  # pyright: ignore[reportCallIssue]

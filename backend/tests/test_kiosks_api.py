@@ -291,3 +291,44 @@ def test_corporate_head_can_read_but_not_create_kiosks(
     assert len(corporate.get(KIOSKS).json()) == 1
     created = corporate.post(KIOSKS, json={"plant_id": plant["id"], "name": "Gate 2"})
     assert created.json()["error"]["code"] == "FORBIDDEN"
+
+
+def test_a_stranger_cannot_learn_that_a_kiosk_is_revoked(boss: TestClient, plant: dict) -> None:
+    created = new_kiosk(boss, plant)
+    device = Device()
+    device.kiosk_id = created["kiosk"]["id"]
+    register(boss, created["pairing_code"], device, at(50, 50))
+    boss.post(f"{KIOSKS}/{device.kiosk_id}/revoke", json={"reason": "Tablet lost"})
+
+    stranger = Device()
+    stranger.kiosk_id = device.kiosk_id
+    answer = boss.get(ME, headers=stranger.headers("GET", ME))
+
+    # Without the device's own key the answer is the same "not paired" as for any unknown id.
+    assert answer.json()["error"]["code"] == "DEVICE_SIGNATURE_INVALID"
+
+
+def test_wrong_codes_from_anyone_are_capped_even_when_the_ip_changes(
+    boss: TestClient, plant: dict
+) -> None:
+    new_kiosk(boss, plant)
+    guesses = 0
+    last = None
+    # Each guess comes from a different (spoofable) IP, so the per-IP limit never triggers.
+    for number in range(40):
+        headers = {"X-Forwarded-For": f"10.0.0.{number}"}
+        last = boss.post(
+            "/api/v1/kiosk/register",
+            json={
+                "pairing_code": f"{number:06d}"[::-1],
+                "public_key_spki": Device().public_key,
+                "location": at(50, 50),
+            },
+            headers=headers,
+        )
+        guesses += 1
+        if last.status_code == 429:
+            break
+
+    assert last is not None and last.status_code == 429
+    assert guesses <= 32

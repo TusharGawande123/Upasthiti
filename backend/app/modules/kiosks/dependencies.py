@@ -7,6 +7,7 @@ is never used; the counter must always grow, so a recorded request cannot be rep
 import uuid
 
 from fastapi import Depends, Request
+from sqlalchemy import update
 from sqlalchemy.orm import Session
 
 from app.core.client_ip import get_client_ip
@@ -36,20 +37,26 @@ async def require_kiosk(request: Request, session: Session = Depends(get_session
     kiosk = session.get(KioskDevice, kiosk_id)
     if kiosk is None or kiosk.public_key is None:
         raise _invalid()
-    if kiosk.status == KioskStatus.REVOKED.value:
-        raise ApiError("DEVICE_REVOKED", "This device has been switched off.", 403)
-    if kiosk.status != KioskStatus.ACTIVE.value:
+    if kiosk.status not in (KioskStatus.ACTIVE.value, KioskStatus.REVOKED.value):
         raise _invalid()
 
     path = request.url.path + (f"?{request.url.query}" if request.url.query else "")
     message = signed_message(request.method, path, await request.body(), nonce, counter)
     if not verify_signature(kiosk.public_key, message, signature):
         raise _invalid()
-    if counter <= kiosk.last_counter:
-        raise ApiError("NONCE_REUSED", "This request was already used.", 401)
+    # Only the real device can read "revoked": a stranger who knows the id learns nothing.
+    if kiosk.status == KioskStatus.REVOKED.value:
+        raise ApiError("DEVICE_REVOKED", "This device has been switched off.", 403)
 
-    kiosk.last_counter = counter
-    kiosk.last_seen_at = utc_now()
+    # One statement: the counter only ever goes up, even for two requests at the same moment.
+    raised = session.execute(
+        update(KioskDevice)
+        .where(KioskDevice.id == kiosk.id, KioskDevice.last_counter < counter)
+        .values(last_counter=counter, last_seen_at=utc_now())
+    )
+    if raised.rowcount == 0:  # pyright: ignore[reportAttributeAccessIssue]
+        session.rollback()
+        raise ApiError("NONCE_REUSED", "This request was already used.", 401)
     session.commit()
     request.state.client_ip = get_client_ip(request)
     return kiosk

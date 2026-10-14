@@ -117,7 +117,7 @@ describe("add employee", () => {
     renderRoute("/admin/employees/new");
     await user.click(await screen.findByRole("button", { name: "Save" }));
 
-    expect(await screen.findByText("Use 1–12 letters or digits.")).toBeInTheDocument();
+    expect(await screen.findByText("Use 1–12 letters, digits, / or -.")).toBeInTheDocument();
     expect(screen.getByText("Choose a category.")).toBeInTheDocument();
     expect(screen.getByText("Choose a shift.")).toBeInTheDocument();
     expect(calls.some((call) => call.method === "POST")).toBe(false);

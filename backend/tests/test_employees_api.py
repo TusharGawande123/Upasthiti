@@ -302,3 +302,20 @@ def test_readiness_counts_active_employees(boss: TestClient, k134: PlantIds) -> 
     create(boss, permanent_body(k134))
 
     assert boss.get(f"/api/v1/plants/{k134.id}/readiness").json()["active_employees"] == 1
+
+
+def test_bulk_change_with_a_missing_value_is_a_clear_422(boss: TestClient, k134: PlantIds) -> None:
+    person = create(boss, permanent_body(k134, code="1001", name="One"))
+
+    response = boss.post(
+        f"{EMPLOYEES}/bulk",
+        json={
+            "action": "change_shift",
+            "employee_ids": [person["id"]],
+            "params": {},  # no shift_id
+            "reason": "Forgot the shift",
+        },
+    )
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "VALIDATION_FAILED"

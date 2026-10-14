@@ -43,3 +43,7 @@ def test_log_lines_are_json_with_the_request_id(
     assert finished[-1]["request_id"] == response.headers["X-Request-ID"] == "trace-me"
     assert finished[-1]["status"] == 200
     assert finished[-1]["path"] == "/api/v1/health"
+
+
+def test_api_answers_are_never_cached(client) -> None:  # noqa: ANN001 (pytest fixture)
+    assert client.get("/api/v1/health").headers["Cache-Control"] == "no-store"

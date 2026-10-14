@@ -67,7 +67,18 @@ def to_json_safe(value: Any) -> Any:
 def hide_secrets(values: dict[str, Any] | None) -> dict[str, Any] | None:
     if values is None:
         return None
-    return {key: HIDDEN if key in SECRET_FIELDS else value for key, value in values.items()}
+    return {key: _hide(key, value) for key, value in values.items()}
+
+
+def _hide(key: str, value: Any) -> Any:
+    """Hide a secret by its field name, also when it sits inside a nested dict or list."""
+    if key in SECRET_FIELDS:
+        return HIDDEN
+    if isinstance(value, dict):
+        return {inner_key: _hide(inner_key, inner) for inner_key, inner in value.items()}
+    if isinstance(value, list):
+        return [_hide(key, item) for item in value]
+    return value
 
 
 def changed_fields(

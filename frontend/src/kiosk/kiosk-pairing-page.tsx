@@ -31,7 +31,9 @@ import { cn } from "@/lib/utils";
 import { CODE_LENGTH, type PairingProblem, type PairingState, usePairing } from "./use-pairing";
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? "dev";
-const GOOD_ENOUGH_M = 50; // shown as the "needed" mark; the server setting decides for real
+// Only the mark drawn on the accuracy meter. The server setting (default 50 m, Super Admin can
+// change it) decides for real and says its limit when it refuses.
+const GOOD_ENOUGH_M = 50;
 
 // Big touch button used all over the kiosk.
 function KioskButton({
@@ -254,9 +256,9 @@ function AccuracyMeter({ best }: { best: number | null }) {
         <div className="absolute inset-y-0 w-1 bg-foreground" style={{ left: `${neededAt}%` }} />
       </div>
       <div className="mt-2 flex justify-between text-[24px] text-muted-foreground">
-        <span>± 200 m</span>
+        <span>{t("kiosk.pairing.scaleWorst")}</span>
         <b className="text-foreground">{t("kiosk.pairing.needed", { metres: GOOD_ENOUGH_M })}</b>
-        <span>± 5 m</span>
+        <span>{t("kiosk.pairing.scaleBest")}</span>
       </div>
     </div>
   );
@@ -282,7 +284,7 @@ function BusyScreen({
         {phase === "locating" ? (
           <>
             <p className="tnum text-[64px] leading-none font-extrabold">
-              {accuracyM === null ? "…" : `± ${accuracyM} m`}
+              {accuracyM === null ? "…" : t("kiosk.pairing.accuracyValue", { metres: accuracyM })}
             </p>
             <p className="text-[24px] text-muted-foreground">
               {t("kiosk.pairing.accuracyNow", { metres: GOOD_ENOUGH_M })}

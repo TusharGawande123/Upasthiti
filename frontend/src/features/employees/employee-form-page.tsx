@@ -1,5 +1,5 @@
 // Add or edit an employee. The employee code is typed by the admin (the company's own code,
-// 1–12 letters/digits, never reused) and cannot change later. The plant cannot change here
+// 1–12 letters, digits, / or -, never reused) and cannot change later. The plant cannot change here
 // either: moving a person is a "transfer". Contractor and hourly rate exist only for temporary
 // workers. No phone number is asked or stored. A Corporate Head's save is "Send for approval".
 import { Loader2, QrCode, ScanFace, ShieldCheck } from "lucide-react";
@@ -20,6 +20,7 @@ import { useMe } from "@/features/auth/use-auth";
 import { useContractors } from "@/features/contractors/use-contractors";
 import { useNamedItems, usePlants, useShifts } from "@/features/plants/use-plants";
 import { ApiError } from "@/lib/api-client";
+import { todayIst } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
   type EmployeeChanges,
@@ -31,7 +32,8 @@ import {
   useUpdateEmployee,
 } from "./use-employees";
 
-const CODE_PATTERN = /^[A-Za-z0-9._-]{1,12}$/;
+// Same rule as the server (backend employees/rules.py): letters, digits, / and -.
+const CODE_PATTERN = /^[A-Za-z0-9/-]{1,12}$/;
 const MONEY_PATTERN = /^\d{1,10}(\.\d{1,2})?$/;
 
 type FormValues = {
@@ -52,7 +54,7 @@ type FormValues = {
 
 type Errors = Partial<Record<keyof FormValues, string>>;
 
-const today = () => new Date().toISOString().slice(0, 10);
+const today = todayIst;
 
 // The server says which field a problem belongs to (details.field); our field names differ a bit.
 const SERVER_FIELD: Record<string, keyof FormValues> = {

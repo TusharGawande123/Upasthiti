@@ -55,6 +55,9 @@ class Settings(BaseSettings):
 
     @model_validator(mode="after")
     def require_origin_in_production(self) -> Self:
+        if self.app_env == "production" and self.app_secret_key.startswith("local-development"):
+            # The example key from .env.example would make pairing codes guessable.
+            raise ValueError("app_secret_key")
         if self.app_env == "production" and not self.app_public_origin:
             # The error names the field so load_settings_or_exit() can report it.
             raise ValueError("app_public_origin")
