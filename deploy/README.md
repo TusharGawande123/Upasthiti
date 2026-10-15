@@ -25,6 +25,8 @@ accounts move to Sheet Shapers.
 2. Project → **Connect** → choose the **Session pooler** connection string (port 5432).
    Render cannot reach Supabase's direct address (IPv6 only); the pooler works.
 3. Replace `[YOUR-PASSWORD]` in it. This full string is `DATABASE_URL`.
+   Use a database password with only letters and digits: a symbol such as `@`, `#` or `/`
+   would break the address (it would have to be percent-encoded).
 
 ### 2. Backend – Render
 1. render.com → New → **Blueprint** → pick the `Upasthiti` repository →
@@ -51,7 +53,9 @@ accounts move to Sheet Shapers.
 
 ### 5. First Super Admin
 Render's free plan has no shell, so run the script from your laptop against Supabase
-(PowerShell, from `backend/`):
+(PowerShell, from `backend/`). Your local `.env` (copied from `.env.example`) already has
+`APP_SECRET_KEY` and `APP_ENV=development`, which the script needs; only the database is
+replaced for this one command:
 
 ```powershell
 $env:DATABASE_URL = "<the Supabase session pooler string>"
@@ -59,7 +63,8 @@ uv run python -m app.scripts.create_super_admin
 Remove-Item Env:DATABASE_URL
 ```
 
-Then log in at `https://<vercel address>/admin`.
+The script asks for the username and a strong password in the terminal (no default
+account). Then log in at `https://<vercel address>/admin`.
 
 ### 6. GitHub settings
 Repository → Settings → Secrets and variables → Actions → **Variables**:
