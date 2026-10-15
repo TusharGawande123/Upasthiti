@@ -76,7 +76,7 @@ Repository → Settings → Secrets and variables → Actions → **Variables**:
 - `LIVE_SITE_URL` = the Vercel address (the post-deploy smoke test uses it).
 
 ### 7. Check the client IP setting once
-`TRUSTED_PROXY_HOPS=2` assumes Vercel + Render's proxy. Log in, open Audit log, and compare
+`TRUSTED_PROXY_HOPS` must match the proxies in front of the app. Measured on the live site: `2` shows Cloudflare's address, `3` Vercel's, **`4` the real client** (the value now in `render.yaml`). Log in, open Audit log, and compare
 the IP of your `auth.login` entry with your real public IP (search "what is my IP"). If
 it shows a Vercel/Render address instead, try `1` or `3` in Render's environment. The IP is
 used only for logs and rate limits, never as proof of location.
