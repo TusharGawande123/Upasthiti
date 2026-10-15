@@ -1,0 +1,96 @@
+/*
+  Upasthiti – M1 design gates B and C: extra admin styles shared by the gate-bc mockups.
+  MOCKUP ONLY (docs/design-refs). Builds on ../gate-a/tokens.css and ../gate-a/shell.css;
+  nothing here changes a gate A token.
+*/
+
+[hidden] { display: none !important; }
+.muted { color: var(--muted-foreground); }
+.link { color: var(--primary); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+/* ---------- List toolbars (same as gate A Users) ---------- */
+.toolbar { display: flex; gap: 10px; align-items: center; padding: 14px 16px; border-bottom: 1px solid var(--border); flex-wrap: wrap; }
+.search-input { position: relative; width: 300px; }
+.search-input svg { position: absolute; left: 12px; top: 12px; width: 18px; height: 18px; color: var(--subtle-foreground); }
+.search-input .input { height: 42px; padding-left: 38px; }
+.chip-btn { height: 42px; border-style: dashed; }
+.table td { white-space: nowrap; }
+.table thead th, .table tbody td { padding-left: 12px; padding-right: 12px; }
+.table-foot { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; border-top: 1px solid var(--border); font-size: 13px; color: var(--muted-foreground); }
+
+/* ---------- Dialog parts (same as gate A) ---------- */
+.dlg-head { padding: 24px 24px 0; }
+.dlg-title { font-size: 20px; font-weight: 700; margin: 0; letter-spacing: -0.01em; }
+.dlg-body { padding: 20px 24px; }
+.dlg-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 16px 24px; border-top: 1px solid var(--border); background: #fafbfc; border-radius: 0 0 20px 20px; }
+
+/* ---------- Plant header + tabs (shadcn Tabs, "line" variant) ---------- */
+.plant-title-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+.code-tile {
+  display: inline-grid; place-items: center; min-width: 56px; height: 56px; padding: 0 10px; border-radius: 14px;
+  background: linear-gradient(160deg, #2a4bb8, #162a6e); color: #fff; font-weight: 750; font-size: 17px; letter-spacing: 0.02em;
+  box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,.15); position: relative;
+}
+.code-tile::after { content: ""; position: absolute; right: -3px; top: -3px; width: 12px; height: 12px; border-radius: 99px; background: var(--signal); border: 2px solid var(--background); }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--border); margin: 22px 0 22px; overflow-x: auto; overflow-y: hidden; }
+.tab {
+  position: relative; display: inline-flex; align-items: center; gap: 8px; height: 46px; padding: 0 14px;
+  color: var(--muted-foreground); font-weight: 600; font-size: 14.5px; text-decoration: none; white-space: nowrap;
+  border-radius: 8px 8px 0 0;
+}
+.tab svg { width: 17px; height: 17px; }
+.tab:hover { color: var(--foreground); background: var(--muted); }
+.tab[aria-selected="true"] { color: var(--primary-soft-foreground); }
+.tab[aria-selected="true"]::after { content: ""; position: absolute; left: 8px; right: 8px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--primary); }
+.tab-count { min-width: 22px; height: 20px; padding: 0 6px; border-radius: 99px; display: inline-grid; place-items: center; background: var(--muted); color: var(--muted-foreground); font-size: 12px; font-weight: 700; }
+.tab[aria-selected="true"] .tab-count { background: var(--primary-soft); color: var(--primary-soft-foreground); }
+.tab-mark { width: 16px !important; height: 16px !important; }
+
+/* ---------- Read-only banner (Corporate Head / Plant Head) ---------- */
+.ro-banner { display: flex; align-items: center; gap: 10px; padding: 10px 14px; border-radius: var(--radius); background: var(--muted); border: 1px solid var(--border); color: var(--muted-foreground); font-size: 14px; font-weight: 500; margin-bottom: 16px; }
+.ro-banner svg { width: 18px; height: 18px; flex: none; }
+.ro-banner b { color: var(--foreground); }
+
+/* ---------- Card headings ---------- */
+.card-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; border-bottom: 1px solid var(--border); }
+.card-title { font-size: 16px; font-weight: 700; margin: 0; }
+.card-pad { padding: 18px 20px; }
+
+/* ---------- Empty states ---------- */
+.empty { position: relative; overflow: hidden; text-align: center; padding: 56px 24px 52px; }
+.empty::before {
+  content: ""; position: absolute; inset: 0;
+  background-image: radial-gradient(var(--border-strong) 1px, transparent 1px); background-size: 18px 18px;
+  mask-image: radial-gradient(ellipse 50% 60% at 50% 40%, #000 10%, transparent 70%); opacity: .7;
+}
+.empty > * { position: relative; }
+.empty-icon { width: 72px; height: 72px; margin: 0 auto 18px; border-radius: 20px; display: grid; place-items: center; background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-md); color: var(--primary); }
+.empty-icon svg { width: 34px; height: 34px; stroke-width: 1.75; }
+.empty h2 { font-size: 20px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em; }
+.empty p { color: var(--muted-foreground); max-width: 52ch; margin: 0 auto; }
+
+/* ---------- Readiness / checklist rows ---------- */
+.check-row { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px dashed var(--border); }
+.check-row:last-child { border-bottom: 0; }
+.check-icon { width: 32px; height: 32px; border-radius: 99px; display: grid; place-items: center; flex: none; border: 1.5px solid; }
+.check-icon svg { width: 17px; height: 17px; stroke-width: 2.5; }
+.ci-ok { background: var(--success-soft); color: var(--success); border-color: #bfe3d2; }
+.ci-no { background: var(--danger-soft); color: var(--danger); border-color: #f2c2bc; }
+.ci-todo { background: var(--surface); color: var(--subtle-foreground); border-color: var(--border-strong); border-style: dashed; }
+.check-text { min-width: 0; line-height: 1.35; }
+.check-text b { display: block; font-size: 14.5px; }
+.check-text span { font-size: 13px; color: var(--muted-foreground); }
+.check-row .act { margin-left: auto; flex: none; }
+
+/* ---------- Small helpers ---------- */
+.kv { display: grid; grid-template-columns: 140px 1fr; gap: 10px 16px; font-size: 14px; }
+.kv dt { color: var(--muted-foreground); }
+.kv dd { margin: 0; font-weight: 500; }
+.unit-input { display: flex; }
+.unit-input .input { border-radius: var(--radius) 0 0 var(--radius); }
+.unit-input .unit { display: grid; place-items: center; padding: 0 12px; border: 1px solid var(--input-border); border-left: 0; border-radius: 0 var(--radius) var(--radius) 0; background: var(--muted); color: var(--muted-foreground); font-size: 14px; font-weight: 600; white-space: nowrap; }
+.pulse-dot { position: relative; width: 10px; height: 10px; border-radius: 99px; background: var(--success); flex: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .pulse-dot::after { content: ""; position: absolute; inset: -4px; border-radius: 99px; border: 2px solid var(--success); animation: pulseRing 1.6s var(--ease-out) infinite; }
+}
+@keyframes pulseRing { from { opacity: .8; transform: scale(.6); } to { opacity: 0; transform: scale(1.6); } }

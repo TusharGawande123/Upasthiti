@@ -1,0 +1,225 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate A – Screen 01: Login (/admin/login)
+  States (URL hash): (none) default · #error wrong password · #locked account locked
+  · #waking server cold start · #new-password first login with a temporary password.
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Admin Login</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    .auth { display: grid; grid-template-columns: 1.05fr 1fr; min-height: 100vh; }
+    /* Brand panel: light steel gradient + dot grid (Magic UI "Dot Pattern" idea, free/MIT) */
+    .brand {
+      position: relative; overflow: hidden; padding: 40px 56px; display: flex; flex-direction: column;
+      background:
+        radial-gradient(900px 520px at 15% 10%, rgba(42, 75, 184, 0.16), transparent 60%),
+        radial-gradient(700px 480px at 90% 95%, rgba(245, 183, 0, 0.13), transparent 60%),
+        linear-gradient(160deg, #eef2fc 0%, #f7f8fb 55%, #fbfaf6 100%);
+      border-right: 1px solid var(--border);
+    }
+    .brand::before {
+      content: ""; position: absolute; inset: 0; pointer-events: none;
+      background-image: radial-gradient(rgba(31, 58, 147, 0.16) 1px, transparent 1px);
+      background-size: 22px 22px;
+      mask-image: radial-gradient(ellipse 70% 60% at 50% 45%, #000 30%, transparent 75%);
+    }
+    .brand > * { position: relative; }
+    .hero-title { font-size: 40px; line-height: 1.12; font-weight: 750; letter-spacing: -0.03em; max-width: 17ch; }
+    .hero-title em { font-style: normal; color: var(--primary); }
+    /* Product preview card with a "border beam" (Magic UI Border Beam idea, free/MIT) */
+    .preview { position: relative; border-radius: 22px; padding: 1.5px; overflow: hidden; width: 380px; }
+    .preview::before {
+      content: ""; position: absolute; inset: -60%;
+      background: conic-gradient(from 0deg, transparent 0 290deg, #f5b700 320deg, #2a4bb8 350deg, transparent 360deg);
+    }
+    @media (prefers-reduced-motion: no-preference) { .preview::before { animation: beam 6s linear infinite; } }
+    @keyframes beam { to { transform: rotate(360deg); } }
+    .preview-inner { position: relative; background: #fff; border-radius: 21px; padding: 20px; box-shadow: var(--shadow-md); }
+    .ok-ring { width: 64px; height: 64px; border-radius: 999px; display: grid; place-items: center; background: var(--success-soft); border: 3px solid var(--success); color: var(--success); }
+    .form-side { display: grid; place-items: center; padding: 40px 24px; background: var(--background); }
+    .auth-card { width: min(440px, 100%); padding: 36px; border-radius: 22px; }
+    .pw-wrap { position: relative; }
+    .pw-toggle { position: absolute; right: 4px; top: 4px; height: 36px; padding: 0 10px; border-radius: 8px; display: inline-flex; align-items: center; gap: 6px; font-size: 13px; font-weight: 600; color: var(--muted-foreground); background: none; border: 0; cursor: pointer; }
+    .pw-toggle:hover { background: var(--muted); color: var(--foreground); }
+    .req { display: flex; gap: 10px; align-items: center; font-size: 14px; padding: 3px 0; }
+    .req svg { width: 18px; height: 18px; flex: none; }
+    .req.done { color: var(--success); }
+    .req.todo { color: var(--muted-foreground); }
+    .meter { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 10px; }
+    .meter span { height: 6px; border-radius: 4px; background: var(--muted); border: 1px solid var(--border); }
+    .meter span.on { background: var(--success); border-color: var(--success); }
+    .spin { animation: spin 0.9s linear infinite; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @media (max-width: 1023px) { .auth { grid-template-columns: 1fr; } .brand { display: none; } }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="auth">
+  <!-- Left: brand panel -->
+  <section class="brand" aria-hidden="true">
+    <div class="flex items-center gap-3">
+      <span data-logo="40"></span>
+      <div><div style="font-weight:750;font-size:19px;letter-spacing:-0.01em">Upasthiti</div>
+        <div style="font-size:13px;color:var(--muted-foreground)">Smart attendance · Sheet Shapers</div></div>
+    </div>
+
+    <div class="flex-1 flex flex-col justify-center gap-10">
+      <h1 class="hero-title anim-fade-up">Every punch, <em>checked at the gate.</em></h1>
+
+      <div class="preview anim-fade-up anim-delay-2">
+        <div class="preview-inner">
+          <div class="flex items-center justify-between" style="font-size:12.5px;color:var(--muted-foreground)">
+            <span class="flex items-center gap-2"><i data-lucide="factory" style="width:15px;height:15px"></i>K134 · Main gate</span>
+            <span class="badge badge-success" style="height:22px"><i data-lucide="wifi"></i>Online</span>
+          </div>
+          <div class="flex items-center gap-4" style="margin-top:16px">
+            <div class="ok-ring"><i data-lucide="check" style="width:32px;height:32px;stroke-width:3"></i></div>
+            <div>
+              <div style="font-size:13px;color:var(--muted-foreground)">Recorded · server verified</div>
+              <div class="tnum" style="font-size:28px;font-weight:750;letter-spacing:-0.02em">IN <span style="color:var(--success)">07:02</span></div>
+              <div style="font-weight:600">Ravi Patil · <span class="code">2041</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <ul class="space-y-3 anim-fade-up anim-delay-3" style="font-size:14.5px;color:var(--muted-foreground)">
+        <li class="flex items-center gap-3"><i data-lucide="scan-face" style="width:20px;height:20px;color:var(--primary)"></i>Face + liveness for permanent staff</li>
+        <li class="flex items-center gap-3"><i data-lucide="qr-code" style="width:20px;height:20px;color:var(--primary)"></i>Signed QR cards for temporary workers</li>
+        <li class="flex items-center gap-3"><i data-lucide="shield-check" style="width:20px;height:20px;color:var(--primary)"></i>The server re-checks every punch</li>
+      </ul>
+    </div>
+
+    <div style="font-size:12.5px;color:var(--subtle-foreground)">7 plants · MIDC Waluj, Chhatrapati Sambhajinagar</div>
+  </section>
+
+  <!-- Right: form -->
+  <main class="form-side">
+    <!-- ===== Log in card ===== -->
+    <div id="login-card" class="card auth-card anim-fade-up" style="box-shadow:var(--shadow-md)">
+      <div class="lg:hidden flex items-center gap-3 mb-6"><span data-logo="36"></span><b style="font-size:18px">Upasthiti</b></div>
+      <h2 style="font-size:24px;font-weight:700;letter-spacing:-0.02em;margin:0">Log in</h2>
+      <p style="color:var(--muted-foreground);margin:6px 0 24px">Admin dashboard for Sheet Shapers.</p>
+
+      <!-- Error: wrong username/email or password (one message for both) -->
+      <div id="alert-error" class="alert alert-danger mb-5 anim-shake" role="alert" hidden>
+        <i data-lucide="circle-alert"></i>
+        <div><b>Username/email or password is wrong.</b><div style="margin-top:2px">Check both and try again. After 5 wrong tries the account is locked for 15 min.</div></div>
+      </div>
+      <!-- Locked -->
+      <div id="alert-locked" class="alert alert-warning mb-5" role="alert" hidden>
+        <i data-lucide="lock"></i>
+        <div><b>Too many tries. Try again in 14 min.</b><div style="margin-top:2px">Or ask the Super Admin to unlock your account.</div></div>
+      </div>
+
+      <form class="space-y-5" onsubmit="return false" novalidate>
+        <div>
+          <label class="label" for="login">Username or email</label>
+          <input id="login" class="input" autocomplete="username" placeholder="e.g. asha.rao" value="" />
+        </div>
+        <div>
+          <div class="flex items-center justify-between"><label class="label" for="password">Password</label></div>
+          <div class="pw-wrap">
+            <input id="password" class="input" type="password" autocomplete="current-password" style="padding-right:84px" />
+            <button type="button" class="pw-toggle" aria-pressed="false" aria-controls="password"><i data-lucide="eye" style="width:17px;height:17px"></i>Show</button>
+          </div>
+        </div>
+
+        <button id="submit" class="btn btn-primary btn-lg w-full" type="submit"><span id="submit-text">Log in</span></button>
+        <p id="waking-note" class="help flex gap-2 items-start" role="status" hidden>
+          <i data-lucide="info" style="width:16px;height:16px;flex:none;margin-top:2px"></i>
+          The free server sleeps when nobody uses it. Waking it can take up to a minute; please keep this page open.
+        </p>
+      </form>
+
+      <div class="mt-6 pt-5" style="border-top:1px solid var(--border);font-size:13.5px;color:var(--muted-foreground)">
+        Forgot your password? Ask the Super Admin to reset it.
+      </div>
+    </div>
+
+    <!-- ===== Set a new password (first login with a temporary password) ===== -->
+    <div id="newpw-card" class="card auth-card anim-fade-up" style="box-shadow:var(--shadow-md)" hidden>
+      <div class="flex items-center gap-3" style="margin-bottom:18px">
+        <span style="display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--primary-soft);color:var(--primary)"><i data-lucide="key-round"></i></span>
+        <div><div style="font-size:13px;color:var(--muted-foreground)">Signed in as <b class="code" style="color:var(--foreground)">rohan.pawar</b></div></div>
+      </div>
+      <h2 style="font-size:24px;font-weight:700;letter-spacing:-0.02em;margin:0">Set a new password</h2>
+      <p style="color:var(--muted-foreground);margin:6px 0 22px">You logged in with a temporary password. Choose your own password to continue.</p>
+
+      <form class="space-y-5" onsubmit="return false" novalidate>
+        <div>
+          <label class="label" for="new">New password</label>
+          <div class="pw-wrap">
+            <input id="new" class="input" type="password" value="Waluj-Gate-2026" autocomplete="new-password" aria-describedby="rules" style="padding-right:84px" />
+            <button type="button" class="pw-toggle" aria-pressed="false"><i data-lucide="eye" style="width:17px;height:17px"></i>Show</button>
+          </div>
+          <div class="meter" aria-hidden="true"><span class="on"></span><span class="on"></span><span class="on"></span><span></span></div>
+          <div class="help" style="margin-top:6px">Strength: <b style="color:var(--success)">Good</b></div>
+        </div>
+
+        <ul id="rules" class="rounded-xl p-3" style="background:#f8f9fb;border:1px solid var(--border)" aria-label="Password rules">
+          <li class="req done"><i data-lucide="circle-check"></i>At least 10 characters<span class="sr-only"> – done</span></li>
+          <li class="req done"><i data-lucide="circle-check"></i>Not only digits<span class="sr-only"> – done</span></li>
+          <li class="req done"><i data-lucide="circle-check"></i>Not your username or email<span class="sr-only"> – done</span></li>
+          <li class="req todo"><i data-lucide="circle-dashed"></i>Not a common password (checked when you save)</li>
+        </ul>
+
+        <div>
+          <label class="label" for="confirm">Type it again</label>
+          <input id="confirm" class="input" type="password" value="Waluj-Gate-202" aria-invalid="true" aria-describedby="confirm-err" autocomplete="new-password" />
+          <div id="confirm-err" class="field-error"><i data-lucide="circle-alert" style="width:15px;height:15px"></i>The two passwords are not the same.</div>
+        </div>
+
+        <button class="btn btn-primary btn-lg w-full" type="submit">Save and continue</button>
+        <p class="help" style="text-align:center">Saving logs you out on every other device.</p>
+      </form>
+    </div>
+  </main>
+</div>
+
+<div class="state-tag" id="state-tag">State: default</div>
+
+<script src="shell.js"></script>
+<script>
+  // Mockup only: show one state per URL hash so each can be screenshotted.
+  window.onMockState = function (state) {
+    const tag = document.getElementById("state-tag");
+    const login = document.getElementById("login");
+    const password = document.getElementById("password");
+    const submit = document.getElementById("submit");
+    if (state === "error") {
+      document.getElementById("alert-error").hidden = false;
+      login.value = "asha.rao"; password.value = "wrongpass12";
+      password.setAttribute("aria-invalid", "true");
+      tag.textContent = "State: wrong password";
+    } else if (state === "locked") {
+      document.getElementById("alert-locked").hidden = false;
+      login.value = "asha.rao";
+      password.disabled = true; submit.disabled = true;
+      document.getElementById("submit-text").innerHTML = '<span class="inline-flex items-center gap-2"><i data-lucide="lock" style="width:17px;height:17px"></i>Locked · try again at 10:31</span>';
+      tag.textContent = "State: account locked";
+    } else if (state === "waking") {
+      login.value = "asha.rao"; password.value = "••••••••••••";
+      submit.setAttribute("aria-disabled", "true");
+      document.getElementById("submit-text").innerHTML = '<span class="inline-flex items-center gap-2"><i data-lucide="loader-circle" class="spin" style="width:18px;height:18px"></i>Waking up the server…</span>';
+      document.getElementById("waking-note").hidden = false;
+      tag.textContent = "State: server waking (cold start)";
+    } else if (state === "new-password") {
+      document.getElementById("login-card").hidden = true;
+      document.getElementById("newpw-card").hidden = false;
+      tag.textContent = "State: set a new password (first login)";
+    }
+  };
+</script>
+</body>
+</html>

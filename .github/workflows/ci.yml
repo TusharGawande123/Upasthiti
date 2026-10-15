@@ -52,11 +52,17 @@ jobs:
         run: uv run ruff format --check .
       - name: Type check (pyright)
         run: uv run pyright
-      - name: Tests with coverage
+      - name: Tests with coverage (on a real Postgres test database)
+        env:
+          # The tests create this database themselves and wipe it on every run.
+          TEST_DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti_test
         run: uv run pytest --cov-report=markdown-append:"$GITHUB_STEP_SUMMARY"
       - name: Database migrations run on a real Postgres
         env:
           DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti
+          # Not production (that would also need APP_PUBLIC_ORIGIN); fake secret, 32+ characters.
+          APP_ENV: test
+          APP_SECRET_KEY: ci-only-fake-secret-key-0123456789-abcdef
         run: |
           uv run alembic upgrade head
           uv run alembic current | tee alembic-current.txt
@@ -102,6 +108,20 @@ jobs:
   e2e:
     name: e2e
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: upasthiti
+          POSTGRES_PASSWORD: upasthiti
+          POSTGRES_DB: upasthiti
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U upasthiti" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    env:
+      # e2e_seed creates and wipes this database before the tests (fake data only).
+      E2E_DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_e2e
     steps:
       - uses: actions/checkout@v7
         with:
@@ -152,6 +172,8 @@ jobs:
           docker run -d --name backend -p 10000:10000 \
             -e PORT=10000 -e APP_ENV=production -e APP_VERSION="${GITHUB_SHA}" \
             -e DATABASE_URL=postgresql+psycopg://ci:ci@127.0.0.1:1/ci \
+            -e APP_SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123 \
+            -e APP_PUBLIC_ORIGIN=https://ci.example.invalid \
             upasthiti-backend:ci
       - name: Health endpoint answers
         run: |

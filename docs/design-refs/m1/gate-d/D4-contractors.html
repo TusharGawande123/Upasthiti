@@ -1,0 +1,125 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate D – Screen D4: Contractors (/admin/contractors), one company-wide list.
+  States (URL hash, join with "+"): (none) list, Super Admin · #add (dialog) · #name-exists (add dialog error,
+  CONTRACTOR_EXISTS) · #edit · #deactivate (confirm, 0 workers) · #deactivate-blocked (CONTRACTOR_IN_USE) ·
+  #deactivated (toast) · #empty · #loading · #error · roles: +ch Corporate Head and +ph Plant Head are read-only.
+  Phone check: open at 390 px width. MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Contractors</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="../gate-bc/bc.css" />
+  <link rel="stylesheet" href="d.css" />
+</head>
+<body data-active="contractors">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="../gate-a/shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script>
+  // name, contact person, phone (optional), active workers, active?
+  const CON = [
+    ["Gajanan Workforce Pvt Ltd", "Dattatray Gawali", "+91 98765 41002", 71, true],
+    ["Omkar Labour Services", "Sandeep Bhalerao", "+91 98765 41017", 62, true],
+    ["Jai Hind Staffing", "Farida Sheikh", "+91 98765 41031", 55, true],
+    ["Shree Samarth Manpower", "Mahesh Kendre", "+91 98765 41046", 48, true],
+    ["Sai Krupa Enterprises", "Lata Mhaske", null, 39, true],
+    ["Mahalaxmi Labour Contractors", "Ashok Girme", "+91 98765 41058", 0, false],
+  ];
+
+  function rows(canEdit) {
+    return CON.map(function (c, i) {
+      const status = c[4] ? '<span class="badge badge-success">' + D.icon("circle-check") + "Active</span>" : '<span class="badge badge-neutral">' + D.icon("circle-off") + "Inactive</span>";
+      const workers = c[3] > 0 ? '<a class="link tnum" style="text-decoration:none" href="D1-employees.html#filter-contractor">' + c[3] + "</a>" : '<span class="tnum muted">0</span>';
+      const act = canEdit ? '<div class="row-actions"><button class="btn btn-outline btn-sm" aria-label="Edit ' + c[0] + '">' + D.icon("pencil", 15) + "Edit</button>" +
+        (c[4] ? '<button class="btn btn-ghost btn-sm" style="color:var(--danger)" aria-label="Deactivate ' + c[0] + '">' + D.icon("circle-off", 15) + "Deactivate</button>" : '<button class="btn btn-ghost btn-sm" aria-label="Reactivate ' + c[0] + '">' + D.icon("rotate-ccw", 15) + "Reactivate</button>") + "</div>" : "";
+      return '<tr class="' + (c[4] ? "" : "is-left") + '"><td class="full"><div class="emp-name"><span class="avatar" style="width:36px;height:36px;border-radius:10px">' + D.initials(c[0]) + '</span><b>' + c[0] + '</b></div></td>' +
+        '<td data-label="Contact person">' + c[1] + '</td><td data-label="Phone" class="tnum">' + (c[2] || '<span class="muted">Not given</span>') + '</td><td data-label="Active workers" class="num">' + workers + '</td><td data-label="Status">' + status + "</td>" + (canEdit ? '<td class="hide-m">' + act + "</td>" : "") + "</tr>";
+    }).join("");
+  }
+
+  function render() {
+    const canEdit = D.role === "sa";
+    const head = D.pageHead({ title: "Contractors", desc: "Agencies that supply operators and helpers. One list for the whole company, shared by all 7 plants.",
+      actions: canEdit ? '<button class="btn btn-primary btn-lg">' + D.icon("plus", 18) + "Add contractor</button>" : '<span class="badge badge-neutral">' + D.icon("lock") + "Read-only</span>" });
+    let banner = "";
+    if (!canEdit) banner = '<div class="ro-banner" role="note">' + D.icon("lock", 18) + "<span><b>Read-only.</b> Only the Super Admin adds or changes contractors." + (D.role === "ph" ? " You see the contractors who supply workers to X280." : "") + "</span></div>";
+
+    const tiles = '<div class="stat-tiles anim-fade-up"><div class="card stat"><span class="si">' + D.icon("hard-hat") + '</span><div><b class="tnum">5</b><span>Active contractors</span></div></div>' +
+      '<div class="card stat"><span class="si">' + D.icon("users") + '</span><div><b class="tnum">275</b><span>Temporary workers with a contractor</span></div></div>' +
+      '<div class="card stat"><span class="si" style="background:var(--warning-soft);color:var(--warning)">' + D.icon("user-round-x") + '</span><div><b class="tnum">75</b><span>Temporary workers <a class="link" style="text-decoration:none" href="D1-employees.html">without a contractor</a></span></div></div></div>';
+
+    const toolbar = '<div class="toolbar"><label class="search-input"><i data-lucide="search"></i><span class="sr-only">Search contractors</span><input class="input" placeholder="Search a contractor" /></label>' +
+      '<button class="btn btn-outline" style="height:42px">' + D.icon("filter", 16) + 'Status <b>Active and inactive</b>' + D.icon("chevron-down", 15, "color:var(--muted-foreground)") + "</button></div>";
+    const thead = '<thead><tr><th scope="col">Contractor</th><th scope="col">Contact person</th><th scope="col">Phone</th><th scope="col" class="num">Active workers</th><th scope="col">Status</th>' + (canEdit ? '<th scope="col"><span class="sr-only">Actions</span></th>' : "") + "</tr></thead>";
+
+    let body;
+    if (D.has("loading")) body = '<div style="overflow-x:auto"><table class="table"><thead><tr><th>Contractor</th><th>Contact person</th><th>Phone</th><th class="num">Active workers</th><th>Status</th><th></th></tr></thead><tbody aria-busy="true">' + new Array(7).join("<tr>" + [200, 130, 120, 40, 80, 150].map(function (w) { return '<td><div class="skeleton" style="height:16px;width:' + w + 'px"></div></td>'; }).join("") + "</tr>") + "</tbody></table></div>";
+    else if (D.has("error")) body = '<div style="padding:48px 20px"><div class="alert alert-danger" role="alert" style="max-width:560px;margin:0 auto">' + D.icon("circle-alert", 20) + '<div style="flex:1"><b>Could not load the contractors.</b><div>Check the internet connection and try again. Nothing was changed.</div></div><button class="btn btn-outline btn-sm">' + D.icon("rotate-cw", 15) + "Try again</button></div></div>";
+    else if (D.has("empty")) body = '<div class="empty"><div class="empty-icon">' + D.icon("hard-hat") + "</div><h2>No contractors yet</h2><p>Add the agencies that send you operators and helpers. Then you can pick one on each temporary worker." + (canEdit ? "" : " Ask the Super Admin to add them.") + "</p>" + (canEdit ? '<div class="flex justify-center" style="margin-top:20px"><button class="btn btn-primary btn-lg">' + D.icon("plus", 18) + "Add contractor</button></div>" : "") + "</div>";
+    else body = '<div style="overflow-x:auto"><table class="table rt emp">' + thead + "<tbody>" + rows(canEdit) + "</tbody></table></div>";
+
+    const foot = (D.has("empty") || D.has("error") || D.has("loading")) ? "" : '<div class="table-foot"><span class="tnum">Showing all 6 contractors</span><span>Contractors are never deleted, only made inactive.</span></div>';
+    document.getElementById("page").innerHTML = head + banner + ((D.has("empty") || D.has("error")) ? "" : tiles) + '<div class="card anim-fade-up anim-delay-1" style="overflow:hidden">' + ((D.has("empty") || D.has("error")) ? "" : toolbar) + body + foot + "</div>";
+  }
+
+  function overlays() {
+    const form = function (nameError, vals) {
+      return '<div class="space-y-4" style="display:grid;gap:16px">' +
+        D.field({ id: "cn", label: "Contractor name", req: true, control: '<input id="cn" class="input" value="' + vals[0] + '"' + (nameError ? ' aria-invalid="true" aria-describedby="cn-err"' : "") + ' placeholder="For example Omkar Labour Services" />', error: nameError ? "A contractor with this name already exists. <span class=\"err-code code\">CONTRACTOR_EXISTS</span>" : "" }) +
+        D.field({ id: "cp", label: "Contact person", opt: true, control: '<input id="cp" class="input" value="' + vals[1] + '" placeholder="Who do you call at the agency?" />' }) +
+        D.field({ id: "ph", label: "Office phone", opt: true, control: '<input id="ph" class="input tnum" value="' + vals[2] + '" inputmode="tel" placeholder="Agency office number" />', help: "Only the agency's own contact. Upasthiti never stores the phone numbers of workers or employees.", hintIcon: "shield" }) + "</div>";
+    };
+    if (D.has("add") || D.has("name-exists")) {
+      const dup = D.has("name-exists");
+      D.mount(D.dialog({ icon: "hard-hat", title: "Add contractor", desc: "Agencies appear in the contractor list of every temporary worker.", body: form(dup, dup ? ["Omkar Labour Services", "Rahul Pawar", ""] : ["", "", ""]),
+        foot: '<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">' + D.icon("check", 16) + "Save contractor</button>" }));
+    }
+    if (D.has("edit")) {
+      D.mount(D.dialog({ icon: "pencil", title: "Edit Omkar Labour Services", desc: "62 active workers belong to this contractor. A new name shows on all of them.", body: form(false, ["Omkar Labour Services", "Sandeep Bhalerao", "+91 98765 41017"]),
+        foot: '<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">' + D.icon("check", 16) + "Save changes</button>" }));
+    }
+    if (D.has("deactivate")) {
+      D.mount(D.dialog({ icon: "circle-off", tone: "di-warning", alert: true, title: "Make Mahalaxmi Labour Contractors inactive?", width: 520,
+        desc: "They have no active workers, so this is safe.",
+        body: '<p style="margin:0 0 12px">They will no longer appear when you add or edit a temporary worker. Old records keep their name.</p><div class="field-hint">' + D.icon("info") + "<span>Nothing is deleted. You can switch them back on at any time.</span></div>",
+        foot: '<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-lg" style="background:var(--danger);color:#fff">' + D.icon("circle-off", 16) + "Make inactive</button>" }));
+    }
+    if (D.has("deactivate-blocked")) {
+      D.mount(D.dialog({ icon: "octagon-x", tone: "di-danger", alert: true, title: "Omkar Labour Services cannot be made inactive yet", width: 560,
+        body: '<div class="alert alert-danger" role="alert">' + D.icon("circle-alert", 20) + '<div><b>62 active workers still belong to this contractor.</b><div>Move them to another contractor (or remove the contractor from them) first. <span class="err-code code">CONTRACTOR_IN_USE</span></div></div></div>' +
+          '<div class="mini-wrap" style="margin-top:14px"><table class="mini-table"><thead><tr><th>Where they work</th><th style="text-align:right">Workers</th></tr></thead><tbody><tr><td><b class="code">TP1</b> Tirupati Pressco, Unit 1</td><td style="text-align:right" class="tnum">24</td></tr><tr><td><b class="code">PC1</b> Precise Cuts, Unit 1</td><td style="text-align:right" class="tnum">18</td></tr><tr><td><b class="code">K134</b> Sheet Shapers (K-134)</td><td style="text-align:right" class="tnum">12</td></tr><tr><td><b class="code">X280</b> Sheet Shapers (X-280)</td><td style="text-align:right" class="tnum">8</td></tr></tbody></table></div>',
+        foot: '<button class="btn btn-outline btn-lg">Close</button><a class="btn btn-primary btn-lg" href="D1-employees.html#filter-contractor">' + D.icon("users", 16) + "Show the 62 workers</a>" }));
+    }
+    if (D.has("deactivated")) D.toast("Mahalaxmi Labour Contractors is now inactive.", "Undo");
+    if (D.has("add") || D.has("name-exists") || D.has("edit") || D.has("deactivate") || D.has("deactivate-blocked")) D.dim();
+  }
+
+  window.onMockState = function () {
+    D.patchShell();
+    render();
+    overlays();
+    const titles = { add: "add dialog", "name-exists": "add dialog: name already used", edit: "edit dialog", deactivate: "deactivate confirm", "deactivate-blocked": "deactivate blocked (workers still assigned)", deactivated: "deactivated toast", empty: "no contractors", loading: "loading", error: "could not load" };
+    const key = Object.keys(titles).filter(D.has)[0];
+    D.tag((key ? titles[key] : "list") + " · " + D.roleName);
+  };
+</script>
+<style>
+  @media (max-width: 640px) { .stat-tiles { grid-template-columns: 1fr; } }
+</style>
+</body>
+</html>

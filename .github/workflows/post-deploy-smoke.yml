@@ -1,0 +1,62 @@
+# After every push to main, checks that the live site really works (spec S-18, AC-36).
+# Vercel and Render deploy by themselves; this waits until the backend reports the new
+# commit, then runs a short Playwright check against the live address.
+# Needs the repository variables LIVE_SITE_URL (Vercel address) and BACKEND_HEALTH_URL.
+name: Post-deploy smoke test
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: post-deploy-smoke
+  cancel-in-progress: true
+
+env:
+  NODE_VERSION: "24"
+
+jobs:
+  live:
+    name: live
+    runs-on: ubuntu-latest
+    env:
+      LIVE_SITE_URL: ${{ vars.LIVE_SITE_URL }}
+      BACKEND_HEALTH_URL: ${{ vars.BACKEND_HEALTH_URL }}
+    steps:
+      - name: Skip until the first deployment is set up
+        if: env.LIVE_SITE_URL == ''
+        run: echo "::notice::LIVE_SITE_URL is not set yet - skipped."
+      - uses: actions/checkout@v7
+        if: env.LIVE_SITE_URL != ''
+        with:
+          persist-credentials: false
+      - name: Wait until the backend runs this commit (up to 20 minutes)
+        if: env.LIVE_SITE_URL != '' && github.event_name == 'push'
+        run: |
+          for attempt in $(seq 1 40); do
+            version=$(curl -fsS --max-time 60 "$BACKEND_HEALTH_URL" | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' || true)
+            if [ "$version" = "$GITHUB_SHA" ]; then echo "Backend is on $GITHUB_SHA"; exit 0; fi
+            sleep 30
+          done
+          echo "::error::The backend did not report commit $GITHUB_SHA within 20 minutes."
+          exit 1
+      - uses: actions/setup-node@v7
+        if: env.LIVE_SITE_URL != ''
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: e2e/package-lock.json
+      - name: Install Playwright and Chromium
+        if: env.LIVE_SITE_URL != ''
+        working-directory: e2e
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+      - name: Check the live site
+        if: env.LIVE_SITE_URL != ''
+        working-directory: e2e
+        run: npx playwright test --config playwright.live.config.ts

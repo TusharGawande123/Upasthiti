@@ -1,0 +1,261 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate B – Screen B4: Geofence tab / editor (/admin/plants/:id?tab=geofence).
+  States (URL hash): (none) editing the current shape (Super Admin) · #invalid "The shape crosses
+  itself" · #history previewing version 1 (read-only) · #none no geofence yet (map on MIDC Waluj) ·
+  #plant-head read-only view. Map: Leaflet 1.9.4 + OpenStreetMap tiles. The shape is a made-up
+  example near MIDC Waluj, not the plant's real boundary. MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Geofence TP2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <style>
+    .page { max-width: none; }
+    .geo { display: grid; grid-template-columns: minmax(0, 1fr) 380px; gap: 16px; align-items: start; }
+    .map-wrap { position: relative; height: max(520px, calc(100vh - 300px)); border-radius: var(--radius-lg); overflow: hidden; border: 1px solid var(--border); box-shadow: var(--shadow-sm); }
+    #map { position: absolute; inset: 0; background: #e9ece6; font-family: var(--font-sans); }
+    .leaflet-container { font: 13px var(--font-sans); }
+    .leaflet-control-attribution { font-size: 12px !important; background: rgba(255,255,255,.92) !important; color: var(--foreground) !important; padding: 2px 8px !important; border-radius: 8px 0 0 0; }
+    .leaflet-control-attribution a { color: var(--primary) !important; }
+    .leaflet-bar a { width: 36px !important; height: 36px !important; line-height: 34px !important; font-size: 18px !important; color: var(--foreground) !important; }
+    .leaflet-bar { border: 1px solid var(--border-strong) !important; box-shadow: var(--shadow-md) !important; border-radius: 10px !important; overflow: hidden; }
+    /* Our tool palette (Geoman free toolbar, restyled in our tokens) */
+    .tools { position: absolute; z-index: 500; left: 14px; top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 14px; box-shadow: var(--shadow-md); padding: 6px; display: grid; gap: 2px; }
+    .tool { display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 12px 0 10px; border-radius: 9px; border: 0; background: none; font: 600 13.5px var(--font-sans); color: var(--foreground); cursor: pointer; text-align: left; }
+    .tool svg { width: 18px; height: 18px; color: var(--muted-foreground); }
+    .tool:hover { background: var(--muted); }
+    .tool[aria-pressed="true"] { background: var(--primary); color: #fff; }
+    .tool[aria-pressed="true"] svg { color: #fff; }
+    .tool.danger { color: var(--danger); } .tool.danger svg { color: var(--danger); }
+    .tool-sep { height: 1px; background: var(--border); margin: 4px 6px; }
+    .hint { position: absolute; z-index: 500; left: 50%; transform: translateX(-50%); bottom: 40px; background: rgba(14,23,38,.9); color: #fff; padding: 9px 14px; border-radius: 10px; font-size: 13.5px; display: flex; gap: 10px; align-items: center; white-space: nowrap; box-shadow: var(--shadow-lg); }
+    .hint .kbd { background: transparent; color: #fff; border-color: rgba(255,255,255,.5); box-shadow: none; }
+    .legend { position: absolute; z-index: 500; right: 64px; top: 14px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 8px 12px; font-size: 12.5px; box-shadow: var(--shadow-sm); display: grid; gap: 4px; }
+    .legend span { display: flex; align-items: center; gap: 8px; }
+    .lg-line { width: 22px; height: 0; border-top: 3px solid var(--primary); }
+    .lg-dash { width: 22px; height: 0; border-top: 2px dashed var(--primary); }
+    .banner-preview { position: absolute; z-index: 600; top: 14px; left: 50%; transform: translateX(-50%); display: flex; gap: 12px; align-items: center; background: var(--surface); border: 1px solid var(--border-strong); border-radius: 12px; padding: 8px 8px 8px 14px; box-shadow: var(--shadow-md); font-weight: 600; white-space: nowrap; }
+    .vertex { width: 14px; height: 14px; background: #fff; border: 2.5px solid var(--primary); border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,.3); }
+    .vertex.bad { border-color: var(--danger); }
+    .midpoint { width: 10px; height: 10px; background: rgba(255,255,255,.85); border: 2px solid var(--primary); border-radius: 99px; }
+    .cross-pin { width: 30px; height: 30px; border-radius: 99px; background: var(--danger); border: 3px solid #fff; color: #fff; display: grid; place-items: center; box-shadow: 0 2px 8px rgba(0,0,0,.35); font-weight: 800; font-size: 16px; }
+    @media (prefers-reduced-motion: no-preference) {
+      .cross-pin { animation: crossPulse 1.6s var(--ease-out) infinite; }
+      .geo-path { stroke-dasharray: 2000; animation: draw 1.2s var(--ease-out) both; }
+    }
+    @keyframes crossPulse { 0% { box-shadow: 0 0 0 0 rgba(180,35,24,.55); } 100% { box-shadow: 0 0 0 16px rgba(180,35,24,0); } }
+    @keyframes draw { from { stroke-dashoffset: 2000; } to { stroke-dashoffset: 0; } }
+    .cross-label { background: var(--danger) !important; color: #fff !important; border: 0 !important; font: 700 13px var(--font-sans) !important; padding: 6px 10px !important; border-radius: 8px !important; box-shadow: var(--shadow-md) !important; }
+    .cross-label::before { border-right-color: var(--danger) !important; }
+    .empty-map { position: absolute; z-index: 600; inset: 0; display: grid; place-items: center; background: rgba(245,246,248,.55); }
+    .stat-row { display: flex; justify-content: space-between; font-size: 14px; padding: 7px 0; }
+    .stat-row span:first-child { color: var(--muted-foreground); }
+    .ver { display: flex; gap: 12px; align-items: flex-start; padding: 12px 16px; border-top: 1px solid var(--border); cursor: pointer; }
+    .ver:hover { background: #f8f9fc; }
+    .ver.is-current { box-shadow: inset 3px 0 0 var(--primary); }
+    .ver.is-preview { background: var(--primary-soft); box-shadow: inset 3px 0 0 var(--primary); }
+    .ver-num { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-weight: 750; font-size: 13px; background: var(--muted); flex: none; }
+    textarea.input { height: 76px; padding: 10px 14px; resize: vertical; line-height: 1.45; }
+  </style>
+</head>
+<body data-active="plants">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page">
+      <div id="plant-header" class="anim-fade-up"></div>
+      <div id="ro-slot"></div>
+      <div class="geo anim-fade-up anim-delay-1">
+        <div class="map-wrap">
+          <div id="map" role="application" aria-label="Map of the TP2 geofence. Use the tools on the left to draw or edit."></div>
+
+          <div class="tools" id="tools" data-edit role="toolbar" aria-label="Geofence tools">
+            <button class="tool" aria-pressed="false"><i data-lucide="pentagon"></i>Draw polygon</button>
+            <button class="tool" aria-pressed="false"><i data-lucide="circle"></i>Draw circle</button>
+            <button class="tool" aria-pressed="true" id="tool-edit"><i data-lucide="move"></i>Edit shape</button>
+            <div class="tool-sep"></div>
+            <button class="tool danger" aria-pressed="false"><i data-lucide="trash-2"></i>Delete shape</button>
+          </div>
+
+          <div class="legend" id="legend" aria-label="Legend">
+            <span><i class="lg-line"></i>Geofence line</span>
+            <span><i class="lg-dash"></i>Margin 25 m (still inside)</span>
+          </div>
+          <div class="hint" id="hint" data-edit role="status"><i data-lucide="mouse-pointer-2" style="width:16px;height:16px"></i>Drag a corner to move it · click a dot to add one · <span class="kbd">Esc</span> finish</div>
+        </div>
+
+        <!-- Side panel -->
+        <aside class="space-y-4" id="panel">
+          <section class="card" aria-labelledby="shape-title">
+            <div class="card-head">
+              <h2 id="shape-title" class="card-title">Shape</h2>
+              <span class="badge badge-info" id="ver-badge"><i data-lucide="git-commit-horizontal"></i>Version 2 · current</span>
+            </div>
+            <div class="card-pad" style="padding-top:8px;padding-bottom:10px" id="shape-stats">
+              <div class="stat-row"><span>Type</span><b>Polygon · 5 corners</b></div>
+              <div class="stat-row"><span>Area</span><b class="tnum">17,850 m²</b></div>
+              <div class="stat-row"><span>Allowed</span><span class="inline-flex items-center gap-1" style="color:var(--success);font-weight:600"><i data-lucide="circle-check" style="width:15px;height:15px"></i>100 m² – 2 km²</span></div>
+            </div>
+            <div id="shape-error" hidden style="padding:0 20px 16px">
+              <div class="alert alert-danger" role="alert"><i data-lucide="circle-alert"></i>
+                <div><b>The shape is not valid: the shape crosses itself.</b><div style="margin-top:2px">Drag a corner so that no two lines cross. The red mark shows where.</div></div></div>
+            </div>
+          </section>
+
+          <section class="card card-pad" data-edit id="save-card" aria-labelledby="save-title">
+            <h2 id="save-title" class="card-title" style="margin-bottom:14px">Save as a new version</h2>
+            <label class="label" for="margin">Margin</label>
+            <div class="unit-input"><input id="margin" class="input tnum" value="25" inputmode="numeric" aria-describedby="margin-help" /><span class="unit">metres</span></div>
+            <div class="help" id="margin-help">0–200 m. A kiosk up to this far outside the line still counts as inside. Keep it small: neighbouring plants are close.</div>
+            <label class="label" for="reason" style="margin-top:16px">Reason <span class="muted" style="font-weight:400">(optional, saved in the audit log)</span></label>
+            <textarea id="reason" class="input" placeholder="e.g. Moved the gate side after the site visit">Gate moved 10 m north after the site visit</textarea>
+            <div style="margin-top:14px"><span class="badge badge-warning" id="dirty"><i data-lucide="pencil"></i>Not saved · 1 corner moved</span></div>
+            <div class="flex items-center justify-end gap-2" style="margin-top:12px">
+              <button class="btn btn-ghost">Discard</button>
+              <button class="btn btn-primary" id="save-btn"><i data-lucide="save" style="width:16px;height:16px"></i>Save new version</button>
+            </div>
+            <p class="help" style="margin-top:10px">Saving never changes an old version. Kiosks are checked against the new shape from now on.</p>
+          </section>
+
+          <section class="card" style="overflow:hidden" aria-labelledby="hist-title">
+            <div class="card-head" style="border-bottom:0"><h2 id="hist-title" class="card-title">Version history</h2><span class="muted tnum" style="font-size:13px">2 versions · IST</span></div>
+            <div class="ver is-current" id="ver-2" role="button" tabindex="0">
+              <span class="ver-num tnum" style="background:var(--primary);color:#fff">v2</span>
+              <div style="flex:1;min-width:0"><div class="flex items-center gap-2"><b>Current</b><span class="badge badge-success" style="height:20px;font-size:11.5px"><i data-lucide="circle-check"></i>In use</span></div>
+                <div class="muted tnum" style="font-size:13px">12/10/2026 14:20 · Asha Rao</div><div style="font-size:13px;margin-top:2px">"Added the scrap yard on the east side"</div></div>
+            </div>
+            <div class="ver" id="ver-1" role="button" tabindex="0">
+              <span class="ver-num tnum">v1</span>
+              <div style="flex:1;min-width:0"><b>First shape</b>
+                <div class="muted tnum" style="font-size:13px">12/10/2026 11:05 · Asha Rao</div><div style="font-size:13px;margin-top:2px">Polygon · 4 corners · margin 25 m</div></div>
+              <span class="link" style="font-size:13px">Preview</span>
+            </div>
+          </section>
+        </aside>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="state-tag" id="state-tag">State: editing the current shape · Super Admin</div>
+<script src="../gate-a/shell.js"></script>
+<script src="plant.js"></script>
+<script>
+  // Mockup only. All coordinates are an invented example near MIDC Waluj (lat, lon).
+  const MIDC_WALUJ = [19.8405, 75.2215];
+  const CURRENT = [[19.8412, 75.2208], [19.8413, 75.2222], [19.8404, 75.2225], [19.8398, 75.2218], [19.8400, 75.2207]];
+  const VERSION_1 = [[19.8412, 75.2208], [19.8412, 75.2219], [19.8399, 75.2219], [19.8400, 75.2207]];
+  const CROSSING = [[19.8412, 75.2208], [19.8413, 75.2222], [19.8399, 75.2208], [19.8401, 75.2224]];
+
+  // The margin outline is drawn here by scaling around the centre; the app computes a real buffer.
+  function scaled(points, factor) {
+    const lat = points.reduce(function (s, p) { return s + p[0]; }, 0) / points.length;
+    const lon = points.reduce(function (s, p) { return s + p[1]; }, 0) / points.length;
+    return points.map(function (p) { return [lat + (p[0] - lat) * factor, lon + (p[1] - lon) * factor]; });
+  }
+  function vertexIcon(bad) { return L.divIcon({ className: "", html: '<div class="vertex' + (bad ? " bad" : "") + '"></div>', iconSize: [14, 14], iconAnchor: [7, 7] }); }
+  function midIcon() { return L.divIcon({ className: "", html: '<div class="midpoint"></div>', iconSize: [10, 10], iconAnchor: [5, 5] }); }
+
+  function makeMap() {
+    const map = L.map("map", { zoomControl: false, attributionControl: true }).setView(MIDC_WALUJ, 17);
+    L.control.zoom({ position: "topright" }).addTo(map);
+    L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: '© <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+    }).addTo(map);
+    map.attributionControl.setPrefix(false);
+    L.control.scale({ position: "bottomright", imperial: false }).addTo(map);
+    return map;
+  }
+
+  function drawShape(map, points, opts) {
+    const colour = opts.colour || "#1f3a93";
+    if (opts.margin) L.polygon(scaled(points, 1.42), { color: colour, weight: 2, dashArray: "6 6", fill: false, interactive: false }).addTo(map);
+    L.polygon(points, { color: colour, weight: 3, fillColor: colour, fillOpacity: opts.fillOpacity || 0.16, className: "geo-path", dashArray: opts.dash || null }).addTo(map);
+    if (opts.handles) {
+      points.forEach(function (p) { L.marker(p, { icon: vertexIcon(opts.bad) }).addTo(map); });
+      points.forEach(function (p, i) {
+        const next = points[(i + 1) % points.length];
+        if (!opts.bad) L.marker([(p[0] + next[0]) / 2, (p[1] + next[1]) / 2], { icon: midIcon() }).addTo(map);
+      });
+    }
+  }
+
+  window.onMockState = function (state) {
+    const readOnly = state === "plant-head";
+    const tag = document.getElementById("state-tag");
+    document.getElementById("plant-header").innerHTML = window.renderPlantHeader("geofence", readOnly);
+    const map = makeMap();
+
+    if (state === "" ) {
+      drawShape(map, CURRENT, { margin: true, handles: true });
+    }
+    if (state === "invalid") {
+      drawShape(map, CROSSING, { colour: "#b42318", handles: true, bad: true, fillOpacity: 0.12 });
+      L.marker([19.84067, 75.22157], { icon: L.divIcon({ className: "", html: '<div class="cross-pin" aria-hidden="true">!</div>', iconSize: [30, 30], iconAnchor: [15, 15] }) })
+        .bindTooltip("Lines cross here", { permanent: true, direction: "right", offset: [18, 0], className: "cross-label" }).addTo(map);
+      document.getElementById("shape-error").hidden = false;
+      document.getElementById("shape-stats").innerHTML =
+        '<div class="stat-row"><span>Type</span><b>Polygon · 4 corners</b></div>' +
+        '<div class="stat-row"><span>Area</span><b class="muted">Cannot be worked out</b></div>';
+      document.getElementById("ver-badge").outerHTML = '<span class="badge badge-danger"><i data-lucide="circle-x"></i>Not valid</span>';
+      const save = document.getElementById("save-btn");
+      save.setAttribute("aria-disabled", "true");
+      save.setAttribute("title", "Fix the shape first");
+      document.getElementById("dirty").innerHTML = '<i data-lucide="circle-x"></i>Fix the shape first';
+      document.getElementById("dirty").className = "badge badge-danger";
+      document.getElementById("legend").hidden = true;
+      tag.textContent = "State: shape crosses itself (inline validation)";
+    }
+    if (state === "history") {
+      drawShape(map, CURRENT, { colour: "#5f6b7d", fillOpacity: 0.05, dash: "4 6" });
+      drawShape(map, VERSION_1, { margin: true });
+      document.getElementById("tools").hidden = true;
+      document.getElementById("hint").hidden = true;
+      document.getElementById("save-card").hidden = true;
+      document.getElementById("ver-1").classList.add("is-preview");
+      document.getElementById("ver-badge").outerHTML = '<span class="badge badge-neutral"><i data-lucide="history"></i>Version 1 · old</span>';
+      document.getElementById("shape-stats").innerHTML =
+        '<div class="stat-row"><span>Type</span><b>Polygon · 4 corners</b></div><div class="stat-row"><span>Area</span><b class="tnum">16,200 m²</b></div><div class="stat-row"><span>Margin</span><b class="tnum">25 m</b></div>';
+      document.querySelector(".map-wrap").insertAdjacentHTML("beforeend",
+        '<div class="banner-preview" role="status"><i data-lucide="eye" style="width:18px;height:18px;color:var(--primary)"></i>Previewing version 1 (read-only) · grey dashes = current<button class="btn btn-outline btn-sm">Back to current</button></div>');
+      tag.textContent = "State: previewing version 1 from the history";
+    }
+    if (state === "none") {
+      map.setView(MIDC_WALUJ, 16);
+      document.getElementById("legend").hidden = true;
+      document.getElementById("hint").hidden = true;
+      document.getElementById("tool-edit").setAttribute("aria-pressed", "false");
+      document.getElementById("save-card").hidden = true;
+      document.getElementById("ver-badge").outerHTML = '<span class="badge badge-danger"><i data-lucide="circle-x"></i>Not set</span>';
+      document.getElementById("shape-stats").innerHTML = '<p class="muted" style="margin:6px 0 4px;font-size:14px">No shape yet. Kiosks cannot be added to this plant until it has a geofence.</p>';
+      document.querySelector("#hist-title").closest("section").hidden = true;
+      document.querySelector(".map-wrap").insertAdjacentHTML("beforeend",
+        '<div class="empty-map"><div class="card" style="padding:26px 28px;text-align:center;max-width:420px;box-shadow:var(--shadow-lg)">' +
+        '<div class="empty-icon" style="margin-bottom:14px"><i data-lucide="map-pinned"></i></div>' +
+        '<h2 style="font-size:20px;font-weight:700;margin:0 0 6px">No geofence yet</h2>' +
+        '<p class="muted" style="margin:0 0 18px">Find the plant on the map (the map starts on MIDC Waluj), then draw its boundary around the buildings and the gate.</p>' +
+        '<div class="flex justify-center gap-2"><button class="btn btn-primary"><i data-lucide="pentagon" style="width:16px;height:16px"></i>Draw polygon</button><button class="btn btn-outline"><i data-lucide="circle" style="width:16px;height:16px"></i>Draw circle</button></div></div></div>');
+      tag.textContent = "State: no geofence yet";
+    }
+    if (readOnly) {
+      drawShape(map, CURRENT, { margin: true });
+      document.getElementById("ro-slot").innerHTML = window.readOnlyBanner("Only the Super Admin can change the geofence. You see the current shape and its history.");
+      window.applyPlantHeadView();
+      tag.textContent = "State: read-only (Plant Head)";
+    }
+  };
+</script>
+</body>
+</html>

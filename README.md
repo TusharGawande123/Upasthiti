@@ -63,9 +63,14 @@ Then create the tables: `cd backend; uv run alembic upgrade head`.
 .\scripts\dev.ps1        # Git Bash / Linux / macOS: ./scripts/dev.sh
 ```
 
-- Admin: <http://localhost:5173/admin> should say **"Server connected"**.
-- Kiosk: <http://localhost:5173/kiosk>
+- Admin: <http://localhost:5173/admin> opens the login page. There is no default account:
+  create the first Super Admin once with
+  `cd backend; uv run python -m app.scripts.create_super_admin` (it asks in the terminal).
+- Kiosk: <http://localhost:5173/kiosk> (pairing screen; see [kiosk setup guide](docs/guides/kiosk-setup.md))
 - API docs: <http://localhost:8000/api/docs>
+- Test data: `cd backend; uv run python -m app.scripts.make_fake_data` fills an empty
+  development database with the 7 plants and 650 invented employees. It refuses to run in
+  production.
 
 Or start them yourself in two terminals: `cd backend; uv run fastapi dev app/main.py` and
 `cd frontend; npm run dev`.
@@ -78,7 +83,7 @@ Or start them yourself in two terminals: `cd backend; uv run fastapi dev app/mai
 
 | Where | Command | What it does |
 |---|---|---|
-| `backend/` | `uv run pytest` | Tests + coverage (must stay ≥ 60%) |
+| `backend/` | `uv run pytest` | Tests + coverage (must stay ≥ 70%). Database tests need `TEST_DATABASE_URL` (a database whose name ends in `_test`, see `.env.example`) and skip without it |
 | `backend/` | `uv run ruff check . ; uv run ruff format .` | Lint and format |
 | `backend/` | `uv run pyright` | Type check |
 | `backend/` | `uv run alembic upgrade head` | Apply database migrations |
@@ -87,7 +92,7 @@ Or start them yourself in two terminals: `cd backend; uv run fastapi dev app/mai
 | `frontend/` | `npm run lint` / `npm run lint:fix` | Biome lint and format |
 | `frontend/` | `npm run typecheck` · `npm run build` | TypeScript check · production build |
 | `frontend/` | `npm run i18n:check` | Every text key used in code exists in `public/locales/en/common.json` |
-| `e2e/` | `npx playwright test` | End-to-end tests |
+| `e2e/` | `npx playwright test` | End-to-end tests (own database `upasthiti_e2e`, wiped on every run; add `--headed` to watch the browser) |
 | root | `pre-commit run --all-files` | Every git hook on every file |
 
 ## How we work (CLAUDE.md §8)

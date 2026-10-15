@@ -1,0 +1,100 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate A – Screen 06: My sessions (F-23, from the user menu).
+  Default: 3 devices, current one marked. #menu shows the user menu open.
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti My Sessions</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <style>
+    .wrap { max-width: 860px; }
+    .device { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 16px; align-items: center; padding: 18px 20px; border-bottom: 1px solid var(--border); }
+    .device:last-child { border-bottom: 0; }
+    .device.current { background: linear-gradient(90deg, rgba(31,58,147,0.06), transparent 70%); box-shadow: inset 3px 0 0 var(--primary); }
+    .dev-icon { display: grid; place-items: center; width: 48px; height: 48px; border-radius: 12px; background: var(--muted); color: var(--muted-foreground); border: 1px solid var(--border); }
+    .current .dev-icon { background: var(--primary-soft); color: var(--primary); border-color: #cdd6f4; }
+    .dev-name { font-weight: 650; font-size: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .dev-meta { display: flex; gap: 6px 16px; flex-wrap: wrap; font-size: 13.5px; color: var(--muted-foreground); margin-top: 4px; }
+    .dev-meta span { display: inline-flex; gap: 6px; align-items: center; }
+    .dev-meta svg { width: 14px; height: 14px; }
+    .live-dot { width: 8px; height: 8px; border-radius: 99px; background: var(--success); box-shadow: 0 0 0 3px rgba(4,105,75,0.15); }
+    @media (prefers-reduced-motion: no-preference) { .live-dot { animation: pulse 2s ease-in-out infinite; } }
+    @keyframes pulse { 50% { box-shadow: 0 0 0 6px rgba(4,105,75,0.05); } }
+  </style>
+</head>
+<body data-active="">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main" style="position:relative">
+    <header id="topbar" class="topbar"></header>
+    <main class="page">
+      <div class="wrap">
+        <div class="crumbs anim-fade-up"><span>Account</span><i data-lucide="chevron-right" style="width:14px;height:14px"></i><span style="color:var(--foreground);font-weight:600">My sessions</span></div>
+        <div class="page-head anim-fade-up">
+          <div>
+            <h1 class="page-title">My sessions</h1>
+            <p class="page-desc">Devices where you are logged in. If you don't recognise one, log it out and change your password.</p>
+          </div>
+          <button class="btn btn-danger-outline"><i data-lucide="log-out" style="width:17px;height:17px"></i>Log out all other devices</button>
+        </div>
+
+        <section class="card anim-fade-up anim-delay-1" style="overflow:hidden" aria-label="Logged-in devices">
+          <div class="device current">
+            <span class="dev-icon"><i data-lucide="monitor"></i></span>
+            <div>
+              <div class="dev-name">Chrome 141 on Windows 11 <span class="badge badge-info" style="height:22px"><i data-lucide="circle-check"></i>This device</span></div>
+              <div class="dev-meta">
+                <span><i data-lucide="globe"></i><span class="code">10.20.1.15</span></span>
+                <span><i data-lucide="log-in"></i><span class="tnum">Logged in 13/10/2026 07:58</span></span>
+                <span><span class="live-dot" aria-hidden="true"></span>Active now</span>
+              </div>
+            </div>
+            <span style="font-size:13px;color:var(--muted-foreground);text-align:right;max-width:170px">To log out here, use <b style="color:var(--foreground)">Log out</b> in the menu</span>
+          </div>
+
+          <div class="device">
+            <span class="dev-icon"><i data-lucide="laptop"></i></span>
+            <div>
+              <div class="dev-name">Edge 141 on Windows 10</div>
+              <div class="dev-meta">
+                <span><i data-lucide="globe"></i><span class="code">10.20.1.40</span></span>
+                <span><i data-lucide="log-in"></i><span class="tnum">Logged in 12/10/2026 09:12</span></span>
+                <span><i data-lucide="clock"></i><span class="tnum">Last active 12/10/2026 17:46</span></span>
+              </div>
+            </div>
+            <button class="btn btn-outline" aria-label="Log out Edge on Windows 10"><i data-lucide="log-out" style="width:16px;height:16px"></i>Log out</button>
+          </div>
+
+          <div class="device">
+            <span class="dev-icon"><i data-lucide="smartphone"></i></span>
+            <div>
+              <div class="dev-name">Chrome 141 on Android</div>
+              <div class="dev-meta">
+                <span><i data-lucide="globe"></i><span class="code">49.36.112.8</span></span>
+                <span><i data-lucide="log-in"></i><span class="tnum">Logged in 13/10/2026 06:40</span></span>
+                <span><i data-lucide="clock"></i><span class="tnum">Last active 13/10/2026 06:52</span></span>
+              </div>
+            </div>
+            <button class="btn btn-outline" aria-label="Log out Chrome on Android"><i data-lucide="log-out" style="width:16px;height:16px"></i>Log out</button>
+          </div>
+        </section>
+
+        <div class="alert alert-info anim-fade-up anim-delay-2" style="margin-top:16px">
+          <i data-lucide="info"></i>
+          <div>A session ends by itself after <b>60 min</b> without activity, or <b>12 h</b> after login. Changing your password logs out every other device.</div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="shell.js"></script>
+</body>
+</html>

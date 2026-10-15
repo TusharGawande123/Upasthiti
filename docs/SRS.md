@@ -1,6 +1,6 @@
 # Upasthiti – Smart Attendance: Software Requirements Specification (SRS)
 
-Version 1.1 · 2026-10-12 (client answers added, decision 0004) · Status: Approved for M0 · Owner: Tushar Gawande (project lead)
+Version 1.2 · 2026-10-13 (M1 decisions added, decision 0005) · Status: Approved for M1 · Owner: Tushar Gawande (project lead)
 Structure follows IEEE 830 / ISO/IEC/IEEE 29148. Related: CLAUDE.md, docs/architecture.md,
 docs/decisions/0001-tech-stack.md, 0002-hosting.md.
 
@@ -87,32 +87,26 @@ leaves our own system.
 
 ### 3.2 User classes and permissions
 The client asked for exactly three levels (decision 0004): **Super Admin**, **Corporate
-Head** (permanent employees across plants) and **Plant Head** (one plant). There are **no HR
-or supervisor users**. The table below is the earlier working draft; the M1 spec replaces it
-with the final roles and permissions. Until then, wherever this document says "HR" or
-"supervisor", read "the role the M1 spec gives that task".
+Head** and **Plant Head**. There are **no HR or supervisor users**, and employees never log
+in. The final permission matrix is in docs/specs/M1-foundation.md §7 rule 1 (decision 0005).
+In short:
+- **Super Admin:** everything (users, plants, geofences, shifts, categories, settings,
+  contractors, employees, mark as left, QR cards, punch review, regularisation approval,
+  phone punch permission, salary).
+- **Corporate Head:** creates, edits, transfers, bulk-changes and imports permanent and
+  temporary employees of all plants, each through a Super Admin's approval; reads everything
+  else; may request regularisations.
+- **Plant Head:** reads their own plant; manages their own plant's kiosks; may request
+  regularisations.
+- **KIOSK (device):** submits punches and syncs for its own plant only.
 
-| Capability | SUPER_ADMIN | PLANT_ADMIN | HR | SUPERVISOR | KIOSK (device) |
-|---|---|---|---|---|---|
-| Manage users and roles | ✔ | own plant | – | – | – |
-| Plants, geofences, networks, shifts, holidays | ✔ | own plant | view | view | – |
-| Pair or revoke kiosks | ✔ | own plant | – | – | – |
-| Employees, contractors, Excel import | ✔ | own plant | ✔ | view (own team) | – |
-| Face enrolment + consent | ✔ | – | ✔ | – | – |
-| Issue or revoke QR cards | ✔ | own plant | ✔ | – | – |
-| Live dashboard | all plants | own plant | ✔ | own team | – |
-| Review rejected/flagged punches | ✔ | own plant | ✔ | own team | – |
-| Regularisation | approve | approve | approve | request | – |
-| Reports and exports | ✔ | own plant | ✔ | own team | – |
-| Settings (thresholds, retention, rules) | ✔ | some, own plant | – | – | – |
-| Salary structures and estimate (M7) | ✔ | – | ✔ | – | – |
-| Audit log viewer | ✔ | own plant | read | – | – |
-| Submit punches / sync | – | – | – | – | ✔ (own plant only) |
+Wherever this document still says "HR" or "supervisor", read "the role the M1 spec gives that
+task".
 
 ### 3.3 Operating environment
 - **Kiosk:** a phone or a PC with a camera (the client's choice), running a current Chrome
-  or Edge in full-screen mode. Location must be enabled where the device has GPS; a PC
-  without GPS relies on its device key and the plant network allow-list. The plant uses
+  or Edge in full-screen mode. Location must be switched on (phone or PC), and every
+  kiosk must give an accurate location inside the geofence (decision 0005). The plant uses
   Wi-Fi or 4G.
 - **Employee phone (from M4b, only when an admin allows it):** a current Chrome or Edge on
   Android or iOS, with camera and location.
@@ -128,15 +122,13 @@ See §7, CLAUDE.md §5, and docs/decisions/0001–0002.
 ### 3.5 Assumptions and dependencies
 - **Hardware:** the client supplies the kiosk devices; during development the team's phones
   and laptops act as kiosks.
-- **Plant network:** a stable public IP or IP range per plant for the allow-list (optional
-  per plant).
 - **Email:** an SMTP server from the client for email notifications (optional extra).
 - **From the client's answers** (docs/client/client-answers-2026-10.md; each value is a
   setting, not hard-coded):
   - 7 plants, all of Sheet Shapers, in MIDC Waluj; one gate per plant for now.
   - About 650 people in total: 300 permanent, 350 temporary.
   - Default shift 07:00–19:00. Admins can add shifts at any time; each shift sets its own
-    grace, overtime start and overtime rate (until set: 10 minutes grace, overtime after 8
+    grace and overtime start; the overtime rate is set per employee (until set: 10 minutes grace, overtime after 8
     hours worked).
   - Staff on fixed monthly salary (CTC); workers, operators and helpers on hourly rates.
   - QR snapshot retention: 60 days.
@@ -149,10 +141,11 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 - **FR-01 (M, M1)** Create, edit and deactivate plants (name, code, address, map position).
 - **FR-02 (M, M1)** Draw each plant's geofence on a map as a polygon or circle, with an extra
   margin in metres. Old versions are kept.
-- **FR-03 (M, M1)** Keep a list of allowed plant networks (IP/CIDR) per plant; it may be empty.
+- **FR-03 (dropped, decision 0005)** ~~Plant network allow-list~~: no punch or pairing depends
+  on the plant's network.
 - **FR-04 (M, M1)** Manage departments and shifts: add new shifts at any time; per shift:
   start, end, crosses-midnight, grace, half-day, after how many hours overtime starts, and
-  the overtime rate.
+  (the overtime rate is per employee, FR-07).
 - **FR-05 (S, M5)** Holiday calendar per plant (paid/unpaid) and weekly offs.
 - **FR-06 (M, M1)** Settings screen for every configurable rule, with defaults:
   - face threshold and margin;
@@ -164,7 +157,9 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 
 ### 4.b Employees and contractors
 - **FR-07 (M, M1)** Create, edit and deactivate employees:
-  - unique employee code (4–6 digits);
+  - unique employee code: the company's existing code, typed in (1–12 letters, digits,
+    `-`, `/`);
+  - category (per-plant list kept by the Super Admin) and overtime rate per hour;
   - type (permanent or temporary), plant, department, shift;
   - punch method (face or QR);
   - contractor (for temporary workers);
@@ -216,7 +211,8 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 
 ### 4.f Kiosk device registration and verification
 - **FR-22 (M, M1)** Pair a kiosk with a one-time 6-digit code (10 minutes). The kiosk
-  registers a non-extractable device public key; its GPS must be inside the geofence.
+  registers a non-extractable device public key. Every kiosk (phone or PC) must give an
+  accurate location inside the geofence (location switched on in the device).
 - **FR-23 (M, M1)** Revoke a kiosk. A revoked device can no longer punch.
 - **FR-24 (S, M4)** Kiosk heartbeat. The admin sees each kiosk's online/offline state, last
   punch and queue size.
@@ -226,7 +222,7 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
   stores a reason code:
   1. device signature, nonce and counter;
   2. device active;
-  3. plant network allow-list;
+  3. ~~plant network allow-list~~ (dropped, decision 0005);
   4. GPS accuracy and geofence;
   5. QR validity, or face + liveness + anti-spoof;
   6. cool-down;
@@ -244,8 +240,8 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 - **FR-30 (M, M5)** Handle a missing OUT: mark the day "incomplete" and ask for regularisation.
 
 ### 4.i Leave and regularisation
-- **FR-31 (M, M5)** A supervisor or HR requests a correction with a reason; an approver
-  approves or rejects it. The original punches stay unchanged; the correction is a separate,
+- **FR-31 (M, M5)** A Corporate Head or Plant Head requests a correction with a reason; the
+  Super Admin approves or rejects it. The original punches stay unchanged; the correction is a separate,
   audited record.
 - **FR-32 (S, M5)** Record leave (paid/unpaid) per employee; it feeds attendance status and
   payable days.
@@ -316,8 +312,9 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 | Method | Path | Identity | Purpose |
 |---|---|---|---|
 | POST | /auth/login · /auth/logout · GET /auth/me | public / user | Admin session |
-| CRUD | /plants, /plants/{id}/geofence, /plants/{id}/networks, /shifts, /holidays | admin roles | Org setup |
-| CRUD | /employees, /contractors · POST /employees/import | HR / admin | People |
+| CRUD | /plants, /plants/{id}/geofence, /shifts, /categories, /holidays | admin roles | Org setup |
+| CRUD | /employees, /contractors · POST /employees/import | Super Admin, Corporate Head (via approval) | People |
+| GET/POST | /change-requests · /change-requests/{id}/approve · /reject | Super Admin | Approvals inbox |
 | POST | /kiosks · /kiosks/{id}/revoke | plant admin | Create kiosk + pairing code; revoke |
 | POST | /kiosk/register | pairing code | Register the device public key |
 | POST | /kiosk/heartbeat · /kiosk/sync | kiosk | Health; offline batch upload |
@@ -359,7 +356,7 @@ unless the user is an admin).
 ## 8. Edge cases and error handling
 | Case | Handling (reason code) |
 |---|---|
-| GPS spoofing | Kiosk GPS is one signal among several (device key, IP allow-list, impossible travel). Mock-location reports and accuracy are checked (`OUTSIDE_GEOFENCE`, `GPS_ACCURACY_TOO_LOW`) |
+| GPS spoofing | Kiosk GPS is one signal among several (device key, impossible travel). Mock-location reports and accuracy are checked (`OUTSIDE_GEOFENCE`, `GPS_ACCURACY_TOO_LOW`) |
 | Poor indoor GPS / boundary jitter | Geofence margin in metres; an accuracy limit setting; a borderline punch is flagged instead of rejected |
 | Photo, video or mask spoof | Liveness challenge + anti-spoof model (`LIVENESS_FAILED`, `SPOOF_SUSPECTED`) |
 | Twins, beard, helmet, safety glasses | Several enrolment shots; a margin over the second-best match → `NEED_EMPLOYEE_CODE`; re-enrolment option |
@@ -398,7 +395,7 @@ ER summary and table dictionary: **docs/architecture.md §7**.
 | Milestone | Content | Exit criteria |
 |---|---|---|
 | M0 Setup | SRS, architecture, ADRs; monorepo skeleton; CI; pre-commit; Dependabot; `.env.example`; keep-alive workflow | CI green on a PR; docs approved |
-| M1 Foundation | Login and roles; plants, geofence editor, networks, shifts; kiosk pairing; employees + Excel import; contractors; design system; audit writes; deploy to Vercel + Render + Supabase | An admin logs in on the live URL, creates a plant with a geofence, pairs a kiosk, imports employees |
+| M1 Foundation | Login and roles; approvals inbox; plants, geofence editor, shifts, categories; kiosk pairing; employees + Excel import; contractors; design system; audit writes; deploy to Vercel + Render + Supabase | An admin logs in on the live URL, creates a plant with a geofence, pairs a kiosk, imports employees |
 | M2 QR attendance | QR issue/revoke/expiry, ID card PDF, kiosk QR scan, snapshot, server checks, result screens | **First demo:** a valid card is accepted and a revoked card is rejected, with its reason, on the deployed kiosk |
 | M3 Face | Consent, enrolment, encrypted templates, liveness challenge, server face pipeline, code fallback, FAR/FRR report | Zero-tap face punch works; spoofs are rejected; the accuracy targets are met; RAM fits the host |
 | M4 Anti-proxy + offline | Geofence/IP/impossible-travel rules, exceptions screen, offline queue + signed sync | Security-reviewer spoof tests all rejected; a 1-hour offline sync is correct |

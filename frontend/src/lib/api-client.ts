@@ -39,16 +39,66 @@ async function readApiError(response: Response): Promise<ApiError> {
   return new ApiError("HTTP_ERROR", response.statusText, response.status);
 }
 
-export async function apiGet<T>(path: string): Promise<T> {
+type RequestOptions = {
+  method: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+  body?: unknown;
+  // Extra request headers. The kiosk uses this for its signature headers.
+  headers?: Record<string, string>;
+};
+
+// Called when any request answers "please log in" (the session ended). The app sets it once
+// (see app/auth-redirect.ts) so every page returns to the login screen.
+let onNotAuthenticated: (() => void) | null = null;
+export function setNotAuthenticatedHandler(handler: (() => void) | null) {
+  onNotAuthenticated = handler;
+}
+
+async function request<T>(path: string, { method, body, headers }: RequestOptions): Promise<T> {
+  const isUpload = body instanceof FormData;
   let response: Response;
   try {
-    response = await fetch(`${API_PREFIX}${path}`, { headers: { Accept: "application/json" } });
+    response = await fetch(`${API_PREFIX}${path}`, {
+      method,
+      headers: {
+        Accept: "application/json",
+        ...headers,
+        // A file upload (FormData) sets its own content type with the boundary.
+        ...(body === undefined || isUpload ? {} : { "Content-Type": "application/json" }),
+      },
+      body: body === undefined ? undefined : isUpload ? body : JSON.stringify(body),
+    });
   } catch {
     // fetch only throws when the server cannot be reached at all.
     throw new ApiError("NETWORK_ERROR", "The server cannot be reached.", 0);
   }
   if (!response.ok) {
-    throw await readApiError(response);
+    const error = await readApiError(response);
+    if (error.code === "NOT_AUTHENTICATED") {
+      onNotAuthenticated?.();
+    }
+    throw error;
+  }
+  if (response.status === 204) {
+    return undefined as T;
   }
   return (await response.json()) as T;
 }
+
+export const apiGet = <T>(path: string) => request<T>(path, { method: "GET" });
+export const apiPost = <T>(path: string, body?: unknown) =>
+  request<T>(path, { method: "POST", body: body ?? {} });
+export const apiPut = <T>(path: string, body: unknown) => request<T>(path, { method: "PUT", body });
+export const apiPatch = <T>(path: string, body: unknown) =>
+  request<T>(path, { method: "PATCH", body });
+export const apiDelete = <T>(path: string) => request<T>(path, { method: "DELETE" });
+
+/** Sends one file as multipart/form-data in the field `file` (the Excel import). */
+export const apiUpload = <T>(path: string, file: File) => {
+  const form = new FormData();
+  form.append("file", file);
+  return request<T>(path, { method: "POST", body: form });
+};
+
+// For callers that need their own headers (the signed kiosk requests).
+export const apiSend = <T>(options: RequestOptions & { path: string }) =>
+  request<T>(options.path, options);

@@ -1,0 +1,380 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate C – Screen C3: Kiosk pairing screen (/kiosk, full screen on the gate
+  device). Portrait tablet (1080×1920) and PC (1366×768) share one responsive layout.
+  States (URL hash): (none) not paired, 3 digits typed · #prefilled code from the QR, ready ·
+  #code-wrong · #locating finding location (± 35 m) · #paired · #code-expired · #locked ·
+  #location-off · #gps-weak · #outside · #unsupported · #revoked.
+  Kiosk rules: text ≥ 24 px, targets ≥ 64 px, text contrast ≥ 7:1, colour + icon + word (+ sound
+  in the app). MOCKUP ONLY – static HTML, fake data; no camera is used in M1.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Kiosk</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <style>
+    /* Kiosk-only tokens: darker status text so every text pair is ≥ 7:1 (gate A's are ≥ 6.2:1). */
+    :root {
+      --k-muted-fg: #3d4757;     /* 9.4:1 on white, 8.7:1 on --background */
+      --k-danger: #8a1a10;       /* 9.4:1 on white, 8.2:1 on --danger-soft */
+      --k-success: #035a40;      /* 8.3:1 on white, 7.4:1 on --success-soft */
+      --k-warning: #6b3f00;      /* 9.0:1 on white, 8.2:1 on --warning-soft */
+      /* Sizes scale with the short side of the screen; never below the kiosk minimums. */
+      --k-body: clamp(24px, 2.8vmin, 32px);
+      --k-small: 24px;
+      --k-title: clamp(42px, 6vmin, 68px);
+      --k-key: clamp(72px, 10vmin, 116px);
+      --k-digit-w: clamp(74px, 10.5vmin, 132px);
+      --k-gap: clamp(16px, 2.4vmin, 32px);
+    }
+    html, body { height: 100%; }
+    body { font-size: var(--k-body); line-height: 1.4; background: var(--background); overflow: hidden; }
+    .k-app { height: 100vh; display: grid; grid-template-rows: auto 1fr auto; position: relative; }
+    /* Safety stripe: the kiosk's signature (decoration only) */
+    .k-stripe { height: 12px; background: repeating-linear-gradient(-45deg, var(--signal) 0 22px, var(--foreground) 22px 44px); }
+    .k-top { display: flex; align-items: center; gap: 18px; padding: calc(var(--k-gap) * .8) calc(var(--k-gap) * 1.4); background: var(--surface); border-bottom: 1px solid var(--border); }
+    .k-brand b { display: block; font-size: clamp(26px, 3.2vmin, 36px); font-weight: 750; letter-spacing: -0.02em; line-height: 1.1; }
+    .k-brand span { font-size: var(--k-small); color: var(--k-muted-fg); }
+    .k-chip { margin-left: auto; display: inline-flex; align-items: center; gap: 10px; height: 56px; padding: 0 22px; border-radius: 99px; font-size: var(--k-small); font-weight: 700; border: 2px solid; }
+    .k-chip svg { width: 26px; height: 26px; stroke-width: 2.5; }
+    .chip-neutral { background: var(--muted); color: var(--foreground); border-color: var(--border-strong); }
+    .chip-info { background: var(--primary-soft); color: var(--primary); border-color: #cdd6f4; }
+    .chip-ok { background: var(--success-soft); color: var(--k-success); border-color: #9fd3bd; }
+    .chip-bad { background: var(--danger-soft); color: var(--k-danger); border-color: #f2c2bc; }
+
+    .k-main { display: grid; padding: var(--k-gap) calc(var(--k-gap) * 1.4); gap: var(--k-gap); align-content: center; min-height: 0; }
+    .k-foot { display: flex; justify-content: space-between; gap: 16px; padding: 14px calc(var(--k-gap) * 1.4); font-size: var(--k-small); color: var(--k-muted-fg); border-top: 1px solid var(--border); background: var(--surface); }
+
+    h1.k-title { font-size: var(--k-title); font-weight: 780; letter-spacing: -0.03em; line-height: 1.08; margin: 0; }
+    .k-sub { margin: 10px 0 0; color: var(--k-muted-fg); max-width: 34ch; }
+    .k-sub b { color: var(--foreground); }
+
+    /* ---------- Code entry ---------- */
+    .digits { display: flex; gap: clamp(10px, 1.4vmin, 18px); align-items: center; }
+    .dg { width: var(--k-digit-w); height: calc(var(--k-digit-w) * 1.25); border-radius: 20px; display: grid; place-items: center;
+      background: var(--surface); border: 3px solid var(--border-strong); font-size: calc(var(--k-digit-w) * .62); font-weight: 780; color: var(--foreground);
+      box-shadow: var(--shadow-sm), inset 0 -5px 0 var(--muted); font-variant-numeric: tabular-nums; }
+    .dg.is-active { border-color: var(--foreground); box-shadow: 0 0 0 6px var(--signal), var(--shadow-md); }
+    .dg.is-active::after { content: ""; width: 4px; height: 50%; background: var(--foreground); border-radius: 2px; }
+    .dg-gap { width: clamp(8px, 1.6vmin, 22px); }
+    .digits.is-wrong .dg { border-color: var(--danger); background: var(--danger-soft); color: var(--k-danger); box-shadow: none; }
+    @media (prefers-reduced-motion: no-preference) {
+      .digits.is-wrong { animation: shake 420ms var(--ease-out) 1; }
+      .dg.is-active::after { animation: blink 1s steps(1) infinite; }
+    }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    .note { display: flex; gap: 18px; align-items: flex-start; padding: 20px 22px; border-radius: 20px; background: var(--surface); border: 2px solid var(--border); max-width: 760px; }
+    .note-icon { width: 60px; height: 60px; border-radius: 16px; background: var(--signal); display: grid; place-items: center; flex: none; color: var(--signal-foreground); }
+    .note-icon svg { width: 32px; height: 32px; stroke-width: 2.25; }
+    .note p { margin: 0; font-size: var(--k-small); color: var(--foreground); }
+    .note b { display: block; font-size: var(--k-body); margin-bottom: 4px; }
+    .note b.inline { display: inline; font-size: inherit; margin: 0; }
+
+    .keypad { display: grid; grid-template-columns: repeat(3, 1fr); gap: clamp(10px, 1.5vmin, 18px); }
+    .key { height: var(--k-key); border-radius: 20px; border: 2px solid var(--border-strong); background: var(--surface); color: var(--foreground);
+      font: 750 calc(var(--k-key) * .42) / 1 var(--font-sans); font-variant-numeric: tabular-nums; box-shadow: 0 4px 0 var(--border-strong), var(--shadow-sm); cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 10px; transition: transform var(--duration-micro), box-shadow var(--duration-micro); }
+    .key:active, .key.is-pressed { transform: translateY(4px); box-shadow: 0 0 0 var(--border-strong); background: var(--muted); }
+    .key-word { font-size: var(--k-small); font-weight: 700; color: var(--foreground); }
+    .key-word svg { width: 30px; height: 30px; }
+    .btn-k { display: flex; align-items: center; justify-content: center; gap: 14px; width: 100%; min-height: calc(var(--k-key) * .95); border-radius: 22px; border: 0;
+      font: 750 clamp(28px, 3.4vmin, 38px) / 1.1 var(--font-sans); cursor: pointer; padding: 0 28px; }
+    .btn-k svg { width: 38px; height: 38px; stroke-width: 2.5; }
+    .btn-k-primary { background: var(--primary); color: #fff; box-shadow: 0 6px 0 #142a6b, var(--shadow-md); }
+    .btn-k-primary[aria-disabled="true"] { background: var(--muted); color: var(--k-muted-fg); box-shadow: 0 6px 0 var(--border-strong); border: 2px solid var(--border-strong); cursor: not-allowed; }
+    .btn-k-outline { background: var(--surface); color: var(--foreground); border: 3px solid var(--border-strong); box-shadow: 0 5px 0 var(--border-strong); }
+
+    .k-alert { display: flex; gap: 16px; align-items: center; padding: 18px 22px; border-radius: 18px; border: 2px solid; font-weight: 650; }
+    .k-alert svg { width: 40px; height: 40px; flex: none; stroke-width: 2.25; }
+    .k-alert-bad { background: var(--danger-soft); border-color: #f2c2bc; color: var(--k-danger); }
+    .tag-qr { display: inline-flex; align-items: center; gap: 10px; height: 52px; padding: 0 18px; border-radius: 99px; background: var(--primary-soft); color: var(--primary); font-weight: 700; font-size: var(--k-small); border: 2px solid #cdd6f4; }
+    .tag-qr svg { width: 26px; height: 26px; }
+
+    /* Layout: portrait = one column; landscape (PC) = two columns */
+    .pair-layout { display: grid; gap: calc(var(--k-gap) * 1.2); }
+    @media (orientation: landscape) {
+      .pair-layout { grid-template-columns: 1.15fr 1fr; align-items: center; gap: calc(var(--k-gap) * 2); }
+      .note { padding: 16px 18px; }
+    }
+    @media (orientation: portrait) {
+      :root { --k-digit-w: clamp(74px, 13.4vmin, 150px); }
+      .k-sub { max-width: 40ch; }
+      .digits { justify-content: space-between; }
+      .note { max-width: none; }
+    }
+
+    /* ---------- Centered state screens (locating, paired, errors) ---------- */
+    .center { display: grid; justify-items: center; text-align: center; gap: calc(var(--k-gap) * .9); max-width: 980px; margin: 0 auto; width: 100%; }
+    @media (orientation: landscape) {
+      .center.split { grid-template-columns: auto 1fr; text-align: left; justify-items: start; align-items: center; column-gap: calc(var(--k-gap) * 2.2); max-width: 1200px; }
+      .center.split > .hero { grid-row: span 7; align-self: center; }
+      .center.split { row-gap: 12px; }
+      .center.split .steps-k { gap: 8px; }
+      .center.split .prompt-mock { padding: 12px 16px; }
+      .center.split .prompt-mock .row { margin-top: 8px; }
+      .center.split .meter-labels { margin-top: 8px; }
+      .center.split .steps-k li { padding: 10px 16px; }
+      .center.split .k-title { font-size: clamp(40px, 5.6vmin, 60px); }
+      .center.split .msg { max-width: 40ch; }
+      .center.split .radar.hero { width: clamp(200px, 34vmin, 300px); height: clamp(200px, 34vmin, 300px); }
+    }
+    .hero { width: clamp(150px, 22vmin, 260px); height: clamp(150px, 22vmin, 260px); border-radius: 999px; display: grid; place-items: center; position: relative; }
+    .hero svg.ic { width: 46%; height: 46%; stroke-width: 2.25; }
+    .hero-bad { background: var(--danger-soft); color: var(--danger); border: 4px solid #f2c2bc; }
+    .hero-warn { background: var(--warning-soft); color: var(--k-warning); border: 4px solid #f1d79c; }
+    .hero-ok svg.ic { stroke-width: 5; }
+    .hero-ok { background: var(--success); color: #fff; box-shadow: 0 0 0 clamp(12px, 2vmin, 22px) var(--success-soft); }
+    .hero-info { background: var(--primary); color: #fff; }
+    .msg { margin: 0; max-width: 32ch; color: var(--foreground); font-size: clamp(26px, 3.2vmin, 36px); font-weight: 500; }
+    .steps-k { list-style: none; margin: 0; padding: 0; display: grid; gap: 14px; text-align: left; width: min(100%, 820px); }
+    .steps-k li { display: flex; gap: 16px; align-items: center; padding: 14px 18px; border-radius: 16px; background: var(--surface); border: 2px solid var(--border); font-size: var(--k-small); font-weight: 500; }
+    .steps-k .n { width: 48px; height: 48px; border-radius: 99px; background: var(--signal); color: var(--signal-foreground); display: grid; place-items: center; font-weight: 800; flex: none; border: 2px solid #c99500; font-size: 24px; }
+    .err-code { font-size: var(--k-small); color: var(--k-muted-fg); }
+    .err-code code { font-family: var(--font-sans); font-feature-settings: "zero", "tnum"; font-weight: 600; }
+    .actions { width: min(100%, 820px); display: grid; gap: 16px; }
+
+    /* Locating: radar rings */
+    .radar { position: relative; width: clamp(200px, 30vmin, 340px); height: clamp(200px, 30vmin, 340px); display: grid; place-items: center; }
+    .radar::before, .radar::after, .radar i { content: ""; position: absolute; inset: 0; border-radius: 99px; border: 3px solid var(--primary); opacity: .25; }
+    .radar::after { inset: 18%; opacity: .4; }
+    .radar i { inset: 36%; opacity: .55; }
+    .radar .pin { width: 34%; height: 34%; border-radius: 99px; background: var(--primary); display: grid; place-items: center; color: #fff; position: relative; z-index: 1; box-shadow: 0 0 0 10px var(--primary-soft); }
+    .radar .pin svg { width: 55%; height: 55%; }
+    @media (prefers-reduced-motion: no-preference) {
+      .radar::before { animation: ripple 2.4s var(--ease-out) infinite; }
+      .radar::after { animation: ripple 2.4s var(--ease-out) infinite .8s; }
+      .radar i { animation: ripple 2.4s var(--ease-out) infinite 1.6s; }
+      .hero-ok { animation: pop 520ms var(--ease-out) both; }
+      .hero-ok path { stroke-dasharray: 60; animation: drawTick 600ms var(--ease-out) both 300ms; }
+      .center > * { animation: fadeUp var(--duration-emphasis) var(--ease-out) both; }
+      .center > *:nth-child(2) { animation-delay: 80ms; } .center > *:nth-child(3) { animation-delay: 160ms; } .center > *:nth-child(4) { animation-delay: 240ms; }
+    }
+    @keyframes ripple { 0% { transform: scale(.55); opacity: .7; } 100% { transform: scale(1.15); opacity: 0; } }
+    @keyframes pop { from { transform: scale(.5); opacity: 0; } 70% { transform: scale(1.06); } to { transform: none; opacity: 1; } }
+    @keyframes drawTick { from { stroke-dashoffset: 60; } to { stroke-dashoffset: 0; } }
+    .accuracy { font-size: clamp(76px, 12vmin, 140px); font-weight: 800; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+    .meter { width: min(100%, 760px); }
+    .meter-track { position: relative; height: 26px; border-radius: 99px; background: var(--surface); border: 2px solid var(--border-strong); overflow: visible; }
+    .meter-fill { position: absolute; left: 0; top: 0; bottom: 0; border-radius: 99px; background: repeating-linear-gradient(135deg, var(--success) 0 12px, #0a7d5a 12px 24px); }
+    .meter-mark { position: absolute; top: -12px; bottom: -12px; width: 6px; border-radius: 3px; background: var(--foreground); }
+    .meter-labels { display: flex; justify-content: space-between; margin-top: 14px; font-size: var(--k-small); color: var(--k-muted-fg); }
+    .meter-labels b { color: var(--foreground); }
+    .progress-list { display: grid; gap: 10px; width: min(100%, 760px); }
+    .progress-list div { display: flex; gap: 14px; align-items: center; font-size: var(--k-small); font-weight: 600; }
+    .progress-list svg { width: 34px; height: 34px; flex: none; }
+
+    .clock { font-size: clamp(80px, 13vmin, 150px); font-weight: 800; letter-spacing: -0.04em; line-height: 1; font-variant-numeric: tabular-nums; }
+    .info-card { display: flex; gap: 16px; align-items: center; padding: 18px 22px; border-radius: 18px; background: var(--surface); border: 2px solid var(--border); text-align: left; font-size: var(--k-small); max-width: 820px; }
+    .info-card svg { width: 36px; height: 36px; color: var(--primary); flex: none; }
+    .kiosk-name { display: inline-flex; align-items: center; gap: 12px; height: 60px; padding: 0 24px; border-radius: 99px; background: var(--surface); border: 2px solid var(--border-strong); font-weight: 700; font-size: var(--k-small); }
+    .kiosk-name svg { width: 28px; height: 28px; }
+    .prompt-mock { width: min(100%, 620px); border-radius: 18px; background: var(--surface); border: 2px solid var(--border-strong); box-shadow: var(--shadow-lg); padding: 18px 20px; text-align: left; font-size: var(--k-small); }
+    .prompt-mock .row { display: flex; gap: 12px; margin-top: 14px; justify-content: flex-end; }
+    .prompt-mock .pbtn { height: 64px; padding: 0 24px; border-radius: 14px; display: grid; place-items: center; font-weight: 700; border: 2px solid var(--border-strong); }
+    .prompt-mock .pbtn.allow { background: var(--primary); color: #fff; border-color: var(--primary); box-shadow: 0 0 0 5px var(--signal); }
+    [hidden] { display: none !important; }
+  </style>
+</head>
+<body>
+<div class="k-app">
+  <div>
+    <div class="k-stripe" aria-hidden="true"></div>
+    <header class="k-top">
+      <span data-logo="64" aria-hidden="true"></span>
+      <div class="k-brand"><b>Upasthiti</b><span>Gate kiosk · Sheet Shapers</span></div>
+      <span class="k-chip chip-neutral" id="chip" role="status"><i data-lucide="circle-dashed"></i><span>Not paired</span></span>
+    </header>
+  </div>
+
+  <main class="k-main" id="main"></main>
+
+  <footer class="k-foot">
+    <span id="foot-left">Need help? Ask the plant office.</span>
+    <span class="tnum" id="foot-right">Upasthiti v0.1</span>
+  </footer>
+</div>
+
+<div class="state-tag" id="state-tag" style="font-size:14px">State: not paired</div>
+<script src="../gate-a/shell.js"></script>
+<script>
+  // Mockup only. Messages are the §9 texts (i18n keys kiosk.pair.*, kiosk.*).
+  function icon(name, extra) { return '<i data-lucide="' + name + '"' + (extra || "") + '></i>'; }
+
+  function digitBoxes(typed, cls) {
+    let html = '<div class="digits ' + (cls || "") + '" role="group" aria-label="Pairing code, ' + typed.length + ' of 6 digits typed">';
+    for (let i = 0; i < 6; i++) {
+      if (i === 3) html += '<span class="dg-gap" aria-hidden="true"></span>';
+      const active = i === typed.length && !cls ? " is-active" : "";
+      html += '<span class="dg' + active + '">' + (typed[i] || "") + '</span>';
+    }
+    return html + "</div>";
+  }
+
+  function keypad() {
+    const keys = ["1", "2", "3", "4", "5", "6", "7", "8", "9"].map(function (k) {
+      return '<button class="key' + (k === "2" ? " is-pressed" : "") + '" aria-label="' + k + '">' + k + "</button>";
+    }).join("");
+    return '<div class="keypad" role="group" aria-label="Number keys">' + keys +
+      '<button class="key key-word">' + icon("x") + 'Clear</button>' +
+      '<button class="key" aria-label="0">0</button>' +
+      '<button class="key key-word">' + icon("delete") + 'Back</button></div>';
+  }
+
+  function pairScreen(opts) {
+    const ready = opts.typed.length === 6 && !opts.wrong;
+    const pairBtn = ready
+      ? '<button class="btn-k btn-k-primary">' + icon("link-2") + 'Pair this device</button>'
+      : '<button class="btn-k btn-k-primary" aria-disabled="true">' + (opts.wrong ? "Type the code again" : "Type all 6 digits") + "</button>";
+    const qrTag = opts.fromQr ? '<div style="margin-top:18px"><span class="tag-qr">' + icon("qr-code") + 'Code filled in from the QR</span></div>' : "";
+    const wrongAlert = opts.wrong
+      ? '<div class="k-alert k-alert-bad" role="alert">' + icon("circle-x") + '<span>This code is not right. Check the code on the admin screen.</span></div>' : "";
+    return `
+      <div class="pair-layout">
+        <div style="display:grid;gap:var(--k-gap)">
+          <div>
+            <h1 class="k-title">Pair this device</h1>
+            <p class="k-sub">Type the <b>6-digit code</b> from the admin screen: <b>Kiosks › Add kiosk</b>.</p>
+            ${qrTag}
+          </div>
+          ${digitBoxes(opts.typed, opts.wrong ? "is-wrong" : "")}
+          ${wrongAlert}
+          <div class="note">
+            <span class="note-icon">${icon("map-pin")}</span>
+            <p><b>Location is needed once</b>It proves this device is at the plant gate. When the browser asks, press <b class="inline">Allow</b>.</p>
+          </div>
+        </div>
+        <div style="display:grid;gap:var(--k-gap)">
+          ${keypad()}
+          ${pairBtn}
+        </div>
+      </div>`;
+  }
+
+  function locatingScreen() {
+    return `
+      <div class="center split">
+        <div class="radar hero" aria-hidden="true"><i></i><span class="pin">${icon("locate-fixed")}</span></div>
+        <h1 class="k-title">Finding this device's location…</h1>
+        <div role="status" aria-live="polite">
+          <div class="accuracy" id="acc">± 35 m</div>
+          <div class="err-code" style="margin-top:6px">accuracy now · needs ± 50 m or better · waits up to 20 s</div>
+        </div>
+        <div class="meter" aria-hidden="true">
+          <div class="meter-track"><div class="meter-fill" id="meter-fill" style="width:72%"></div><div class="meter-mark" style="left:calc(60% - 3px)"></div></div>
+          <div class="meter-labels"><span>± 200 m</span><b>± 50 m needed</b><span>± 5 m</span></div>
+        </div>
+        <div class="progress-list">
+          <div>${icon("circle-check", ' style="color:var(--success)"')}Code typed</div>
+          <div>${icon("circle-check", ' style="color:var(--success)"')}Location good enough (± 35 m)</div>
+          <div style="color:var(--primary)">${icon("loader-circle", ' style="color:var(--primary)"')}Checking with the server…</div>
+        </div>
+      </div>`;
+  }
+
+  function pairedScreen() {
+    return `
+      <div class="center split">
+        <div class="hero hero-ok"><svg class="ic" viewBox="0 0 48 48" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 25l9 9 17-19"/></svg></div>
+        <h1 class="k-title">Paired</h1>
+        <p class="msg" style="font-weight:650;max-width:none">Paired to K134 – Sheet Shapers India Pvt Ltd (K-134)</p>
+        <span class="kiosk-name">${icon("smartphone")}Main gate phone · location ± 18 m</span>
+        <div>
+          <div class="clock" id="clock" role="timer" aria-label="Server time">09:24:07</div>
+          <div class="err-code" style="margin-top:8px;font-size:clamp(24px,2.8vmin,30px)">IST · Tuesday, 13/10/2026 · server time</div>
+        </div>
+        <div class="info-card">${icon("info")}<span>Attendance starts in a later update. Keep this screen open; the admin can see it is online.</span></div>
+      </div>`;
+  }
+
+  // Error screens: icon + title + message + numbered next steps + one action.
+  const ERRORS = {
+    "code-expired": { tone: "warn", icon: "timer-off", title: "Code expired", msg: "This code has expired. Ask the admin for a new code.",
+      steps: ["On the admin screen, press “Make a new code”.", "Type the new code here within 10 minutes."], action: "Type a new code", actionIcon: "keyboard", code: "PAIRING_CODE_EXPIRED" },
+    "locked": { tone: "bad", icon: "shield-alert", title: "Too many tries", msg: "Too many tries. Ask the admin for a new code.",
+      steps: ["The old code does not work any more.", "Ask the admin to make a new code, then type it here."], action: "Type a new code", actionIcon: "keyboard", code: "PAIRING_LOCKED" },
+    "location-off": { tone: "warn", icon: "map-pin-off", title: "Location is off", msg: "Turn on location on this device and allow it for this site, then try again.",
+      steps: ["Turn on Location in the phone or Windows settings.", "When the browser asks, press “Allow” (like the example)."], action: "Try again", actionIcon: "rotate-cw", code: "LOCATION_REQUIRED", extra: "prompt" },
+    "gps-weak": { tone: "warn", icon: "satellite-dish", title: "Location not accurate enough", msg: "Location is not accurate enough. Turn on Wi‑Fi or move near a window, then try again.",
+      steps: ["Turn on Wi‑Fi. It does not need to connect to a network.", "Move the device near a window or the open gate.", "Press “Try again”."], action: "Try again", actionIcon: "rotate-cw", code: "GPS_ACCURACY_TOO_LOW", extra: "weak" },
+    "outside": { tone: "bad", icon: "map-pin-x", title: "Not at the plant", msg: "This device is not at the plant.",
+      steps: ["Take this device to the plant gate.", "Press “Try again” there.", "Already at the gate? Ask the admin to check the plant's geofence."], action: "Try again", actionIcon: "rotate-cw", code: "OUTSIDE_GEOFENCE" },
+    "unsupported": { tone: "bad", icon: "monitor-x", title: "Browser not supported", msg: "Open this page in the latest Chrome or Edge.",
+      steps: ["Open Chrome or Edge on this device (update it if it asks).", "Go to upasthiti.example/kiosk", "This page needs a secure (https) connection."], action: null, code: "BROWSER_NOT_SUPPORTED" },
+    "revoked": { tone: "bad", icon: "ban", title: "Switched off", msg: "This device has been switched off by the admin.",
+      steps: ["To use it again, the admin adds it as a new kiosk.", "Then type the new code on this device."], action: "Pair again", actionIcon: "link-2", code: "DEVICE_REVOKED" },
+  };
+
+  function extraBlock(kind) {
+    if (kind === "prompt") {
+      return '<div class="prompt-mock" aria-label="Example of the browser question">' +
+        '<div style="display:flex;gap:12px;align-items:center;font-weight:700">' + icon("map-pin", ' style="width:28px;height:28px"') + 'upasthiti.example wants to know your location</div>' +
+        '<div class="row"><span class="pbtn">Block</span><span class="pbtn allow">Allow</span></div></div>';
+    }
+    if (kind === "weak") {
+      return '<div class="meter"><div class="meter-track"><div class="meter-fill" style="width:22%;background:repeating-linear-gradient(135deg,#b97300 0 12px,#8f5300 12px 24px)"></div><div class="meter-mark" style="left:calc(60% - 3px)"></div></div>' +
+        '<div class="meter-labels"><span>Best: <b>± 140 m</b></span><b>± 50 m needed</b><span>± 5 m</span></div></div>';
+    }
+    return "";
+  }
+
+  function errorScreen(key) {
+    const e = ERRORS[key];
+    const steps = e.steps.map(function (s, i) { return '<li><span class="n">' + (i + 1) + "</span>" + s + "</li>"; }).join("");
+    const action = e.action ? '<div class="actions"><button class="btn-k btn-k-primary">' + icon(e.actionIcon) + e.action + "</button></div>" : "";
+    return `
+      <div class="center split" role="alert">
+        <div class="hero hero-${e.tone}">${icon(e.icon, ' class="ic"')}</div>
+        <h1 class="k-title">${e.title}</h1>
+        <p class="msg">${e.msg}</p>
+        ${extraBlock(e.extra)}
+        <ol class="steps-k" aria-label="What to do">${steps}</ol>
+        ${action}
+        <div class="err-code">For the admin: <code>${e.code}</code></div>
+      </div>`;
+  }
+
+  function setChip(kind, iconName, text) {
+    const chip = document.getElementById("chip");
+    chip.className = "k-chip chip-" + kind;
+    chip.innerHTML = icon(iconName) + "<span>" + text + "</span>";
+  }
+
+  window.onMockState = function (state) {
+    const main = document.getElementById("main");
+    const tag = document.getElementById("state-tag");
+    tag.textContent = "State: " + (state || "not paired");
+    if (state === "" ) main.innerHTML = pairScreen({ typed: "482" });
+    if (state === "prefilled") { main.innerHTML = pairScreen({ typed: "482913", fromQr: true }); setChip("info", "qr-code", "Ready to pair"); }
+    if (state === "code-wrong") { main.innerHTML = pairScreen({ typed: "482931", wrong: true }); setChip("bad", "circle-x", "Wrong code"); }
+    if (state === "locating") { main.innerHTML = locatingScreen(); setChip("info", "locate", "Pairing…"); }
+    if (state === "paired") {
+      main.innerHTML = pairedScreen();
+      setChip("ok", "circle-check", "Paired");
+      document.getElementById("foot-left").textContent = "Main gate phone · K134";
+      document.getElementById("foot-right").textContent = "Online · Upasthiti v0.1";
+    }
+    if (ERRORS[state]) {
+      main.innerHTML = errorScreen(state);
+      if (state === "revoked") setChip("bad", "ban", "Switched off");
+      else setChip("bad", "circle-x", "Not paired");
+    }
+    // Live clock (mockup: starts from a fixed server time and ticks).
+    if (state === "paired") {
+      let seconds = 9 * 3600 + 24 * 60 + 7;
+      setInterval(function () {
+        seconds += 1;
+        const h = String(Math.floor(seconds / 3600)).padStart(2, "0");
+        const m = String(Math.floor(seconds / 60) % 60).padStart(2, "0");
+        const s = String(seconds % 60).padStart(2, "0");
+        document.getElementById("clock").textContent = h + ":" + m + ":" + s;
+      }, 1000);
+    }
+  };
+</script>
+</body>
+</html>

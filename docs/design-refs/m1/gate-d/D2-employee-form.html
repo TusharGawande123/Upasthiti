@@ -1,0 +1,149 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate D – Screen D2: Employee form (/admin/employees/new and /admin/employees/:id/edit).
+  States (URL hash, join with "+"): (none) new permanent employee, Super Admin · #temporary · #edit (existing
+  person, code and plant locked) · #errors (field errors incl. EMPLOYEE_CODE_EXISTS) · #saving · #server-error ·
+  #pending (edit blocked: CHANGE_ALREADY_PENDING) · #loading (edit form loading) · roles: +ch Corporate Head
+  ("Send for approval") · +ph Plant Head cannot open this page (access screen).
+  Phone check: open at 390 px width. MOCKUP ONLY – static HTML, fake data, NO phone or contact field.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Employee form</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="../gate-bc/bc.css" />
+  <link rel="stylesheet" href="d.css" />
+</head>
+<body data-active="employees">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="../gate-a/shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script>
+  function render() {
+    const isCh = D.role === "ch";
+    const isEdit = D.has("edit") || D.has("pending") || D.has("loading");
+    const temp = D.has("temporary");
+    const errors = D.has("errors");
+    const saving = D.has("saving");
+    const sx = isCh ? D.icon("send", 18) + "Send for approval" : D.icon("check", 18) + (isEdit ? "Save changes" : "Save employee");
+
+    if (D.role === "ph") {
+      document.getElementById("page").innerHTML = '<div class="card empty anim-fade-up" style="margin-top:40px"><div class="empty-icon" style="color:var(--muted-foreground)">' + D.icon("lock") + '</div><h2>You cannot add or change employees</h2><p>A Plant Head can look at the employees of X280 but not change them. Ask the Super Admin or a Corporate Head.</p><div class="flex justify-center" style="margin-top:20px"><a class="btn btn-primary btn-lg" href="D1-employees.html#ph">' + D.icon("arrow-left", 18) + "Back to employees</a></div></div>";
+      return;
+    }
+
+    const title = isEdit ? "Edit Pradeep Jadhav" : "Add employee";
+    const crumbs = D.crumb([{ text: "Employees", href: "D1-employees.html" }, { text: isEdit ? "1042 Pradeep Jadhav" : "New", href: "D3-employee-detail.html" }, ...(isEdit ? [{ text: "Edit" }] : [])]);
+    const head = D.pageHead({ crumbs: crumbs, title: title, desc: isEdit ? "Change the details of this person. To move them to another plant, use Transfer on the detail page." : "Type the company's own employee code. The system does not make new codes." });
+
+    // ---------- loading (edit) ----------
+    if (D.has("loading")) {
+      const sk = function (w, h) { return '<div class="skeleton" style="height:' + (h || 44) + "px;width:" + (w || "100%") + ';border-radius:10px"></div>'; };
+      document.getElementById("page").innerHTML = head + '<div class="split2 wide-side"><div class="card" style="overflow:hidden" aria-busy="true" aria-label="Loading the employee">' +
+        [0, 1, 2].map(function () { return '<div class="form-sec"><div class="skeleton" style="height:18px;width:160px;margin-bottom:18px"></div><div class="form-grid">' + sk() + sk() + sk() + sk() + "</div></div>"; }).join("") + '</div><div class="card card-pad">' + sk("60%", 18) + '<div style="height:14px"></div>' + sk("100%", 80) + "</div></div>";
+      return;
+    }
+
+    // ---------- blocking alerts ----------
+    let top = "";
+    if (isCh && !D.has("pending")) top += '<div class="anim-fade-up" style="margin-bottom:16px">' + D.waitNote("Your change goes to the approvals inbox first. You can follow it in <a class=\"link\" href=\"D5-approvals.html#mine+ch\">My requests</a>.") + "</div>";
+    if (D.has("pending")) top += '<div class="alert alert-warning anim-fade-up" role="alert" style="margin-bottom:16px">' + D.icon("hourglass", 20) + '<div style="flex:1"><b>Another change for this person is already waiting.</b><div>Vikram Deshmukh sent an edit on 14/10/2026 at 11:20. Only one change can wait at a time (<span class="err-code code">CHANGE_ALREADY_PENDING</span>).</div></div><a class="btn btn-outline btn-sm" href="D5-approvals.html#edit">' + D.icon("external-link", 15) + "View the request</a></div>";
+    if (D.has("server-error")) top += '<div class="alert alert-danger anim-shake" role="alert" style="margin-bottom:16px">' + D.icon("circle-alert", 20) + "<div><b>Could not save. Nothing was changed.</b><div>The server did not answer. Check the internet connection and press the button again. What you typed is still here.</div></div></div>";
+    if (errors) top += '<div class="alert alert-danger anim-shake" role="alert" style="margin-bottom:16px">' + D.icon("circle-alert", 20) + "<div><b>3 things need fixing before this can be saved.</b><div>They are marked in red below.</div></div></div>";
+
+    // ---------- values by variant ----------
+    const v = isEdit
+      ? { code: "1042", name: "Pradeep Jadhav", type: "permanent", plant: "K134 · Sheet Shapers India Pvt Ltd (K-134)", cat: "Operator", dep: "Press shop", shift: "General 07:00–19:00", ot: "185", joined: "02/04/2019" }
+      : { code: errors ? "1018" : "", name: errors ? "Rohit Gaikwad" : "", type: temp ? "temporary" : "permanent", plant: "TP1 · Tirupati Pressco, Unit 1", cat: errors ? "Choose a category" : (temp ? "Helper" : "Staff"), dep: temp ? "Fabrication" : "Accounts", shift: "General 07:00–19:00", ot: errors ? "-20" : (temp ? "110" : ""), joined: errors ? "31/12/2026" : "15/10/2026" };
+    const dis = isEdit || D.has("pending") ? " disabled" : "";
+    const lockedInput = function (id, value, why) { return '<div class="lock-wrap"><input id="' + id + '" class="input is-locked code" value="' + value + '" readonly aria-describedby="' + id + '-why" />' + D.icon("lock") + '</div><div class="field-hint" id="' + id + '-why">' + D.icon("info") + "<span>" + why + "</span></div>"; };
+
+    // ---------- section 1: who ----------
+    const codeField = isEdit
+      ? "<div>" + '<label class="label" for="code">Employee code</label>' + lockedInput("code", v.code, "The code cannot be changed. If it was typed wrongly, mark this person as left and add them again with the right code.").replace(/^<div>/, "") + "</div>"
+      : D.field({ id: "code", label: "Employee code", req: true,
+        control: '<div style="position:relative"><input id="code" class="input code" maxlength="12" value="' + v.code + '" placeholder="For example 1042 or A-310" autocomplete="off" style="text-transform:uppercase;padding-right:64px"' + (errors ? ' aria-invalid="true" aria-describedby="code-err"' : "") + ' /><span class="counter tnum" style="position:absolute;right:14px;top:13px">' + v.code.length + "/12</span></div>",
+        error: errors ? "Code 1018 is already used by Anjali Deshpande (K134). <span class=\"err-code code\">EMPLOYEE_CODE_EXISTS</span>" : "",
+        help: errors ? "" : "1 to 12 characters: capital letters, digits, - or /. A code is never used again, even after someone leaves." });
+    const typeCard = function (kind, icon, title, desc) {
+      const on = v.type === kind;
+      return '<button type="button" role="radio" class="choice" aria-checked="' + on + '"' + (isEdit ? " disabled style=\"cursor:not-allowed;opacity:" + (on ? "1" : ".55") + '"' : "") + '><span class="ci">' + D.icon(icon) + '</span><span style="min-width:0"><b>' + title + '</b><span class="d">' + desc + '</span></span><span class="tick">' + D.icon("check") + "</span></button>";
+    };
+    const sec1 = '<section class="form-sec"><h2 class="form-sec-title">' + D.icon("id-card") + 'Who is this?</h2><p class="form-sec-desc">The basics. You can change the name later; the code stays.</p><div class="form-grid">' +
+      codeField +
+      D.field({ id: "name", label: "Full name", req: true, control: '<input id="name" class="input" value="' + v.name + '" placeholder="As on the ID card" autocomplete="off" />' }) +
+      '<div class="span2"><div class="label" id="type-l">Type of employee<span class="req" aria-hidden="true">*</span></div><div class="choice-grid" role="radiogroup" aria-labelledby="type-l">' +
+      typeCard("permanent", "scan-face", "Permanent", "Marks attendance with face recognition at the gate kiosk.") + typeCard("temporary", "qr-code", "Temporary (hourly)", "Marks attendance by showing a QR ID card to the kiosk.") + "</div>" +
+      (isEdit ? '<div class="field-hint">' + D.icon("lock") + "<span>The type cannot be changed after the person is added.</span></div>" : "") + "</div></div></section>";
+
+    // ---------- section 2: where and when ----------
+    const catField = D.field({ id: "cat", label: "Category", req: true,
+      control: D.select("cat", ["Choose a category", "Staff", "Worker", "Operator", "Helper"], v.cat, errors ? ' aria-invalid="true" aria-describedby="cat-err"' : ""),
+      error: errors ? "Choose a category. Every employee needs one." : "", help: errors ? "" : "Only the categories of the chosen plant are listed." });
+    const plantField = isEdit
+      ? "<div>" + '<label class="label" for="plant">Plant</label>' + lockedInput("plant", v.plant, 'To change the plant use <a class="link" href="D3-employee-detail.html#transfer">Transfer to another plant</a>. It keeps the plant history right.').replace(/^<div>/, "") + "</div>"
+      : D.field({ id: "plant", label: "Plant", req: true, control: D.select("plant", ["K134 · Sheet Shapers India Pvt Ltd (K-134)", "X280 · Sheet Shapers India Pvt Ltd (X-280)", "PC1 · Precise Cuts India Pvt Ltd, Unit 1", "PC2 · Precise Cuts India Pvt Ltd, Unit 2", "SPI · Siddharth Pressings India Pvt Ltd", "TP1 · Tirupati Pressco, Unit 1", "TP2 · Tirupati Pressco, Unit 2"], v.plant), help: "Category, department and shift below belong to this plant." });
+    const sec2 = '<section class="form-sec"><h2 class="form-sec-title">' + D.icon("factory") + 'Where does this person work?</h2><p class="form-sec-desc">The lists below show only what is active at the chosen plant.</p><div class="form-grid">' +
+      '<div class="span2">' + plantField + "</div>" + catField +
+      D.field({ id: "dep", label: "Department", opt: true, control: D.select("dep", ["No department", "Accounts", "Assembly", "Dispatch", "Fabrication", "Laser cutting", "Packing", "Press shop", "Quality", "Stores"], v.dep) }) +
+      D.field({ id: "shift", label: "Shift", req: true, control: D.select("shift", ["General 07:00–19:00", "Night 19:00–07:00 (ends next day)"], v.shift) }) +
+      D.field({ id: "joined", label: "Joined on", req: true, control: '<input id="joined" class="input tnum" value="' + v.joined + '" inputmode="numeric"' + (errors ? ' aria-invalid="true" aria-describedby="joined-err"' : "") + " />", error: errors ? "The joining date cannot be in the future (latest 15/10/2026)." : "", help: errors ? "" : "Day, month, year: DD/MM/YYYY." }) +
+      "</div></section>";
+
+    // ---------- section 3: pay ----------
+    const hourly = temp ? D.field({ id: "hr", label: "Hourly rate", req: true, control: '<div class="rupee-input"><span class="unit-l">₹</span><input id="hr" class="input tnum" value="110" inputmode="decimal" /><span class="unit">per hour</span></div>', help: "Normal hours worked are paid at this rate. Two decimals at most." }) +
+      D.field({ id: "con", label: "Contractor", opt: true, control: D.select("con", ["No contractor", ...D.CONTRACTORS], "Shree Samarth Manpower"), help: "The agency that supplied this worker. Add new agencies on the Contractors page." }) : "";
+    const sec3 = '<section class="form-sec"><h2 class="form-sec-title">' + D.icon("indian-rupee") + "Pay rates</h2><p class=\"form-sec-desc\">" + (temp ? "Temporary workers are paid by the hour." : "Permanent employees have a fixed monthly salary (set up later). Only the overtime rate is stored here.") + '</p><div class="form-grid">' + hourly +
+      D.field({ id: "ot", label: "Overtime rate", opt: !temp, control: '<div class="rupee-input"><span class="unit-l">₹</span><input id="ot" class="input tnum" value="' + v.ot + '" inputmode="decimal" placeholder="For example 185"' + (errors ? ' aria-invalid="true" aria-describedby="ot-err"' : "") + ' /><span class="unit">per OT hour</span></div>', error: errors ? "The rate cannot be negative." : "", help: errors ? "" : "Paid for each hour worked after the shift's overtime start. Can be added later; the list shows \"Missing\" until then." }) +
+      (temp ? "" : '<div class="span2 field-hint" style="margin-top:-4px">' + D.icon("info") + "<span>Hourly rate and contractor are shown only when the type is Temporary.</span></div>") + "</div></section>";
+
+    // ---------- section 4: punch method (read-only) ----------
+    const sec4 = '<section class="form-sec"><h2 class="form-sec-title">' + D.icon("scan-line") + "How this person marks attendance</h2><p class=\"form-sec-desc\">Decided by the type. It cannot be changed here.</p>" +
+      '<div class="punch-read"><span class="pi">' + D.icon(v.type === "permanent" ? "scan-face" : "qr-code", 22) + '</span><div><b>' + (v.type === "permanent" ? "Face recognition at the gate kiosk" : "QR ID card shown to the gate kiosk") + '</b><div class="muted" style="font-size:13.5px">' + (v.type === "permanent" ? "An admin enrols the face later, with the employee's consent." : "A QR ID card is issued later. A photo is saved at every QR punch for admin review.") + "</div></div>" + '<span class="badge badge-neutral" style="margin-left:auto">' + D.icon("lock") + "Read-only</span></div></section>";
+
+    const foot = '<div class="form-foot"><a class="btn btn-outline btn-lg" href="D1-employees.html">Cancel</a><span class="spacer-grow"></span>' +
+      (D.has("pending") ? '<span class="muted" style="font-size:13.5px">Saving is switched off while a change waits.</span>' : "") +
+      '<button class="btn btn-primary btn-lg"' + (saving ? ' aria-busy="true"' : "") + (D.has("pending") ? " disabled" : "") + ">" + (saving ? D.spinner + (isCh ? "Sending…" : "Saving…") : sx) + "</button></div>";
+
+    // ---------- side column ----------
+    let side;
+    if (isEdit) {
+      side = '<div class="card card-pad side-card"><h3>Your changes</h3><div class="space-y-3" style="display:grid;gap:10px;font-size:14px">' +
+        '<div><div class="muted" style="font-size:12.5px">Overtime rate</div><span class="inline-diff"><span class="b tnum">₹185/h</span>' + D.icon("arrow-right") + '<span class="a tnum">₹195/h</span></span></div>' +
+        '<div><div class="muted" style="font-size:12.5px">Department</div><span class="inline-diff"><span class="b">Press shop</span>' + D.icon("arrow-right") + '<span class="a">Quality</span></span></div></div>' +
+        '<div class="field-hint" style="margin-top:14px">' + D.icon("info") + "<span>2 fields changed. Everything else stays as it is.</span></div></div>";
+    } else {
+      side = '<div class="card card-pad side-card"><h3>What happens next</h3><ul class="side-list">' +
+        "<li>" + D.icon("circle-check") + "<span>The person appears in the list at once" + (isCh ? " <b>after the Super Admin approves</b>" : "") + ".</span></li>" +
+        "<li>" + D.icon(v.type === "permanent" ? "scan-face" : "qr-code") + "<span>" + (v.type === "permanent" ? "Next step: an admin enrols the face (a later update)." : "Next step: issue a QR ID card (a later update).") + "</span></li>" +
+        "<li>" + D.icon("scroll-text") + "<span>The change is written to the audit log with your name.</span></li></ul></div>";
+    }
+    side += '<div class="card card-pad side-card" style="margin-top:14px;background:#fafbfc"><h3>' + D.icon("shield", 16, "color:var(--primary)") + "Privacy</h3><p class=\"muted\" style=\"margin:0;font-size:13.5px\">Upasthiti does not store employees' phone numbers or addresses. Only what is on this form.</p></div>";
+
+    document.getElementById("page").innerHTML = head + top +
+      '<div class="split2 wide-side anim-fade-up anim-delay-1"><form class="card" style="overflow:hidden" onsubmit="return false" novalidate>' + sec1 + sec2 + sec3 + sec4 + foot + '</form><aside class="sticky-side" aria-label="Help">' + side + "</aside></div>";
+  }
+
+  window.onMockState = function () {
+    D.patchShell();
+    render();
+    const titles = { temporary: "new temporary worker", edit: "edit existing person (code and plant locked)", errors: "3 field errors", saving: "saving", "server-error": "server error", pending: "edit blocked: change already waiting", loading: "loading" };
+    const key = Object.keys(titles).filter(D.has)[0];
+    D.tag((key ? titles[key] : "new permanent employee") + " · " + D.roleName);
+  };
+</script>
+</body>
+</html>

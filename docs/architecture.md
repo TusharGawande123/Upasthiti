@@ -1,7 +1,7 @@
 # Upasthiti – Architecture
 
 Status: Approved (Part B planning, 2026-10-11; updated 2026-10-12 with the client's answers,
-decision 0004: phone punching in M4b, three roles, free tiers stay unless they are not enough). Stack details: docs/decisions/0001-tech-stack.md.
+decision 0004: phone punching in M4b, three roles, free tiers stay unless they are not enough; updated 2026-10-13 with decision 0005: final roles, no network allow-list, location required for every kiosk). Stack details: docs/decisions/0001-tech-stack.md.
 Hosting: docs/decisions/0002-hosting.md. Requirements: docs/SRS.md.
 
 ## 1. Big picture
@@ -43,7 +43,7 @@ Principles:
   needed.
 
 ## 2. Kiosk registration (pairing)
-1. HR/plant admin creates a kiosk → `POST /api/v1/kiosks` → server returns a 6-digit
+1. A Super Admin or the Plant Head creates a kiosk → `POST /api/v1/kiosks` → server returns a 6-digit
    one-time pairing code (stored hashed, valid 10 minutes, single use).
 2. On the tablet, open `/kiosk`. The page:
    - generates an ECDSA P-256 key pair with WebCrypto (`extractable: false`, stored in
@@ -53,9 +53,10 @@ Principles:
      position and accuracy.
 3. The server checks:
    - the code is valid and unused;
-   - the GPS accuracy is within the limit;
-   - the position is inside the plant geofence;
-   - the IP is in the plant allow-list (if one is set).
+   - an accurate location (within the accuracy limit) must be inside the plant geofence;
+     an accurate location outside is refused;
+   - a location is required from every kiosk (location switched on, phone or PC)
+     (decision 0005; no network / IP check, no approval route).
 
    It then stores the public key and marks the kiosk active. The admin's screen updates.
 4. **Every later kiosk request** carries `X-Kiosk-Id`, `X-Kiosk-Nonce` and `X-Kiosk-Signature`.
@@ -69,7 +70,7 @@ Principles:
    containing `{method: "qr", qr_payload, snapshot, gps, device_time, nonce, counter}`.
 3. The anti-proxy engine runs its rules in order. Each rule returns pass or a reason code:
    1. `DEVICE_SIGNATURE_INVALID` / `NONCE_REUSED` / `DEVICE_REVOKED`
-   2. `NETWORK_NOT_ALLOWED` (plant IP allow-list)
+   2. ~~`NETWORK_NOT_ALLOWED`~~ (dropped, decision 0005)
    3. `GPS_ACCURACY_TOO_LOW` / `OUTSIDE_GEOFENCE`
    4. `QR_SIGNATURE_INVALID` / `QR_EXPIRED` / `QR_REVOKED` / `EMPLOYEE_INACTIVE`
    5. `COOLDOWN_ACTIVE` (server clock)
@@ -101,7 +102,7 @@ Principles:
    5. 1:N match against the plant's decrypted templates. The best score must be at least
       the threshold **and** beat the second-best by the set margin.
       - If it does: accepted.
-      - If it is unsure: `NEED_EMPLOYEE_CODE`. The kiosk asks for the 4-digit code and
+      - If it is unsure: `NEED_EMPLOYEE_CODE`. The kiosk asks for the employee code and
         re-sends, and the server does a 1:1 match.
       - If it is clearly no match: `FACE_NOT_RECOGNISED`.
 4. Then cool-down and impossible travel, the IN/OUT decision, the punch row and the audit
@@ -157,17 +158,19 @@ Conventions:
 |---|---|---|
 | Organisation | `plants` | name, code, address, lat/lon, is_active |
 | | `geofences` | plant_id, shape (polygon/circle), geojson, buffer_m, version, is_current |
-| | `plant_networks` | plant_id, cidr, label |
+| | `employee_categories` | plant_id, name, is_active |
 | | `departments` | plant_id, name |
-| | `shifts` | plant_id, name, start_time, end_time, crosses_midnight, grace_min, half_day_min, ot_after_min, ot_rate |
+| | `shifts` | plant_id, name, start_time, end_time, crosses_midnight, grace_min, half_day_min, ot_after_min (OT rate is per employee) |
 | | `shift_assignments` | employee_id, shift_id, from_date, to_date |
 | | `holidays` | plant_id, date, name, is_paid |
 | | `settings` | key, value (typed JSON), updated_by |
 | People / access | `users` | name, email, password_hash (Argon2), role (super_admin / corporate_head / plant_head; decision 0004), is_active |
 | | `user_plant_access` | user_id, plant_id |
+| | `change_requests` | kind, employee_id, payload, status, requested_by, decided_by, decision_reason (Corporate Head changes awaiting Super Admin approval) |
+| | `employee_plant_history` | employee_id, plant_id, from_date, to_date |
 | | `sessions` | user_id, token_hash, expires_at, ip, user_agent |
 | | `contractors` | name, contact, is_active |
-| | `employees` | employee_code (4–6 digit), name, type (permanent/temporary), plant_id, department_id, contractor_id, punch_method (face/qr), phone_punch_enabled (M4b), hourly_rate, status (active/left), joined_on, left_on |
+| | `employees` | employee_code (company code, 1–12 chars), name, type (permanent/temporary), plant_id, category_id, department_id, contractor_id, punch_method (face/qr), phone_punch_enabled (M4b), hourly_rate, ot_rate_per_hour, status (active/left), joined_on, left_on |
 | Enrolment | `face_consents` | employee_id, text_version, language, given_at, recorded_by, withdrawn_at |
 | | `face_templates` | employee_id, model_id, ciphertext, nonce, key_id, created_at, deleted_at |
 | | `qr_credentials` | employee_id, card_serial, valid_from, valid_until, revoked_at, revoke_reason |
@@ -190,7 +193,7 @@ Conventions:
 | | `manual_deductions` | run_id, employee_id, kind (PF/ESIC/TDS/advance/other), amount, note, entered_by |
 
 Main relationships:
-- Plant 1–N: geofences, networks, departments, shifts, kiosks, employees.
+- Plant 1–N: geofences, departments, shifts, categories, kiosks, employees.
 - Employee 1–N: consents, templates, QR credentials, punches, attendance days.
 - Punch 1–0..1: snapshot.
 - Salary run 1–N: estimates and deductions.

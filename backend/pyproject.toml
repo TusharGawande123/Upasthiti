@@ -6,17 +6,26 @@ readme = "README.md"
 requires-python = ">=3.14,<3.15"
 dependencies = [
     "alembic>=1.20.0",
+    "apscheduler>=3.11,<4",
+    "argon2-cffi>=25.1.0",
+    "cryptography>=50.0.2",
     "fastapi>=0.143.0",
     "fastapi-cli>=0.0.32",
+    "openpyxl>=3.1.5",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.15.0",
+    "python-multipart>=0.0.32",
+    "segno>=1.6.6",
+    "shapely>=2.2.0",
     "sqlalchemy>=2.1.4",
     "tzdata>=2026.5",
     "uvicorn[standard]>=0.54.0",
+    "xlsxwriter>=3.2.9",
 ]
 
 [dependency-groups]
 dev = [
+    "faker>=40.43.0",
     "httpx2>=2.13.1",
     "pyright>=1.1.414",
     "pytest>=9.1.1",
@@ -32,7 +41,14 @@ target-version = "py314"
 # E/F: errors, I: import order, B: likely bugs, UP: modern syntax, N: naming, S: security
 select = ["E", "F", "I", "B", "UP", "N", "S", "SIM"]
 # Database migrations are generated code; asserts are normal in tests.
-per-file-ignores = { "tests/**" = ["S101"], "migrations/**" = ["E501"] }
+per-file-ignores = { "tests/**" = ["S101", "S105", "S106"], "migrations/**" = ["E501"] }
+
+[tool.ruff.lint.flake8-bugbear]
+# FastAPI reads Depends(...)/Query(...) in default arguments on purpose.
+extend-immutable-calls = [
+    "fastapi.Depends", "fastapi.Query", "fastapi.File", "fastapi.Form", "fastapi.Body",
+    "fastapi.Path", "fastapi.Header", "app.modules.auth.dependencies.require",
+]
 
 [tool.pyright]
 pythonVersion = "3.14"
@@ -43,7 +59,7 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=60"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=70"
 
 [tool.coverage.run]
 branch = true

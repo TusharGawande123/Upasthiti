@@ -1,0 +1,218 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate D – Screen D3: Employee detail + timeline (/admin/employees/:id).
+  Person is chosen by state: (none) 1042 Pradeep Jadhav, permanent, a change waiting · #temporary (2041 Ravi Patil) ·
+  #left (1077 Meena Shinde, shows Reactivate) · #scheduled (2042 Sagar Pawar, transfer on a future date).
+  Dialogs: #transfer · #transfer-errors · #left-dialog (mark as left) · #reactivate.
+  Other: #loading · #error · #not-found. Roles: +ch Corporate Head (Edit, Transfer via approval; no Mark as left) ·
+  +ph Plant Head (read-only). Example: #left-dialog+temporary. MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Employee detail</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="../gate-bc/bc.css" />
+  <link rel="stylesheet" href="d.css" />
+</head>
+<body data-active="employees">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="../gate-a/shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script>
+  // ---------- the people used in this mockup (invented) ----------
+  const PEOPLE = {
+    base: {
+      code: "1042", name: "Pradeep Jadhav", type: "permanent", plant: "K134", plantName: "Sheet Shapers India Pvt Ltd (K-134)", cat: "Operator", dep: "Press shop", shift: "General 07:00–19:00",
+      ot: "₹185/h", hourly: null, contractor: null, joined: "02/04/2019", status: "active", pending: true,
+      plants: [["K134", "Sheet Shapers (K-134)", "09/10/2026", "now", "current"], ["X280", "Sheet Shapers (X-280)", "02/04/2019", "08/10/2026", "past"]],
+      shifts: [["General 07:00–19:00", "12/10/2026", "now", "K134", "Asha Rao"], ["Night 19:00–07:00", "02/04/2019", "11/10/2026", "X280, then K134", "Imported"]],
+      events: [
+        { tone: "warning", icon: "hourglass", title: "Edit sent for approval", meta: "14/10/2026 11:20 · Vikram Deshmukh (Corporate Head)", diff: [["Overtime rate", "₹185/h", "₹195/h"], ["Department", "Press shop", "Quality"]], note: "Waiting for the Super Admin. <a class=\"link\" href=\"D5-approvals.html#edit\">Open the request</a>" },
+        { tone: "primary", icon: "clock-3", title: "Shift changed", meta: "12/10/2026 16:05 · Asha Rao (Super Admin)", diff: [["Shift", "Night 19:00–07:00", "General 07:00–19:00"]], note: "Press line B moved to day shift." },
+        { tone: "primary", icon: "arrow-left-right", title: "Transferred to K134", meta: "09/10/2026 10:40 · Asha Rao (Super Admin)", diff: [["Plant", "X280", "K134"], ["Category", "Worker", "Operator"]], note: "Moved with the press line." },
+        { tone: "neutral", icon: "pencil", title: "Details edited", meta: "07/10/2026 14:15 · Asha Rao (Super Admin)", diff: [["Overtime rate", "₹170/h", "₹185/h"]] },
+        { tone: "success", icon: "user-plus", title: "Added to Upasthiti", meta: "06/10/2026 12:02 · Asha Rao (Super Admin) · Excel import", note: "Joined on 02/04/2019 at X280, category Worker, Night shift." },
+      ],
+    },
+    temporary: {
+      code: "2041", name: "Ravi Patil", type: "temporary", plant: "TP1", plantName: "Tirupati Pressco, Unit 1", cat: "Helper", dep: "Fabrication", shift: "Night 19:00–07:00",
+      ot: "₹120/h", hourly: "₹95/h", contractor: "Shree Samarth Manpower", joined: "21/06/2026", status: "active", pending: false,
+      plants: [["TP1", "Tirupati Pressco, Unit 1", "21/06/2026", "now", "current"]],
+      shifts: [["Night 19:00–07:00", "10/10/2026", "now", "TP1", "Asha Rao"], ["General 07:00–19:00", "21/06/2026", "09/10/2026", "TP1", "Imported"]],
+      events: [
+        { tone: "primary", icon: "clock-3", title: "Shift changed", meta: "10/10/2026 09:30 · Asha Rao (Super Admin)", diff: [["Shift", "General 07:00–19:00", "Night 19:00–07:00"]], note: "Moved to the night press crew." },
+        { tone: "neutral", icon: "pencil", title: "Details edited", meta: "08/10/2026 15:48 · Asha Rao (Super Admin)", diff: [["Contractor", "Omkar Labour Services", "Shree Samarth Manpower"]] },
+        { tone: "success", icon: "user-plus", title: "Added to Upasthiti", meta: "06/10/2026 12:02 · Asha Rao (Super Admin) · Excel import", note: "Joined on 21/06/2026 at TP1, category Helper." },
+      ],
+    },
+    left: {
+      code: "1077", name: "Meena Shinde", type: "permanent", plant: "K134", plantName: "Sheet Shapers India Pvt Ltd (K-134)", cat: "Worker", dep: "Press shop", shift: "General 07:00–19:00",
+      ot: "₹150/h", hourly: null, contractor: null, joined: "15/07/2020", status: "left", leftOn: "10/10/2026", pending: false,
+      plants: [["K134", "Sheet Shapers (K-134)", "15/07/2020", "10/10/2026", "past"]],
+      shifts: [["General 07:00–19:00", "15/07/2020", "10/10/2026", "K134", "Imported"]],
+      events: [
+        { tone: "danger", icon: "log-out", title: "Marked as left", meta: "11/10/2026 10:05 · Asha Rao (Super Admin)", diff: [["Status", "Active", "Left"], ["Left on", "—", "10/10/2026"]], note: "Reason: Resigned. Last working day 10/10/2026." },
+        { tone: "success", icon: "user-plus", title: "Added to Upasthiti", meta: "06/10/2026 12:02 · Asha Rao (Super Admin) · Excel import", note: "Joined on 15/07/2020 at K134, category Worker." },
+      ],
+    },
+    scheduled: {
+      code: "2042", name: "Sagar Pawar", type: "temporary", plant: "TP1", plantName: "Tirupati Pressco, Unit 1", cat: "Operator", dep: "Fabrication", shift: "General 07:00–19:00",
+      ot: "₹140/h", hourly: "₹120/h", contractor: "Omkar Labour Services", joined: "03/03/2026", status: "active", pending: false,
+      plants: [["K134", "Sheet Shapers (K-134)", "20/10/2026", "future", "future"], ["TP1", "Tirupati Pressco, Unit 1", "03/03/2026", "19/10/2026", "current"]],
+      shifts: [["General 07:00–19:00", "03/03/2026", "now", "TP1", "Imported"]],
+      events: [
+        { tone: "warning", icon: "calendar-clock", title: "Transfer to K134 scheduled", meta: "14/10/2026 10:42 · Asha Rao (Super Admin)", diff: [["Plant", "TP1", "K134 (from 20/10/2026)"], ["Department", "Fabrication", "Press shop"]], note: "Approved from the request of Neha Kulkarni. Starts in 6 days; until then he can punch only at TP1." },
+        { tone: "success", icon: "user-plus", title: "Added to Upasthiti", meta: "06/10/2026 12:02 · Asha Rao (Super Admin) · Excel import", note: "Joined on 03/03/2026 at TP1, category Operator." },
+      ],
+    },
+  };
+  const P = D.has("temporary") ? PEOPLE.temporary : D.has("left") || D.has("reactivate") ? PEOPLE.left : D.has("scheduled") ? PEOPLE.scheduled : PEOPLE.base;
+  const isLeft = P.status === "left";
+
+  function timeline(events) {
+    return '<ol class="tl" aria-label="Timeline, newest first">' + events.map(function (e, i) {
+      const diff = e.diff ? '<div class="tl-detail">' + e.diff.map(function (d) { return '<div style="margin-top:4px;font-size:13px"><span class="muted">' + d[0] + ':&nbsp;</span><span class="inline-diff"><span class="b">' + d[1] + "</span>" + D.icon("arrow-right") + '<span class="a">' + d[2] + "</span></span></div>"; }).join("") + "</div>" : "";
+      return '<li class="tl-item"><span class="tl-dot td-' + e.tone + '">' + D.icon(e.icon) + '</span><div class="tl-body"><div class="tl-title">' + e.title + '</div><div class="tl-meta tnum">' + e.meta + "</div>" + diff + (e.note ? '<div class="tl-note">' + e.note + "</div>" : "") + "</div></li>";
+    }).join("") + "</ol>";
+  }
+
+  function plantHistory(rows) {
+    return rows.map(function (r) {
+      const state = r[4];
+      const badge = state === "current" ? '<span class="badge badge-success">' + D.icon("circle-check") + "Current</span>" : state === "future" ? '<span class="badge badge-warning">' + D.icon("calendar-clock") + "Scheduled</span>" : '<span class="badge badge-neutral">' + D.icon("history") + "Past</span>";
+      return '<div class="ph-row is-' + state + '"><span class="ph-code code">' + r[0] + '</span><div style="min-width:0"><b>' + r[1] + '</b><div class="muted tnum" style="font-size:13px">' + (r[3] === "future" ? "Starts " + r[2] : r[3] === "now" ? "Since " + r[2] : r[2] + " to " + r[3]) + "</div></div>" + badge + "</div>";
+    }).join("");
+  }
+
+  function render() {
+    const isCh = D.role === "ch", isPh = D.role === "ph", isSa = D.role === "sa";
+    const page = document.getElementById("page");
+    const crumbs = D.crumb([{ text: "Employees", href: "D1-employees.html" }, { text: D.has("loading") || D.has("error") || D.has("not-found") ? "Employee" : P.code + " " + P.name }]);
+
+    if (D.has("loading")) {
+      const sk = function (w, h) { return '<div class="skeleton" style="height:' + h + "px;width:" + w + ';border-radius:10px"></div>'; };
+      page.innerHTML = '<nav class="crumbs">' + crumbs + '</nav><div class="card card-pad" aria-busy="true"><div class="profile-head">' + sk("72px", 72).replace("10px", "99px") + '<div style="display:grid;gap:10px">' + sk("260px", 24) + sk("380px", 16) + "</div></div></div>" +
+        '<div class="split2 wide-side" style="margin-top:20px"><div class="card card-pad" style="display:grid;gap:14px">' + [0, 1, 2, 3, 4, 5].map(function () { return sk("100%", 20); }).join("") + '</div><div class="card card-pad" style="display:grid;gap:18px">' + [0, 1, 2, 3].map(function () { return sk("100%", 54); }).join("") + "</div></div>";
+      return;
+    }
+    if (D.has("error") || D.has("not-found")) {
+      const nf = D.has("not-found");
+      page.innerHTML = '<nav class="crumbs">' + crumbs + '</nav><div class="card empty" style="margin-top:12px"><div class="empty-icon" style="color:' + (nf ? "var(--primary)" : "var(--danger)") + '">' + D.icon(nf ? "user-x" : "cloud-off") + "</div><h2>" + (nf ? "This employee was not found" : "Could not load this employee") + "</h2><p>" + (nf ? "The link may be old, or this person is in a plant you cannot see. <span class=\"err-code code\">EMPLOYEE_NOT_FOUND</span>" : "Check the internet connection and try again. Nothing was changed.") + '</p><div class="flex justify-center gap-2" style="margin-top:20px">' + (nf ? "" : '<button class="btn btn-primary btn-lg">' + D.icon("rotate-cw", 18) + "Try again</button>") + '<a class="btn btn-outline btn-lg" href="D1-employees.html">' + D.icon("arrow-left", 18) + "Back to employees</a></div></div>";
+      return;
+    }
+
+    // ---------- header ----------
+    let actions = "";
+    if (!isPh) {
+      if (isLeft) actions = isSa ? '<button class="btn btn-primary btn-lg">' + D.icon("rotate-ccw", 18) + "Reactivate</button>" : "";
+      else {
+        actions = '<a class="btn btn-outline btn-lg" href="D2-employee-form.html#edit' + (isCh ? "+ch" : "") + '">' + D.icon("pencil", 18) + "Edit</a>" +
+          '<button class="btn btn-outline btn-lg">' + D.icon("arrow-left-right", 18) + "Transfer to another plant</button>" +
+          (isSa ? '<button class="btn btn-danger-outline btn-lg">' + D.icon("log-out", 18) + "Mark as left</button>" : "");
+      }
+    }
+    const typeLine = D.typeBadge(P.type) + (isLeft ? '<span class="badge badge-neutral">' + D.icon("log-out") + "Left on " + P.leftOn + "</span>" : '<span class="badge badge-success">' + D.icon("circle-check") + "Active</span>") +
+      '<span class="badge badge-outline"><b class="code">' + P.plant + "</b>&nbsp;" + P.plantName + "</span>";
+    const header = '<div class="card card-pad anim-fade-up"><div class="profile-head"><span class="avatar avatar-xl"' + (isLeft ? ' style="background:var(--muted);color:var(--muted-foreground);border-color:var(--border-strong)"' : "") + ">" + D.initials(P.name) + '</span><div style="flex:1;min-width:260px"><div class="muted code" style="font-size:13px;font-weight:600">Employee code ' + P.code + '</div><h1 class="page-title" style="margin:2px 0 8px">' + P.name + '</h1><div class="flex gap-2 flex-wrap">' + typeLine + "</div></div>" +
+      '<div class="flex gap-2 flex-wrap" style="margin-left:auto">' + actions + "</div></div></div>";
+
+    // ---------- banners ----------
+    let banners = "";
+    if (isPh) banners += window.readOnlyBannerD("You see only the employees of X280. Ask the Super Admin for any change.");
+    if (isCh && !isLeft) banners += '<div style="margin-top:14px">' + D.waitNote("Edit and Transfer are sent to the approvals inbox first.") + "</div>";
+    if (P.pending && !isLeft) banners += '<div class="alert alert-warning" role="status" style="margin-top:14px">' + D.icon("hourglass", 20) + '<div style="flex:1"><b>A change is waiting for the Super Admin.</b><div>Vikram Deshmukh asked to change the overtime rate and the department on 14/10/2026 at 11:20. The details below show the current values until it is approved.</div></div>' + (isSa ? '<a class="btn btn-primary btn-sm" href="D5-approvals.html#edit">' + D.icon("inbox", 15) + "Review request</a>" : '<a class="btn btn-outline btn-sm" href="D5-approvals.html#mine+ch">' + D.icon("send", 15) + "My requests</a>") + "</div>";
+    if (isLeft) banners += '<div class="alert alert-info" role="note" style="margin-top:14px">' + D.icon("archive", 20) + "<div><b>This person left on " + P.leftOn + ".</b> Their records stay for the Labour Codes. Nothing is ever deleted. " + (isSa ? "If they come back, press Reactivate." : "Only the Super Admin can reactivate.") + "</div></div>";
+    if (P === PEOPLE.scheduled) banners += '<div class="alert alert-info" role="status" style="margin-top:14px">' + D.icon("calendar-clock", 20) + "<div><b>Transfer to K134 starts on 20/10/2026 (in 6 days).</b> Until then Sagar Pawar punches at TP1. From that day he punches at K134 and past months stay with TP1.</div></div>";
+
+    // ---------- details ----------
+    const kv = function (k, v) { return '<div class="kv"><dt>' + k + "</dt><dd>" + v + "</dd></div>"; };
+    const details = '<section class="card anim-fade-up anim-delay-1"><div class="card-head"><h2 class="card-title">Details</h2><span class="badge badge-neutral">' + D.icon(P.type === "permanent" ? "scan-face" : "qr-code") + (P.type === "permanent" ? "Marks with face" : "Marks with QR card") + '</span></div><div class="card-pad"><dl class="kv-card" style="margin:0">' +
+      kv("Employee code", '<span class="code big-code">' + P.code + "</span>") + kv("Joined on", '<span class="tnum">' + P.joined + "</span>") +
+      kv("Full name", P.name) + kv("Type", P.type === "permanent" ? "Permanent" : "Temporary (hourly)") +
+      kv("Plant", '<b class="code">' + P.plant + "</b> " + P.plantName) + kv("Category", P.cat) +
+      kv("Department", P.dep) + kv("Shift", P.shift) +
+      (P.type === "temporary" ? kv("Contractor", P.contractor) + kv("Hourly rate", '<span class="tnum">' + P.hourly + "</span>") : "") +
+      kv("OT rate", '<span class="tnum">' + P.ot + "</span>") + kv("Punch method", P.type === "permanent" ? "Face recognition" : "QR ID card") +
+      "</dl></div></section>";
+
+    const plantCard = '<section class="card anim-fade-up anim-delay-2"><div class="card-head"><h2 class="card-title">Plant history</h2><span class="tab-note">Reports use this, so past months stay with the old plant</span></div><div class="card-pad" style="padding-top:6px;padding-bottom:6px">' + plantHistory(P.plants) + "</div></section>";
+    const shiftCard = '<section class="card anim-fade-up anim-delay-3" style="overflow:hidden"><div class="card-head"><h2 class="card-title">Shift history</h2></div><div style="overflow-x:auto"><table class="table hist-table"><thead><tr><th scope="col">Shift</th><th scope="col">From</th><th scope="col">To</th><th scope="col">Plant</th><th scope="col">Set by</th></tr></thead><tbody>' +
+      P.shifts.map(function (r, i) { return "<tr" + (i === 0 && !isLeft ? ' class="sel-row"' : "") + "><td><b>" + r[0] + "</b>" + (i === 0 && !isLeft ? ' <span class="badge badge-success" style="margin-left:6px">' + D.icon("circle-check") + "Current</span>" : "") + '</td><td class="tnum">' + r[1] + '</td><td class="tnum">' + (r[2] === "now" ? "Now" : r[2]) + "</td><td>" + r[3] + "</td><td>" + r[4] + "</td></tr>"; }).join("") + "</tbody></table></div></section>";
+
+    const tl = '<section class="card anim-fade-up anim-delay-1"><div class="card-head"><h2 class="card-title">Timeline</h2><span class="tab-note">Newest first · times in IST</span></div><div class="card-pad">' + timeline(P.events) + '</div><div class="table-foot" style="justify-content:flex-start;gap:8px">' + D.icon("scroll-text", 15) + 'Built from the audit log. <a class="link" style="font-weight:600" href="../gate-a/05-audit-log.html">Open the audit log</a></div></section>';
+
+    page.innerHTML = '<nav class="crumbs" aria-label="Breadcrumb">' + crumbs + "</nav>" + header + banners +
+      '<div class="split2 wide-side" style="margin-top:20px"><div style="display:grid;gap:20px;min-width:0">' + details + plantCard + shiftCard + "</div><div>" + tl + "</div></div>";
+  }
+
+  // ---------- dialogs ----------
+  function overlays() {
+    const isCh = D.role === "ch";
+    const submit = function (idle) { return isCh ? D.icon("send", 16) + "Send for approval" : idle; };
+    const wait = isCh ? '<div style="margin-bottom:14px">' + D.waitNote("Nothing changes until it is approved.") + "</div>" : "";
+
+    if (D.has("transfer") || D.has("transfer-errors")) {
+      const err = D.has("transfer-errors");
+      D.mount(D.dialog({
+        icon: "arrow-left-right", title: "Transfer " + P.name + " to another plant", desc: "He works at <b>" + P.plant + "</b> now. The plant never changes by editing; a transfer keeps the plant history right.", width: 640,
+        body: wait + (err ? '<div class="alert alert-danger anim-shake" role="alert" style="margin-bottom:14px">' + D.icon("circle-alert", 20) + "<div><b>2 things need fixing.</b></div></div>" : "") + '<div class="form-grid">' +
+          D.field({ id: "tp", label: "New plant", req: true, control: D.select("tp", ["TP1 · Tirupati Pressco, Unit 1", "K134 · Sheet Shapers India Pvt Ltd (K-134)", "X280 · Sheet Shapers India Pvt Ltd (X-280)", "PC1 · Precise Cuts India Pvt Ltd, Unit 1"], err ? "TP1 · Tirupati Pressco, Unit 1" : "X280 · Sheet Shapers India Pvt Ltd (X-280)", err ? ' aria-invalid="true" aria-describedby="tp-err"' : ""), error: err ? "He already works at TP1. Choose a different plant. <span class=\"err-code code\">TRANSFER_SAME_PLANT</span>" : "" }) +
+          D.field({ id: "tc", label: "Category at the new plant", req: true, control: D.select("tc", ["Operator", "Staff", "Worker", "Helper"], "Operator") }) +
+          D.field({ id: "td", label: "Department", opt: true, control: D.select("td", ["Press shop", "Assembly", "Laser cutting", "Dispatch"], "Press shop") }) +
+          D.field({ id: "ts", label: "Shift at the new plant", req: true, control: D.select("ts", ["General 07:00–19:00", "Night 19:00–07:00"], "General 07:00–19:00") }) +
+          '<div class="span2">' + D.field({ id: "te", label: "Effective from", req: true, control: '<input id="te" class="input tnum" style="max-width:240px" value="' + (err ? "20/01/2027" : "20/10/2026") + '" inputmode="numeric"' + (err ? ' aria-invalid="true" aria-describedby="te-err"' : "") + " />", error: err ? "At most 60 days from today (latest 12/12/2026). <span class=\"err-code code\">TRANSFER_DATE_INVALID</span>" : "", help: err ? "" : "Today or a later day, up to 60 days ahead. A future date is applied automatically on that day." }) + "</div>" +
+          '<div class="span2">' + D.field({ id: "tr", label: "Reason", req: true, control: '<textarea id="tr" class="input textarea" placeholder="Why is this person moving?">' + (err ? "" : "Press line B moves to X280 from 20/10.") + "</textarea>" }) + "</div></div>" +
+          '<div class="alert alert-info" style="margin-top:16px">' + D.icon("info", 20) + "<div>From the effective date he can punch only at the new plant. Reports for past months stay with " + P.plant + ".</div></div>",
+        foot: '<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">' + submit(D.icon("check", 16) + "Transfer") + "</button>",
+      }));
+    }
+    if (D.has("left-dialog")) {
+      D.mount(D.dialog({
+        icon: "log-out", tone: "di-danger", alert: true, title: "Mark " + P.name + " as left", desc: "Use this when the person has left the company. Only the Super Admin can do this.", width: 600,
+        body: '<div class="alert alert-warning" role="note" style="margin-bottom:16px">' + D.icon("triangle-alert", 20) + "<div><b>What happens</b><ul style=\"margin:6px 0 0 18px;padding:0;list-style:disc\"><li>He moves to the <b>Left</b> list and cannot punch.</li><li>His QR card is revoked" + (P.type === "permanent" ? " and his face template is deleted" : "") + " (from the attendance update).</li>" + (P.pending ? "<li><b>The change waiting for approval is closed</b> as \"Could not apply: employee has left\".</li>" : "") + "</ul></div></div>" +
+          '<div class="form-grid">' + D.field({ id: "lo", label: "Last working day", req: true, control: '<input id="lo" class="input tnum" value="14/10/2026" inputmode="numeric" />', help: "Cannot be before the joining date (" + P.joined + ")." }) + D.field({ id: "lr0", label: "Reason", req: true, control: D.select("lr0", ["Resigned", "Contract ended", "Terminated", "Absconded", "Retired", "Other"], "Resigned") }) +
+          '<div class="span2">' + D.field({ id: "lr", label: "Note", opt: true, control: '<textarea id="lr" class="input textarea" placeholder="Anything the audit log should remember"></textarea>' }) + "</div></div>" +
+          '<div class="field-hint" style="margin-top:14px">' + D.icon("archive") + "<span>Nothing is deleted. His attendance and audit history stay for the Labour Codes, and you can reactivate him later.</span></div>",
+        foot: '<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-lg" style="background:var(--danger);color:#fff">' + D.icon("log-out", 16) + "Mark as left</button>",
+      }));
+    }
+    if (D.has("reactivate")) {
+      D.mount(D.dialog({
+        icon: "rotate-ccw", tone: "di-success", title: "Reactivate " + P.name, desc: "Brings her back to the Active list at K134 with her old code 1077.", width: 580,
+        body: '<div class="form-grid">' + D.field({ id: "rj", label: "Back at work from", req: true, control: '<input id="rj" class="input tnum" value="15/10/2026" inputmode="numeric" />', help: "Her old joining date (15/07/2020) stays in the history." }) +
+          D.field({ id: "rs", label: "Shift", req: true, control: D.select("rs", ["General 07:00–19:00", "Night 19:00–07:00"], "General 07:00–19:00") }) +
+          '<div class="span2">' + D.field({ id: "rr", label: "Reason", req: true, control: '<textarea id="rr" class="input textarea">Rejoined after a break. Same code as before.</textarea>' }) + "</div></div>" +
+          '<div class="alert alert-info" style="margin-top:16px">' + D.icon("info", 20) + "<div>The new QR card or face enrolment is a separate step. The old ones stay revoked.</div></div>",
+        foot: '<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">' + D.icon("check", 16) + "Reactivate</button>",
+      }));
+    }
+    if (D.has("transfer") || D.has("transfer-errors") || D.has("left-dialog") || D.has("reactivate")) D.dim();
+  }
+
+  window.onMockState = function () {
+    D.patchShell();
+    render();
+    overlays();
+    const titles = { temporary: "temporary worker", left: "has left", scheduled: "future transfer scheduled", transfer: "Transfer dialog", "transfer-errors": "Transfer dialog with errors", "left-dialog": "Mark as left dialog", reactivate: "Reactivate dialog", loading: "loading", error: "could not load", "not-found": "not found" };
+    const key = Object.keys(titles).filter(D.has)[0];
+    D.tag((key ? titles[key] : "1042 with a change waiting") + " · " + D.roleName);
+  };
+  window.readOnlyBannerD = function (text) {
+    return '<div class="ro-banner" role="note" style="margin-top:14px;margin-bottom:0">' + D.icon("lock", 18) + "<span><b>Read-only.</b> " + text + "</span></div>";
+  };
+</script>
+</body>
+</html>

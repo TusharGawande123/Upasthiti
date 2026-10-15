@@ -1,0 +1,136 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate D – Screen D7: Global search / command palette (Ctrl+K), opens over any admin page.
+  States (URL hash, join with "+"): (none) just opened: recent items and pages · #one-char (1 character typed) ·
+  #typing (query "pr": employees + plants) · #kiosk (query "k134": plant + kiosks) · #no-result · #loading · #error ·
+  roles: +ph Plant Head (scoped to X280; try #typing+ph for query "10") · +ch Corporate Head (pages differ).
+  Press Ctrl+K on any gate D page to open this screen. MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Search</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="../gate-bc/bc.css" />
+  <link rel="stylesheet" href="d.css" />
+</head>
+<body data-active="employees">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="../gate-a/shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script>
+  const isPh = D.role === "ph", isCh = D.role === "ch";
+
+  // ---------- the page behind the palette: the employees list ----------
+  function backdrop() {
+    const rows = D.EMP.filter(function (e) { return e[9] === "active"; }).slice(0, 9).map(function (e) { return D.empRow(e, { selectable: true }); }).join("");
+    document.getElementById("page").innerHTML = D.pageHead({ title: "Employees", desc: "Everyone at Sheet Shapers, permanent and temporary." }) +
+      '<div class="card" style="overflow:hidden"><div style="overflow-x:auto"><table class="table emp rt">' + D.empTableHead({ selectable: true }) + "<tbody>" + rows + "</tbody></table></div></div>";
+  }
+
+  // ---------- one result row ----------
+  const mark = function (text, q) {
+    if (!q) return text;
+    const i = text.toLowerCase().indexOf(q.toLowerCase());
+    return i < 0 ? text : text.slice(0, i) + "<mark>" + text.slice(i, i + q.length) + "</mark>" + text.slice(i + q.length);
+  };
+  let optionNumber = 0;
+  function item(o) {
+    optionNumber += 1;
+    const id = "opt-" + optionNumber;
+    return '<div class="pal-item ' + (o.active ? "is-active" : "") + '" role="option" id="' + id + '" aria-selected="' + !!o.active + '"><span class="pi">' + D.icon(o.icon) + '</span><div class="t"><b>' + o.title + "</b><small>" + o.sub + "</small></div>" + (o.badge || "") + '<span class="enter">' + (o.verb || "Open") + ' <span class="kbd">↵</span></span></div>';
+  }
+  const group = function (label, icon, items) { return '<div role="group" aria-label="' + label + '"><div class="pal-group">' + D.icon(icon, 14) + label + "</div>" + items.join("") + "</div>"; };
+  const leftBadge = '<span class="badge badge-neutral" style="height:22px">' + D.icon("log-out") + "Left</span>";
+  const pending = '<span class="badge badge-warning" style="height:22px">' + D.icon("hourglass") + "Change waiting</span>";
+
+  const PAGES = isCh
+    ? [["layout-dashboard", "Dashboard", "Overview"], ["send", "My requests", "Changes you sent"], ["users", "Employees", "People"], ["file-spreadsheet", "Import", "Excel import"], ["hard-hat", "Contractors", "Read-only"], ["factory", "Plants", "Read-only"], ["tablet-smartphone", "Kiosks", "Read-only"]]
+    : isPh
+      ? [["users", "Employees", "Your plant X280, read-only"], ["factory", "X280 plant", "Details, shifts, geofence"], ["tablet-smartphone", "Kiosks", "Your plant's kiosks"]]
+      : [["layout-dashboard", "Dashboard", "Overview"], ["inbox", "Approvals", "4 waiting"], ["users", "Employees", "People"], ["file-spreadsheet", "Import", "Excel import"], ["hard-hat", "Contractors", "Agencies"], ["factory", "Plants", "7 plants"], ["tablet-smartphone", "Kiosks", "Gate devices"]];
+  const pageItems = function (filter, activeFirst) {
+    return PAGES.filter(function (p) { return !filter || p[1].toLowerCase().split(" ").some(function (w) { return w.indexOf(filter.toLowerCase()) === 0; }); }).map(function (p, i) { return item({ icon: p[0], title: mark(p[1], filter), sub: p[2], verb: "Go to", active: activeFirst && i === 0 }); });
+  };
+
+  function paletteHtml() {
+    let q = "", body = "", status = "";
+    const scope = isPh ? '<span class="scope-chip">' + D.icon("factory") + "X280 only</span>" : '<span class="scope-chip">' + D.icon("factory") + "All plants</span>";
+    let live = "";
+    if (D.has("one-char")) {
+      q = "p";
+      body = '<div class="alert alert-info" style="margin:8px;border-radius:10px">' + D.icon("info", 20) + "<div><b>Type at least 2 characters to find people.</b> Pages and plants already match.</div></div>" + group("Pages", "layout-panel-left", pageItems("p", true));
+      live = "Type at least 2 characters to search people";
+    } else if (D.has("typing") && isPh) {
+      q = "10";
+      const rows = [["1055", "Kavita More", "Worker · Assembly"], ["1063", "Nilesh Bhosale", "Operator · Laser cutting"], ["1071", "Dinesh Gaikwad", "Staff · Dispatch"], ["1079", "Komal Ingle", "Worker · Assembly"], ["1084", "Vishal Gore", "Operator · Press shop"]];
+      body = group("Employees of X280", "users", rows.map(function (r, i) { return item({ icon: "user-round", title: '<span class="code">' + mark(r[0], "10") + "</span> " + r[1], sub: "X280 · " + r[2], active: i === 0 }); })) +
+        '<div class="pal-group" style="padding-top:12px">' + D.icon("lock", 14) + "Search is limited to your plant, X280</div>";
+      live = "5 results";
+    } else if (D.has("typing")) {
+      q = "pr";
+      body = group("Employees", "users", [
+        item({ icon: "user-round", title: mark("Pradeep Jadhav", "pr") + ' <span class="muted code" style="font-weight:500">1042</span>', sub: "K134 · Operator · Press shop", badge: pending, active: true }),
+        item({ icon: "user-round", title: mark("Prakash Nikam", "pr") + ' <span class="muted code" style="font-weight:500">1102</span>', sub: "SPI · Worker · Press shop", badge: leftBadge }),
+      ]) + group("Plants", "factory", [
+        item({ icon: "factory", title: '<span class="code">PC1</span> ' + mark("Precise Cuts India Pvt Ltd, Unit 1", "pr"), sub: "96 people · 1 kiosk" }),
+        item({ icon: "factory", title: '<span class="code">PC2</span> ' + mark("Precise Cuts India Pvt Ltd, Unit 2", "pr"), sub: "74 people · 1 kiosk" }),
+      ]);
+      live = "4 results";
+    } else if (D.has("kiosk")) {
+      q = "k134";
+      body = group("Plants", "factory", [item({ icon: "factory", title: '<span class="code">' + mark("K134", "k134") + "</span> Sheet Shapers India Pvt Ltd (K-134)", sub: "142 people · 2 kiosks", active: true })]) +
+        group("Kiosks", "tablet-smartphone", [
+          item({ icon: "tablet-smartphone", title: mark("K134 Main gate tablet", "k134"), sub: "K134 · Paired", badge: '<span class="badge badge-success" style="height:22px">' + D.icon("circle-check") + "Paired</span>" }),
+          item({ icon: "monitor", title: mark("K134 Side gate PC", "k134"), sub: "K134 · Waiting for the pairing code", badge: '<span class="badge badge-warning" style="height:22px">' + D.icon("hourglass") + "Waiting</span>" }),
+        ]);
+      live = "3 results";
+    } else if (D.has("no-result")) {
+      q = "zzq";
+      body = '<div class="pal-empty"><div class="empty-icon">' + D.icon("search-x") + '</div><h2 style="font-size:18px;margin:0 0 6px">No results for "zzq"</h2><p class="muted" style="margin:0 auto;max-width:44ch">Try the first letters of a name, or the employee code. Check the spelling.' + (isPh ? " You can search only the people of X280." : "") + '</p><div class="flex justify-center gap-2" style="margin-top:16px"><a class="btn btn-outline" href="D1-employees.html">' + D.icon("users", 16) + "Open the full employee list</a></div></div>";
+      live = "No results";
+    } else if (D.has("loading")) {
+      q = "ra";
+      body = '<div aria-busy="true">' + new Array(5).join('<div class="pal-item"><span class="pi skeleton" style="background:none"></span><div class="t"><div class="skeleton" style="height:14px;width:55%;margin-bottom:6px"></div><div class="skeleton" style="height:12px;width:35%"></div></div></div>') + "</div>";
+      live = "Searching";
+    } else if (D.has("error")) {
+      q = "ra";
+      body = '<div class="alert alert-danger" role="alert" style="margin:8px;border-radius:10px">' + D.icon("circle-alert", 20) + '<div style="flex:1"><b>Search did not work.</b><div>Check the internet connection. You can still use the pages below.</div></div><button class="btn btn-outline btn-sm">' + D.icon("rotate-cw", 15) + "Try again</button></div>" + group("Pages", "layout-panel-left", pageItems("", false).slice(0, 3));
+      live = "Search failed";
+    } else {
+      body = '<div class="pal-group" style="padding-top:8px">' + D.icon("history", 14) + "Recent</div>" +
+        [item({ icon: "user-round", title: 'Ravi Patil <span class="muted code" style="font-weight:500">2041</span>', sub: "TP1 · Helper · Fabrication", active: true }), item({ icon: "factory", title: '<span class="code">TP1</span> Tirupati Pressco, Unit 1', sub: "130 people · 2 kiosks" })].join("") +
+        group("Go to", "layout-panel-left", pageItems("", false).slice(0, 5)) +
+        '<div class="field-hint" style="padding:8px 10px 6px">' + D.icon("info") + "<span>Type 2 or more characters to find an employee by code or name.</span></div>";
+      live = "Recent items and pages";
+    }
+    const hasActive = body.indexOf("is-active") !== -1;
+    return '<div class="overlay" style="z-index:55"></div><div class="palette anim-fade-up" style="z-index:60" role="dialog" aria-modal="true" aria-label="Search">' +
+      '<div class="pal-input">' + D.icon("search") + '<input type="text" role="combobox" aria-expanded="true" aria-controls="pal-list" aria-activedescendant="' + (hasActive ? "opt-1" : "") + '" aria-label="Search employees, plants, kiosks and pages" placeholder="Search employees, plants, kiosks, pages…" value="' + q + '" autocomplete="off" />' + scope + '<span class="kbd">Esc</span></div>' +
+      '<div class="pal-list" id="pal-list" role="listbox" aria-label="Results">' + body + '</div><div class="sr-only" role="status" aria-live="polite">' + live + "</div>" +
+      '<div class="pal-foot"><span><span class="kbd">↑</span><span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span><span class="kbd">Esc</span> close</span><span style="margin-left:auto">' + (isPh ? "Only X280 shown" : "Employees by code or name · max 8") + "</span></div></div>";
+  }
+
+  window.onMockState = function () {
+    D.patchShell();
+    backdrop();
+    D.mount(paletteHtml());
+    const titles = { "one-char": "1 character typed", typing: "typing", kiosk: "plant and kiosk results", "no-result": "no result", loading: "searching", error: "search failed" };
+    const key = Object.keys(titles).filter(D.has)[0];
+    D.tag("Ctrl+K · " + (key ? titles[key] : "just opened") + " · " + D.roleName);
+  };
+</script>
+</body>
+</html>

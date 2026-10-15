@@ -1,0 +1,191 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate B – Screen B3: Plant detail (/admin/plants/:id) with tabs.
+  States (URL hash; join with "+"): (none) Overview as Super Admin · #plant-head read-only view
+  (Plant Head of TP2) · #departments · #categories · #kiosks (empty, "Add kiosk") ·
+  e.g. #categories+plant-head. Geofence = B4-geofence.html, Shifts = B5-shifts.html.
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Plant TP2</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <style>
+    .ov { display: grid; grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    @media (max-width: 1100px) { .ov { grid-template-columns: 1fr; } }
+    .ready-head { display: flex; align-items: center; gap: 16px; padding: 20px 22px; border-bottom: 1px solid var(--border); }
+    .ready-ring { position: relative; width: 64px; height: 64px; flex: none; }
+    .ready-ring svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+    .ready-ring b { position: absolute; inset: 0; display: grid; place-items: center; font-size: 15px; font-weight: 750; }
+    @media (prefers-reduced-motion: no-preference) { .ready-ring .arc { animation: arc 1s var(--ease-out) both 250ms; } }
+    @keyframes arc { from { stroke-dashoffset: 176; } }
+    .mini-map { position: relative; height: 180px; border-radius: 12px; overflow: hidden; border: 1px solid var(--border); background: #eef2e8; }
+    .count-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border-top: 1px solid var(--border); }
+    .count-grid div { background: var(--surface); padding: 12px 16px; }
+    .count-grid b { display: block; font-size: 20px; font-weight: 750; }
+    .count-grid span { font-size: 12.5px; color: var(--muted-foreground); }
+    .add-inline { display: flex; gap: 8px; padding: 14px 16px; border-top: 1px solid var(--border); background: #fafbfc; }
+  </style>
+</head>
+<body data-active="plants">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page">
+      <div id="plant-header" class="anim-fade-up"></div>
+      <div id="tab-body" class="anim-fade-up anim-delay-1"></div>
+    </main>
+  </div>
+</div>
+
+<div class="state-tag" id="state-tag">State: Overview · Super Admin</div>
+<script src="../gate-a/shell.js"></script>
+<script src="plant.js"></script>
+<script>
+  // Mockup only.
+  function overview(readOnly) {
+    const kioskAction = '<a class="btn btn-primary btn-sm act" href="C1-kiosks.html#add"><i data-lucide="plus" style="width:15px;height:15px"></i>Add kiosk</a>';
+    const employeeAction = readOnly
+      ? '<span class="act muted" style="font-size:13px">Added by the Super Admin</span>'
+      : '<a class="btn btn-outline btn-sm act" href="#">Add employees</a>';
+    const banner = readOnly ? window.readOnlyBanner("You can view this plant. Only the Super Admin can change its details, geofence, shifts and categories. You can add and manage this plant's kiosks.") : "";
+    return `${banner}
+    <div class="ov">
+      <section class="card" aria-labelledby="ready-title">
+        <div class="ready-head">
+          <div class="ready-ring" aria-hidden="true">
+            <svg viewBox="0 0 64 64"><circle cx="32" cy="32" r="28" fill="none" stroke="var(--muted)" stroke-width="7"/>
+              <circle class="arc" cx="32" cy="32" r="28" fill="none" stroke="var(--primary)" stroke-width="7" stroke-linecap="round" stroke-dasharray="176" stroke-dashoffset="70"/></svg>
+            <b class="tnum">3/5</b>
+          </div>
+          <div style="flex:1">
+            <h2 id="ready-title" class="card-title" style="font-size:18px">Ready for attendance?</h2>
+            <p class="muted" style="margin:2px 0 0;font-size:13.5px">A plant is ready when all five checks pass. Worked out live from the plant's data.</p>
+          </div>
+          <span class="badge badge-warning" style="height:30px;font-size:13.5px"><i data-lucide="triangle-alert"></i>Not ready · 2 left</span>
+        </div>
+        <div style="padding:6px 22px 10px">
+          <div class="check-row"><span class="check-icon ci-ok"><i data-lucide="check"></i></span>
+            <div class="check-text"><b>Geofence</b><span>Version 2 · polygon · margin 25 m</span></div><a class="btn btn-ghost btn-sm act" href="B4-geofence.html">View</a></div>
+          <div class="check-row"><span class="check-icon ci-ok"><i data-lucide="check"></i></span>
+            <div class="check-text"><b>Shifts</b><span class="tnum">2 active: General 07:00–19:00 · Night 19:00–07:00</span></div><a class="btn btn-ghost btn-sm act" href="B5-shifts.html">View</a></div>
+          <div class="check-row"><span class="check-icon ci-ok"><i data-lucide="check"></i></span>
+            <div class="check-text"><b>Employee categories</b><span>4 active: Staff, Worker, Operator, Helper</span></div><a class="btn btn-ghost btn-sm act" href="#categories">View</a></div>
+          <div class="check-row"><span class="check-icon ci-no"><i data-lucide="x"></i></span>
+            <div class="check-text"><b>Kiosk at the gate</b><span>No active kiosk. Pair a phone, tablet or PC at the gate.</span></div>${kioskAction}</div>
+          <div class="check-row"><span class="check-icon ci-todo"><i data-lucide="users"></i></span>
+            <div class="check-text"><b>Employees</b><span class="tnum">0 active employees</span></div>${employeeAction}</div>
+        </div>
+        <div style="padding:12px 22px;border-top:1px solid var(--border);background:#fafbfc;border-radius:0 0 14px 14px;font-size:13px" class="muted">
+          <i data-lucide="info" style="width:15px;height:15px;display:inline;vertical-align:-3px"></i> Icons and words show each result: <b style="color:var(--foreground)">✓ done</b>, <b style="color:var(--foreground)">✗ missing</b>, <b style="color:var(--foreground)">○ none yet</b>.
+        </div>
+      </section>
+
+      <div class="space-y-4">
+        <section class="card" aria-labelledby="details-title">
+          <div class="card-head"><h2 id="details-title" class="card-title">Plant details</h2>${readOnly ? "" : '<button class="btn btn-ghost btn-sm" data-edit><i data-lucide="pencil" style="width:15px;height:15px"></i>Edit</button>'}</div>
+          <dl class="kv card-pad">
+            <dt>Code</dt><dd class="code" style="font-weight:700">TP2</dd>
+            <dt>Name</dt><dd>Tirupati Pressco, Unit 2</dd>
+            <dt>Address</dt><dd>9/1, S.L.U.Y., MIDC, Waluj, Aurangabad 431136</dd>
+            <dt>Status</dt><dd><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span></dd>
+            <dt>Added</dt><dd class="tnum">12/10/2026 10:41 IST · Asha Rao</dd>
+          </dl>
+          <div class="count-grid">
+            <div><b class="tnum">3</b><span>Departments</span></div>
+            <div><b class="tnum">2</b><span>Shifts</span></div>
+            <div><b class="tnum">4</b><span>Categories</span></div>
+          </div>
+        </section>
+        <section class="card card-pad" aria-labelledby="gf-title">
+          <div class="flex items-center justify-between" style="margin-bottom:10px"><h2 id="gf-title" class="card-title">Geofence</h2><a class="link" style="font-size:13.5px" href="B4-geofence.html">Open map</a></div>
+          <div class="mini-map" aria-label="Small preview of the TP2 geofence">
+            <svg viewBox="0 0 400 180" width="100%" height="100%" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+              <rect width="400" height="180" fill="#eef1ea"/>
+              <path d="M0 120 L400 96" stroke="#fff" stroke-width="14"/><path d="M0 120 L400 96" stroke="#e3dccb" stroke-width="10"/>
+              <path d="M250 0 L236 180" stroke="#fff" stroke-width="10"/>
+              <rect x="40" y="18" width="90" height="60" fill="#e0ddd6"/><rect x="290" y="18" width="80" height="50" fill="#e0ddd6"/>
+              <rect x="280" y="120" width="100" height="50" fill="#e0ddd6"/><rect x="30" y="134" width="120" height="40" fill="#e0ddd6"/>
+              <polygon points="138,22 228,18 232,84 196,96 142,92" fill="none" stroke="#1f3a93" stroke-width="2" stroke-dasharray="5 4" opacity=".7" transform="translate(-8,-6) scale(1.06)"/>
+              <polygon points="138,22 228,18 232,84 196,96 142,92" fill="rgba(31,58,147,.16)" stroke="#1f3a93" stroke-width="3"/>
+              <rect x="160" y="34" width="50" height="36" fill="#d6d1c7"/>
+            </svg>
+            <span class="badge badge-outline" style="position:absolute;left:10px;bottom:10px;height:24px"><i data-lucide="pentagon"></i>v2 · margin 25 m</span>
+          </div>
+        </section>
+      </div>
+    </div>`;
+  }
+
+  function simpleTable(kind, rows, readOnly) {
+    const isCategory = kind === "categories";
+    const title = isCategory ? "Employee categories" : "Departments";
+    const help = isCategory
+      ? "Every employee must have one category of their plant. New plants get Staff, Worker, Operator and Helper."
+      : "Optional grouping of employees inside this plant.";
+    const body = rows.map(function (r) {
+      const tag = r[2] ? ' <span class="badge badge-neutral" style="height:20px;font-size:11.5px;margin-left:6px">Default</span>' : "";
+      const actions = readOnly ? "" :
+        '<td style="width:150px;text-align:right" data-edit><button class="btn btn-ghost btn-sm">Rename</button><button class="btn btn-ghost btn-sm">Deactivate</button></td>';
+      return '<tr><td style="padding-left:20px"><b>' + r[0] + '</b>' + tag + '</td><td class="tnum">' + r[1] + '</td>' +
+        '<td><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span></td>' + actions + '</tr>';
+    }).join("");
+    const addRow = readOnly ? "" : `
+      <form class="add-inline" data-edit onsubmit="return false">
+        <label class="sr-only" for="new-name">New ${isCategory ? "category" : "department"} name</label>
+        <input id="new-name" class="input" style="max-width:340px;height:40px" placeholder="${isCategory ? "e.g. Supervisor" : "e.g. Stores"}" />
+        <button class="btn btn-primary"><i data-lucide="plus" style="width:16px;height:16px"></i>Add ${isCategory ? "category" : "department"}</button>
+      </form>`;
+    return `
+      ${readOnly ? window.readOnlyBanner("Only the Super Admin can change " + title.toLowerCase() + ".") : ""}
+      <div class="card" style="overflow:hidden">
+        <div class="card-head"><div><h2 class="card-title">${title}</h2><p class="muted" style="margin:2px 0 0;font-size:13.5px">${help}</p></div></div>
+        <table class="table">
+          <thead><tr><th scope="col" style="padding-left:20px">Name</th><th scope="col">Employees</th><th scope="col">Status</th>${readOnly ? "" : '<th scope="col" data-edit><span class="sr-only">Actions</span></th>'}</tr></thead>
+          <tbody>${body}</tbody>
+        </table>
+        ${addRow}
+        <div class="table-foot"><button class="btn btn-ghost btn-sm" style="margin-left:-8px"><i data-lucide="chevron-right" style="width:15px;height:15px"></i>Inactive (${isCategory ? 0 : 1})</button><span>Deactivated rows move to "Inactive"; nothing is deleted.</span></div>
+      </div>`;
+  }
+
+  function kiosksTab() {
+    return `
+      <div class="card"><div class="empty">
+        <div class="empty-icon"><i data-lucide="tablet-smartphone"></i></div>
+        <h2>No kiosk at this gate yet</h2>
+        <p>Add a kiosk, then open the kiosk page on the gate phone, tablet or PC and type the 6-digit code. The device must be at the plant with location switched on.</p>
+        <div class="flex justify-center gap-2" style="margin-top:20px">
+          <a class="btn btn-primary btn-lg" href="C1-kiosks.html#add"><i data-lucide="plus" style="width:18px;height:18px"></i>Add kiosk</a>
+          <a class="btn btn-outline btn-lg" href="#">Read the kiosk setup guide</a>
+        </div>
+      </div></div>`;
+  }
+
+  window.onMockState = function (hash) {
+    const states = hash.split("+");
+    const readOnly = states.includes("plant-head");
+    let tab = "overview";
+    if (states.includes("departments")) tab = "departments";
+    if (states.includes("categories")) tab = "categories";
+    if (states.includes("kiosks")) tab = "kiosks";
+    document.getElementById("plant-header").innerHTML = window.renderPlantHeader(tab, readOnly);
+    const body = document.getElementById("tab-body");
+    if (tab === "overview") body.innerHTML = overview(readOnly);
+    if (tab === "departments") body.innerHTML = simpleTable("departments", [["Production", 0], ["Quality", 0], ["Maintenance", 0]], readOnly);
+    if (tab === "categories") body.innerHTML = simpleTable("categories", [["Staff", 0, true], ["Worker", 0, true], ["Operator", 0, true], ["Helper", 0, true]], readOnly);
+    if (tab === "kiosks") body.innerHTML = kiosksTab();
+    if (readOnly) window.applyPlantHeadView();
+    document.getElementById("state-tag").textContent = "State: " + tab.charAt(0).toUpperCase() + tab.slice(1) + " · " + (readOnly ? "Plant Head (read-only)" : "Super Admin");
+  };
+</script>
+</body>
+</html>

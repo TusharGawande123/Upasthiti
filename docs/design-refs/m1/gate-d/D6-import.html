@@ -1,0 +1,145 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate D – Screen D6: Excel import wizard (/admin/employees/import), 3 steps.
+  Step 1 Upload: (none) empty · #drag (file dragged over) · #uploading · #file-invalid (not .xlsx) · #headers (wrong headers) ·
+                 #too-large (over 2 MB / 2,000 rows).
+  Step 2 Check:  #checking (dry run running) · #check (5 error rows, nothing saved) · #check-clean (0 errors, ready to import).
+  Step 3 Done:   #done (Super Admin, "352 created") · #save-error (final save failed, nothing saved).
+  Roles: add +ch for the Corporate Head ("Send for approval", #done+ch "Sent for approval"). Plant Head has no Import page.
+  Phone check: open at 390 px width. MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Import employees</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="../gate-bc/bc.css" />
+  <link rel="stylesheet" href="d.css" />
+</head>
+<body data-active="import">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="../gate-a/shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script>
+  const isCh = D.role === "ch";
+  const step = D.has("done") || D.has("save-error") ? 3 : (D.has("check") || D.has("check-clean") || D.has("checking")) ? 2 : 1;
+
+  function stepper() {
+    const items = [["Upload", "Template and file"], ["Check", "Find mistakes first"], ["Done", isCh ? "Sent for approval" : "Employees created"]];
+    return '<ol class="stepper" aria-label="Import steps">' + items.map(function (it, i) {
+      const n = i + 1;
+      const cls = n < step || (n === 3 && D.has("done")) ? "is-done" : n === step ? "is-now" : "";
+      const inner = cls === "is-done" ? D.icon("check") : n;
+      return '<li class="step ' + cls + '"' + (n === step ? ' aria-current="step"' : "") + '><span class="n">' + inner + '</span><span class="step-text">' + it[0] + "<small>" + it[1] + "</small></span></li>" + (n < 3 ? '<span class="step-line ' + (n < step ? "is-done" : "") + '"></span>' : "");
+    }).join("") + "</ol>";
+  }
+
+  const COLS = [["employee_code", 1], ["full_name", 1], ["type", 1], ["plant_code", 1], ["category", 1], ["department", 0], ["shift", 0], ["punch_method", 0], ["contractor", 0], ["hourly_rate", 0], ["ot_rate_per_hour", 0], ["joined_on", 1]];
+
+  function templateCard() {
+    return '<section class="card anim-fade-up" style="display:flex;flex-direction:column"><div class="card-head"><h2 class="card-title"><span class="badge badge-info" style="margin-right:8px;padding:0 7px">'+D.icon("file-down")+'</span>Get the template</h2></div><div class="card-pad" style="flex:1">' +
+      '<p style="margin:0 0 14px">Use only the Upasthiti Excel template. Its drop-down lists keep the plant codes and types right.</p>' +
+      '<a class="btn btn-outline btn-lg" href="#" style="width:100%">' + D.icon("download", 18) + 'Download template (.xlsx)</a>' +
+      '<div class="label" style="margin:18px 0 8px">Columns in the sheet</div><div class="chip-list" role="list">' + COLS.map(function (c) { return '<span role="listitem" class="mini-chip code" style="font-size:12.5px">' + c[0] + (c[1] ? '<span class="req" aria-label="needed">*</span>' : "") + "</span>"; }).join("") + "</div>" +
+      '<div class="field-hint" style="margin-top:10px">' + D.icon("info") + '<span><span class="req">*</span> needed for everyone. The hourly rate is needed for temporary workers. Dates as DD/MM/YYYY.</span></div>' +
+      '<div class="space-y-2" style="display:grid;gap:8px;margin-top:16px;font-size:13.5px;color:var(--muted-foreground)">' +
+      ['<span class="tick-line">' + D.icon("circle-check", 16, "color:var(--success)") + "Only creates new people. Codes that already exist are errors, not updates.</span>", '<span class="tick-line">' + D.icon("circle-check", 16, "color:var(--success)") + "Plant, category, department, shift and contractor must already exist. Nothing is created for you.</span>", '<span class="tick-line">' + D.icon("circle-check", 16, "color:var(--success)") + "A \"Notes\" sheet in the file explains every column.</span>"].join("") + "</div></div></section>";
+  }
+
+  function dropCard() {
+    let inner;
+    const rules = '<div class="muted" style="font-size:13px;margin-top:10px">Excel .xlsx only · up to <b>2 MB</b> · up to <b>2,000 rows</b></div>';
+    if (D.has("uploading")) inner = '<div class="file-row"><span class="file-ico">' + D.icon("file-spreadsheet", 22) + '</span><div style="flex:1;min-width:0;text-align:left"><b class="trunc" style="max-width:100%">staff-and-workers-oct.xlsx</b><div class="muted" style="font-size:13px">214 KB · uploading</div><div class="progress" style="margin-top:8px" role="progressbar" aria-valuenow="64" aria-valuemin="0" aria-valuemax="100" aria-label="Uploading"><i style="width:64%"></i></div></div><span class="tnum" style="font-weight:700">64%</span><button class="btn btn-ghost btn-icon btn-sm" aria-label="Cancel upload">' + D.icon("x", 18) + "</button></div>";
+    else {
+      const over = D.has("drag");
+      const err = D.has("file-invalid") ? ["file-x", "budget-2026.pdf is not an Excel file.", "Use the Upasthiti template (.xlsx, up to 2,000 rows).", "IMPORT_FILE_INVALID"] :
+        D.has("headers") ? ["table-properties", "The column names do not match the template.", "Missing: employee_code, plant_code. Unknown: Emp No, Plant. Download the template again and copy your rows into it.", "IMPORT_FILE_INVALID"] :
+        D.has("too-large") ? ["file-warning", "This file is too big: 3.4 MB and 2,418 rows.", "The limit is 2 MB and 2,000 rows. Split it into two files and upload them one after the other.", "IMPORT_TOO_LARGE"] : null;
+      inner = '<div class="drop-icon">' + D.icon(over ? "file-down" : "upload-cloud") + "</div>" +
+        '<h3 style="margin:0 0 6px;font-size:18px">' + (over ? "Drop the file here" : "Drag the filled template here") + "</h3>" +
+        (over ? '<p class="muted" style="margin:0">Release to upload.</p>' : '<p class="muted" style="margin:0 0 16px">or choose it from your computer</p><button class="btn btn-primary btn-lg">' + D.icon("folder-open", 18) + "Choose file</button>") + rules +
+        (err ? '<div class="alert alert-danger anim-shake" role="alert" style="margin-top:18px;text-align:left">' + D.icon("circle-alert", 20) + '<div><b>' + err[1] + "</b><div>" + err[2] + ' <span class="err-code code">' + err[3] + "</span></div><div style=\"margin-top:4px\"><b>Nothing was saved.</b></div></div></div>" : "");
+    }
+    return '<section class="card anim-fade-up anim-delay-1" style="display:flex;flex-direction:column"><div class="card-head"><h2 class="card-title"><span class="badge badge-info" style="margin-right:8px;padding:0 7px">'+D.icon("upload")+'</span>Upload your file</h2></div><div class="card-pad card-fill" style="flex:1"><div class="drop ' + (D.has("drag") ? "is-over" : "") + (D.has("file-invalid") || D.has("headers") || D.has("too-large") ? " is-error" : "") + '" style="min-height:320px;display:flex;flex-direction:column;align-items:center;justify-content:center" role="group" aria-label="File upload area">' + inner + "</div></div></section>";
+  }
+
+  const ERRORS = [
+    [14, "plant_code", "K-135", "Plant \"K-135\" does not exist. Use a code from the list: K134, X280, PC1, PC2, SPI, TP1, TP2.", "PLANT_NOT_FOUND"],
+    [47, "employee_code", "2310", "Code 2310 is used twice in this file (rows 47 and 112). Each code can appear once.", "EMPLOYEE_CODE_DUPLICATE_IN_FILE"],
+    [112, "employee_code", "2310", "Code 2310 is used twice in this file (rows 47 and 112). Each code can appear once.", "EMPLOYEE_CODE_DUPLICATE_IN_FILE"],
+    [203, "hourly_rate", "(empty)", "Hourly rate is needed for a temporary worker. Type a rate such as 110.", "HOURLY_RATE_REQUIRED"],
+    [288, "full_name", '=HYPERLINK("…")', "Formulas are not allowed. Type the name as plain text.", "IMPORT_CELL_FORMULA"],
+  ];
+
+  function checkView() {
+    if (D.has("checking")) {
+      return '<section class="card anim-fade-up" aria-live="polite"><div class="card-pad" style="padding:56px 24px;text-align:center"><div class="drop-icon" style="color:var(--primary)">' + D.spinner.replace('width="16" height="16"', 'width="30" height="30"') + '</div><h2 style="margin:0 0 6px;font-size:20px">Checking 352 rows…</h2><p class="muted" style="margin:0 auto 18px;max-width:46ch">Every row is checked with the same rules as the employee form. Nothing is saved yet.</p><div class="progress" style="max-width:420px;margin:0 auto" role="progressbar" aria-label="Checking rows" aria-valuenow="58" aria-valuemin="0" aria-valuemax="100"><i style="width:58%"></i></div><div class="muted tnum" style="font-size:13px;margin-top:8px">204 of 352 rows</div></div></section>';
+    }
+    const clean = D.has("check-clean");
+    const total = 352, bad = clean ? 0 : 5;
+    const fileRow = '<div class="file-row" style="margin-bottom:16px"><span class="file-ico">' + D.icon("file-spreadsheet", 22) + '</span><div style="flex:1;min-width:0"><b>staff-and-workers-oct.xlsx</b><div class="muted" style="font-size:13px">214 KB · ' + total + ' rows · checked just now</div></div><button class="btn btn-outline btn-sm">' + D.icon("replace", 15) + "Use another file</button></div>";
+    const tiles = '<div class="rt-tiles" style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:18px"><div class="result-tile rt-neutral"><span class="done-ring" style="width:46px;height:46px;margin:0;background:var(--muted);color:var(--muted-foreground)">' + D.icon("rows-3") + '</span><div><b class="big tnum">' + total + "</b><span class=\"muted\">rows in the file</span></div></div>" +
+      '<div class="result-tile rt-ok"><span class="done-ring" style="width:46px;height:46px;margin:0;background:#fff;color:var(--success)">' + D.icon("circle-check") + '</span><div><b class="big tnum">' + (total - bad) + "</b><span>rows are OK</span></div></div>" +
+      '<div class="result-tile ' + (clean ? "rt-neutral" : "rt-bad") + '"><span class="done-ring" style="width:46px;height:46px;margin:0;background:#fff;color:' + (clean ? "var(--muted-foreground)" : "var(--danger)") + '">' + D.icon(clean ? "circle-slash" : "circle-alert") + '</span><div><b class="big tnum">' + bad + "</b><span>rows with errors</span></div></div></div>";
+
+    if (clean) {
+      const plants = [["K134", 80], ["X280", 62], ["TP1", 60], ["PC1", 48], ["PC2", 40], ["SPI", 34], ["TP2", 28]];
+      return '<section class="card anim-fade-up"><div class="card-pad">' + fileRow + tiles +
+        '<div class="alert alert-success" style="margin-bottom:18px">' + D.icon("circle-check", 20) + "<div><b>The file has no errors.</b> " + (isCh ? "Press the button to send all 352 people to the Super Admin. Nobody is added until it is approved." : "Press the button to create all 352 people in one go.") + '</div></div>' +
+        '<div class="label">What will be created</div><div class="chip-list" style="margin-bottom:12px">' + plants.map(function (p) { return '<span class="mini-chip"><b class="code">' + p[0] + '</b><span class="tnum">' + p[1] + "</span></span>"; }).join("") + '</div><div class="flex gap-2 flex-wrap" style="margin-bottom:6px"><span class="badge badge-info">' + D.icon("scan-face") + '<span class="tnum">38</span>&nbsp;Permanent, face</span><span class="badge badge-warning">' + D.icon("qr-code") + '<span class="tnum">314</span>&nbsp;Temporary, QR card</span></div></div>' +
+        '<div class="form-foot" style="justify-content:space-between"><button class="btn btn-outline btn-lg">' + D.icon("arrow-left", 18) + 'Back</button><button class="btn btn-primary btn-lg">' + (isCh ? D.icon("send", 18) + "Send 352 employees for approval" : D.icon("check", 18) + "Import 352 employees") + "</button></div></section>";
+    }
+    return '<section class="card anim-fade-up"><div class="card-pad" style="padding-bottom:0">' + fileRow + tiles +
+      '<div class="alert alert-danger" role="alert" style="margin-bottom:18px">' + D.icon("circle-alert", 20) + '<div><b>All-or-nothing: nothing is saved until the file has zero errors.</b><div>Fix the 5 rows below in Excel, then upload the file again. The other 347 rows are fine and will be checked again.</div></div></div></div>' +
+      '<div style="overflow-x:auto;border-top:1px solid var(--border)"><table class="table rt emp err-table"><caption class="sr-only">Rows with errors</caption><thead><tr><th scope="col">Excel row</th><th scope="col">Column</th><th scope="col">In the cell</th><th scope="col">What is wrong</th><th scope="col">Code</th></tr></thead><tbody>' +
+      ERRORS.map(function (e) { return '<tr><td data-label="Excel row" class="tnum"><b>' + e[0] + '</b></td><td data-label="Column"><span class="code">' + e[1] + '</span></td><td data-label="In the cell" class="code" style="max-width:150px;overflow:hidden;text-overflow:ellipsis">' + D.esc(e[2]) + '</td><td class="full" style="white-space:normal;min-width:300px"><span class="flex gap-2" style="align-items:flex-start">' + D.icon("circle-alert", 16, "color:var(--danger);flex:none;margin-top:2px") + "<span>" + e[3] + '</span></span></td><td data-label="Code"><span class="err-code code">' + e[4] + "</span></td></tr>"; }).join("") + "</tbody></table></div>" +
+      '<div class="form-foot" style="justify-content:space-between"><button class="btn btn-outline btn-lg">' + D.icon("arrow-left", 18) + 'Back</button><div class="flex gap-2 items-center"><span class="muted f-desk" style="font-size:13.5px">Excel row numbers match the row numbers in your sheet.</span><button class="btn btn-primary btn-lg">' + D.icon("upload", 18) + "Upload the fixed file</button></div></div></section>";
+  }
+
+  function doneView() {
+    if (D.has("save-error")) return '<section class="card anim-fade-up"><div class="card-pad" style="padding:44px 24px;text-align:center"><div class="done-ring" style="background:var(--danger-soft);color:var(--danger);border:2px solid #f2c2bc">' + D.icon("cloud-off") + '</div><h2 style="margin:0 0 6px;font-size:22px">Nothing was saved</h2><p class="muted" style="margin:0 auto 20px;max-width:52ch">The server did not answer while saving. Because an import is all-or-nothing, none of the 352 people were created. Your file is still checked: press Try again.</p><div class="flex justify-center gap-2"><button class="btn btn-primary btn-lg">' + D.icon("rotate-cw", 18) + 'Try again</button><button class="btn btn-outline btn-lg">Back to the check</button></div></div></section>';
+    if (isCh) return '<section class="card anim-fade-up"><div class="card-pad" style="padding:48px 24px;text-align:center"><div class="done-ring dr-info">' + D.icon("hourglass") + '</div><h2 style="margin:0 0 6px;font-size:24px">Sent for approval</h2><p style="margin:0 auto 6px;font-size:16px;max-width:52ch"><b class="tnum">352</b> employees are waiting for the Super Admin.</p><p class="muted" style="margin:0 auto 22px;max-width:52ch">Nobody is added until the Super Admin approves. You can follow it in My requests, and you can withdraw it while it waits.</p><div class="flex justify-center gap-2 flex-wrap"><a class="btn btn-primary btn-lg" href="D5-approvals.html#mine+ch">' + D.icon("send", 18) + 'Open My requests</a><a class="btn btn-outline btn-lg" href="D1-employees.html#ch">Back to employees</a></div></div></section>';
+    return '<section class="card anim-fade-up"><div class="card-pad" style="padding:48px 24px;text-align:center"><div class="done-ring dr-success">' + D.icon("check") + '</div><h2 style="margin:0 0 6px;font-size:24px"><span class="tnum">352</span> created</h2><p class="muted" style="margin:0 auto 20px;max-width:52ch">All 352 people are now in Upasthiti. One audit entry was written for the import and one for each person.</p><div class="flex justify-center gap-2 flex-wrap" style="margin-bottom:24px"><span class="badge badge-info">' + D.icon("scan-face") + '<span class="tnum">38</span>&nbsp;Permanent</span><span class="badge badge-warning">' + D.icon("qr-code") + '<span class="tnum">314</span>&nbsp;Temporary</span><span class="badge badge-outline"><span class="tnum">7</span>&nbsp;plants</span></div><div class="flex justify-center gap-2 flex-wrap"><a class="btn btn-primary btn-lg" href="D1-employees.html">' + D.icon("users", 18) + 'View the employees</a><a class="btn btn-outline btn-lg" href="D6-import.html">' + D.icon("file-spreadsheet", 18) + 'Import another file</a></div></div></section>';
+  }
+
+  function render() {
+    const head = D.pageHead({ title: "Import employees from Excel", desc: "Add many people at once. Every row is checked before anything is saved.", crumbs: D.crumb([{ text: "Employees", href: "D1-employees.html" }, { text: "Import" }]) });
+    let banner = isCh ? '<div style="margin-bottom:16px">' + D.waitNote("The file is checked now, but nobody is added until the Super Admin approves it. You can follow it in <a class=\"link\" href=\"D5-approvals.html#mine+ch\">My requests</a>.") + "</div>" : "";
+    if (step === 3) banner = "";
+    let body;
+    if (step === 1) body = '<div class="two-col" style="display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:20px;align-items:stretch">' + templateCard() + dropCard() + "</div>";
+    else if (step === 2) body = checkView();
+    else body = doneView();
+    document.getElementById("page").innerHTML = head + banner + stepper() + body;
+  }
+
+  window.onMockState = function () {
+    D.patchShell();
+    render();
+    const titles = { drag: "step 1: file dragged over", uploading: "step 1: uploading", "file-invalid": "step 1: not an Excel file", headers: "step 1: wrong headers", "too-large": "step 1: file too big", checking: "step 2: checking", check: "step 2: 5 error rows", "check-clean": "step 2: no errors", done: "step 3: done", "save-error": "step 3: save failed" };
+    const key = Object.keys(titles).filter(D.has)[0];
+    D.tag((key ? titles[key] : "step 1: upload") + " · " + D.roleName);
+  };
+</script>
+<style>
+  .tick-line { display: flex; gap: 8px; align-items: flex-start; }
+  .tick-line svg { flex: none; margin-top: 2px; }
+  .err-table tbody td { white-space: nowrap; }
+  .err-table tbody td.full { white-space: normal; }
+  @media (max-width: 900px) { .two-col, .rt-tiles { grid-template-columns: 1fr !important; } }
+  @media (max-width: 640px) { .step-text small { display: none; } .step-line { min-width: 12px; margin: 0 8px; } .form-foot { flex-wrap: wrap; padding: 12px 14px; } .form-foot .btn { flex: 1; } }
+</style>
+</body>
+</html>

@@ -35,6 +35,14 @@ export function formatTime(moment: Date | string): string {
   return timeFormatter.format(new Date(moment));
 }
 
+/**
+ * Today's date in IST as "2026-10-14", for date inputs. The server decides by IST days, so the
+ * browser's own (UTC) date would be "yesterday" between 00:00 and 05:30 IST.
+ */
+export function todayIst(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+}
+
 /** 100000 -> "1,00,000". */
 export function formatNumber(value: number): string {
   return numberFormatter.format(value);

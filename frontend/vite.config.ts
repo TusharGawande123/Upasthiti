@@ -1,4 +1,5 @@
 // Vite settings: React, Tailwind, the /api proxy for local development, and Vitest.
+import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { loadEnv } from "vite";
@@ -12,6 +13,8 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react(), tailwindcss()],
+    // "@/..." means "frontend/src/..." (same as tsconfig paths; used by shadcn/ui components).
+    resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
     server: {
       port: 5173,
       proxy: { "/api": { target: apiProxyTarget, changeOrigin: true } },
@@ -19,14 +22,22 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: "jsdom",
       globals: true,
+      // Form tests type many characters; under coverage a laptop needs more than the default 5 s.
+      testTimeout: 15_000,
       setupFiles: ["./src/test/setup.ts"],
       coverage: {
         provider: "v8",
         include: ["src/**/*.{ts,tsx}"],
-        exclude: ["src/main.tsx", "src/test/**", "src/**/*.test.{ts,tsx}"],
+        exclude: [
+          "src/main.tsx",
+          "src/test/**",
+          "src/**/*.test.{ts,tsx}",
+          // The Leaflet map cannot run in jsdom; the end-to-end test draws on it for real.
+          "src/features/plants/geofence-map.tsx",
+        ],
         reporter: ["text", "json-summary"],
-        // Coverage floor for M0; raised in each milestone (spec S-8).
-        thresholds: { lines: 60, functions: 60, branches: 60, statements: 60 },
+        // Coverage floor: 60% in M0, 70% from M1; raised in each milestone (spec S-8).
+        thresholds: { lines: 70, functions: 70, branches: 70, statements: 70 },
       },
     },
   };

@@ -1,0 +1,209 @@
+<!doctype html>
+<!--
+  Upasthiti – M1 design gate B – Screen B1: Setup wizard (F-5, /admin/setup, Super Admin).
+  States (URL hash): (none) 3 of 5 done, step 2 open · #start fresh install, step 1 open ·
+  #done all 5 done. MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Setup wizard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="../gate-a/tokens.css" />
+  <link rel="stylesheet" href="../gate-a/shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <style>
+    .wiz { display: grid; grid-template-columns: 340px 1fr; gap: 20px; align-items: start; }
+    @media (max-width: 1100px) { .wiz { grid-template-columns: 1fr; } }
+    .rail { padding: 10px; position: sticky; top: 84px; }
+    .rail-progress { padding: 14px 12px 16px; border-bottom: 1px solid var(--border); margin-bottom: 8px; }
+    .bar { height: 8px; border-radius: 99px; background: var(--muted); overflow: hidden; margin-top: 10px; }
+    .bar > div { height: 100%; background: var(--primary); border-radius: 99px; }
+    @media (prefers-reduced-motion: no-preference) { .bar > div { animation: grow 900ms var(--ease-out) both 200ms; transform-origin: left; } }
+    @keyframes grow { from { transform: scaleX(0); } }
+    .step { position: relative; display: flex; gap: 12px; align-items: flex-start; padding: 12px; border-radius: 12px; text-decoration: none; color: inherit; }
+    .step:hover { background: var(--muted); }
+    .step[aria-current="step"] { background: var(--primary-soft); box-shadow: inset 0 0 0 1px #cdd6f4; }
+    .step-num { width: 34px; height: 34px; border-radius: 99px; display: grid; place-items: center; flex: none; font-weight: 700; font-size: 14px; border: 2px solid; }
+    .sn-done { background: var(--success); border-color: var(--success); color: #fff; }
+    .sn-todo { background: var(--surface); border-color: var(--border-strong); border-style: dashed; color: var(--muted-foreground); }
+    .sn-now { background: var(--signal); border-color: #c99500; color: var(--signal-foreground); }
+    .step-num svg { width: 18px; height: 18px; stroke-width: 3; }
+    /* connector line between the step circles */
+    .step:not(:last-child)::after { content: ""; position: absolute; left: 28px; top: 50px; bottom: -6px; width: 2px; background: var(--border); }
+    .step.is-done:not(:last-child)::after { background: #9fd3bd; }
+    .step-title { font-weight: 650; font-size: 14.5px; }
+    .step-sub { font-size: 13px; color: var(--muted-foreground); margin-top: 2px; }
+    .plant-row { display: grid; grid-template-columns: 64px 1fr auto auto; gap: 14px; align-items: center; padding: 12px 20px; border-bottom: 1px solid var(--border); }
+    .plant-row:last-child { border-bottom: 0; }
+    .hero-done { text-align: center; padding: 48px 24px; }
+  </style>
+</head>
+<body data-active="setup">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page">
+      <div class="page-head anim-fade-up">
+        <div>
+          <h1 class="page-title">Set up Upasthiti</h1>
+          <p class="page-desc">Five steps to get every plant ready for attendance. Progress is worked out from your data, so you can leave at any time and come back here from the menu.</p>
+        </div>
+        <a href="#" class="btn btn-ghost">Close the wizard<i data-lucide="x" style="width:17px;height:17px"></i></a>
+      </div>
+
+      <div class="wiz">
+        <!-- Left: the 5 steps (vertical stepper) -->
+        <nav class="card rail anim-fade-up anim-delay-1" aria-label="Setup steps">
+          <div class="rail-progress">
+            <div class="flex items-center justify-between"><b style="font-size:15px">Progress</b><span class="tnum muted" style="font-weight:600;font-size:13.5px" id="progress-text">3 of 5 done</span></div>
+            <div class="bar" role="progressbar" aria-valuemin="0" aria-valuemax="5" aria-valuenow="3" aria-label="Setup progress"><div id="progress-bar" style="width:60%"></div></div>
+          </div>
+          <ol id="steps"></ol>
+        </nav>
+
+        <!-- Right: the open step -->
+        <section id="panel" class="anim-fade-up anim-delay-2"></section>
+      </div>
+    </main>
+  </div>
+</div>
+
+<div class="state-tag" id="state-tag">State: 3 of 5 done · step 2 open</div>
+<script src="../gate-a/shell.js"></script>
+<script>
+  // Mockup only. Step status comes from GET /api/v1/setup/status in the app.
+  const STEP_SETS = {
+    progress: [
+      { n: 1, title: "Plants", sub: "7 plants added", s: "done" },
+      { n: 2, title: "Geofence for each plant", sub: "3 of 7 plants have one", s: "now", count: "3 of 7" },
+      { n: 3, title: "Shifts and categories", sub: "Defaults added for every plant", s: "done" },
+      { n: 4, title: "Kiosk for each plant", sub: "2 of 7 plants have an active kiosk", s: "todo", count: "2 of 7" },
+      { n: 5, title: "Employees", sub: "648 employees", s: "done" },
+    ],
+    start: [
+      { n: 1, title: "Plants", sub: "No plants yet", s: "now" },
+      { n: 2, title: "Geofence for each plant", sub: "Needs plants first", s: "todo" },
+      { n: 3, title: "Shifts and categories", sub: "Added with each plant", s: "todo" },
+      { n: 4, title: "Kiosk for each plant", sub: "Needs a geofence first", s: "todo" },
+      { n: 5, title: "Employees", sub: "Add by hand or import Excel", s: "todo" },
+    ],
+  };
+  STEP_SETS.done = STEP_SETS.progress.map(function (step) {
+    const copy = Object.assign({}, step, { s: "done" });
+    if (step.n === 2) copy.sub = "7 of 7 plants have one";
+    if (step.n === 4) copy.sub = "7 of 7 plants have an active kiosk";
+    delete copy.count;
+    return copy;
+  });
+
+  function stepIcon(step) {
+    if (step.s === "done") return '<span class="step-num sn-done" aria-hidden="true"><i data-lucide="check"></i></span>';
+    if (step.s === "now") return '<span class="step-num sn-now tnum" aria-hidden="true">' + step.n + '</span>';
+    return '<span class="step-num sn-todo tnum" aria-hidden="true">' + step.n + '</span>';
+  }
+  function statusWord(step) {
+    if (step.s === "done") return '<span class="sr-only">Done.</span>';
+    if (step.s === "now") return '<span class="sr-only">Open now, not done.</span>';
+    return '<span class="sr-only">Not done.</span>';
+  }
+  function renderSteps(steps) {
+    document.getElementById("steps").innerHTML = steps.map(function (step) {
+      const current = step.s === "now" ? ' aria-current="step"' : "";
+      const doneClass = step.s === "done" ? " is-done" : "";
+      const badge = step.s === "done"
+        ? '<span class="badge badge-success" style="height:22px;margin-left:auto"><i data-lucide="circle-check"></i>Done</span>'
+        : step.count
+          ? '<span class="badge badge-warning tnum" style="height:22px;margin-left:auto"><i data-lucide="circle-dashed"></i>' + step.count + '</span>'
+          : '<span class="badge badge-neutral" style="height:22px;margin-left:auto"><i data-lucide="circle-dashed"></i>To do</span>';
+      return '<li><a href="#" class="step' + doneClass + '"' + current + '>' + stepIcon(step) +
+        '<span style="flex:1;min-width:0"><span class="flex items-center gap-2"><span class="step-title">' + step.n + '. ' + step.title + '</span>' + badge + '</span>' +
+        '<span class="step-sub" style="display:block">' + step.sub + '</span>' + statusWord(step) + '</span></a></li>';
+    }).join("");
+  }
+
+  const PLANTS = [
+    ["K134", "Sheet Shapers India Pvt Ltd (K-134)", true],
+    ["X280", "Sheet Shapers India Pvt Ltd (X-280)", true],
+    ["PC1", "Precise Cuts India Pvt Ltd, Unit 1", false],
+    ["PC2", "Precise Cuts India Pvt Ltd, Unit 2", false],
+    ["SPI", "Siddharth Pressings India Pvt Ltd", false],
+    ["TP1", "Tirupati Pressco, Unit 1", false],
+    ["TP2", "Tirupati Pressco, Unit 2", true],
+  ];
+
+  function geofencePanel() {
+    const rows = PLANTS.map(function (p) {
+      const status = p[2]
+        ? '<span class="badge badge-success"><i data-lucide="circle-check"></i>Geofence set</span>'
+        : '<span class="badge badge-warning"><i data-lucide="circle-x"></i>No geofence</span>';
+      const action = p[2]
+        ? '<a class="btn btn-ghost btn-sm" href="B4-geofence.html">View</a>'
+        : '<a class="btn btn-outline btn-sm" href="B4-geofence.html#none"><i data-lucide="pen-tool" style="width:15px;height:15px"></i>Draw geofence</a>';
+      return '<div class="plant-row"><b class="code">' + p[0] + '</b><span>' + p[1] + '</span>' + status + action + '</div>';
+    }).join("");
+    return `
+      <div class="card" style="overflow:hidden">
+        <div class="card-pad" style="padding:22px 22px 18px;border-bottom:1px solid var(--border)">
+          <div class="flex items-center gap-2"><span class="badge badge-info"><i data-lucide="map-pinned"></i>Step 2 of 5</span><span class="muted tnum" style="font-size:13px">3 of 7 done</span></div>
+          <h2 style="font-size:22px;font-weight:700;margin:12px 0 6px;letter-spacing:-0.01em">Draw a geofence for each plant</h2>
+          <p class="muted" style="margin:0;max-width:70ch">A geofence is the plant's boundary on the map. A kiosk can only be paired, and later punch, when it is inside it. Draw it on site or with a satellite map open, then come back here.</p>
+        </div>
+        <div>${rows}</div>
+        <div class="flex items-center gap-3" style="padding:14px 20px;border-top:1px solid var(--border);background:#fafbfc">
+          <span class="muted" style="font-size:13.5px"><i data-lucide="info" style="width:15px;height:15px;display:inline;vertical-align:-3px"></i> Plants in MIDC Waluj are close together. Keep the margin small so it does not reach a neighbour.</span>
+          <span style="flex:1"></span>
+          <button class="btn btn-ghost">Skip for now</button>
+          <a class="btn btn-primary" href="B4-geofence.html#none">Draw for PC1<i data-lucide="arrow-right" style="width:17px;height:17px"></i></a>
+        </div>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:10px">Next: <b style="color:var(--foreground)">4. Kiosk for each plant</b> – a plant needs its geofence before a kiosk can be added.</p>`;
+  }
+
+  function plantsPanel() {
+    return `
+      <div class="card">
+        <div class="empty" style="padding-top:48px">
+          <div class="empty-icon"><i data-lucide="factory"></i></div>
+          <span class="badge badge-info"><i data-lucide="list-checks"></i>Step 1 of 5</span>
+          <h2 style="margin-top:12px">Start with your plants</h2>
+          <p>Add Sheet Shapers' 7 plants in MIDC Waluj in one click (K134, X280, PC1, PC2, SPI, TP1, TP2). Each gets the shift "General 07:00–19:00" and the categories Staff, Worker, Operator and Helper. You can edit them later.</p>
+          <div class="flex justify-center gap-2" style="margin-top:20px">
+            <button class="btn btn-primary btn-lg"><i data-lucide="sparkles" style="width:18px;height:18px"></i>Add Sheet Shapers' 7 plants</button>
+            <a class="btn btn-outline btn-lg" href="#">Add a plant</a>
+          </div>
+          <button class="btn btn-ghost" style="margin-top:10px">Skip for now</button>
+        </div>
+      </div>`;
+  }
+
+  function donePanel() {
+    return `
+      <div class="card hero-done">
+        <span style="display:inline-grid;place-items:center;width:72px;height:72px;border-radius:99px;background:var(--success-soft);color:var(--success);border:2px solid #bfe3d2"><i data-lucide="party-popper" style="width:34px;height:34px"></i></span>
+        <h2 style="font-size:24px;font-weight:750;margin:16px 0 6px;letter-spacing:-0.02em">Setup is complete</h2>
+        <p class="muted" style="max-width:56ch;margin:0 auto">All 7 plants have a geofence, shifts, categories, an active kiosk and employees. The wizard leaves the menu now; you can still open it from Settings.</p>
+        <div class="flex justify-center gap-2" style="margin-top:20px"><a class="btn btn-primary btn-lg" href="#">Go to the dashboard</a><a class="btn btn-outline btn-lg" href="B2-plants.html">See plants</a></div>
+      </div>`;
+  }
+
+  window.onMockState = function (state) {
+    const tag = document.getElementById("state-tag");
+    let steps = STEP_SETS.progress, panel = geofencePanel(), done = 3;
+    if (state === "start") { steps = STEP_SETS.start; panel = plantsPanel(); done = 0; tag.textContent = "State: fresh install · step 1 open"; }
+    if (state === "done") { steps = STEP_SETS.done; panel = donePanel(); done = 5; tag.textContent = "State: all 5 done"; }
+    renderSteps(steps);
+    document.getElementById("panel").innerHTML = panel;
+    document.getElementById("progress-text").textContent = done + " of 5 done";
+    document.getElementById("progress-bar").style.width = (done * 20) + "%";
+    document.querySelector('[role="progressbar"]').setAttribute("aria-valuenow", done);
+    const sbProgress = document.querySelector(".sb-progress");
+    if (sbProgress) sbProgress.textContent = done + " of 5";
+  };
+</script>
+</body>
+</html>
