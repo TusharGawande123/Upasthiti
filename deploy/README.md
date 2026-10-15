@@ -36,9 +36,12 @@ accounts move to Sheet Shapers.
    - `APP_PUBLIC_ORIGIN`: leave `https://example.invalid` for now; fixed in step 4.
 3. Wait for the first deploy. The container runs the migrations itself
    (`RUN_MIGRATIONS_ON_START=true`). Open
-   `https://upasthiti-backend.onrender.com/api/v1/health/ready` → `"database":"ok"`.
-   If Render gave the service another address, use that one in the steps below and in
-   `frontend/vercel.json` (`rewrites` → `destination`).
+   `https://<your render address>/api/v1/health/ready` → `"database":"ok"`.
+   Render service names are unique across all of Render, so the address often gets a
+   suffix (ours is `https://upasthiti-backend-omlo.onrender.com`). Check the address shown
+   under the service name: if you used another one, put it in `frontend/vercel.json`
+   (`rewrites` → `destination`) BEFORE creating the Vercel project. An address that
+   answers `{"success": false, "message": "Route not found."}` belongs to someone else.
 
 ### 3. Website – Vercel
 1. vercel.com → Add New → Project → import the `Upasthiti` repository.
@@ -68,7 +71,7 @@ account). Then log in at `https://<vercel address>/admin`.
 
 ### 6. GitHub settings
 Repository → Settings → Secrets and variables → Actions → **Variables**:
-- `BACKEND_HEALTH_URL` = `https://upasthiti-backend.onrender.com/api/v1/health`
+- `BACKEND_HEALTH_URL` = `https://upasthiti-backend-omlo.onrender.com/api/v1/health`
   (the keep-alive workflow starts working);
 - `LIVE_SITE_URL` = the Vercel address (the post-deploy smoke test uses it).
 
