@@ -20,9 +20,11 @@ services:
       # Free plan has no pre-deploy step: the container migrates before it starts.
       - key: RUN_MIGRATIONS_ON_START
         value: "true"
-      # Vercel + Render's own proxy. Checked once after the first deploy (deploy/README.md).
+      # Proxies in front of the app: Vercel, Cloudflare (Render's edge) and Render's own two
+      # entries. Measured on the live site on 2026-10-16 (decision 0007): 2 gave Cloudflare's
+      # address, 3 gave Vercel's, 4 gives the real client.
       - key: TRUSTED_PROXY_HOPS
-        value: "2"
+        value: "4"
       # Supabase connection pooler URL, session mode (port 5432). Typed in Render, never here.
       - key: DATABASE_URL
         sync: false
