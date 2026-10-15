@@ -177,9 +177,11 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
       (merged 2026-10-12, PR #1: monorepo skeleton, 5 CI jobs, pre-commit, Dependabot,
       spec docs/specs/M0-setup.md)
 - [x] M1 Foundation: login/roles, approvals inbox, plants + geofence, shifts,
-      categories, kiosk pairing, employees + Excel import, audit, design system; deploy
-      files ready (the lead creates the Supabase/Render/Vercel accounts: deploy/README.md)
-      (spec docs/specs/M1-foundation.md, decisions 0005 and 0006; branch milestone/M1-foundation)
+      categories, kiosk pairing, employees + Excel import, audit, design system; LIVE on the
+      free tiers since 2026-10-16 (website https://upasthiti-chi.vercel.app; decision 0007)
+      (spec docs/specs/M1-foundation.md, decisions 0005, 0006 and 0007; merged, PR #4).
+      Still open: real-device check of kiosk pairing (phone, laptop, gate PC) and the real
+      geofence of each plant (to be drawn on site).
 - [ ] M2 QR attendance end-to-end at the kiosk (with snapshot)
 - [ ] M3 Face enrolment + face/liveness attendance at the kiosk
 - [ ] M4 Anti-proxy engine + kiosk geofence + offline kiosk sync
@@ -255,8 +257,13 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - Windows note: plain `python` on the lead's laptop is 3.7, so always use `uv run`
   (uv installs the project's Python 3.14 itself).
   uv lives in `~/.local/bin`; Git Bash may need it added to PATH.
-- Deploy (from M1):
+- Deploy (from M1; live addresses and lessons: docs/decisions/0007-first-deployment.md):
   - Pushing to main deploys the frontend on Vercel and the backend on Render.
+  - Render service names are global: ours got a suffix (upasthiti-backend-omlo), and
+    `frontend/vercel.json` points at that real address.
+  - The first Super Admin is made from the laptop: set `DATABASE_URL` to the Supabase
+    session pooler string, run `uv run python -m app.scripts.create_super_admin`, then
+    remove the variable (Render free has no shell).
   - The database is Supabase (set `DATABASE_URL` in Render).
   - Set the GitHub repository variable `BACKEND_HEALTH_URL` after the first deploy, so the
     keep-alive workflow starts calling `/api/v1/health`.
@@ -288,7 +295,8 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - Backend settings come only from environment variables (`.env` locally):
   `APP_ENV` (unset = production, which switches off /api/docs), `APP_VERSION`,
   `DATABASE_URL` (required), `LOG_LEVEL`; from M1 also `APP_SECRET_KEY` (required),
-  `APP_PUBLIC_ORIGIN` (required in production), `TRUSTED_PROXY_HOPS`; also
+  `APP_PUBLIC_ORIGIN` (required in production), `TRUSTED_PROXY_HOPS` (live value 4, measured
+  with the audit log; the client IP can still be faked through Vercel, fix planned in M6); also
   `RUN_MIGRATIONS_ON_START` (Render free has no pre-deploy step), `RUN_SCHEDULER`,
   `TEST_DATABASE_URL` (tests; the name must end in `_test`) and `E2E_LOGIN_LIMIT` (honoured
   only when `APP_ENV=test`; production always allows 20 logins per IP per 10 minutes). A missing required
