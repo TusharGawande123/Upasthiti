@@ -1,8 +1,21 @@
 // QR cards page (/admin/qr-cards, spec §4.6): every active employee with the state of their
-// latest card, with filters and paging. All three roles may read it (a Plant Head sees their own
-// plant, set by the server). Only the Super Admin changes cards; others see a read-only note.
-import { ChevronLeft, ChevronRight, Lock, Printer, QrCode, ScanFace } from "lucide-react";
-import { useEffect, useState } from "react";
+// latest card, with filters, paging and, for the Super Admin, row selection with bulk actions and
+// a "Test cards" tab. All three roles may read the list (a Plant Head sees their own plant, set by
+// the server); everyone else gets a read-only note and no buttons.
+import {
+  Ban,
+  ChevronLeft,
+  ChevronRight,
+  FlaskConical,
+  IdCard,
+  Lock,
+  Printer,
+  QrCode,
+  ScanFace,
+  Users,
+  X,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import { usePlantFilter } from "@/app/layouts/plant-filter";
@@ -21,14 +34,25 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { describeError } from "@/features/auth/error-message";
 import { useMe } from "@/features/auth/use-auth";
 import { useContractors } from "@/features/contractors/use-contractors";
 import { initialsOf, TypeBadge } from "@/features/employees/employee-badges";
 import { useNamedItems } from "@/features/plants/use-plants";
 import { formatDate, formatNumber } from "@/lib/format";
+import { BulkIssueDialog, BulkRevokeDialog, PrintCardsDialog } from "./bulk-card-dialogs";
+import { doable, planCardAction, planIssue } from "./bulk-plan";
 import { CardStateBadge, ReprintBadge, useValidityHint } from "./card-badges";
-import { type CardRow, type CardState, type Card as QrCard, useQrCards } from "./use-qr-cards";
+import { TestCardsTab } from "./test-cards-tab";
+import {
+  type CardRow,
+  type CardState,
+  MAX_BULK,
+  type Card as QrCard,
+  useQrCards,
+  useTestCards,
+} from "./use-qr-cards";
 
 const PAGE_SIZE = 50;
 const STATES: CardState[] = ["none", "active", "expiring", "not_yet_valid", "expired", "revoked"];
@@ -89,6 +113,8 @@ export function QrCardsPage() {
   const navigate = useNavigate();
   const me = useMe();
   const role = me.data?.role;
+  // Only the Super Admin changes, prints and revokes cards (decisions 0005 and 0009).
+  const canChange = role === "super_admin";
   const { plantId } = usePlantFilter();
 
   const [search, setSearch] = useState("");
@@ -101,6 +127,9 @@ export function QrCardsPage() {
   const [printed, setPrinted] = useState<"" | "yes" | "no">("");
   const [reprintOnly, setReprintOnly] = useState(false);
   const [page, setPage] = useState(1);
+  // Selected people, kept by id across pages (a person of another page stays selected).
+  const [selected, setSelected] = useState<Map<string, CardRow>>(new Map());
+  const [bulkDialog, setBulkDialog] = useState<"issue" | "revoke" | "print" | null>(null);
 
   // Wait a moment after typing before asking the server.
   useEffect(() => {
@@ -111,15 +140,17 @@ export function QrCardsPage() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // A different plant makes the category filter meaningless.
+  // A different plant makes the category filter and the selection meaningless.
   // biome-ignore lint/correctness/useExhaustiveDependencies: reset only when the plant changes
   useEffect(() => {
     setCategoryId("");
     setPage(1);
+    setSelected(new Map());
   }, [plantId]);
 
   const categories = useNamedItems(plantId, "categories");
   const contractors = useContractors();
+  const testCards = useTestCards(canChange);
   const cards = useQrCards({
     q: typedSearch.trim() || undefined,
     plant_id: plantId || undefined,
@@ -147,7 +178,31 @@ export function QrCardsPage() {
       printed ||
       reprintOnly,
   );
-  const readOnly = role !== "super_admin";
+  const readOnly = !canChange;
+  const pageSelected = rows.length > 0 && rows.every((row) => selected.has(row.employee.id));
+
+  const toggle = (row: CardRow) =>
+    setSelected((current) => {
+      const next = new Map(current);
+      if (next.has(row.employee.id)) next.delete(row.employee.id);
+      else next.set(row.employee.id, row);
+      return next;
+    });
+
+  const togglePage = () =>
+    setSelected((current) => {
+      const next = new Map(current);
+      for (const row of rows) {
+        if (pageSelected) next.delete(row.employee.id);
+        else next.set(row.employee.id, row);
+      }
+      return next;
+    });
+
+  const picked = useMemo(() => [...selected.values()], [selected]);
+  const issueCount = doable(planIssue(picked)).length;
+  const cardCount = doable(planCardAction(picked)).length;
+  const tooManyToChange = picked.length > MAX_BULK;
 
   const change =
     <T,>(setter: (value: T) => void) =>
@@ -156,35 +211,8 @@ export function QrCardsPage() {
       setPage(1);
     };
 
-  return (
-    <div className="mx-auto max-w-7xl space-y-5 pb-24">
-      <div className="flex flex-wrap items-start justify-between gap-3">
-        <div>
-          <h1 className="text-[26px] font-bold tracking-tight">{t("qrCards.title")}</h1>
-          <p className="max-w-2xl text-sm text-muted-foreground">{t("qrCards.subtitle")}</p>
-        </div>
-        {readOnly ? (
-          <Badge tone="neutral">
-            <Lock aria-hidden />
-            {t("qrCards.readOnly")}
-          </Badge>
-        ) : null}
-      </div>
-
-      {readOnly ? (
-        <Alert tone="info">
-          <Lock aria-hidden />
-          <span>
-            <b>
-              {role === "plant_head"
-                ? t("qrCards.readOnlyBanner.plantHead")
-                : t("qrCards.readOnlyBanner.corporateHead")}
-            </b>{" "}
-            {t("qrCards.readOnlyBanner.text")}
-          </span>
-        </Alert>
-      ) : null}
-
+  const employeesPanel = (
+    <>
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b p-4">
           <Input
@@ -289,6 +317,17 @@ export function QrCardsPage() {
         <Table>
           <TableHeader>
             <TableRow className="hover:bg-transparent">
+              {canChange ? (
+                <TableHead className="w-10">
+                  <input
+                    type="checkbox"
+                    aria-label={t("qrCards.selectPage")}
+                    checked={pageSelected}
+                    onChange={togglePage}
+                    className="size-4"
+                  />
+                </TableHead>
+              ) : null}
               <TableHead>{t("qrCards.columns.employee")}</TableHead>
               <TableHead>{t("qrCards.columns.typeMethod")}</TableHead>
               <TableHead>{t("qrCards.columns.plant")}</TableHead>
@@ -304,7 +343,7 @@ export function QrCardsPage() {
               ? Array.from({ length: 6 }, (_, index) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: fixed placeholder rows
                   <TableRow key={index}>
-                    <TableCell colSpan={8}>
+                    <TableCell colSpan={canChange ? 9 : 8}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
@@ -313,8 +352,20 @@ export function QrCardsPage() {
                   <TableRow
                     key={row.employee.id}
                     className="cursor-pointer"
+                    data-state={selected.has(row.employee.id) ? "selected" : undefined}
                     onClick={() => navigate(`/admin/employees/${row.employee.id}`)}
                   >
+                    {canChange ? (
+                      <TableCell onClick={(event) => event.stopPropagation()}>
+                        <input
+                          type="checkbox"
+                          aria-label={t("qrCards.selectOne", { name: row.employee.name })}
+                          checked={selected.has(row.employee.id)}
+                          onChange={() => toggle(row)}
+                          className="size-4"
+                        />
+                      </TableCell>
+                    ) : null}
                     <TableCell>
                       <span className="flex items-center gap-2">
                         <span className="grid size-8 shrink-0 place-items-center rounded-full bg-primary-soft text-xs font-bold text-primary-soft-foreground">
@@ -416,6 +467,160 @@ export function QrCardsPage() {
           </div>
         </div>
       </Card>
+
+      {picked.length > 0 && canChange ? (
+        <div className="fixed inset-x-4 bottom-4 z-40 mx-auto max-w-4xl space-y-2 lg:left-72">
+          <div className="rounded-xl border bg-card p-3 text-sm shadow-lg">
+            <p className="mb-1 font-semibold">
+              {t("qrCards.bulk.hintTitle", { count: picked.length })}
+            </p>
+            <ul className="space-y-0.5 text-muted-foreground">
+              <li>
+                <b className="text-foreground">{t("qrCards.bulk.button.issue")}:</b>{" "}
+                {t("qrCards.bulk.hint.issue", {
+                  ok: issueCount,
+                  skipped: picked.length - issueCount,
+                })}
+              </li>
+              <li>
+                <b className="text-foreground">{t("qrCards.bulk.button.print")}:</b>{" "}
+                {t("qrCards.bulk.hint.print", { ok: cardCount, total: picked.length })}
+              </li>
+              <li>
+                <b className="text-foreground">{t("qrCards.bulk.button.revoke")}:</b>{" "}
+                {t("qrCards.bulk.hint.revoke", { ok: cardCount })}
+              </li>
+            </ul>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 rounded-xl bg-foreground px-4 py-3 text-background shadow-lg">
+            <span className="grid size-7 place-items-center rounded-full bg-signal text-sm font-bold text-foreground">
+              {picked.length}
+            </span>
+            <span className="text-sm font-semibold">{t("qrCards.bulk.selected")}</span>
+            {tooManyToChange ? (
+              <span role="alert" className="text-sm text-signal">
+                {t("qrCards.bulk.tooMany", { max: MAX_BULK })}
+              </span>
+            ) : null}
+            <span className="ml-auto flex flex-wrap gap-2">
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={issueCount === 0 || tooManyToChange}
+                onClick={() => setBulkDialog("issue")}
+              >
+                <IdCard aria-hidden />
+                {t("qrCards.bulk.button.issue")}
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                disabled={cardCount === 0}
+                onClick={() => setBulkDialog("print")}
+              >
+                <Printer aria-hidden />
+                {t("qrCards.bulk.button.print")}
+              </Button>
+              <Button
+                size="sm"
+                variant="danger"
+                disabled={cardCount === 0 || tooManyToChange}
+                onClick={() => setBulkDialog("revoke")}
+              >
+                <Ban aria-hidden />
+                {t("qrCards.bulk.button.revoke")}
+              </Button>
+              <Button
+                size="sm"
+                variant="ghost"
+                className="text-background hover:bg-background/15"
+                aria-label={t("qrCards.bulk.clear")}
+                onClick={() => setSelected(new Map())}
+              >
+                <X className="size-4" aria-hidden />
+              </Button>
+            </span>
+          </div>
+        </div>
+      ) : null}
+
+      {bulkDialog === "issue" ? (
+        <BulkIssueDialog
+          rows={picked}
+          onClose={() => setBulkDialog(null)}
+          onDone={() => setSelected(new Map())}
+        />
+      ) : null}
+      {bulkDialog === "revoke" ? (
+        <BulkRevokeDialog
+          rows={picked}
+          onClose={() => setBulkDialog(null)}
+          onDone={() => setSelected(new Map())}
+        />
+      ) : null}
+      {bulkDialog === "print" ? (
+        <PrintCardsDialog
+          rows={picked}
+          onClose={() => setBulkDialog(null)}
+          onDone={() => setSelected(new Map())}
+        />
+      ) : null}
+    </>
+  );
+
+  return (
+    <div className="mx-auto max-w-7xl space-y-5 pb-24">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-[26px] font-bold tracking-tight">{t("qrCards.title")}</h1>
+          <p className="max-w-2xl text-sm text-muted-foreground">{t("qrCards.subtitle")}</p>
+        </div>
+        {readOnly ? (
+          <Badge tone="neutral">
+            <Lock aria-hidden />
+            {t("qrCards.readOnly")}
+          </Badge>
+        ) : null}
+      </div>
+
+      {readOnly ? (
+        <Alert tone="info">
+          <Lock aria-hidden />
+          <span>
+            <b>
+              {role === "plant_head"
+                ? t("qrCards.readOnlyBanner.plantHead")
+                : t("qrCards.readOnlyBanner.corporateHead")}
+            </b>{" "}
+            {t("qrCards.readOnlyBanner.text")}
+          </span>
+        </Alert>
+      ) : null}
+
+      {canChange ? (
+        <Tabs defaultValue="employees">
+          <TabsList>
+            <TabsTrigger value="employees">
+              <Users aria-hidden />
+              {t("qrCards.tabs.employees")}
+              <Badge tone="neutral">{formatNumber(total)}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="test">
+              <FlaskConical aria-hidden />
+              {t("qrCards.tabs.test")}
+              <Badge tone="neutral">{formatNumber(testCards.data?.length ?? 0)}</Badge>
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent value="employees" className="space-y-5">
+            {employeesPanel}
+          </TabsContent>
+          <TabsContent value="test">
+            <TestCardsTab />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        employeesPanel
+      )}
     </div>
   );
 }

@@ -73,7 +73,12 @@ export type BulkSkipped = {
   employee_code: string | null;
   card_serial: string | null;
 };
-export type BulkResult = { done: number; skipped: BulkSkipped[] };
+export type BulkResult = {
+  done: number;
+  skipped: BulkSkipped[];
+  // The cards a bulk issue just made (empty for a bulk revoke), so they can be printed.
+  card_ids: string[];
+};
 
 export const MAX_BULK = 500;
 export const MAX_PRINT = 200;
@@ -233,13 +238,16 @@ export function usePdfPrinting() {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<unknown>(null);
 
-  const print = async (makePdf: () => Promise<Blob>, filename: string) => {
+  // Returns true when the PDF was shown (or downloaded), false when it failed.
+  const print = async (makePdf: () => Promise<Blob>, filename: string): Promise<boolean> => {
     setPending(true);
     setError(null);
     try {
       await openPdfInNewTab(makePdf, filename);
+      return true;
     } catch (failure) {
       setError(failure);
+      return false;
     } finally {
       setPending(false);
       await refresh();

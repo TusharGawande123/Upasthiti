@@ -1317,6 +1317,114 @@
         "submit": "Save end date",
         "done": "End date saved."
       }
+    },
+    "tabs": {
+      "employees": "Employees",
+      "test": "Test cards"
+    },
+    "selectPage": "Select everyone on this page",
+    "selectOne": "Select {{name}}",
+    "skip": {
+      "EMPLOYEE_NOT_QR": "Skipped: punches by face",
+      "QR_CARD_EXISTS": "Skipped: already has card {{serial}}",
+      "NO_CARD": "Skipped: has no card",
+      "QR_CARD_REVOKED": "Skipped: already revoked",
+      "EMPLOYEE_LEFT": "Skipped: has left",
+      "EMPLOYEE_NOT_FOUND": "Skipped: not found",
+      "QR_CARD_NOT_FOUND": "Skipped: card not found"
+    },
+    "bulk": {
+      "selected": "selected",
+      "clear": "Clear the selection",
+      "tooMany": "Select at most {{max}} people for this action.",
+      "hintTitle": "What each button will do with these {{count}} people",
+      "button": {
+        "issue": "Issue cards",
+        "print": "Print cards (A4)",
+        "revoke": "Revoke cards"
+      },
+      "hint": {
+        "issue": "{{ok}} get a new card, {{skipped}} are skipped (they already have a card or punch by face).",
+        "print": "{{ok}} of {{total}} have a card to print.",
+        "revoke": "{{ok}} cards that are not revoked yet."
+      },
+      "willSkip": "will be skipped",
+      "andMore_one": "and {{count}} more",
+      "andMore_other": "and {{count}} more",
+      "skippedNote_one": "{{count}} person was skipped. Nothing was changed for them.",
+      "skippedNote_other": "{{count}} people were skipped. Nothing was changed for them.",
+      "printNew_one": "Print the {{count}} new card (A4)",
+      "printNew_other": "Print the {{count}} new cards (A4)",
+      "printPart": "Print cards {{from}}–{{to}} (A4)",
+      "printInParts": "A PDF holds at most {{max}} cards, so the new cards are printed in parts.",
+      "issue": {
+        "title_one": "Issue a card to {{count}} person",
+        "title_other": "Issue cards to {{count}} people",
+        "description": "Only people who punch by QR card and have no card yet get one. The others are skipped, not failed.",
+        "willGet": "will get a new card",
+        "submit_one": "Issue {{count}} card",
+        "submit_other": "Issue {{count}} cards",
+        "resultTitle_one": "{{count}} card issued",
+        "resultTitle_other": "{{count}} cards issued",
+        "resultText": "They are ready to print. Print them and hand each card to the worker yourself."
+      },
+      "revoke": {
+        "title_one": "Revoke {{count}} card",
+        "title_other": "Revoke {{count}} cards",
+        "description": "Of the {{total}} people you selected, {{skipped}} are skipped because they have no card or it is already revoked.",
+        "submit_one": "Revoke {{count}} card",
+        "submit_other": "Revoke {{count}} cards",
+        "done_one": "{{count}} card revoked.",
+        "done_other": "{{count}} cards revoked.",
+        "resultTitle_one": "{{count}} card revoked",
+        "resultTitle_other": "{{count}} cards revoked",
+        "resultText": "The cards stop working at every gate immediately."
+      }
+    },
+    "print": {
+      "title_one": "Print {{count}} card",
+      "title_other": "Print {{count}} cards",
+      "description": "Each card shows the person's current plant.",
+      "leftOut_one": "{{count}} selected person is left out: no card, or the card is revoked.",
+      "leftOut_other": "{{count}} selected people are left out: no card, or the card is revoked.",
+      "layout": "Layout",
+      "layouts": {
+        "a4_sheet": {
+          "title": "A4 sheets of 10",
+          "text": "2 cards across, 5 down, with cut marks. Best for many cards."
+        },
+        "single_cards": {
+          "title": "One card per page",
+          "text": "Card size 85.6 × 54 mm, one page each. For a card printer."
+        }
+      },
+      "note": "The PDF opens in a new tab. Print it from there. Every print is counted and written to the audit log; the file is not saved on the server.",
+      "submit_one": "Print {{count}} card",
+      "submit_other": "Print {{count}} cards",
+      "tooManyTitle": "Too many cards to print",
+      "tooManyText": "You selected {{count}} cards.",
+      "tooManyTip": "Print at most {{max}} cards at a time. Filter by plant or contractor, select that group, print it, then do the next group."
+    },
+    "test": {
+      "new": "New test card",
+      "newTitle": "New test card",
+      "newText": "A test card is scanned at a gate kiosk to check that it works. It belongs to nobody and never makes attendance.",
+      "label": "Label",
+      "labelHint": "Say where it is used, for example “Gate test K134”.",
+      "labelPlaceholder": "Gate test K134",
+      "create": "Create test card",
+      "created": "Test card {{serial}} created.",
+      "explain": "A guard scans a test card at the gate kiosk each morning. The kiosk shows “Kiosk OK” and nothing is recorded as attendance.",
+      "columns": {
+        "serial": "Card",
+        "label": "Label",
+        "state": "State",
+        "lastUsed": "Last used"
+      },
+      "never": "Never",
+      "print": "Print",
+      "empty": "No test cards yet. Create one to check a gate kiosk.",
+      "revokeTitle": "Revoke test card {{serial}}"
     }
   }
 }

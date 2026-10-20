@@ -18,6 +18,7 @@ const LAYOUT = {
   "GET /plants": page([PLANT_K134, PLANT_X280], 200),
   "GET /change-requests/pending-count": { body: { count: 0 } },
   "GET /contractors": { body: [] },
+  "GET /qr-test-cards": { body: [] },
 };
 
 const ROWS = [
