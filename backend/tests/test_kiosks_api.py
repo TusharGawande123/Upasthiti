@@ -1,26 +1,21 @@
 """Kiosk creation, pairing, signed requests and revoking (spec AC-13 to AC-17, AC-39)."""
 
-import base64
 import math
-import secrets
 import uuid
 
 import pytest
-from cryptography.hazmat.primitives import hashes, serialization
-from cryptography.hazmat.primitives.asymmetric import ec
-from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.audit.models import AuditLog
-from app.modules.kiosks.crypto import signed_message
 from app.modules.kiosks.models import KioskPairingCode
 from app.modules.users.models import Role
 from app.modules.users.plant_access import set_user_plant
 from tests.conftest import TEST_ORIGIN
 from tests.factories import log_in, make_user
+from tests.kiosk_helpers import Device
 from tests.test_org_api import LAT0, LON0, METRES_PER_DEGREE, square_geofence
 
 KIOSKS = "/api/v1/kiosks"
@@ -35,35 +30,6 @@ def at(east_m: float, north_m: float, accuracy_m: float = 12) -> dict:
         "lon": LON0 + east_m / (METRES_PER_DEGREE * math.cos(math.radians(LAT0))),
         "accuracy_m": accuracy_m,
     }
-
-
-class Device:
-    """A fake gate device: it makes a P-256 key and signs requests like WebCrypto does."""
-
-    def __init__(self) -> None:
-        self.private_key = ec.generate_private_key(ec.SECP256R1())
-        spki = self.private_key.public_key().public_bytes(
-            serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
-        )
-        self.public_key = base64.b64encode(spki).decode()
-        self.kiosk_id = ""
-        self.counter = 0
-
-    def headers(self, method: str, path: str, body: bytes = b"", counter: int | None = None):
-        counter = counter if counter is not None else self.counter + 1
-        self.counter = max(self.counter, counter)
-        nonce = secrets.token_urlsafe(16)
-        der = self.private_key.sign(
-            signed_message(method, path, body, nonce, counter), ec.ECDSA(hashes.SHA256())
-        )
-        r, s = decode_dss_signature(der)
-        raw = r.to_bytes(32, "big") + s.to_bytes(32, "big")  # WebCrypto's format
-        return {
-            "X-Kiosk-Id": self.kiosk_id,
-            "X-Kiosk-Nonce": nonce,
-            "X-Kiosk-Counter": str(counter),
-            "X-Kiosk-Signature": base64.urlsafe_b64encode(raw).rstrip(b"=").decode(),
-        }
 
 
 @pytest.fixture

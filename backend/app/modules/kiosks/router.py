@@ -5,6 +5,7 @@ Head only reads). Devices: `/kiosk/register` (pairing code) and `/kiosk/me` (sig
 """
 
 import io
+import logging
 import uuid
 
 import segno
@@ -18,6 +19,7 @@ from app.core.errors import ApiError
 from app.core.time import utc_now
 from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
+from app.modules.auth.rate_limit import report_limiter
 from app.modules.auth.scope import ensure_plant_in_scope, plant_filter
 from app.modules.kiosks import service
 from app.modules.kiosks.dependencies import require_kiosk
@@ -25,6 +27,7 @@ from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.schemas import (
     CreateKioskRequest,
     KioskMeResponse,
+    KioskReportRequest,
     KioskResponse,
     KioskWithCodeResponse,
     PlantSummary,
@@ -35,6 +38,7 @@ from app.modules.kiosks.schemas import (
 )
 from app.modules.org.plants_service import get_plant
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["kiosks"])
 viewer = require(Capability.VIEW_KIOSKS)
 manager = require(Capability.MANAGE_KIOSKS)
@@ -192,3 +196,28 @@ def kiosk_me(
         plant=PlantSummary(id=plant.id, name=plant.name, code=plant.code),
         server_time=utc_now(),
     )
+
+
+@router.post("/kiosk/report", status_code=204)
+def kiosk_report(
+    body: KioskReportRequest,
+    kiosk: KioskDevice = Depends(require_kiosk),
+) -> Response:
+    """A problem the kiosk noticed (camera error, script error...). It goes to the server log
+    only, as one JSON line; nothing is stored in the database (S-26)."""
+    if not report_limiter.allow(str(kiosk.id)):
+        raise ApiError("TOO_MANY_REQUESTS", "Too many reports. Try again later.", 429)
+    logger.warning(
+        "kiosk report",
+        extra={
+            "fields": {
+                "kiosk_id": str(kiosk.id),
+                "plant_id": str(kiosk.plant_id),
+                "kind": body.kind,
+                "message": body.message,
+                "count": body.count,
+                "app_version": body.app_version,
+            }
+        },
+    )
+    return Response(status_code=204)

@@ -25,6 +25,7 @@ from app.modules.health.router import router as health_router
 from app.modules.kiosks.router import router as kiosks_router
 from app.modules.org.router import router as org_router
 from app.modules.printing.router import router as printing_router
+from app.modules.punches.router import router as punches_router
 from app.modules.qr_cards.router import router as qr_cards_router
 from app.modules.settings.router import router as settings_router
 from app.modules.users.router import router as users_router
@@ -82,6 +83,7 @@ def create_app() -> FastAPI:
     api_router.include_router(employees_router)
     api_router.include_router(qr_cards_router)
     api_router.include_router(printing_router)
+    api_router.include_router(punches_router)
     api_router.include_router(approvals_router)
     api_router.include_router(search_router)
     app.include_router(api_router)

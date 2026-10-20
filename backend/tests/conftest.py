@@ -39,6 +39,8 @@ from app.modules.auth.rate_limit import (  # noqa: E402
     failed_pairing_limiter,
     login_limiter,
     pairing_limiter,
+    punch_limiter,
+    report_limiter,
 )
 from tests.database import create_fresh_test_database, read_test_database_url  # noqa: E402
 
@@ -141,4 +143,6 @@ def fresh_rate_limits() -> Iterator[None]:
     login_limiter.reset()
     pairing_limiter.reset()
     failed_pairing_limiter.reset()
+    punch_limiter.reset()
+    report_limiter.reset()
     yield

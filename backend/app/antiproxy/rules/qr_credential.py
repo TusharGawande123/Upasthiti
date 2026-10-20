@@ -6,6 +6,8 @@ employee not on QR, wrong plant. The signature proves WE printed the card; every
 (dates, owner, plant) comes from the database, so the Super Admin can change it any time.
 """
 
+import logging
+
 from sqlalchemy import select
 
 from app.antiproxy.context import PunchContext, RuleResult
@@ -15,20 +17,26 @@ from app.modules.qr_cards.models import CardKind, QrCredential
 from app.modules.qr_cards.payload import parse_payload, signature_is_valid
 from app.modules.qr_cards.states import CardState, card_state
 
+logger = logging.getLogger(__name__)
+
 
 def check_qr_credential(context: PunchContext) -> RuleResult:
     parsed = parse_payload(context.qr_text or "")
     if parsed is None:
         return RuleResult.rejected("QR_FORMAT_INVALID")
 
+    if not signature_is_valid(context.app_settings, parsed):
+        return RuleResult.rejected("QR_SIGNATURE_INVALID")
     card = context.session.scalar(
         select(QrCredential).where(QrCredential.card_serial == parsed.serial)
     )
-    # An unknown serial, an unknown key and a changed signature all look the same from outside,
-    # so nobody can find out which serials exist.
-    if card is None or card.key_id != parsed.key_id:
+    # A forged text and an unknown serial look the same from outside, so nobody can find out
+    # which serials exist. A VALID signature on an unknown serial is different: only someone
+    # holding our signing key can make it, so it is logged as an error for the admin.
+    if card is None:
+        logger.error("A card text with a valid signature names an unknown serial")
         return RuleResult.rejected("QR_SIGNATURE_INVALID")
-    if not signature_is_valid(context.app_settings, parsed):
+    if card.key_id != parsed.key_id:
         return RuleResult.rejected("QR_SIGNATURE_INVALID")
     context.card = card
 

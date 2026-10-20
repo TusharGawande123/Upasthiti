@@ -3,6 +3,7 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
+from typing import Literal
 
 from pydantic import BaseModel, Field
 
@@ -77,3 +78,12 @@ class KioskMeResponse(BaseModel):
     status: str
     plant: PlantSummary
     server_time: datetime
+
+
+class KioskReportRequest(BaseModel):
+    """A short problem report from a kiosk (S-26). Never carries card texts, images or names."""
+
+    kind: Literal["camera_error", "decoder_fallback", "script_error", "wake_lock_failed", "other"]
+    message: str = Field(max_length=300)
+    count: int = Field(ge=1, le=100)
+    app_version: str | None = Field(default=None, max_length=40)

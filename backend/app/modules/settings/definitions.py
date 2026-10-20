@@ -40,6 +40,10 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition("login_lock_minutes", "security", 15, "min", 1, 5, 120),
     SettingDefinition("punch_cooldown_minutes", "punch", 2, "min", 2, 1, 30),
     SettingDefinition("snapshot_retention_days", "snapshots", 60, "days", 2, 7, 365),
+    # Used by the card punch rules (M2, spec §7 rule 12). Read-only until CURRENT_MILESTONE is 2.
+    SettingDefinition("min_minutes_before_out", "punch", 30, "min", 2, 2, 240),
+    SettingDefinition("open_in_max_hours", "punch", 20, "h", 2, 12, 24),
+    SettingDefinition("snapshot_dark_threshold", "snapshots", 40, "of 255", 2, 10, 120),
     # QR cards (M2, spec §7 rule 12). Editable once CURRENT_MILESTONE is raised to 2.
     SettingDefinition("qr_card_default_validity_months", "cards", 6, "months", 2, 1, 36),
     SettingDefinition("qr_card_expiring_soon_days", "cards", 14, "days", 2, 1, 60),
