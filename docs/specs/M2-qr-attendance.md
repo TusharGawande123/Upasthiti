@@ -1,6 +1,8 @@
 # M2 – QR attendance at the kiosk (with snapshot): Specification
 
 Status: Approved by Anuradha on 2026-10-20 (delegated by Tushar) · Author: spec-writer · Date: 2026-10-20
+Change (2026-10-20, Anuradha): the default card validity is **2 months** instead of 6 (answer 2,
+decision 0008 item 1); every "2 months" below was "6 months" in the approved text.
 Answers of 2026-10-19: given in chat by Anuradha (team member), not by the lead. Where an
 answer conflicts with an earlier approved decision, the spec follows the earlier decision and
 the item waits for Tushar (lead): see §14.1 "Pending Tushar" and §15 "Changes".
@@ -45,7 +47,7 @@ snapshot).
    - the Super Admin issues a card to an active employee **whose punch method is QR**
      (temporary workers by default; `EMPLOYEE_NOT_QR` otherwise);
    - each card has a never-reused **card serial** (`C000123`), a `valid_from` date and a
-     `valid_until` date (default 6 months, a setting, editable at issue);
+     `valid_until` date (default 2 months, a setting, editable at issue);
    - **one active card per employee:** issuing a new card revokes the old one (reason
      "Replaced by C000456") in the same step;
    - the Super Admin revokes a card at once with a reason, ends it today ("expire by hand") or
@@ -334,13 +336,13 @@ spoken**.
 - Link "See punches" → punch log filtered to this employee.
 
 ### 4.8 Admin: issue / revoke / end-date dialogs (Super Admin)
-- **Issue:** valid from (default today), valid until (default valid from + 6 months − 1 day,
+- **Issue:** valid from (default today), valid until (default valid from + 2 months − 1 day,
   editable), note. If an active card exists: "The current card C000123 will stop working at
   once." Result: "Card C000456 issued" with "Print now".
 - **Revoke:** reason kind (Lost, Damaged, Left the company, Other) + text (3+ characters);
   "The card stops working at the gate immediately."
 - **Change end date:** new date (today or later) + reason; "End today" shortcut; "Extend by
-  6 months" shortcut.
+  2 months" shortcut (the shortcut follows the default-validity setting).
 
 ### 4.9 Admin: card PDF (Super Admin)
 - **Single card (CR80, 85.6 × 54 mm):**
@@ -603,7 +605,7 @@ own migrations.
    - Issue: only for an employee with status `active` (`EMPLOYEE_LEFT` otherwise) **and punch
      method `qr`** (`EMPLOYEE_NOT_QR` otherwise; temporary workers default to QR, M1 rule 10).
      `valid_from` today to 60 days ahead (default today). `valid_until` ≥ `valid_from`, at most
-     3 years after it; default `valid_from` + `qr_card_default_validity_months` (6) − 1 day.
+     3 years after it; default `valid_from` + `qr_card_default_validity_months` (2) − 1 day.
    - One active card per employee (database rule). Issuing while a non-revoked card exists
      revokes it in the same transaction (`revoke_kind = replaced`, reason
      "Replaced by C000456").
@@ -772,7 +774,7 @@ own migrations.
     | `min_minutes_before_out` | 30 | 2–240 | punch (new) |
     | `open_in_max_hours` | 20 | 12–24 | punch (new) |
     | `snapshot_dark_threshold` | 40 | 10–120 (brightness 0–255) | snapshots (new, F-31) |
-    | `qr_card_default_validity_months` | 6 | 1–36 | cards (new) |
+    | `qr_card_default_validity_months` | 2 | 1–36 | cards (new) |
     | `qr_card_expiring_soon_days` | 14 | 1–60 | cards (new, F-33) |
     | `kiosk_voice_enabled` | on | on / off | kiosk (new, F-1) |
     | `kiosk_sound_enabled` | on | on / off | kiosk (new, F-1) |
@@ -995,7 +997,7 @@ rejections (decision 0006). Keys: `kiosk.punch.<CODE>.*`; admin keys `errors.<CO
 Core:
 - **AC-1** Given an active temporary worker whose punch method is QR and who has no card, when
   the Super Admin issues a card with the defaults, then a card `C…` exists, valid from today
-  until today + 6 months − 1 day, and `qr_card.issue` is audited; the same request by a
+  until today + 2 months − 1 day, and `qr_card.issue` is audited; the same request by a
   Corporate Head or Plant Head returns `FORBIDDEN`; given an employee whose punch method is
   face, then issuing returns `EMPLOYEE_NOT_QR`.
 - **AC-2** Given a worker with active card C000001, when the Super Admin issues a new card,
@@ -1166,7 +1168,7 @@ Extras:
 - **Unit (pytest):**
   - payload build, base32 form, signature verify, strict pattern, key id handling (AC-3);
   - card state calculation by IST day; issue / replace / revoke / end-date / extend rules;
-    default 6 months; `EMPLOYEE_NOT_QR` on issue; `printed_plant_id` and `reprint_needed`
+    default 2 months; `EMPLOYEE_NOT_QR` on issue; `printed_plant_id` and `reprint_needed`
     (AC-1, AC-2, AC-4, AC-6, AC-11);
   - each rule file on its own (`snapshot`, `qr_credential` incl. `EMPLOYEE_NOT_QR` and
     `WRONG_PLANT`, `cooldown`), and the engine order (first reject wins); test-card branch
@@ -1316,7 +1318,8 @@ decisions (§14.2).
 
 1. **Where does a card work?** Anuradha: at any plant. **Spec follows the earlier rule: only at
    the employee's current plant (`WRONG_PLANT`). Pending Tushar (R1).**
-2. **Default card end date:** 6 months (setting, editable at issue). Confirmed (§14.2).
+2. **Default card end date:** 2 months (setting, editable at issue). Confirmed (§14.2); changed
+   from 6 to 2 months by Anuradha on 2026-10-20.
 3. **Transfer / plant on the card:** Anuradha: keep the card, print no plant. **Spec: the card
    keeps working after a transfer, and the card prints the plant name and code (SRS FR-14);
    a reprint is advised. Pending Tushar (R2).**
@@ -1357,7 +1360,8 @@ he answers, the spec follows the **earlier decision** in the third column.
 ### 14.2 Own decisions inside M2 (confirmed by Anuradha)
 These do not change any earlier approved decision. Each has one line of justification.
 
-- **Card validity default 6 months (answer 2):** the card then expires by itself on its end
+- **Card validity default 2 months (answer 2; 6 months until the change of 2026-10-20):** the
+  card then expires by itself on its end
   date, and the Super Admin can extend or end it by hand at any time, which is how "expire by
   hand" in decision 0005 is satisfied.
 - **Missing or broken snapshot is rejected (answer 4):** the same camera read the card, so a

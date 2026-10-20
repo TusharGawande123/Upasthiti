@@ -383,7 +383,7 @@ As spec §13, all free:
 ## Verification (AC → test)
 | AC | How |
 |---|---|
-| AC-1, AC-2 | pytest API: issue with defaults (6 months − 1 day), audit; CH/PH `FORBIDDEN`; an employee with punch method face → `EMPLOYEE_NOT_QR`; replace revokes the old one; two parallel issues → one active (unique index) |
+| AC-1, AC-2 | pytest API: issue with defaults (2 months − 1 day; was 6 until 2026-10-20), audit; CH/PH `FORBIDDEN`; an employee with punch method face → `EMPLOYEE_NOT_QR`; replace revokes the old one; two parallel issues → one active (unique index) |
 | AC-3 | pytest unit: payload deterministic, regex, verify, one-character change fails |
 | AC-4, AC-41 | pytest: PDF one CR80 page, plant name and code printed, no end date text (pypdfium2 text extraction), 12 cards → 2 A4 pages, print_count + `printed_plant_id` + audit; "reprint needed" after a transfer; S-23 scan test (decode = payload, version ≤ 7) in CI |
 | AC-5 | pytest role matrix: print, issue, revoke, extend → `FORBIDDEN` for Corporate Head and Plant Head; both can list cards read-only; e2e: no print button for the Plant Head |

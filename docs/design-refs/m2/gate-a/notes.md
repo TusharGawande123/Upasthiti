@@ -184,3 +184,7 @@ Design gate A was approved by Anuradha on 2026-10-20 after looking at the screen
 2. **Ctrl+K "Issue QR card…" and "Print QR cards…":** an employee picker for Issue (then the issue dialog), and the QR cards list with the "Not printed" filter for Print.
 3. **Test cards tab:** hidden for the Corporate Head and Plant Head (opening the link shows "Only the Super Admin can open this page").
 4. The designer's recommendations stand: after an import with more than 200 QR employees, printing is offered in parts of 200; no separate "card shows plant" column (only the "Reprint needed" badge and the card panel); the extra line under the empty-state sentence.
+
+Change (2026-10-20, Anuradha): the default card validity is now **2 months**. The mockups and screenshots
+above still show "+6 months" and "Extend by 6 months"; the built screens show the number from the setting
+("+2 months", "Extend by 2 months"). Nothing else in the design changes.

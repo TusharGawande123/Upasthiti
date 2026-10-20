@@ -27,7 +27,7 @@ M2_SETTINGS = {
     "min_minutes_before_out": 30,
     "open_in_max_hours": 20,
     "snapshot_dark_threshold": 40,
-    "qr_card_default_validity_months": 6,
+    "qr_card_default_validity_months": 2,
     "qr_card_expiring_soon_days": 14,
     "kiosk_voice_enabled": "on",
     "kiosk_sound_enabled": "on",

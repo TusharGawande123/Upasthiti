@@ -40,7 +40,7 @@ function answers(
     "GET /settings": {
       body: {
         settings: [
-          { key: "qr_card_default_validity_months", value: 6, default: 6, editable: false },
+          { key: "qr_card_default_validity_months", value: 2, default: 2, editable: true },
         ],
       },
     },
@@ -211,7 +211,7 @@ describe("issue dialog", () => {
 
     expect(within(dialog).getByLabelText("Valid from")).toHaveValue(todayIst());
     expect(within(dialog).getByLabelText("Valid until")).toHaveValue(
-      defaultValidUntil(todayIst(), 6),
+      defaultValidUntil(todayIst(), 2),
     );
     expect(within(dialog).queryByText(/will stop working at once/)).not.toBeInTheDocument();
     await user.click(within(dialog).getByRole("button", { name: "Issue card" }));
@@ -220,7 +220,7 @@ describe("issue dialog", () => {
     const post = calls.find((call) => call.method === "POST");
     expect(post?.body).toEqual({
       valid_from: todayIst(),
-      valid_until: defaultValidUntil(todayIst(), 6),
+      valid_until: defaultValidUntil(todayIst(), 2),
     });
   });
 
@@ -234,7 +234,7 @@ describe("issue dialog", () => {
     const start = inDays(10);
     fireEvent.change(within(dialog).getByLabelText("Valid from"), { target: { value: start } });
 
-    expect(within(dialog).getByLabelText("Valid until")).toHaveValue(defaultValidUntil(start, 6));
+    expect(within(dialog).getByLabelText("Valid until")).toHaveValue(defaultValidUntil(start, 2));
     fireEvent.change(within(dialog).getByLabelText("Valid until"), {
       target: { value: inDays(40) },
     });
@@ -382,12 +382,12 @@ describe("change end date dialog", () => {
     );
   });
 
-  it("extends from the current end date by six months", async () => {
+  it("extends from the current end date by the default months (the setting)", async () => {
     const { user, dialog } = await openDialog([card({ valid_until: "2027-08-31" })]);
 
-    await user.click(within(dialog).getByRole("button", { name: "Extend by 6 months" }));
+    await user.click(within(dialog).getByRole("button", { name: "Extend by 2 months" }));
 
-    expect(within(dialog).getByLabelText("New end date")).toHaveValue("2028-02-29");
+    expect(within(dialog).getByLabelText("New end date")).toHaveValue("2027-10-31");
   });
 
   it("will not save a date in the past", async () => {

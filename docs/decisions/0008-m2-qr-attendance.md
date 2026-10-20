@@ -13,7 +13,8 @@ decision or a client answer, the earlier decision is back in force until Tushar 
 
 ## Decisions (inside M2, confirmed by Anuradha)
 
-1. **Default card validity: 6 months** (a setting; the Super Admin can change it at issue). The card
+1. **Default card validity: 2 months** (a setting; the Super Admin can change it at issue). Changed
+   from 6 months by Anuradha on 2026-10-20 (her own M2 decision, type A in 0009). The card
    expires by itself on its end date; the Super Admin can extend or end it by hand at any time.
 2. **The card prints the issue date, not the end date**, so extending a card never needs a reprint.
 3. **Snapshots:** 320 px JPEG; a punch without a usable snapshot is rejected (`SNAPSHOT_MISSING`);

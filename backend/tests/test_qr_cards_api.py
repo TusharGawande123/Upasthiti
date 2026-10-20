@@ -90,8 +90,8 @@ def test_issue_uses_the_defaults_and_writes_an_audit_entry(
     assert card["serial"].startswith("C")
     assert len(card["serial"]) == 7
     assert card["valid_from"] == iso(today)
-    # 6 months, minus the first day: 20/10/2026 → 19/04/2027
-    assert card["valid_until"] == iso(add_months(today, 6) - timedelta(days=1))
+    # 2 months, minus the first day: 20/10/2026 → 19/12/2026
+    assert card["valid_until"] == iso(add_months(today, 2) - timedelta(days=1))
     assert card["state"] == "active"
     assert card["print_count"] == 0
     assert card["printed_plant"] is None

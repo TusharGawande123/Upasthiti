@@ -119,7 +119,7 @@ def issue_card(
 
 
 def default_valid_until(session: Session, start: date) -> date:
-    """Start + the default number of months − 1 day (6 months from 01/11 ends on 30/04)."""
+    """Start + the default number of months − 1 day (2 months from 01/11 ends on 31/12)."""
     months = get_int_setting(session, "qr_card_default_validity_months")
     return add_months(start, months) - timedelta(days=1)
 

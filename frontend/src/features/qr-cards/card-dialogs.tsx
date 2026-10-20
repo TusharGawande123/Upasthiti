@@ -32,10 +32,20 @@ import {
 
 const MIN_REASON = 3;
 const MAX_DAYS_AHEAD = 60;
-const FALLBACK_VALIDITY_MONTHS = 6;
+// Used only until the settings have loaded; the real value is the Super Admin's setting.
+const FALLBACK_VALIDITY_MONTHS = 2;
 const REVOKE_KINDS: RevokeKind[] = ["lost", "damaged", "left", "other"];
 
 type Person = { id: string; name: string };
+
+/** How many months a new card lasts by default (setting `qr_card_default_validity_months`). */
+function useDefaultValidityMonths(): number {
+  const settings = useSettings();
+  return Number(
+    settings.data?.settings.find((setting) => setting.key === "qr_card_default_validity_months")
+      ?.value ?? FALLBACK_VALIDITY_MONTHS,
+  );
+}
 
 // --- Issue or replace -------------------------------------------------------------------------
 
@@ -48,15 +58,10 @@ type IssueDialogProps = {
 
 export function IssueCardDialog({ employee, replacing, onClose }: IssueDialogProps) {
   const { t } = useTranslation();
-  const settings = useSettings();
   const issue = useIssueCard(employee.id);
   const printing = usePdfPrinting();
   const today = todayIst();
-
-  const months = Number(
-    settings.data?.settings.find((setting) => setting.key === "qr_card_default_validity_months")
-      ?.value ?? FALLBACK_VALIDITY_MONTHS,
-  );
+  const months = useDefaultValidityMonths();
   const [validFrom, setValidFrom] = useState(today);
   // null = follow the default (start + months - 1 day); a typed date replaces it.
   const [typedUntil, setTypedUntil] = useState<string | null>(null);
@@ -280,6 +285,7 @@ export function ChangeValidUntilDialog({ card, onClose }: { card: Card; onClose:
   const { t } = useTranslation();
   const change = useChangeValidUntil();
   const today = todayIst();
+  const months = useDefaultValidityMonths();
   const [validUntil, setValidUntil] = useState(card.valid_until);
   const [reason, setReason] = useState("");
   const valid = reason.trim().length >= MIN_REASON && validUntil >= today;
@@ -336,9 +342,9 @@ export function ChangeValidUntilDialog({ card, onClose }: { card: Card; onClose:
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() => setValidUntil(addMonths(extendFrom, FALLBACK_VALIDITY_MONTHS))}
+                onClick={() => setValidUntil(addMonths(extendFrom, months))}
               >
-                {t("qrCards.dialog.changeEnd.extend", { months: FALLBACK_VALIDITY_MONTHS })}
+                {t("qrCards.dialog.changeEnd.extend", { months })}
               </Button>
             </div>
           </Field>
