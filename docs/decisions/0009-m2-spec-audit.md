@@ -84,3 +84,8 @@ earlier. I put your earlier decision back for each one and need your answer befo
 
 Until you answer, the plan and spec follow your earlier decisions. Answers change the spec and plan
 (and 0008) only; no code is written for these items before then.
+
+## Design gate A (2026-10-20)
+Approved by Anuradha: the QR cards screens in `docs/design-refs/m2/gate-a/`. Answers: "End today"
+keeps the card working until 23:59:59 IST (hint points to Revoke); Ctrl+K Issue / Print use an
+employee picker / the "Not printed" list; the Test cards tab is hidden for read-only roles.

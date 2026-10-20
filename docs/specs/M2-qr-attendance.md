@@ -208,7 +208,11 @@ snapshot).
 ## 4. Screens and UX (light, modern, premium; English first)
 The M1 general rules apply (states, en-IN formats, icon + word, keyboard, role-based hiding).
 Design reference: the M2 screens are drawn and approved as images in the plan step (gates like
-M1), then linked here. Kiosk rules: text at least 24 px (names and IN/OUT much larger), touch
+M1), then linked here. **Gate A (QR cards, card panel, dialogs, card layouts, dashboard card,
+Ctrl+K, import result) is approved (2026-10-20, Anuradha):**
+[docs/design-refs/m2/gate-a/index.html](../design-refs/m2/gate-a/index.html), screenshots in
+`docs/design-refs/m2/gate-a/screenshots/`, answers in `notes.md`. Gates B (kiosk) and C (punch
+log, notices, settings, kiosks) follow in the plan. Kiosk rules: text at least 24 px (names and IN/OUT much larger), touch
 targets at least 64 px, contrast 7:1, colour + icon + word, full screen, honest connection
 messages, all text from the translation file.
 
@@ -1431,3 +1435,7 @@ One line per change made on 2026-10-20 (reason, earlier file).
 - 2026-10-20 · A · §4.10: on a `WRONG_PLANT` punch row the Plant Head sees "Card of another
   plant" and no employee code or name (the employee belongs to another plant; M1 §7 rule 1 says
   nothing of other plants is leaked). Super Admin and Corporate Head see the employee.
+- 2026-10-20 · D · §4: design gate A approved and linked. Answers: "End today" keeps the rule (card
+  works until 23:59:59 IST) with a hint to use Revoke; Ctrl+K Issue / Print use an employee
+  picker / the list filtered "Not printed"; the Test cards tab is hidden for Corporate Head and
+  Plant Head.

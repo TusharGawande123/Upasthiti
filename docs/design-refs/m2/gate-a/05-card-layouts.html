@@ -1,0 +1,116 @@
+<!doctype html>
+<!--
+  Upasthiti – M2 design gate A – Screen 05: the real card layouts. The images in screenshots/card-*.png were rendered
+  from the actual PDF code (fpdf2 + segno, Inter font), not drawn by hand. Spec M2 §4.9.
+  States: none (one page). MOCKUP ONLY – fake people.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Card layouts</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+</head>
+<body data-active="qr-cards">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page">
+      <nav class="crumbs" aria-label="Breadcrumb"><a class="link" style="font-weight:500;text-decoration:none" href="01-qr-cards.html">QR cards</a><i data-lucide="chevron-right" style="width:14px;height:14px;color:var(--subtle-foreground)"></i><span aria-current="page" style="color:var(--foreground);font-weight:600">Card layouts</span></nav>
+      <div class="page-head anim-fade-up">
+        <div>
+          <h1 class="page-title">The printed card</h1>
+          <p class="page-desc">What the Super Admin gets when pressing Print. These pictures come from the real PDF code (CR80 size 85.6 × 54 mm, Inter font), so what you see is what is printed. The names are invented.</p>
+        </div>
+        <div class="flex gap-2"><span class="badge badge-neutral"><i data-lucide="file-text"></i>PDF, opens in a new tab</span><span class="badge badge-neutral"><i data-lucide="ruler"></i>85.6 × 54 mm</span></div>
+      </div>
+
+      <div class="layout-grid">
+        <!-- 1. Employee card -->
+        <section class="card layout-card anim-fade-up" aria-labelledby="t1">
+          <h2 id="t1" class="card-title" style="margin-bottom:12px">Employee card (temporary worker with a contractor)</h2>
+          <div class="pinned">
+            <img src="screenshots/card-employee.png" alt="Printed card: Sheet Shapers, plant K134, Sunil More, T-2041, contractor Shree Manpower Services, issued 20/10/2026, card C000123, QR code, privacy line" />
+            <span class="pin-dot" style="left:86%;top:15.8%">1</span>
+            <span class="pin-dot" style="left:34%;top:52%">2</span>
+            <span class="pin-dot" style="left:58%;top:64%">3</span>
+            <span class="pin-dot" style="left:34%;top:72%">4</span>
+            <span class="pin-dot" style="left:34%;top:80.7%">5</span>
+            <span class="pin-dot" style="left:97%;top:50%">6</span>
+            <span class="pin-dot" style="left:81%;top:93.6%">7</span>
+          </div>
+          <ol class="callouts">
+            <li><span class="n">1</span><span><b>Plant name and plant code printed</b> (SRS FR-14). After a transfer this no longer matches, so the list shows "Reprint needed".</span></li>
+            <li><span class="n">2</span><span><b>Name and employee code</b> in big letters, readable by the guard at arm's length.</span></li>
+            <li><span class="n">3</span><span><b>Contractor line</b>, only for contract workers. Long names are cut with "…".</span></li>
+            <li><span class="n">4</span><span><b>Issue date only. No end date is printed</b>, so the end can be extended or shortened without reprinting. The server decides what is valid.</span></li>
+            <li><span class="n">5</span><span><b>Card serial</b> (C000123). Used to find the card in Ctrl+K and the list.</span></li>
+            <li><span class="n">6</span><span><b>Vector QR, error correction Q</b>: stays sharp at any print size and still scans with about 25% scratched.</span></li>
+            <li><span class="n">7</span><span><b>Privacy line:</b> a photo is taken at each punch; if found, return to the plant office.</span></li>
+          </ol>
+        </section>
+
+        <!-- 2. Long name -->
+        <section class="card layout-card anim-fade-up anim-delay-1" aria-labelledby="t2">
+          <h2 id="t2" class="card-title" style="margin-bottom:12px">Long name and long contractor</h2>
+          <div class="pinned">
+            <img src="screenshots/card-long-name.png" alt="Printed card with a two-line name: Venkata Subramanian Ramachandran Iyer, code TP1/2041-9, contractor name cut with three dots" />
+          </div>
+          <ul class="callouts" style="margin-top:14px">
+            <li><span class="n" style="background:var(--muted);box-shadow:none"><i data-lucide="type" style="width:13px;height:13px"></i></span><span>A name of up to <b>two lines</b> fits; longer names shrink a little first. Unicode names print correctly (Inter is bundled).</span></li>
+            <li><span class="n" style="background:var(--muted);box-shadow:none"><i data-lucide="ellipsis" style="width:13px;height:13px"></i></span><span>A contractor name that is too long ends with "…". Employee codes of any shape (here <span class="code">TP1/2041-9</span>) stay large.</span></li>
+          </ul>
+
+          <h2 class="card-title" style="margin:22px 0 12px">Test card (F-27)</h2>
+          <div class="pinned">
+            <img src="screenshots/card-test.png" alt="Printed test card: black band TEST - NOT AN ID CARD, label Gate test K134 morning check, card T000007, QR code" />
+            <span class="pin-dot" style="left:58%;top:32%">A</span>
+            <span class="pin-dot" style="left:36%;top:80.7%">B</span>
+          </div>
+          <ol class="callouts">
+            <li><span class="n">A</span><span><b>Big black band "TEST – NOT AN ID CARD"</b> so nobody mistakes it for a worker's card. No employee, no plant.</span></li>
+            <li><span class="n">B</span><span><b>Serial starts with T</b> (T000007) and the label says where it is used. It never ends by date; revoke it if lost.</span></li>
+          </ol>
+        </section>
+
+        <!-- 3. A4 sheet, full width -->
+        <section class="card layout-card anim-fade-up anim-delay-2" aria-labelledby="t3" style="grid-column:1 / -1">
+          <h2 id="t3" class="card-title" style="margin-bottom:12px">A4 sheet of 10 cards</h2>
+          <div style="display:grid;grid-template-columns:minmax(0,420px) minmax(0,1fr);gap:28px;align-items:start">
+            <div class="pinned"><img src="screenshots/card-a4-sheet.png" alt="An A4 page with ten cards in two columns and five rows, thin cut marks in the margins" /></div>
+            <div>
+              <ul class="callouts">
+                <li><span class="n" style="background:var(--muted);box-shadow:none"><i data-lucide="layout-grid" style="width:13px;height:13px"></i></span><span><b>10 cards per sheet</b>, 2 across and 5 down, with thin cut marks at the margins.</span></li>
+                <li><span class="n" style="background:var(--muted);box-shadow:none"><i data-lucide="arrow-down-up" style="width:13px;height:13px"></i></span><span><b>Order as selected</b>, sorted by plant, contractor, then code, so a contractor's cards stay together.</span></li>
+                <li><span class="n" style="background:var(--muted);box-shadow:none"><i data-lucide="hash" style="width:13px;height:13px"></i></span><span><b>At most 200 cards per print</b> (20 sheets). The print dialog says so before it opens the PDF.</span></li>
+                <li><span class="n" style="background:var(--muted);box-shadow:none"><i data-lucide="file-down" style="width:13px;height:13px"></i></span><span>File names <span class="code">card-C000123.pdf</span> and <span class="code">cards-20-10-2026-37.pdf</span>. The PDF is never shared through a public link.</span></li>
+                <li><span class="n" style="background:var(--muted);box-shadow:none"><i data-lucide="printer" style="width:13px;height:13px"></i></span><span>Every print is counted and written to the audit log; it also records the plant printed on the card.</span></li>
+              </ul>
+              <div class="alert alert-info" style="margin-top:18px" role="note"><i data-lucide="info"></i><div><b>Design note.</b> This card is black on white on purpose: it must print well on any office printer and scan under shop-floor light. The brand colours stay in the website, not on the card.</div></div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="m2.js"></script>
+<script>
+  window.onMockState = function () {
+    D.patchShell();
+    M2.tagTitle("real PDF output");
+  };
+</script>
+</body>
+</html>

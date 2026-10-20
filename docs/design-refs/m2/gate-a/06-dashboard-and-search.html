@@ -1,0 +1,144 @@
+<!doctype html>
+<!--
+  Upasthiti – M2 design gate A – Screen 06: dashboard card "Cards ending soon" (F-33), sidebar badge, Ctrl+K (F-6).
+  Spec M2 §4.12 (dashboard), §4.13 (Ctrl+K), §5.6 (card serial search), §7 rule 1.
+  States (URL hash): (none) Super Admin dashboard · #ph / #plant-head (no ending-soon card) · #corporate-head ·
+  #palette (Ctrl+K, query "C000123") · #palette-actions (Ctrl+K just opened, commands by role) ·
+  #palette-other-plant+ph (serial of another plant: no result). Roles by "+ph" / "+ch", for example #palette-actions+ph.
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Dashboard and search</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+  <style>
+    .dstat { padding: 18px 20px; }
+    .dstat-label { display: flex; align-items: center; gap: 8px; color: var(--muted-foreground); font-size: 13.5px; font-weight: 500; }
+    .dstat-label svg { width: 17px; height: 17px; }
+    .dstat-value { font-size: 30px; font-weight: 750; letter-spacing: -0.02em; margin-top: 8px; }
+    .dstat-sub { font-size: 13px; color: var(--muted-foreground); margin-top: 2px; }
+    .steps li { display: flex; align-items: center; gap: 12px; padding: 10px 0; border-bottom: 1px dashed var(--border); }
+    .steps li:last-child { border-bottom: 0; }
+    .placeholder { position: relative; overflow: hidden; min-height: 300px; display: grid; place-items: center; text-align: center; }
+    .placeholder::before { content: ""; position: absolute; inset: 0; background-image: linear-gradient(var(--border) 1px, transparent 1px), linear-gradient(90deg, var(--border) 1px, transparent 1px); background-size: 32px 32px; opacity: 0.55; mask-image: radial-gradient(ellipse 60% 70% at 50% 50%, #000 10%, transparent 70%); }
+    .placeholder > * { position: relative; }
+    .bars { display: flex; align-items: flex-end; gap: 10px; height: 96px; margin: 0 auto 22px; width: max-content; }
+    .bars span { width: 22px; border-radius: 6px 6px 3px 3px; background: linear-gradient(180deg, #c9d3f2, #e6ebf9); border: 1px dashed #9fb0e3; }
+    .grid-dash { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+    .grid-main { display: grid; grid-template-columns: 1.6fr 1fr; gap: 16px; margin-top: 16px; align-items: start; }
+  </style>
+</head>
+<body data-active="dashboard">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="m2.js"></script>
+<script>
+  const isSa = D.role === "sa", isPh = D.role === "ph", isCh = D.role === "ch";
+
+  // ---------------- dashboard ----------------
+  function dashboard() {
+    const soon = isSa
+      ? '<section class="card soon-card anim-fade-up anim-delay-2" aria-labelledby="soon-t"><div class="flex items-start gap-3"><span class="dlg-icon di-warning">' + D.icon("calendar-clock") + '</span><div style="flex:1"><h2 id="soon-t" style="font-size:16px;font-weight:700;margin:0">Cards ending soon</h2><p class="muted" style="margin:2px 0 0;font-size:13.5px">QR cards that stop working within the next 14 days.</p></div></div>' +
+        '<div style="display:flex;align-items:baseline;gap:10px;margin:14px 0 4px"><span class="tnum" style="font-size:40px;font-weight:750;letter-spacing:-0.02em;line-height:1">12</span><span style="font-weight:600;color:var(--warning);display:inline-flex;align-items:center;gap:6px">' + D.icon("triangle-alert", 16) + "in the next 14 days</span></div>" +
+        '<p class="muted" style="margin:0 0 14px;font-size:13.5px">Extend them, or let them end. Nobody is switched off without you knowing.</p>' +
+        '<a class="btn btn-primary btn-lg w-full" href="01-qr-cards.html#ending-soon">' + D.icon("qr-code", 18) + 'Review these 12 cards' + D.icon("arrow-right", 17) + "</a></section>"
+      : "";
+    const setup = '<div class="card anim-fade-up anim-delay-3" style="padding:20px 22px"><div class="flex items-center justify-between"><h2 style="font-size:16px;font-weight:700;margin:0">Finish setup</h2><span class="tnum" style="font-size:13px;font-weight:600;color:var(--muted-foreground)">4 of 5 done</span></div><div style="height:8px;border-radius:99px;background:var(--muted);margin:12px 0 6px;overflow:hidden" role="progressbar" aria-valuenow="80" aria-valuemin="0" aria-valuemax="100" aria-label="Setup progress"><div style="width:80%;height:100%;background:var(--primary);border-radius:99px"></div></div>' +
+      '<ol class="steps" style="margin-top:6px"><li>' + D.icon("circle-check", 20, "color:var(--success)") + '<span>Plants</span><span class="ml-auto badge badge-success" style="height:22px">Done</span></li><li>' + D.icon("circle-check", 20, "color:var(--success)") + '<span>Geofence for each plant</span><span class="ml-auto badge badge-success" style="height:22px">Done</span></li><li>' + D.icon("circle-check", 20, "color:var(--success)") + '<span>Shifts and categories</span><span class="ml-auto badge badge-success" style="height:22px">Done</span></li><li>' + D.icon("circle-check", 20, "color:var(--success)") + '<span>Employees</span><span class="ml-auto badge badge-success" style="height:22px">Done</span></li><li>' + D.icon("circle-dashed", 20, "color:var(--warning)") + '<span>Kiosk for each plant</span><span class="ml-auto badge badge-warning tnum" style="height:22px">5 of 7</span></li></ol></div>';
+    const tiles = isPh
+      ? '<div class="card dstat anim-fade-up"><div class="dstat-label">' + D.icon("users") + 'Employees at X280</div><div class="dstat-value tnum">118</div><div class="dstat-sub tnum">81 permanent · 37 temporary</div></div><div class="card dstat anim-fade-up anim-delay-1"><div class="dstat-label">' + D.icon("tablet-smartphone") + 'Kiosks of X280</div><div class="dstat-value tnum">1</div><div class="dstat-sub">Paired and online</div></div>'
+      : '<div class="card dstat anim-fade-up"><div class="dstat-label">' + D.icon("factory") + 'Plants</div><div class="dstat-value tnum">7</div><div class="dstat-sub">All have a geofence</div></div><div class="card dstat anim-fade-up anim-delay-1"><div class="dstat-label">' + D.icon("tablet-smartphone") + 'Kiosks paired</div><div class="dstat-value tnum">5 <span style="font-size:18px;color:var(--muted-foreground);font-weight:600">of 7</span></div><div class="dstat-sub">QR punches start in M2</div></div><div class="card dstat anim-fade-up anim-delay-2"><div class="dstat-label">' + D.icon("users") + 'Employees</div><div class="dstat-value tnum">648</div><div class="dstat-sub tnum">298 permanent · 350 temporary</div></div><div class="card dstat anim-fade-up anim-delay-3"><div class="dstat-label">' + D.icon("inbox") + (isCh ? "My requests waiting" : "Waiting for approval") + '</div><div class="dstat-value tnum">' + (isCh ? 1 : 3) + '</div><div class="dstat-sub"><a href="#" style="color:var(--primary);font-weight:600;text-decoration:underline;text-underline-offset:3px">' + (isCh ? "Follow them" : "Review now") + "</a></div></div>";
+    const sideCol = '<div style="display:grid;gap:16px">' + soon + (isSa ? setup : "") + "</div>";
+    document.getElementById("page").innerHTML =
+      '<div class="page-head anim-fade-up"><div><h1 class="page-title">Good afternoon, ' + (isPh ? "Sameer" : isCh ? "Vikram" : "Asha") + '</h1><p class="page-desc"><span class="tnum">Tuesday, 20/10/2026</span> · Server time <b class="tnum" style="color:var(--foreground)">14:32 IST</b></p></div><span class="badge badge-neutral">' + D.icon("building-2") + (isPh ? "Showing: X280" : "Showing: All 7 plants") + "</span></div>" +
+      (isPh ? '<div class="ro-banner" role="note">' + D.icon("lock", 18) + "<span><b>Read-only.</b> The \"Cards ending soon\" card is for the Super Admin, who extends or ends cards. You can see every card of X280 on the QR cards page.</span></div>" : "") +
+      '<section class="grid-dash" aria-label="Summary" style="' + (isPh ? "grid-template-columns:repeat(2,minmax(0,1fr))" : "") + '">' + tiles + "</section>" +
+      '<section class="grid-main"><div class="card placeholder anim-fade-up anim-delay-2"><div style="padding:32px"><div class="bars" aria-hidden="true"><span style="height:40%"></span><span style="height:65%"></span><span style="height:52%"></span><span style="height:88%"></span><span style="height:74%"></span><span style="height:58%"></span><span style="height:80%"></span></div><span class="badge badge-info">' + D.icon("clock") + 'Coming in M5</span><h2 style="font-size:20px;font-weight:700;margin:12px 0 6px;letter-spacing:-0.01em">Live headcount comes in M5</h2><p style="color:var(--muted-foreground);max-width:46ch;margin:0 auto">Here you will see who is inside each plant right now.</p></div></div>' + sideCol + "</section>";
+  }
+
+  // ---------------- Ctrl+K palette (markup of M1 gate D screen D7) ----------------
+  let optionNumber = 0;
+  function item(o) {
+    optionNumber += 1;
+    return '<div class="pal-item ' + (o.active ? "is-active" : "") + '" role="option" id="opt-' + optionNumber + '" aria-selected="' + !!o.active + '"><span class="pi">' + D.icon(o.icon) + '</span><div class="t"><b>' + o.title + "</b><small>" + o.sub + "</small></div>" + (o.badge || "") + '<span class="enter">' + (o.verb || "Open") + ' <span class="kbd">↵</span></span></div>';
+  }
+  const group = function (label, icon, items) { return '<div role="group" aria-label="' + label + '"><div class="pal-group">' + D.icon(icon, 14) + label + "</div>" + items.join("") + "</div>"; };
+  const mark = function (t) { return "<mark>" + t + "</mark>"; };
+
+  function palette() {
+    let q = "", body = "", live = "";
+    const scope = isPh ? '<span class="scope-chip">' + D.icon("factory") + "X280 only</span>" : '<span class="scope-chip">' + D.icon("factory") + "All plants</span>";
+    if (D.has("palette")) {
+      if (isPh) {
+        q = "C000201";
+        body = group("Employees of X280", "users", [item({ icon: "qr-code", title: '<span class="code">' + mark("C000201") + "</span> · Rutuja Salunkhe · X280", sub: "Employee T-2088 · QR card · Active until 19/04/2027", badge: '<span class="badge badge-success" style="height:22px">' + D.icon("circle-check") + "Active</span>", active: true })]) +
+          '<div class="pal-group" style="padding-top:12px">' + D.icon("lock", 14) + "Search is limited to your plant, X280</div>";
+        live = "1 result";
+      } else {
+        q = "C000123";
+        body = group("Employees", "users", [item({ icon: "qr-code", title: '<span class="code">' + mark("C000123") + "</span> · Sunil More · K134", sub: "Employee T-2041 · Shree Manpower Services · QR card active until 19/04/2027", badge: '<span class="badge badge-success" style="height:22px">' + D.icon("circle-check") + "Active</span>", active: true })]) +
+          '<div class="field-hint" style="padding:8px 10px 6px">' + D.icon("info") + "<span>A card serial (C and digits) opens the employee, on the card panel.</span></div>";
+        live = "1 result";
+      }
+    } else if (D.has("palette-other-plant")) {
+      q = "C000123";
+      body = '<div class="pal-empty"><div class="empty-icon">' + D.icon("search-x") + '</div><h2 style="font-size:18px;margin:0 0 6px">No results for "C000123"</h2><p class="muted" style="margin:0 auto;max-width:46ch">Check the serial on the card. You can search only the people of X280, so a card of another plant does not show here.</p></div>';
+      live = "No results";
+    } else {
+      // commands by role (spec 4.13)
+      const cmds = [];
+      if (isSa) cmds.push(item({ icon: "id-card", title: "Issue QR card…", sub: "Choose an employee, then set the dates", verb: "Run", active: true }), item({ icon: "printer", title: "Print QR cards…", sub: "Choose the cards, then open the PDF", verb: "Run" }));
+      cmds.push(item({ icon: "qr-code", title: "QR cards", sub: isSa ? "Cards, states and printing" : "Read-only list" + (isPh ? " of X280" : ""), verb: "Go to", active: !isSa }));
+      cmds.push(item({ icon: "history", title: "Punch log", sub: "Every punch with its result", verb: "Go to" }));
+      cmds.push(item({ icon: "megaphone", title: "Gate notices", sub: isCh ? "Read-only" : "Messages shown on the kiosk", verb: "Go to" }));
+      if (isSa || isPh) cmds.push(item({ icon: "square-pen", title: "New gate notice", sub: isPh ? "For your plant, X280" : "For one plant or all plants", verb: "Run" }));
+      body = group("Commands", "terminal", cmds) + '<div class="field-hint" style="padding:8px 10px 6px">' + D.icon("info") + "<span>Type a card serial like C000123, or 2 or more characters of a name.</span></div>";
+      live = cmds.length + " commands";
+    }
+    const hasActive = body.indexOf("is-active") !== -1;
+    D.mount('<div class="overlay" style="z-index:55"></div><div class="palette anim-fade-up" style="z-index:60" role="dialog" aria-modal="true" aria-label="Search">' +
+      '<div class="pal-input">' + D.icon("search") + '<input type="text" role="combobox" aria-expanded="true" aria-controls="pal-list" aria-activedescendant="' + (hasActive ? "opt-1" : "") + '" aria-label="Search employees, card serials, plants and pages" placeholder="Search employees, card serials, pages…" value="' + q + '" autocomplete="off" />' + scope + '<span class="kbd">Esc</span></div>' +
+      '<div class="pal-list" id="pal-list" role="listbox" aria-label="Results">' + body + '</div><div class="sr-only" role="status" aria-live="polite">' + live + "</div>" +
+      '<div class="pal-foot"><span><span class="kbd">↑</span><span class="kbd">↓</span> move</span><span><span class="kbd">↵</span> open</span><span><span class="kbd">Esc</span> close</span><span style="margin-left:auto">' + (isPh ? "Only X280 shown" : "Employees by code, name or card serial") + "</span></div></div>");
+  }
+
+  window.onMockState = function () {
+    D.patchShell();
+    dashboard();
+    const inPalette = D.has("palette") || D.has("palette-actions") || D.has("palette-other-plant");
+    if (inPalette) palette();
+    // a small pointer to the sidebar badge, only on the plain Super Admin dashboard
+    if (isSa && !inPalette) {
+      const item = document.querySelector('.sb-item[title="QR cards"]');
+      const r = item.getBoundingClientRect();
+      const note = document.createElement("div");
+      note.className = "pin-note";
+      note.style.left = (r.right + 14) + "px";
+      note.style.top = (r.top + r.height / 2 - 15) + "px";
+      note.textContent = "12 cards end within 14 days";
+      document.body.appendChild(note);
+    }
+    const titles = { palette: "Ctrl+K, card serial typed", "palette-actions": "Ctrl+K, commands", "palette-other-plant": "Ctrl+K, serial of another plant", "plant-head": "dashboard", "corporate-head": "dashboard" };
+    const key = Object.keys(titles).filter(D.has)[0];
+    M2.tagTitle(key ? titles[key] : "dashboard card and sidebar badge");
+  };
+</script>
+</body>
+</html>
