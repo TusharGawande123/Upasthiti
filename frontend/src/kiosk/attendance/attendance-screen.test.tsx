@@ -361,3 +361,84 @@ describe("kiosk camera problems", () => {
     expect(await screen.findByText("IN")).toBeInTheDocument();
   });
 });
+
+describe("kiosk sound, voice and the one-tap banner", () => {
+  // A browser that already allows sound (kiosk mode), with one Indian English voice.
+  function stubSoundAndSpeech() {
+    const spoken: string[] = [];
+    vi.stubGlobal(
+      "AudioContext",
+      class {
+        state = "running";
+        currentTime = 0;
+        destination = {};
+        async resume() {}
+        createOscillator() {
+          return { frequency: { value: 0 }, connect() {}, start() {}, stop() {} };
+        }
+        createGain() {
+          return { gain: { setValueAtTime() {}, linearRampToValueAtTime() {} }, connect() {} };
+        }
+      },
+    );
+    vi.stubGlobal("speechSynthesis", {
+      getVoices: () => [{ lang: "en-IN", localService: true, name: "Indian English" }],
+      addEventListener: () => {},
+      cancel: () => {},
+      speak: (utterance: { text: string }) => spoken.push(utterance.text),
+    });
+    vi.stubGlobal(
+      "SpeechSynthesisUtterance",
+      class {
+        voice: unknown;
+        lang = "";
+        rate = 1;
+        constructor(readonly text: string) {}
+      },
+    );
+    return spoken;
+  }
+
+  it("speaks 'Checked in.' after an IN, never the name", async () => {
+    const spoken = stubSoundAndSpeech();
+    mockApi({ "GET /kiosk/me": { body: me() }, "POST /punch/kiosk": { body: answer() } });
+    await openPairedKiosk();
+
+    await showCard();
+    await screen.findByText("IN");
+
+    await waitFor(() => expect(spoken).toEqual(["Checked in."]));
+    expect(spoken.join(" ")).not.toContain("Sunil");
+  });
+
+  it("stays silent when sound is switched off for this gate", async () => {
+    const spoken = stubSoundAndSpeech();
+    const quiet = me();
+    quiet.kiosk_settings = { ...quiet.kiosk_settings, sound_enabled: false, voice_enabled: false };
+    mockApi({ "GET /kiosk/me": { body: quiet }, "POST /punch/kiosk": { body: answer() } });
+    await openPairedKiosk();
+
+    await showCard();
+    await screen.findByText("IN");
+    await act(() => new Promise((resolve) => setTimeout(resolve, 500)));
+
+    expect(spoken).toEqual([]);
+  });
+
+  it("turns on full screen with one tap on the banner, which then goes away", async () => {
+    mockApi({ "GET /kiosk/me": { body: me() } });
+    const requestFullscreen = vi.fn(async () => {});
+    document.documentElement.requestFullscreen = requestFullscreen;
+    await openPairedKiosk();
+    const user = userEvent.setup();
+
+    await user.click(
+      screen.getByRole("button", { name: "Tap once to turn on sound and full screen" }),
+    );
+
+    expect(requestFullscreen).toHaveBeenCalled();
+    expect(
+      screen.queryByRole("button", { name: "Tap once to turn on sound and full screen" }),
+    ).not.toBeInTheDocument();
+  });
+});

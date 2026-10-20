@@ -21,11 +21,14 @@ export function useAttendance({
   onOnline,
   onRevoked,
   onUnpaired,
+  onProblem,
 }: {
   settings: KioskScreenSettings;
   onOnline: (online: boolean) => void;
   onRevoked: () => void;
   onUnpaired: () => void;
+  /** A problem worth a report to the server log (S-26): camera errors, the slower decoder. */
+  onProblem: (kind: "camera_error" | "decoder_fallback", message: string) => void;
 }) {
   const [screen, dispatch] = useReducer(nextScreen, INITIAL_SCREEN);
   const [lowLight, setLowLight] = useState(false);
@@ -33,8 +36,8 @@ export function useAttendance({
   const detectorRef = useRef<QrDetector | null>(null);
   const sameCard = useRef(new SameCardFilter());
   // Kept in a ref: a new function from the parent must never restart a punch in progress.
-  const handlers = useRef({ onOnline, onRevoked, onUnpaired });
-  handlers.current = { onOnline, onRevoked, onUnpaired };
+  const handlers = useRef({ onOnline, onRevoked, onUnpaired, onProblem });
+  handlers.current = { onOnline, onRevoked, onUnpaired, onProblem };
 
   // 1. Start the camera and the QR decoder as soon as the screen opens.
   useEffect(() => {
@@ -45,6 +48,9 @@ export function useAttendance({
     createQrDetector()
       .then((detector) => {
         detectorRef.current = detector;
+        if (detector.usesFallback) {
+          handlers.current.onProblem("decoder_fallback", "No built-in QR reader; using zxing-wasm");
+        }
       })
       .catch(() => {
         if (!cancelled) dispatch({ type: "camera-failed", code: "BROWSER_NOT_SUPPORTED" });
@@ -61,8 +67,10 @@ export function useAttendance({
           stream = video.srcObject as MediaStream | null;
           dispatch({ type: "camera-needs-tap" });
         } else if (error instanceof CameraError && error.problem !== "NEEDS_TAP") {
+          handlers.current.onProblem("camera_error", error.problem);
           dispatch({ type: "camera-failed", code: error.problem });
         } else {
+          handlers.current.onProblem("camera_error", String(error));
           dispatch({ type: "camera-failed", code: "CAMERA_NOT_FOUND" });
         }
       });

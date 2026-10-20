@@ -1,7 +1,15 @@
 // The gate kiosk's main screen after pairing (spec M2 §4.1 to §4.5, design gate B): it opens
 // straight to scanning (zero taps). Camera problems replace the scanning area; results cover
 // the whole screen for a few seconds. The camera keeps running underneath all of them.
-import { Camera, CameraOff, LifeBuoy, MonitorX, RotateCw, ShieldCheck } from "lucide-react";
+import {
+  Camera,
+  CameraOff,
+  LifeBuoy,
+  MonitorX,
+  RotateCw,
+  ShieldCheck,
+  Volume2,
+} from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Frame } from "../components/frame";
 import { ProblemScreen } from "../components/problem-screen";
@@ -12,6 +20,7 @@ import { ScanningView } from "./scanning-view";
 import { ConnectionChip, TopClock } from "./top-bar";
 import { useAttendance } from "./use-attendance";
 import { useHeartbeat } from "./use-heartbeat";
+import { useErrorReporter, useSelfUpdate, useSoundAndBanner } from "./use-kiosk-extras";
 
 function Footer({ retentionDays }: { retentionDays: number }) {
   const { t } = useTranslation();
@@ -26,6 +35,22 @@ function Footer({ retentionDays }: { retentionDays: number }) {
         {t("kiosk.attendance.help")}
       </p>
     </footer>
+  );
+}
+
+// One tap turns on sound, full screen and the screen-awake lock (browsers need a tap for
+// these). Punches work without it; the banner sits in the top bar so nothing moves when it goes.
+function SoundBanner({ onTap }: { onTap: () => void }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={onTap}
+      className="flex min-h-16 max-w-[26rem] cursor-pointer items-center gap-3 rounded-2xl bg-primary px-5 py-2 text-left text-[24px] leading-tight font-bold text-primary-foreground shadow-[0_4px_0_0_#162a6e] active:translate-y-[2px] active:shadow-none"
+    >
+      <Volume2 className="size-8 shrink-0" aria-hidden />
+      {t("kiosk.soundBanner")}
+    </button>
   );
 }
 
@@ -50,12 +75,16 @@ export function AttendanceScreen({
 }) {
   const { t } = useTranslation();
   const heartbeat = useHeartbeat(initialMe, initialOffsetMs, { onRevoked, onUnpaired });
+  const report = useErrorReporter();
   const attendance = useAttendance({
     settings: heartbeat.settings,
     onOnline: heartbeat.setOnline,
     onRevoked,
     onUnpaired,
+    onProblem: report,
   });
+  const sound = useSoundAndBanner(attendance.screen, heartbeat.settings, report);
+  useSelfUpdate(attendance.screen);
   const { screen } = attendance;
   const title = `${kiosk.plantName} · ${kiosk.plantCode}`;
 
@@ -65,6 +94,7 @@ export function AttendanceScreen({
       subtitle={kiosk.kioskName}
       aside={
         <div className="flex items-center gap-5">
+          {sound.bannerVisible ? <SoundBanner onTap={sound.onBannerTap} /> : null}
           <ConnectionChip online={heartbeat.online} />
           <TopClock offsetMs={heartbeat.serverOffsetMs} />
         </div>

@@ -286,7 +286,8 @@
       "alreadyIn": "Already checked in.",
       "alreadyOut": "Already checked out.",
       "selfTest": "Kiosk test passed."
-    }
+    },
+    "soundBanner": "Tap once to turn on sound and full screen"
   },
   "health": {
     "checking": "Checking server…",
