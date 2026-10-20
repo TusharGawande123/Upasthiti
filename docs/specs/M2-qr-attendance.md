@@ -211,8 +211,11 @@ Design reference: the M2 screens are drawn and approved as images in the plan st
 M1), then linked here. **Gate A (QR cards, card panel, dialogs, card layouts, dashboard card,
 Ctrl+K, import result) is approved (2026-10-20, Anuradha):**
 [docs/design-refs/m2/gate-a/index.html](../design-refs/m2/gate-a/index.html), screenshots in
-`docs/design-refs/m2/gate-a/screenshots/`, answers in `notes.md`. Gates B (kiosk) and C (punch
-log, notices, settings, kiosks) follow in the plan. Kiosk rules: text at least 24 px (names and IN/OUT much larger), touch
+`docs/design-refs/m2/gate-a/screenshots/`, answers in `notes.md`. **Gate B (kiosk scanning,
+card read and checking, results, problem screens) is approved (2026-10-20, Anuradha):**
+[docs/design-refs/m2/gate-b/index.html](../design-refs/m2/gate-b/index.html), screenshots in
+`docs/design-refs/m2/gate-b/screenshots/`, answers in `notes.md`. Gate C (punch log, notices,
+settings, kiosks) follows in the plan. Kiosk rules: text at least 24 px (names and IN/OUT much larger), touch
 targets at least 64 px, contrast 7:1, colour + icon + word, full screen, honest connection
 messages, all text from the translation file.
 
@@ -243,7 +246,9 @@ messages, all text from the translation file.
 - Centre: the camera preview (mirrored for the worker), with a square guide frame and the
   instruction "Show your ID card to the camera" plus a small looping illustration.
 - Notice area (F-25): up to 3 current notices; "Important" ones first with an amber ⚠ icon
-  and the word "Important"; long text wraps, never scrolls; more than 3 rotate every 8 s.
+  and the word "Important"; long text wraps, never scrolls; more than 3, or more than fit on
+  the screen (one at a time on a phone), rotate every 8 s, Important ones first in every round
+  (gate B answer, 2026-10-20).
 - **Low-light hint (F-31):** when the picture stays darker than the threshold for 10 s, an
   amber line "Too dark. Please switch on the gate light." appears (it hides when it is bright
   again). Punching still works.
