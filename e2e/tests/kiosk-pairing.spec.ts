@@ -1,14 +1,18 @@
 // Slice C in real browsers: the admin makes a pairing code, and a second browser (the gate
 // device) pairs with fake GPS. Spec AC-13, AC-14, AC-15, AC-38, AC-39.
-import { type Browser, expect, type Page, test } from "@playwright/test";
-import { expectNoSeriousAccessibilityIssues, logIn, SUPER_ADMIN_LOGIN } from "./helpers";
+import { expect, type Page, test } from "@playwright/test";
+import {
+  expectNoSeriousAccessibilityIssues,
+  FAR_AWAY,
+  INSIDE,
+  logIn,
+  openKioskDevice,
+  readPairingCode,
+  SUPER_ADMIN_LOGIN,
+} from "./helpers";
 
 // The tests share one database; this file makes its own plant so other files do not clash.
 test.describe.configure({ mode: "serial" });
-
-// The map starts at MIDC Waluj (19.85, 75.2); the square drawn around the centre covers it.
-const INSIDE = { latitude: 19.85, longitude: 75.2, accuracy: 10 };
-const FAR_AWAY = { latitude: 19.95, longitude: 75.45, accuracy: 10 };
 
 async function drawGeofenceAroundMapCentre(page: Page) {
   const map = page.getByRole("application", { name: "Map of the plant geofence" });
@@ -32,14 +36,6 @@ async function drawGeofenceAroundMapCentre(page: Page) {
   await expect(page.getByText("Version 1 · current")).toBeVisible();
 }
 
-/** The code shown in the admin's dialog, from the accessible name "4 8 2 9 1 3". */
-async function readPairingCode(page: Page): Promise<string> {
-  const digits = page.getByRole("img", { name: /^\d \d \d \d \d \d$/ });
-  await expect(digits).toBeVisible();
-  const label = await digits.getAttribute("aria-label");
-  return (label ?? "").replaceAll(" ", "");
-}
-
 async function addKiosk(page: Page, name: string): Promise<string> {
   await page.getByRole("link", { name: "Kiosks" }).click();
   await page.getByRole("button", { name: "Add kiosk" }).click();
@@ -48,18 +44,6 @@ async function addKiosk(page: Page, name: string): Promise<string> {
   await dialog.getByLabel("Kiosk name").fill(name);
   await dialog.getByRole("button", { name: "Make pairing code" }).click();
   return readPairingCode(page);
-}
-
-async function openKioskDevice(
-  browser: Browser,
-  options: { geolocation?: typeof INSIDE; allowLocation?: boolean },
-) {
-  const context = await browser.newContext({
-    baseURL: "http://localhost:5173",
-    geolocation: options.geolocation,
-    permissions: options.allowLocation === false ? [] : ["geolocation"],
-  });
-  return { context, device: await context.newPage() };
 }
 
 test("Super Admin makes a plant with a geofence, then a kiosk pairs inside it", async ({

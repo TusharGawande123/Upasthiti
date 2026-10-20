@@ -1,0 +1,37 @@
+// The backend's environment for the end-to-end tests. Shared by playwright.config.ts (which
+// starts the server) and the tests (which make card clips with the same signing key).
+//
+// The two keys are made from fixed phrases at run time, so the same key is used everywhere in a
+// run and no key-like text is stored in this public repository. They protect nothing real.
+import { createHash } from "node:crypto";
+import { fileURLToPath } from "node:url";
+
+function testKey(phrase: string): string {
+  return createHash("sha256").update(phrase).digest("base64url"); // 32 bytes, as the server wants
+}
+
+export const FRONTEND_URL = "http://localhost:5173";
+export const BACKEND_FOLDER = fileURLToPath(new URL("../backend", import.meta.url));
+/** Card clips and the punch photos of a run; git-ignored (e2e/.gitignore). */
+export const TMP_FOLDER = fileURLToPath(new URL("./.tmp", import.meta.url));
+
+// The name must end in _e2e: the seed script refuses any other database.
+const E2E_DATABASE_URL =
+  process.env.E2E_DATABASE_URL ??
+  "postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_e2e";
+
+export const BACKEND_ENV: Record<string, string> = {
+  APP_ENV: "test",
+  RUN_SCHEDULER: "false",
+  // One run logs in many times from one laptop (the limit is 20 per 10 minutes).
+  E2E_LOGIN_LIMIT: "500",
+  DATABASE_URL: E2E_DATABASE_URL,
+  // Fake values, used only by these tests.
+  APP_SECRET_KEY: "e2e-only-secret-key-not-used-anywhere-else-0123",
+  APP_PUBLIC_ORIGIN: FRONTEND_URL,
+  QR_SIGNING_KEY: testKey("upasthiti end-to-end tests: QR card signing"),
+  QR_SIGNING_KEY_ID: "A",
+  SNAPSHOT_ENCRYPTION_KEY: testKey("upasthiti end-to-end tests: snapshot encryption"),
+  STORAGE_BACKEND: "local",
+  STORAGE_LOCAL_DIR: `${TMP_FOLDER}/storage`,
+};

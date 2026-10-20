@@ -8,5 +8,12 @@
     "noEmit": true,
     "skipLibCheck": true
   },
-  "include": ["playwright.config.ts", "playwright.live.config.ts", "tests", "tests-live"]
+  "include": [
+    "backend-env.ts",
+    "global-setup.ts",
+    "playwright.config.ts",
+    "playwright.live.config.ts",
+    "tests",
+    "tests-live"
+  ]
 }
