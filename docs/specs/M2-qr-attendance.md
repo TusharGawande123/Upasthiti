@@ -1,6 +1,6 @@
 # M2 – QR attendance at the kiosk (with snapshot): Specification
 
-Status: Draft · Author: spec-writer · Date: 2026-10-20
+Status: Approved by Anuradha on 2026-10-20 (delegated by Tushar) · Author: spec-writer · Date: 2026-10-20
 Answers of 2026-10-19: given in chat by Anuradha (team member), not by the lead. Where an
 answer conflicts with an earlier approved decision, the spec follows the earlier decision and
 the item waits for Tushar (lead): see §14.1 "Pending Tushar" and §15 "Changes".

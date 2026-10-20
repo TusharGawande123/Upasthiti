@@ -1,6 +1,6 @@
 # M2 – QR attendance at the kiosk: Implementation Plan
 
-Status: Draft (reset 2026-10-20 after the audit in decision 0009) · Spec: docs/specs/M2-qr-attendance.md · Decisions: 0008, 0009
+Status: Approved by Anuradha on 2026-10-20 (delegated by Tushar; reset to Draft and re-checked after the audit in decision 0009) · Spec: docs/specs/M2-qr-attendance.md · Decisions: 0008, 0009
 Branch: `milestone/M2-qr-attendance`
 
 Changes (2026-10-20, audit 0009; one line per change):
