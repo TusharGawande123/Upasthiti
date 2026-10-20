@@ -1,0 +1,330 @@
+// The full-screen result after a punch (spec §4.4, §4.5, design gate B): a colour flood with a big
+// icon AND a big word (never colour alone), the server time, and a countdown back to scanning.
+// The name is shown only for IN, OUT and "already"; never on a rejection, and never spoken.
+
+import type { TFunction } from "i18next";
+import {
+  CircleAlert,
+  Clock3,
+  IdCard,
+  Info,
+  LogIn,
+  LogOut,
+  type LucideIcon,
+  MoveRight,
+  Wifi,
+  WifiOff,
+  Wrench,
+  X,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
+import { formatIstTime } from "../components/server-clock";
+import { type PunchAnswer, type ResultKind, resultKind } from "./punch-types";
+
+type Look = "in" | "out" | "already" | "reject";
+type Shape = "circle" | "square" | "octagon";
+
+const FLOOD: Record<Look, { background: string; band: string; ink: boolean }> = {
+  in: { background: "bg-[var(--flood-in)]", band: "bg-[var(--flood-in-dark)]", ink: false },
+  out: { background: "bg-[var(--flood-out)]", band: "bg-[var(--flood-out-dark)]", ink: false },
+  already: {
+    background: "bg-[var(--flood-already)]",
+    band: "bg-[var(--flood-already-dark)]",
+    ink: true,
+  },
+  reject: {
+    background: "bg-[var(--flood-reject)]",
+    band: "bg-[var(--flood-reject-dark)]",
+    ink: false,
+  },
+};
+
+// Codes that have their own texts in the translation file; anything else shows the general error.
+const KNOWN_CODES = new Set([
+  "QR_REVOKED",
+  "QR_EXPIRED",
+  "QR_NOT_YET_VALID",
+  "WRONG_PLANT",
+  "EMPLOYEE_NOT_QR",
+  "EMPLOYEE_INACTIVE",
+  "QR_SIGNATURE_INVALID",
+  "QR_FORMAT_INVALID",
+  "SNAPSHOT_MISSING",
+  "SNAPSHOT_INVALID",
+  "QR_SIGNING_NOT_CONFIGURED",
+  "NETWORK_OFFLINE",
+  "INTERNAL_ERROR",
+  "TOO_MANY_REQUESTS",
+  "PAYLOAD_TOO_LARGE",
+]);
+
+function textCode(code: string): string {
+  return KNOWN_CODES.has(code) ? code : "INTERNAL_ERROR";
+}
+
+function hhmm(iso: string | null | undefined, withSeconds = false): string {
+  return iso ? formatIstTime(new Date(iso), withSeconds) : "";
+}
+
+function Countdown({ seconds, ink }: { seconds: number; ink: boolean }) {
+  const { t } = useTranslation();
+  const [left, setLeft] = useState(seconds);
+  useEffect(() => {
+    setLeft(seconds);
+    const timer = setInterval(() => setLeft((current) => Math.max(0, current - 1)), 1000);
+    return () => clearInterval(timer);
+  }, [seconds]);
+  return (
+    <div className="space-y-2 px-14 pb-6">
+      <p
+        className={cn(
+          "flex items-center gap-3 text-[24px] font-bold",
+          ink ? "text-foreground" : "text-white",
+        )}
+      >
+        <Clock3 className="size-7" aria-hidden />
+        {t("kiosk.result.backIn", { count: left })}
+      </p>
+      <div
+        className={cn(
+          "h-5 overflow-hidden rounded-full",
+          ink ? "bg-white ring-2 ring-foreground" : "bg-black/25",
+        )}
+        aria-hidden
+      >
+        <div
+          className={cn("h-full rounded-full", ink ? "bg-foreground" : "bg-white")}
+          style={{ width: `${(left / Math.max(seconds, 1)) * 100}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+function BigIcon({ icon: Icon, shape, look }: { icon: LucideIcon; shape: Shape; look: Look }) {
+  const colour = {
+    in: "text-[var(--flood-in)]",
+    out: "text-[var(--flood-out)]",
+    already: "text-warning",
+    reject: "text-[var(--flood-reject)]",
+  }[look];
+  return (
+    <span
+      className={cn(
+        "grid size-[200px] place-items-center bg-white",
+        shape === "circle" && "rounded-full ring-8 ring-black/25",
+        shape === "square" && "rounded-[36px] border-8 border-foreground",
+        colour,
+      )}
+      style={
+        shape === "octagon"
+          ? {
+              clipPath:
+                "polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%)",
+            }
+          : undefined
+      }
+    >
+      <Icon className="size-[100px]" strokeWidth={2.5} aria-hidden />
+    </span>
+  );
+}
+
+type Shown = {
+  look: Look;
+  icon: LucideIcon;
+  shape: Shape;
+  word: string;
+  lead?: string;
+  name?: string;
+  card?: { icon: LucideIcon; main: string; sub?: string };
+  adminCode?: string;
+  time: string;
+};
+
+function describeAnswer(answer: PunchAnswer, t: TFunction): Shown {
+  const kind: ResultKind = resultKind(answer);
+  const time = hhmm(answer.server_time);
+  const name = answer.employee?.display_name;
+  const code = answer.employee?.employee_code ?? "";
+  const codeLine = `${t("kiosk.result.employeeCode")} ${code}`;
+  if (kind === "in" || kind === "out") {
+    const isIn = kind === "in";
+    return {
+      look: kind,
+      icon: isIn ? LogIn : LogOut,
+      shape: "circle",
+      word: t(isIn ? "kiosk.result.in" : "kiosk.result.out"),
+      lead: t(isIn ? "kiosk.result.welcome" : "kiosk.result.goodbye"),
+      name,
+      card: {
+        icon: IdCard,
+        main: `${codeLine} · ${t(isIn ? "kiosk.result.checkedIn" : "kiosk.result.checkedOut")}`,
+      },
+      time,
+    };
+  }
+  if (kind === "already") {
+    const lastOut = answer.details.last_direction === "out";
+    const lastTime = hhmm(answer.details.last_punch_at);
+    const main =
+      answer.reason_code === "OUT_TOO_SOON"
+        ? t("kiosk.result.outAfter", {
+            time: lastTime,
+            outTime: hhmm(answer.details.out_allowed_from),
+          })
+        : t("kiosk.result.already", { direction: lastOut ? "OUT" : "IN", time: lastTime });
+    return {
+      look: "already",
+      icon: Info,
+      shape: "square",
+      word: t(lastOut ? "kiosk.result.alreadyOut" : "kiosk.result.alreadyIn"),
+      name,
+      card: { icon: Info, main, sub: codeLine },
+      time,
+    };
+  }
+  if (kind === "self-test") {
+    return {
+      look: "in",
+      icon: Wrench,
+      shape: "circle",
+      word: t("kiosk.result.kioskOk"),
+      lead: t("kiosk.result.noAttendance"),
+      card: {
+        icon: Wrench,
+        main: t("kiosk.result.selfTestChecks", { time: hhmm(answer.server_time, true) }),
+        sub: answer.details.kiosk_name,
+      },
+      time,
+    };
+  }
+  const reason = answer.reason_code ?? "INTERNAL_ERROR";
+  const texts = textCode(reason);
+  return {
+    look: "reject",
+    icon: X,
+    shape: "octagon",
+    word: t(`kiosk.punch.${texts}.title`),
+    lead: t(`kiosk.punch.${texts}.message`),
+    card: { icon: MoveRight, main: t(`kiosk.punch.${texts}.next`) },
+    adminCode: reason,
+    time,
+  };
+}
+
+function describeFailure(code: string, time: string, t: TFunction): Shown {
+  const texts = textCode(code);
+  return {
+    look: "reject",
+    icon: code === "NETWORK_OFFLINE" ? WifiOff : CircleAlert,
+    shape: "octagon",
+    word: t(`kiosk.punch.${texts}.title`),
+    lead: t(`kiosk.punch.${texts}.message`),
+    card: { icon: MoveRight, main: t(`kiosk.punch.${texts}.next`) },
+    adminCode: code,
+    time,
+  };
+}
+
+export function ResultView({
+  answer,
+  failedCode,
+  serverOffsetMs,
+  title,
+  subtitle,
+  online,
+  seconds,
+}: {
+  answer?: PunchAnswer;
+  failedCode?: string;
+  /** For failures, which have no server time of their own: the server clock when shown. */
+  serverOffsetMs: number;
+  title: string;
+  subtitle: string;
+  online: boolean;
+  seconds: number;
+}) {
+  const { t } = useTranslation();
+  const [shownAt] = useState(() => new Date(Date.now() + serverOffsetMs).toISOString());
+  const shown = answer
+    ? describeAnswer(answer, t)
+    : describeFailure(failedCode ?? "INTERNAL_ERROR", hhmm(shownAt), t);
+  const flood = FLOOD[shown.look];
+  const textColour = flood.ink ? "text-foreground" : "text-white";
+  const isRejection = shown.look === "reject";
+
+  return (
+    <div
+      className={cn("kiosk-theme fixed inset-0 z-20 flex flex-col", flood.background)}
+      role={isRejection ? "alert" : "status"}
+      aria-live={isRejection ? "assertive" : "polite"}
+    >
+      <header className={cn("flex items-center justify-between gap-4 px-8 py-4", flood.band)}>
+        <div className="text-white">
+          <p className="text-[30px] leading-tight font-extrabold">{title}</p>
+          <p className="text-[24px]">{subtitle}</p>
+        </div>
+        <span className="inline-flex items-center gap-2 rounded-full bg-white px-5 py-2 text-[24px] font-bold text-foreground">
+          {online ? (
+            <Wifi className="size-6" aria-hidden />
+          ) : (
+            <WifiOff className="size-6" aria-hidden />
+          )}
+          {t(online ? "kiosk.attendance.online" : "kiosk.attendance.offline")}
+        </span>
+      </header>
+      <main className="flex flex-1 flex-col items-center justify-center gap-8 px-14 py-6 lg:flex-row lg:items-center">
+        <div className="flex shrink-0 flex-col items-center gap-6">
+          <BigIcon icon={shown.icon} shape={shown.shape} look={shown.look} />
+          <div className="rounded-2xl border-4 border-black/30 bg-white px-6 py-3 text-center">
+            <p className="text-[24px] font-semibold text-muted-foreground">
+              {t("kiosk.result.serverTime")}
+            </p>
+            <p className="tnum text-[88px] leading-none font-extrabold text-foreground">
+              {shown.time}
+            </p>
+          </div>
+        </div>
+        <div className={cn("min-w-0 flex-1 space-y-4", textColour)}>
+          <p className="text-[120px] leading-[0.95] font-black tracking-tight break-words">
+            {shown.word}
+          </p>
+          {shown.lead ? <p className="text-[40px] leading-tight font-bold">{shown.lead}</p> : null}
+          {shown.name ? (
+            <p
+              className={cn(
+                "leading-tight font-extrabold break-words",
+                shown.name.length > 28 ? "text-[64px]" : "text-[96px]",
+              )}
+            >
+              {shown.name}
+            </p>
+          ) : null}
+          {shown.card ? (
+            <div className="flex items-start gap-4 rounded-2xl border-4 border-black/25 bg-white px-6 py-4 text-foreground">
+              <shown.card.icon className="mt-1 size-9 shrink-0" aria-hidden />
+              <div>
+                <p className="text-[32px] leading-snug font-bold">{shown.card.main}</p>
+                {shown.card.sub ? (
+                  <p className="text-[24px] text-muted-foreground">{shown.card.sub}</p>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+          {shown.adminCode ? (
+            <p className="text-[24px] font-bold">
+              {t("kiosk.result.forAdmin")}{" "}
+              <span className="code rounded-md bg-white px-2 py-0.5 text-foreground">
+                {shown.adminCode}
+              </span>
+            </p>
+          ) : null}
+        </div>
+      </main>
+      <Countdown seconds={seconds} ink={flood.ink} />
+    </div>
+  );
+}

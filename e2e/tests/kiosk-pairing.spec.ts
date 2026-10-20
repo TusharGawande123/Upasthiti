@@ -87,15 +87,17 @@ test("Super Admin makes a plant with a geofence, then a kiosk pairs inside it", 
   await expect(device.getByText("Code filled in from the link.")).toBeVisible();
   await expectNoSeriousAccessibilityIssues(device);
   await device.getByRole("button", { name: "Pair this device" }).click();
-  await expect(device.getByRole("heading", { name: "Paired" })).toBeVisible();
-  await expect(device.getByText(/Paired to KT1/)).toBeVisible();
+  // Paired: the device opens the attendance screen straight away (M2), with the plant and the
+  // kiosk in its top bar. (This device has no camera; the camera clip comes with the punch test.)
+  await expect(device.getByText("Kiosk Test Plant · KT1")).toBeVisible();
+  await expect(device.getByText("Main gate tablet", { exact: true })).toBeVisible();
 
   // The admin dialog notices the pairing on its own.
   await expect(page.getByText("Main gate tablet is paired")).toBeVisible({ timeout: 15_000 });
 
   // After a reload the device is still paired (key kept in IndexedDB) and asks for no code.
   await device.reload();
-  await expect(device.getByText(/Paired to KT1/)).toBeVisible();
+  await expect(device.getByText("Kiosk Test Plant · KT1")).toBeVisible();
   await context.close();
 });
 
@@ -129,7 +131,7 @@ test("a Super Admin revokes a kiosk and the device shows 'Switched off'", async 
   const { context, device } = await openKioskDevice(browser, { geolocation: INSIDE });
   await device.goto(`/kiosk?code=${code}`);
   await device.getByRole("button", { name: "Pair this device" }).click();
-  await expect(device.getByText(/Paired to KT1/)).toBeVisible();
+  await expect(device.getByText("Kiosk Test Plant · KT1")).toBeVisible();
 
   await page.getByRole("button", { name: "Close" }).first().click();
   const row = page.getByRole("row", { name: /Gate to revoke/ });

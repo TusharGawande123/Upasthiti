@@ -12,7 +12,7 @@ import { type PunchAnswer, resultKind } from "./punch-types";
 export type AttendanceScreen =
   | { name: "starting" }
   | { name: "needs-tap" }
-  | { name: "camera-problem"; code: CameraProblem }
+  | { name: "camera-problem"; code: CameraProblem | "BROWSER_NOT_SUPPORTED" }
   | { name: "scanning"; notACard: boolean }
   | { name: "card-read"; payload: string }
   | { name: "checking"; slow: boolean }
@@ -22,7 +22,7 @@ export type AttendanceScreen =
 export type AttendanceEvent =
   | { type: "camera-ready" }
   | { type: "camera-needs-tap" }
-  | { type: "camera-failed"; code: CameraProblem }
+  | { type: "camera-failed"; code: CameraProblem | "BROWSER_NOT_SUPPORTED" }
   | { type: "not-a-card" }
   | { type: "not-a-card-over" }
   | { type: "card-read"; payload: string }

@@ -1,15 +1,16 @@
 // The pairing screen's brain (spec §4.8, §7 rule 5): type the 6-digit code, measure the
 // location, send the public key to the server and keep the result on this device.
 // Screens never talk to the server themselves; they only show `state` and call the actions.
+// Once paired, the attendance screen takes over (and runs the 60-second heartbeat itself).
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, apiPost } from "@/lib/api-client";
+import type { KioskMe } from "./attendance/punch-types";
 import { browserCanPair, createDeviceKey } from "./device-key";
 import { forgetDevice, loadDevice, type PairedKiosk, saveDevice } from "./device-store";
 import { LocationError, type LocationReading, measureLocation } from "./location";
 import { signedRequest } from "./signer";
 
 export const CODE_LENGTH = 6;
-const HEARTBEAT_MS = 60_000;
 
 // What the error screens can be (each has its own text in the translation file).
 export type PairingProblem =
@@ -28,7 +29,8 @@ export type PairingState =
   | { phase: "enter"; wrongCode: boolean }
   | { phase: "locating"; accuracyM: number | null }
   | { phase: "checking" }
-  | { phase: "paired"; kiosk: PairedKiosk; serverOffsetMs: number }
+  // `me` is the server's first heartbeat answer (null right after pairing, or when offline).
+  | { phase: "paired"; kiosk: PairedKiosk; serverOffsetMs: number; me: KioskMe | null }
   | { phase: "problem"; problem: PairingProblem; code: string; bestAccuracyM: number | null };
 
 type RegisterResponse = {
@@ -37,8 +39,6 @@ type RegisterResponse = {
   plant: { id: string; name: string; code: string };
   server_time: string;
 };
-
-type MeResponse = RegisterResponse & { status: string };
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? "dev";
 
@@ -95,12 +95,13 @@ export function usePairing() {
       const device = await loadDevice().catch(() => undefined);
       if (device) {
         try {
-          const me = await signedRequest<MeResponse>("GET", "/kiosk/me");
+          const me = await signedRequest<KioskMe>("GET", "/kiosk/me");
           if (!cancelled) {
             setState({
               phase: "paired",
               kiosk: device.paired,
               serverOffsetMs: new Date(me.server_time).getTime() - Date.now(),
+              me,
             });
           }
           return;
@@ -117,7 +118,7 @@ export function usePairing() {
           }
           if (error instanceof ApiError && error.code === "NETWORK_ERROR") {
             // Offline right now: keep showing the paired screen; the clock uses this device's time.
-            setState({ phase: "paired", kiosk: device.paired, serverOffsetMs: 0 });
+            setState({ phase: "paired", kiosk: device.paired, serverOffsetMs: 0, me: null });
             return;
           }
           // The server does not know this device any more: start again with a new code.
@@ -136,29 +137,6 @@ export function usePairing() {
       cancelled = true;
     };
   }, []);
-
-  // A paired kiosk checks in every minute: the admin sees it online, and a switched-off
-  // kiosk finds out quickly.
-  const isPaired = state.phase === "paired";
-  useEffect(() => {
-    if (!isPaired) return;
-    const timer = setInterval(async () => {
-      try {
-        await signedRequest<MeResponse>("GET", "/kiosk/me");
-      } catch (error) {
-        if (error instanceof ApiError && error.code === "DEVICE_REVOKED") {
-          setState({
-            phase: "problem",
-            problem: "revoked",
-            code: "DEVICE_REVOKED",
-            bestAccuracyM: null,
-          });
-        }
-        // Any other failure (for example no internet) is ignored; the next beat tries again.
-      }
-    }, HEARTBEAT_MS);
-    return () => clearInterval(timer);
-  }, [isPaired]);
 
   const typeDigit = useCallback((digit: string) => {
     setCode((current) => (current.length < CODE_LENGTH ? current + digit : current));
@@ -240,6 +218,7 @@ export function usePairing() {
         phase: "paired",
         kiosk,
         serverOffsetMs: new Date(result.server_time).getTime() - Date.now(),
+        me: null,
       });
     } catch (error) {
       if (error instanceof ApiError && error.code === "PAIRING_CODE_INVALID") {
@@ -267,5 +246,29 @@ export function usePairing() {
     [submit],
   );
 
-  return { state, code, codeFromLink, typeDigit, backspace, clear, submit, tryAgain };
+  /** The attendance screen learned the admin switched this device off. */
+  const markRevoked = useCallback(() => {
+    setState({ phase: "problem", problem: "revoked", code: "DEVICE_REVOKED", bestAccuracyM: null });
+  }, []);
+
+  /** The server no longer knows this device's key (for example after a reset): pair again. */
+  const startOver = useCallback(() => {
+    setCode("");
+    setCodeFromLink(false);
+    void forgetDevice().catch(() => undefined);
+    setState({ phase: "enter", wrongCode: false });
+  }, []);
+
+  return {
+    state,
+    code,
+    codeFromLink,
+    typeDigit,
+    backspace,
+    clear,
+    submit,
+    tryAgain,
+    markRevoked,
+    startOver,
+  };
 }

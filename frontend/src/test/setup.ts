@@ -24,7 +24,9 @@ globalThis.ResizeObserver ??= class {
 Element.prototype.scrollIntoView ??= () => {};
 
 // Pages load data and render big tables; under coverage a laptop can need more than 1 second.
-configure({ asyncUtilTimeout: 4000 });
+// Pages are also loaded lazily (app/router.tsx): the first test that opens a big page, such as
+// the plant page with its map, waits for that code to load as well.
+configure({ asyncUtilTimeout: 8000 });
 
 afterEach(() => {
   cleanup();

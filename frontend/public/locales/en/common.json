@@ -115,6 +115,177 @@
         "message": "Pairing did not work. Try again, or ask the admin for help.",
         "steps": ["Press “Try again”.", "If it keeps failing, tell the admin the code below."]
       }
+    },
+    "punch": {
+      "QR_REVOKED": {
+        "title": "NOT ACCEPTED",
+        "message": "This card is blocked.",
+        "next": "Please see the plant office.",
+        "voice": "Card blocked. Please see the plant office."
+      },
+      "QR_EXPIRED": {
+        "title": "NOT ACCEPTED",
+        "message": "This card has expired.",
+        "next": "Please see the plant office.",
+        "voice": "Card expired. Please see the plant office."
+      },
+      "QR_NOT_YET_VALID": {
+        "title": "NOT ACCEPTED",
+        "message": "This card is not active yet.",
+        "next": "Please see the plant office.",
+        "voice": "Card not active yet. Please see the plant office."
+      },
+      "WRONG_PLANT": {
+        "title": "NOT ACCEPTED",
+        "message": "This card is for another plant.",
+        "next": "Please see the plant office.",
+        "voice": "Card for another plant. Please see the plant office."
+      },
+      "EMPLOYEE_NOT_QR": {
+        "title": "NOT ACCEPTED",
+        "message": "This card cannot be used for punching.",
+        "next": "Please see the plant office.",
+        "voice": "Card cannot be used. Please see the plant office."
+      },
+      "EMPLOYEE_INACTIVE": {
+        "title": "NOT ACCEPTED",
+        "message": "This card cannot be used.",
+        "next": "Please see the plant office.",
+        "voice": "Card cannot be used. Please see the plant office."
+      },
+      "QR_SIGNATURE_INVALID": {
+        "title": "NOT ACCEPTED",
+        "message": "This card is not valid.",
+        "next": "Please see the plant office.",
+        "voice": "Card not valid. Please see the plant office."
+      },
+      "QR_FORMAT_INVALID": {
+        "title": "NOT ACCEPTED",
+        "message": "The card could not be read.",
+        "next": "Hold it still, about 20 cm from the camera.",
+        "voice": "Card not read. Please try again."
+      },
+      "SNAPSHOT_MISSING": {
+        "title": "NOT ACCEPTED",
+        "message": "The photo could not be taken.",
+        "next": "Stand in front of the camera and try again.",
+        "voice": "Photo not taken. Please try again."
+      },
+      "SNAPSHOT_INVALID": {
+        "title": "NOT ACCEPTED",
+        "message": "The photo could not be taken.",
+        "next": "Stand in front of the camera and try again.",
+        "voice": "Photo not taken. Please try again."
+      },
+      "QR_SIGNING_NOT_CONFIGURED": {
+        "title": "NOT ACCEPTED",
+        "message": "Cards are not set up on the server.",
+        "next": "Tell the admin.",
+        "voice": "Cards are not set up. Tell the admin."
+      },
+      "COOLDOWN_ACTIVE": {
+        "title": "ALREADY PUNCHED",
+        "message": "Already {{direction}} at {{time}}.",
+        "next": "No need to punch again.",
+        "voice": "Already punched."
+      },
+      "OUT_TOO_SOON": {
+        "title": "ALREADY IN",
+        "message": "Already IN at {{time}}.",
+        "next": "You can punch OUT after {{outTime}}.",
+        "voice": "Already checked in."
+      },
+      "NETWORK_OFFLINE": {
+        "title": "NOT SAVED",
+        "message": "No internet. Your punch was NOT saved.",
+        "next": "Try again in a moment.",
+        "voice": "No internet. Punch not saved."
+      },
+      "INTERNAL_ERROR": {
+        "title": "ERROR",
+        "message": "Something went wrong.",
+        "next": "Try again. If it repeats, see the plant office.",
+        "voice": "Something went wrong. Please try again."
+      },
+      "TOO_MANY_REQUESTS": {
+        "title": "PLEASE WAIT",
+        "message": "Please wait a moment and try again.",
+        "next": "Your punch was NOT saved.",
+        "voice": "Please wait and try again."
+      },
+      "PAYLOAD_TOO_LARGE": {
+        "title": "NOT SAVED",
+        "message": "The photo was too large.",
+        "next": "Try again.",
+        "voice": "Please try again."
+      },
+      "CAMERA_BLOCKED": {
+        "title": "Camera is blocked",
+        "message": "Allow the camera for this site.",
+        "steps": [
+          "Tap the padlock or camera icon next to the web address.",
+          "Set Camera to “Allow”.",
+          "Press “Try again”."
+        ]
+      },
+      "CAMERA_NOT_FOUND": {
+        "title": "No camera found",
+        "message": "Connect a camera.",
+        "steps": ["Check that the camera is plugged in.", "Close other apps that use the camera."]
+      },
+      "BROWSER_NOT_SUPPORTED": {
+        "title": "This browser cannot read cards",
+        "message": "Open this page in Google Chrome or Microsoft Edge.",
+        "steps": ["Install or update Chrome or Edge.", "Open the kiosk address again."]
+      }
+    },
+    "attendance": {
+      "showCard": "Show your ID card to the camera",
+      "cameraLabel": "Camera picture",
+      "chipCardRead": "Card read",
+      "chipLookAtCamera": "Look at the camera",
+      "chipChecking": "Checking…",
+      "cardRead": "Card read. Look at the camera",
+      "checking": "Checking…",
+      "serverWaking": "The server is starting. Please wait…",
+      "notACard": "This is not an Upasthiti ID card.",
+      "lowLight": "Too dark. Please switch on the gate light.",
+      "startCamera": "Start camera",
+      "privacy": "A photo is taken at each card punch to stop card sharing. Kept for {{days}} days.",
+      "help": "Need help? Ask the plant office.",
+      "online": "Online",
+      "offline": "No internet",
+      "ist": "IST",
+      "important": "Important",
+      "notices": "Notices",
+      "noticePage": "{{current}} of {{total}}",
+      "tryAgain": "Try again"
+    },
+    "result": {
+      "in": "IN",
+      "out": "OUT",
+      "alreadyIn": "ALREADY IN",
+      "alreadyOut": "ALREADY OUT",
+      "kioskOk": "KIOSK OK",
+      "welcome": "Welcome,",
+      "goodbye": "Goodbye,",
+      "employeeCode": "Employee code",
+      "checkedIn": "Checked in",
+      "checkedOut": "Checked out",
+      "serverTime": "Server time",
+      "backIn": "Back to scanning in {{count}} s",
+      "forAdmin": "For the admin:",
+      "already": "Already {{direction}} at {{time}}. No need to punch again.",
+      "outAfter": "Already IN at {{time}}. You can punch OUT after {{outTime}}.",
+      "selfTestChecks": "Camera ✓ · Server ✓ · Clock ✓ (server time {{time}})",
+      "noAttendance": "No attendance was recorded."
+    },
+    "voice": {
+      "in": "Checked in.",
+      "out": "Checked out.",
+      "alreadyIn": "Already checked in.",
+      "alreadyOut": "Already checked out.",
+      "selfTest": "Kiosk test passed."
     }
   },
   "health": {

@@ -3,6 +3,7 @@
 // quality, the low-light hint, the card filters and the camera error mapping.
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ApiError } from "@/lib/api-client";
+import englishTexts from "../../../public/locales/en/common.json";
 import { nextScreen, secondsOnScreen } from "./attendance-machine";
 import { averageBrightness, LowLightWatcher } from "./brightness";
 import { CameraError, startCamera } from "./camera";
@@ -339,5 +340,42 @@ describe("camera", () => {
     vi.stubGlobal("navigator", { ...navigator, mediaDevices: undefined });
 
     expect(await problemOf(startCamera(document.createElement("video")))).toBe("CAMERA_NOT_FOUND");
+  });
+});
+
+describe("kiosk texts", () => {
+  // Every decision code the server can send (backend app/antiproxy, spec §7 rule 10).
+  const SERVER_CODES = [
+    "SNAPSHOT_MISSING",
+    "SNAPSHOT_INVALID",
+    "QR_FORMAT_INVALID",
+    "QR_SIGNATURE_INVALID",
+    "QR_REVOKED",
+    "QR_NOT_YET_VALID",
+    "QR_EXPIRED",
+    "EMPLOYEE_INACTIVE",
+    "EMPLOYEE_NOT_QR",
+    "WRONG_PLANT",
+    "COOLDOWN_ACTIVE",
+    "OUT_TOO_SOON",
+    "QR_SIGNING_NOT_CONFIGURED",
+  ];
+
+  it.each(SERVER_CODES)("%s has a title, message, next step and spoken line", (code) => {
+    const texts = (englishTexts.kiosk.punch as Record<string, Record<string, unknown>>)[code];
+
+    for (const part of ["title", "message", "next", "voice"]) {
+      expect(texts?.[part], `${code}.${part}`).toBeTruthy();
+    }
+  });
+
+  it("never puts a name into a spoken line", () => {
+    const punch = englishTexts.kiosk.punch as Record<string, Record<string, unknown>>;
+    const spoken = [
+      ...Object.values(englishTexts.kiosk.voice),
+      ...Object.values(punch).map((texts) => String(texts.voice ?? "")),
+    ];
+
+    expect(spoken.filter((line) => line.includes("{{name}}"))).toEqual([]);
   });
 });

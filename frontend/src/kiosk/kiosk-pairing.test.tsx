@@ -40,6 +40,23 @@ const REGISTERED = {
   server_time: "2026-10-13T09:24:07Z",
 };
 
+// The heartbeat answer once paired (M2 adds notices and the kiosk screen settings).
+const ME = {
+  ...REGISTERED,
+  status: "active",
+  notices: [],
+  kiosk_settings: {
+    voice_enabled: true,
+    sound_enabled: true,
+    result_seconds: 4,
+    reject_seconds: 6,
+    snapshot_retention_days: 60,
+    dark_threshold: 40,
+  },
+};
+// After pairing, the kiosk opens the attendance screen with the plant and kiosk in the top bar.
+const PLANT_TITLE = "Sheet Shapers (K-134) · K134";
+
 async function typeCode(code: string) {
   const user = userEvent.setup();
   for (const digit of code) {
@@ -58,9 +75,12 @@ afterEach(() => {
 });
 
 describe("kiosk pairing", () => {
-  it("pairs with the code and the location, then shows the plant and a server clock", async () => {
+  it("pairs with the code and the location, then opens the attendance screen", async () => {
     useFakeLocation({ accuracy: 18 });
-    const calls = mockApi({ "POST /kiosk/register": { body: REGISTERED } });
+    const calls = mockApi({
+      "POST /kiosk/register": { body: REGISTERED },
+      "GET /kiosk/me": { body: ME },
+    });
 
     renderRoute("/kiosk");
     await screen.findByRole("heading", { name: "Pair this device" });
@@ -68,8 +88,8 @@ describe("kiosk pairing", () => {
     const user = await typeCode("482913");
     await user.click(screen.getByRole("button", { name: "Pair this device" }));
 
-    expect(await screen.findByText("Paired to K134 – Sheet Shapers (K-134)")).toBeInTheDocument();
-    expect(screen.getByText("Main gate phone · location ± 18 m")).toBeInTheDocument();
+    expect(await screen.findByText(PLANT_TITLE)).toBeInTheDocument();
+    expect(screen.getByText("Main gate phone")).toBeInTheDocument();
     expect(screen.getByRole("timer")).toBeInTheDocument();
     const sent = calls.find((call) => call.path === "/kiosk/register")?.body as Record<
       string,
@@ -137,6 +157,7 @@ describe("kiosk pairing", () => {
         attempts += 1;
         return attempts === 1 ? apiError(422, "GPS_ACCURACY_TOO_LOW") : { body: REGISTERED };
       },
+      "GET /kiosk/me": { body: ME },
     });
 
     renderRoute("/kiosk");
@@ -145,7 +166,7 @@ describe("kiosk pairing", () => {
     await user.click(screen.getByRole("button", { name: "Pair this device" }));
     await user.click(await screen.findByRole("button", { name: "Try again" }));
 
-    expect(await screen.findByText(/^Paired to K134/)).toBeInTheDocument();
+    expect(await screen.findByText(PLANT_TITLE)).toBeInTheDocument();
     expect(attempts).toBe(2);
   });
 
@@ -196,14 +217,15 @@ describe("a device that is already paired", () => {
     });
   }
 
-  it("goes straight to the paired screen after the server confirms it", async () => {
+  it("goes straight to the attendance screen after the server confirms it", async () => {
     useFakeLocation();
     await storePairedDevice();
-    mockApi({ "GET /kiosk/me": { body: { ...REGISTERED, status: "active" } } });
+    mockApi({ "GET /kiosk/me": { body: ME } });
 
     renderRoute("/kiosk");
 
-    expect(await screen.findByText(/^Paired to K134/)).toBeInTheDocument();
+    expect(await screen.findByText(PLANT_TITLE)).toBeInTheDocument();
+    expect(screen.getByText("Show your ID card to the camera")).toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "1" })).not.toBeInTheDocument();
   });
 

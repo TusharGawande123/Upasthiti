@@ -1,4 +1,4 @@
-// The /kiosk pairing screens: pair this device to a plant gate. Designed for a phone, tablet or
+// The /kiosk page: pairs this device to a plant gate, then shows the attendance screen. Designed for a phone, tablet or
 // PC fixed at the gate: text is at least 24 px, tap targets are large, every status has an
 // icon AND words, and the screen never needs scrolling (NFR-06, design gate C).
 import {
@@ -7,7 +7,6 @@ import {
   CircleDashed,
   CircleX,
   Delete,
-  Info,
   Keyboard,
   Link2,
   Loader2,
@@ -20,7 +19,6 @@ import {
   RotateCw,
   SatelliteDish,
   ShieldAlert,
-  Smartphone,
   TimerOff,
   WifiOff,
   X,
@@ -28,10 +26,10 @@ import {
 import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { AttendanceScreen } from "./attendance/attendance-screen";
 import { Frame } from "./components/frame";
 import { KioskButton } from "./components/kiosk-button";
 import { ProblemScreen } from "./components/problem-screen";
-import { ServerClock } from "./components/server-clock";
 import { StatusChip } from "./components/status-chip";
 import { CODE_LENGTH, type PairingProblem, type PairingState, usePairing } from "./use-pairing";
 
@@ -241,33 +239,6 @@ function BusyScreen({
   );
 }
 
-function PairedScreen({ state }: { state: Extract<PairingState, { phase: "paired" }> }) {
-  const { t } = useTranslation();
-  const { kiosk } = state;
-  return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-6 text-center">
-      <span className="grid size-36 place-items-center rounded-full bg-success text-white">
-        <Check className="size-20" strokeWidth={4} aria-hidden />
-      </span>
-      <h1 className="text-[56px] leading-tight font-extrabold">{t("kiosk.paired.title")}</h1>
-      <p className="text-[30px] font-semibold">
-        {t("kiosk.paired.to", { code: kiosk.plantCode, name: kiosk.plantName })}
-      </p>
-      <span className="inline-flex items-center gap-2 rounded-full border bg-card px-5 py-2 text-[24px] font-semibold">
-        <Smartphone className="size-6" aria-hidden />
-        {kiosk.accuracyM === null
-          ? kiosk.kioskName
-          : t("kiosk.paired.nameAndAccuracy", { name: kiosk.kioskName, metres: kiosk.accuracyM })}
-      </span>
-      <ServerClock offsetMs={state.serverOffsetMs} />
-      <p className="flex max-w-xl items-start gap-3 rounded-2xl border bg-card p-4 text-left text-[24px]">
-        <Info className="mt-1 size-6 shrink-0" aria-hidden />
-        {t("kiosk.paired.later")}
-      </p>
-    </div>
-  );
-}
-
 const PROBLEM_ICONS: Record<PairingProblem, LucideIcon> = {
   "code-expired": TimerOff,
   locked: ShieldAlert,
@@ -348,11 +319,24 @@ export function KioskPairingPage() {
   const pairing = usePairing();
   const { state } = pairing;
 
+  // Once paired, the kiosk goes straight to scanning (zero taps, spec M2 §4.1).
+  if (state.phase === "paired") {
+    return (
+      <AttendanceScreen
+        kiosk={state.kiosk}
+        initialMe={state.me}
+        initialOffsetMs={state.serverOffsetMs}
+        onRevoked={pairing.markRevoked}
+        onUnpaired={pairing.startOver}
+      />
+    );
+  }
+
   return (
     <Frame
       title={t("kiosk.brand")}
       subtitle={t("kiosk.subtitle")}
-      aside={<PairingStatusChip paired={state.phase === "paired"} />}
+      aside={<PairingStatusChip paired={false} />}
     >
       {state.phase === "starting" ? (
         <Loader2 className="mx-auto size-16 animate-spin text-primary" aria-hidden />
@@ -372,7 +356,6 @@ export function KioskPairingPage() {
         <BusyScreen phase="locating" accuracyM={state.accuracyM} />
       ) : null}
       {state.phase === "checking" ? <BusyScreen phase="checking" accuracyM={null} /> : null}
-      {state.phase === "paired" ? <PairedScreen state={state} /> : null}
       {state.phase === "problem" ? (
         <PairingProblemScreen state={state} onAction={pairing.tryAgain} />
       ) : null}
