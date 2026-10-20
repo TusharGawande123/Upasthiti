@@ -121,6 +121,9 @@ export type ImportResult = {
   error_rows: number;
   errors: ImportRowError[];
   created?: number | null;
+  // After a real import (F-38): the new people, and those who punch by QR card.
+  created_employee_ids?: string[] | null;
+  created_qr_employee_ids?: string[] | null;
 };
 
 export function isPendingApproval(result: unknown): result is PendingApproval {

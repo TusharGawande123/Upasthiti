@@ -1447,6 +1447,30 @@
       "print": "Print",
       "empty": "No test cards yet. Create one to check a gate kiosk.",
       "revokeTitle": "Revoke test card {{serial}}"
+    },
+    "afterImport": {
+      "title": "Next step: ID cards",
+      "text": "{{qr}} of these people punch by QR card and have no card yet. {{face}} punch by face and are left out.",
+      "button_one": "Issue and print the card for this employee",
+      "button_other": "Issue and print cards for these {{count}} employees",
+      "dialogTitle_one": "Issue a card to {{count}} employee",
+      "dialogTitle_other": "Issue cards to {{count}} employees",
+      "dialogText": "All of them punch by QR card and have no card yet.",
+      "faceLeftOut": "skipped: punch by face",
+      "defaultReason": "New workers from the Excel import of {{date}}",
+      "printNote": "After issuing you can print the cards, in parts of at most {{max}}. Cards can be printed later too.",
+      "submit_one": "Issue {{count}} card",
+      "submit_other": "Issue {{count}} cards",
+      "issuedTitle_one": "{{count}} card issued",
+      "issuedTitle_other": "{{count}} cards issued",
+      "issuedFace_one": "{{count}} face employee got no card.",
+      "issuedFace_other": "{{count}} face employees got no card.",
+      "issuedText": "Print the cards now. You can also print later from the QR cards page: filter by Not printed.",
+      "goToCards": "Go to QR cards",
+      "onlySuperAdmin": "Only the Super Admin issues and prints QR cards.",
+      "sentNote": "After the Super Admin approves, the Super Admin issues and prints the cards. You cannot issue cards.",
+      "noQr_one": "No QR card is needed for this file. The one person punches by face. There is nobody to issue a card to.",
+      "noQr_other": "No QR cards are needed for this file. All {{count}} people punch by face. There is nobody to issue a card to."
     }
   }
 }
