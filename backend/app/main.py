@@ -23,6 +23,7 @@ from app.modules.employees.router import router as employees_router
 from app.modules.employees.search_router import router as search_router
 from app.modules.health.router import router as health_router
 from app.modules.kiosks.router import router as kiosks_router
+from app.modules.notices.router import router as notices_router
 from app.modules.org.router import router as org_router
 from app.modules.printing.router import router as printing_router
 from app.modules.punches.admin_router import router as punch_log_router
@@ -86,6 +87,7 @@ def create_app() -> FastAPI:
     api_router.include_router(printing_router)
     api_router.include_router(punches_router)
     api_router.include_router(punch_log_router)
+    api_router.include_router(notices_router)
     api_router.include_router(approvals_router)
     api_router.include_router(search_router)
     app.include_router(api_router)

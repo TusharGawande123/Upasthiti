@@ -44,6 +44,9 @@ class Capability(enum.Enum):
     EXPORT_PUNCHES = "export_punches"  # the punch log as Excel: text only, never photos
     # Opening a punch photo, and comparing photos of one card. Super Admin only (decision 0009).
     VIEW_SNAPSHOTS = "view_snapshots"
+    VIEW_NOTICES = "view_notices"  # gate notices (F-25)
+    # Create, edit, end. Plant Head: own plant only, never the all-plants notices.
+    MANAGE_NOTICES = "manage_notices"
 
 
 SUPER_ADMIN = Role.SUPER_ADMIN
@@ -109,6 +112,12 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
         PLANT_HEAD: Access.OWN_PLANT,
     },
     Capability.VIEW_SNAPSHOTS: {SUPER_ADMIN: Access.ALL},
+    Capability.VIEW_NOTICES: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,  # plus the notices for all plants (read only)
+    },
+    Capability.MANAGE_NOTICES: {SUPER_ADMIN: Access.ALL, PLANT_HEAD: Access.OWN_PLANT},
 }
 
 
