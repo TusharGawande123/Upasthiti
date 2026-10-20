@@ -15,6 +15,11 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     // "@/..." means "frontend/src/..." (same as tsconfig paths; used by shadcn/ui components).
     resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
+    // Pages are loaded lazily (src/app/router.tsx). Without this, the dev server finds some
+    // libraries only when a page is first opened, prepares them and reloads the browser in the
+    // middle of what you were doing (and of end-to-end tests). Scanning every source file at
+    // start-up prepares them all at once. Development only; the production build is unchanged.
+    optimizeDeps: { entries: ["index.html", "src/**/*.{ts,tsx}", "!src/**/*.test.{ts,tsx}"] },
     server: {
       port: 5173,
       proxy: { "/api": { target: apiProxyTarget, changeOrigin: true } },

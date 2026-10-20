@@ -1,5 +1,5 @@
 // QR cards list: states with icon and word, filters sent to the server, and what each role sees.
-import { screen, within } from "@testing-library/react";
+import { screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiError, mockApi, SUPER_ADMIN } from "../../test/mock-api";
@@ -135,7 +135,8 @@ describe("QR cards list", () => {
     const router = renderRoute("/admin/qr-cards");
     await user.click(await screen.findByText("Mahesh Kadam"));
 
-    expect(router.state.location.pathname).toBe("/admin/employees/e-3");
+    // Pages load lazily, so the address changes once the next page has loaded.
+    await waitFor(() => expect(router.state.location.pathname).toBe("/admin/employees/e-3"));
   });
 });
 

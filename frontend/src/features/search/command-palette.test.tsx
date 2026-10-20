@@ -1,5 +1,5 @@
 // The Ctrl+K palette and the plant filter in the top bar.
-import { fireEvent, screen, within } from "@testing-library/react";
+import { fireEvent, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiError, mockApi, SUPER_ADMIN } from "../../test/mock-api";
@@ -90,7 +90,8 @@ describe("command palette", () => {
     await user.type(within(dialog).getByPlaceholderText("Search employees, plants, pages…"), "ram");
     await user.click(await within(dialog).findByText("Ramesh Kulkarni"));
 
-    expect(router.state.location.pathname).toBe("/admin/employees/e-1");
+    // Pages load lazily, so the address changes once the next page has loaded.
+    await waitFor(() => expect(router.state.location.pathname).toBe("/admin/employees/e-1"));
   });
 
   it("says nothing was found, and shows a search error", async () => {
