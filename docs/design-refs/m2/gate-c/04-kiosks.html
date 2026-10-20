@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Kiosks</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+  <link rel="stylesheet" href="c.css" />
+</head>
+<!--
+  Upasthiti – M2 design gate C – Screen 04: Kiosks list (/admin/kiosks) and the plant Kiosks tab, extended with the M2
+  "Sound" switch (F-1) and "Last self-test" (F-27). The approved M1 C1 list is kept as it was; only two columns are added.
+  Spec M2 §4.12, §5.5, §7 rules 1 and 13.
+  States (URL hash, join with "+"): (none) Super Admin, all plants · #sound-off (TP1 just switched off, toast) ·
+  #plant-head (X280, can switch) · #corporate-head (sound as text) · #plant-tab (K134 detail, Kiosks tab) ·
+  #plant-tab+ph (X280) · #plant-tab+ch.  MOCKUP ONLY – static HTML, fake data.
+-->
+<body data-active="kiosks">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="c.js"></script>
+<script src="kiosks.js"></script>
+<script>
+  function listPage(o) {
+    const rows = C.isPh ? C.KIOSKS.filter(function (k) { return k.plant === "X280"; }) : C.KIOSKS;
+    const head = D.pageHead({
+      title: "Kiosks",
+      desc: "The phones, tablets and PCs at the plant gates. To pair, a device must be at the plant with location switched on (within 50 m accuracy).",
+      actions: C.isCh ? '<span class="badge badge-neutral">' + D.icon("lock") + "Read-only</span>" : '<button class="btn btn-primary btn-lg">' + D.icon("plus", 18) + "Add kiosk</button>",
+    });
+    const banner = C.isCh ? C.roBanner("Read-only, all plants.", "The Super Admin and each Plant Head add kiosks and switch their sound. You see each kiosk's state.") : "";
+    const toolbar = '<div class="toolbar"><label class="search-input"><i data-lucide="search"></i><span class="sr-only">Search kiosks</span><input class="input" placeholder="Search kiosk name" /></label>' +
+      (C.isPh ? "" : '<button class="btn btn-outline chip-btn">' + D.icon("circle-plus", 16) + "Plant</button>") +
+      '<button class="btn btn-outline" style="height:42px">' + D.icon("filter", 16) + 'Status: All</button><span class="ml-auto muted tnum" style="font-size:13px">' + rows.length + " kiosks · times in IST</span></div>";
+    const table = '<div style="overflow-x:auto"><table class="table ks">' + C.kioskHead() + "<tbody>" + rows.map(function (k) { return C.kioskRow(k, o); }).join("") + "</tbody></table></div>";
+    const foot = '<div class="table-foot"><span>' + (C.isCh ? "Rows show the state only." : 'Row menu: Rename · Revoke. "New code" replaces the old pairing code (waiting kiosks only).') + '</span><span class="tnum">Showing 1–' + rows.length + " of " + rows.length + "</span></div>";
+    document.getElementById("page").innerHTML = head + banner + '<div class="card anim-fade-up anim-delay-1" style="overflow:hidden">' + toolbar + table + C.kioskFootNote + foot + "</div>";
+  }
+
+  function plantTab() {
+    const code = C.isPh ? "X280" : "K134";
+    const rows = C.KIOSKS.filter(function (k) { return k.plant === code; });
+    const banner = C.isCh ? C.roBanner("Read-only.", "You can view this plant. The Super Admin and the plant's Plant Head manage its kiosks and their sound.") : "";
+    const card = '<div class="card" style="overflow:hidden"><div class="card-head"><div><h2 class="card-title">Kiosks</h2><p class="muted" style="margin:2px 0 0;font-size:13.5px">Kiosks at this plant\'s gate.</p></div>' +
+      (C.isCh ? "" : '<button class="btn btn-primary btn-sm">' + D.icon("plus", 15) + "Add kiosk</button>") + "</div>" +
+      '<div style="overflow-x:auto"><table class="table ks">' + C.kioskHead({ hidePlant: true }) + "<tbody>" + rows.map(function (k) { return C.kioskRow(k, { hidePlant: true }); }).join("") + "</tbody></table></div>" +
+      C.kioskFootNote + '<div class="table-foot"><a class="link" href="04-kiosks.html" style="font-size:13px">All kiosks</a><span class="tnum">Showing ' + rows.length + " of " + rows.length + "</span></div></div>";
+    document.getElementById("page").innerHTML = '<div class="anim-fade-up">' + C.plantHeader(code, "kiosks") + "</div>" + banner + '<div class="anim-fade-up anim-delay-1">' + card + "</div>";
+  }
+
+  window.onMockState = function () {
+    C.patchShell();
+    const sidebar = document.getElementById("sidebar");
+    let title;
+    if (D.has("plant-tab")) {
+      sidebar.querySelectorAll(".sb-item[aria-current]").forEach(function (el) { el.removeAttribute("aria-current"); });
+      sidebar.querySelector('.sb-item[title="Plants"]').setAttribute("aria-current", "page");
+      plantTab();
+      title = "plant detail, Kiosks tab";
+    } else if (D.has("sound-off")) {
+      listPage({ mutedName: "TP1 gate", flash: "TP1 gate" });
+      D.toast("Sound switched off at TP1 gate. The kiosk takes it up within 2 minutes.", "Undo");
+      title = "sound switched off at TP1 gate";
+    } else {
+      listPage({});
+      title = C.isPh ? "own plant, can switch sound" : C.isCh ? "read-only, sound as text" : "kiosks list";
+    }
+    C.tag(title);
+    if (window.lucide) window.lucide.createIcons();
+  };
+</script>
+</body>
+</html>

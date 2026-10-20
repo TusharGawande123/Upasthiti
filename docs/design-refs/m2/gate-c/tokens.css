@@ -1,0 +1,222 @@
+/*
+  Upasthiti – M1 design gate A: shared design tokens and base component styles.
+  MOCKUP ONLY (docs/design-refs). The real app maps these tokens onto shadcn/ui's
+  CSS variables in frontend/src/index.css during the M1 build.
+  Palette name: "Steel & Signal" – steel-blue ink for trust, safety-yellow signal
+  used only as a small accent (logo dot, active nav bar), never for text.
+*/
+
+:root {
+  /* Surfaces */
+  --background: #f5f6f8;          /* page: cool off-white, like brushed sheet steel */
+  --surface: #ffffff;             /* cards, tables, dialogs */
+  --surface-raised: #ffffff;
+  --muted: #eef1f5;               /* table header, chips, disabled fields */
+  --border: #dde2ea;              /* 1 px hairlines */
+  --border-strong: #c3cad6;       /* outline buttons, chips (decorative edge; label carries meaning) */
+  --input-border: #868fa0;        /* text inputs: 3.3:1 on white, meets WCAG 1.4.11 (3:1) */
+
+  /* Text */
+  --foreground: #0e1726;          /* ink: 18.0:1 on white */
+  --muted-foreground: #4a5567;    /* secondary text: 7.5:1 on white, 7.0:1 on --background */
+  --subtle-foreground: #5f6b7d;   /* placeholders/meta: 5.4:1 on white */
+
+  /* Brand */
+  --primary: #1f3a93;             /* steel blue: 10.1:1 on white */
+  --primary-hover: #182e78;
+  --primary-foreground: #ffffff;
+  --primary-soft: #eaeefb;        /* selected row, active nav background */
+  --primary-soft-foreground: #1a3282;
+  --signal: #f5b700;              /* safety yellow: decoration only, dark text on it */
+  --signal-foreground: #0e1726;
+
+  /* Status (each also has an icon + a word in the UI) */
+  --success: #04694b;             /* 6.7:1 on white */
+  --success-soft: #e6f5ee;
+  --warning: #8f5300;             /* 6.2:1 on white */
+  --warning-soft: #fff3d6;
+  --danger: #b42318;              /* 6.6:1 on white */
+  --danger-soft: #fdecea;
+  --info: var(--primary);
+  --info-soft: var(--primary-soft);
+
+  /* Focus */
+  --ring: #1f3a93;
+  --ring-offset: #ffffff;
+
+  /* Shape and depth */
+  --radius-sm: 6px;
+  --radius: 10px;
+  --radius-lg: 14px;
+  --radius-xl: 20px;
+  --shadow-xs: 0 1px 2px rgba(14, 23, 38, 0.06);
+  --shadow-sm: 0 1px 3px rgba(14, 23, 38, 0.08), 0 1px 2px rgba(14, 23, 38, 0.04);
+  --shadow-md: 0 8px 24px -6px rgba(14, 23, 38, 0.12), 0 2px 6px rgba(14, 23, 38, 0.05);
+  --shadow-lg: 0 24px 48px -12px rgba(14, 23, 38, 0.22);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --duration-micro: 120ms;
+  --duration-standard: 200ms;
+  --duration-emphasis: 360ms;
+
+  /* Type */
+  --font-sans: "Inter", "Noto Sans Devanagari", ui-sans-serif, system-ui, "Segoe UI", sans-serif;
+}
+
+* { box-sizing: border-box; }
+html { -webkit-text-size-adjust: 100%; }
+body {
+  margin: 0;
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  line-height: 1.5;
+  /* Inter: cv11 = single-storey a off; we keep defaults but turn on the
+     disambiguation alternates globally for codes and IDs. */
+  font-feature-settings: "cv05", "cv08";
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Numbers that line up in tables and timers */
+.tnum { font-variant-numeric: tabular-nums; }
+/* Codes, IPs, usernames, temp passwords: slashed zero + l with tail + I with serifs */
+.code { font-feature-settings: "zero", "cv05", "cv08", "tnum"; letter-spacing: 0.01em; }
+
+/* ---------- Focus: always visible, 2 px ring + 2 px offset ---------- */
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* ---------- Buttons (shadcn Button variants) ---------- */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  height: 40px; padding: 0 16px; border-radius: var(--radius);
+  font: 600 14px/1 var(--font-sans); white-space: nowrap; cursor: pointer;
+  border: 1px solid transparent;
+  transition: background var(--duration-micro) var(--ease-out),
+              box-shadow var(--duration-micro) var(--ease-out),
+              transform var(--duration-micro) var(--ease-out);
+}
+.btn:active { transform: translateY(1px); }
+.btn-lg { height: 44px; padding: 0 20px; font-size: 15px; }
+.btn-sm { height: 32px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
+.btn-primary { background: var(--primary); color: var(--primary-foreground); box-shadow: var(--shadow-sm), inset 0 1px 0 rgba(255,255,255,0.12); }
+.btn-primary:hover { background: var(--primary-hover); }
+.btn-outline { background: var(--surface); color: var(--foreground); border-color: var(--border-strong); box-shadow: var(--shadow-xs); }
+.btn-outline:hover { background: var(--muted); }
+.btn-ghost { background: transparent; color: var(--foreground); }
+.btn-ghost:hover { background: var(--muted); }
+.btn-danger-outline { background: var(--surface); color: var(--danger); border-color: #e7b4ae; }
+.btn-danger-outline:hover { background: var(--danger-soft); }
+.btn[disabled], .btn[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; transform: none; }
+.btn-primary[disabled], .btn-primary[aria-disabled="true"] { background: var(--muted); color: var(--muted-foreground); border-color: var(--border-strong); box-shadow: none; opacity: 1; }
+.btn-icon { width: 40px; padding: 0; }
+
+/* ---------- Inputs ---------- */
+.label { display: block; font-weight: 600; font-size: 14px; color: var(--foreground); margin-bottom: 6px; }
+.help { font-size: 13px; color: var(--muted-foreground); margin-top: 6px; }
+.input {
+  width: 100%; height: 44px; padding: 0 14px; border-radius: var(--radius);
+  border: 1px solid var(--input-border); background: var(--surface);
+  font: 400 15px/1 var(--font-sans); color: var(--foreground);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--duration-micro), box-shadow var(--duration-micro);
+}
+.input::placeholder { color: var(--subtle-foreground); }
+.input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(31, 58, 147, 0.18); }
+.input[aria-invalid="true"] { border-color: var(--danger); box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.12); }
+.input[disabled], .input[readonly].is-locked { background: var(--muted); color: var(--muted-foreground); cursor: not-allowed; }
+.field-error { display: flex; gap: 6px; align-items: center; color: var(--danger); font-size: 13px; font-weight: 500; margin-top: 6px; }
+
+/* ---------- Badges (status = icon + word, never colour alone) ---------- */
+.badge {
+  display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px;
+  border-radius: 999px; font-size: 12.5px; font-weight: 600; white-space: nowrap;
+  border: 1px solid transparent;
+}
+.badge svg { width: 14px; height: 14px; stroke-width: 2.25; }
+.badge-success { background: var(--success-soft); color: var(--success); border-color: #bfe3d2; }
+.badge-warning { background: var(--warning-soft); color: var(--warning); border-color: #f1d79c; }
+.badge-danger  { background: var(--danger-soft);  color: var(--danger);  border-color: #f2c2bc; }
+.badge-info    { background: var(--primary-soft); color: var(--primary-soft-foreground); border-color: #cdd6f4; }
+.badge-neutral { background: var(--muted); color: var(--muted-foreground); border-color: var(--border); }
+.badge-outline { background: var(--surface); color: var(--foreground); border-color: var(--border-strong); }
+
+/* ---------- Cards ---------- */
+.card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); }
+
+/* ---------- Tables (shadcn Table + TanStack Table) ---------- */
+.table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 14px; }
+.table thead th {
+  position: sticky; top: 0; z-index: 1;
+  background: #f8f9fb; color: var(--muted-foreground);
+  font-size: 12.5px; font-weight: 600; text-align: left; letter-spacing: 0.01em;
+  padding: 10px 16px; border-bottom: 1px solid var(--border); white-space: nowrap;
+}
+.table tbody td { padding: 12px 16px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.table tbody tr { transition: background var(--duration-micro); }
+.table tbody tr:hover { background: #f8f9fc; }
+.table tbody tr.is-selected { background: var(--primary-soft); box-shadow: inset 3px 0 0 var(--primary); }
+.table tbody tr:last-child td { border-bottom: 0; }
+
+/* ---------- Kbd ---------- */
+.kbd {
+  display: inline-flex; align-items: center; height: 22px; padding: 0 6px; border-radius: 5px;
+  border: 1px solid var(--border-strong); background: var(--surface); color: var(--muted-foreground);
+  font: 600 11.5px/1 var(--font-sans); box-shadow: 0 1px 0 var(--border-strong);
+}
+
+/* ---------- Alerts ---------- */
+.alert { display: flex; gap: 12px; padding: 12px 14px; border-radius: var(--radius); border: 1px solid; font-size: 14px; }
+.alert svg { flex: none; width: 20px; height: 20px; margin-top: 1px; }
+.alert-danger { background: var(--danger-soft); border-color: #f2c2bc; color: #7a1a12; }
+.alert-warning { background: var(--warning-soft); border-color: #f1d79c; color: #6b3f00; }
+.alert-info { background: var(--primary-soft); border-color: #cdd6f4; color: #1a2c6b; }
+.alert-success { background: var(--success-soft); border-color: #bfe3d2; color: #03513a; }
+
+/* ---------- Dialog / sheet ---------- */
+.overlay { position: fixed; inset: 0; background: rgba(14, 23, 38, 0.42); backdrop-filter: blur(2px); z-index: 40; }
+.dialog {
+  position: fixed; z-index: 50; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  width: min(560px, calc(100vw - 32px)); max-height: calc(100vh - 48px); overflow: auto;
+  background: var(--surface); border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);
+  border: 1px solid var(--border);
+}
+
+/* ---------- Avatars ---------- */
+.avatar {
+  display: inline-grid; place-items: center; width: 32px; height: 32px; border-radius: 999px;
+  font-size: 12px; font-weight: 700; color: var(--primary-soft-foreground); background: var(--primary-soft);
+  border: 1px solid #cdd6f4; flex: none;
+}
+
+/* ---------- Skeleton (loading rows) ---------- */
+.skeleton { background: linear-gradient(90deg, #eceff4 0%, #f6f7fa 50%, #eceff4 100%); background-size: 200% 100%; border-radius: 6px; }
+
+/* ---------- Motion (only when the user allows it) ---------- */
+@media (prefers-reduced-motion: no-preference) {
+  .anim-fade-up { animation: fadeUp var(--duration-emphasis) var(--ease-out) both; }
+  .anim-delay-1 { animation-delay: 60ms; }
+  .anim-delay-2 { animation-delay: 120ms; }
+  .anim-delay-3 { animation-delay: 180ms; }
+  .anim-scale-in { animation: scaleIn 240ms var(--ease-out) both; }
+  .anim-sheet-in { animation: sheetIn 320ms var(--ease-out) both; }
+  .anim-shake { animation: shake 360ms var(--ease-out) 1; }
+  .skeleton { animation: shimmer 1.4s linear infinite; }
+}
+@keyframes fadeUp { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes scaleIn { from { opacity: 0; transform: translate(-50%, -48%) scale(0.97); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+@keyframes sheetIn { from { opacity: 0; transform: translateX(24px); } to { opacity: 1; transform: none; } }
+@keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-3px); } }
+@keyframes shimmer { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+
+/* Mockup helper: a small caption telling the reviewer which state is shown */
+.state-tag {
+  position: fixed; right: 12px; bottom: 12px; z-index: 100;
+  background: var(--foreground); color: #fff; font-size: 12px; font-weight: 600;
+  padding: 6px 10px; border-radius: 8px; opacity: 0.88;
+}

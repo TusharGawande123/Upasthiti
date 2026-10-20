@@ -1,0 +1,96 @@
+<!doctype html>
+<!--
+  Upasthiti – M2 design gate C: index of all admin mockups (punch log, photos, gate notices, kiosks, settings, poster)
+  and their states (URL hash). Open in a browser (needs internet for Inter, the Tailwind CDN and Lucide) or run
+  "python -m http.server 8767" in this folder.  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti M2 gate C index</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    body { padding: 40px 24px 80px; }
+    .wrap { max-width: 1040px; margin: 0 auto; }
+    h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 6px; }
+    .lead { color: var(--muted-foreground); margin: 0 0 28px; max-width: 72ch; font-size: 15px; }
+    section { margin-bottom: 20px; }
+    section > .card { padding: 18px 22px; }
+    h2 { font-size: 17px; margin: 0 0 2px; }
+    .meta { color: var(--muted-foreground); font-size: 13px; margin: 0 0 12px; }
+    .states { display: flex; flex-wrap: wrap; gap: 8px; }
+    .states a { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 999px; text-decoration: none; border: 1px solid var(--border-strong); background: var(--surface); color: var(--foreground); font-weight: 600; font-size: 13px; }
+    .states a:hover { background: var(--primary-soft); border-color: #b9c6ef; }
+    .states a.role { border-style: dashed; color: var(--muted-foreground); }
+    .states a.main { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .tag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--primary-soft-foreground); background: var(--primary-soft); border-radius: 6px; padding: 1px 7px; margin-left: 6px; }
+    code { font-feature-settings: "zero", "cv05", "cv08"; background: var(--muted); padding: 1px 6px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>M2 design gate C: admin screens</h1>
+  <p class="lead">Punch log, punch photos and Compare, gate notices, the kiosk sound switch and self-test, the new settings and the gate poster (spec <code>docs/specs/M2-qr-attendance.md</code> §4.10 to §4.12). Same look as gates A and B ("Steel &amp; Signal", Inter). Role variants are hash tokens: add <code>+ph</code> (Plant Head, X280) or <code>+ch</code> (Corporate Head) to any state. Dashed chips are role variants. Screenshots: <code>screenshots/</code>. Notes, questions and accessibility: <a href="notes.md">notes.md</a>.</p>
+
+  <section><div class="card">
+    <h2>01 Punch log <span class="tag">/admin/punches</span></h2>
+    <p class="meta">Spec §4.10, §5.3, §7 rules 1 and 21. Super Admin unless stated.</p>
+    <div class="states">
+      <a class="main" href="01-punch-log.html">default (today)</a><a href="01-punch-log.html#auto-refresh">auto-refresh</a><a href="01-punch-log.html#past-day">past day</a>
+      <a href="01-punch-log.html#empty">empty</a><a href="01-punch-log.html#loading">loading</a><a href="01-punch-log.html#error">error</a><a href="01-punch-log.html#export-too-large">export too large</a>
+      <a class="role" href="01-punch-log.html#plant-head">plant-head</a><a class="role" href="01-punch-log.html#corporate-head">corporate-head</a>
+    </div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>02 Photo dialog and Compare <span class="tag">Super Admin only</span></h2>
+    <p class="meta">Spec §4.10 (F-29, F-31), §5.3, §8, §9. Placeholder photos only.</p>
+    <div class="states">
+      <a class="main" href="02-photo-dialogs.html#view">view</a><a href="02-photo-dialogs.html#view-dark">view, dark photo</a><a href="02-photo-dialogs.html#view-loading">loading</a>
+      <a href="02-photo-dialogs.html#purged">purged (410)</a><a href="02-photo-dialogs.html#not-available">not available (404)</a><a href="02-photo-dialogs.html#storage-unavailable">storage unavailable (503)</a>
+      <a href="02-photo-dialogs.html#compare">compare</a><a href="02-photo-dialogs.html#compare-none">compare, no earlier photos</a>
+    </div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>03 Gate notices <span class="tag">/admin/notices</span></h2>
+    <p class="meta">Spec §4.11, §5.4, §7 rules 1 and 11, §9 (F-25).</p>
+    <div class="states">
+      <a class="main" href="03-notices.html">list</a><a href="03-notices.html#new">new</a><a href="03-notices.html#new-filled">new, typed</a><a href="03-notices.html#new-errors">new, errors</a><a href="03-notices.html#new-all-plants">new, all plants, long</a>
+      <a href="03-notices.html#edit">edit</a><a href="03-notices.html#end-now">end now</a><a href="03-notices.html#edit-ended">edit refused (ended)</a><a href="03-notices.html#empty">empty</a>
+      <a class="role" href="03-notices.html#plant-head">plant-head</a><a class="role" href="03-notices.html#new+ph">new (Plant Head)</a><a class="role" href="03-notices.html#corporate-head">corporate-head</a>
+    </div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>04 Kiosks: Sound switch and last self-test <span class="tag">/admin/kiosks + plant tab</span></h2>
+    <p class="meta">Spec §4.12, §5.5, §7 rules 1 and 13 (F-1, F-27). Extends the approved M1 C1 list.</p>
+    <div class="states">
+      <a class="main" href="04-kiosks.html">kiosks list</a><a href="04-kiosks.html#sound-off">sound switched off</a><a href="04-kiosks.html#plant-tab">plant Kiosks tab</a>
+      <a class="role" href="04-kiosks.html#plant-head">plant-head</a><a class="role" href="04-kiosks.html#corporate-head">corporate-head</a>
+      <a class="role" href="04-kiosks.html#plant-tab+ph">plant tab (Plant Head)</a><a class="role" href="04-kiosks.html#plant-tab+ch">plant tab (Corporate Head)</a>
+    </div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>05 Settings <span class="tag">/admin/settings</span></h2>
+    <p class="meta">Spec §4.12, §7 rule 12, §9 (retention lowered).</p>
+    <div class="states">
+      <a class="main" href="05-settings.html">editing (retention lowered)</a><a href="05-settings.html#range-error">range error</a><a href="05-settings.html#save-reason">save: reason</a>
+      <a class="role" href="05-settings.html#corporate-head">corporate-head</a><a class="role" href="05-settings.html#plant-head">plant-head</a>
+    </div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>06 Plant detail with the gate poster <span class="tag">/admin/plants/:id</span></h2>
+    <p class="meta">Spec §4.12, §5.5, §7 rule 20 (F-34). The thumbnail is the real poster PDF.</p>
+    <div class="states">
+      <a class="main" href="06-plant-detail.html">Super Admin (K134)</a><a class="role" href="06-plant-detail.html#plant-head">plant-head (X280)</a><a class="role" href="06-plant-detail.html#corporate-head">corporate-head</a>
+      <a href="screenshots/poster.pdf">poster.pdf (real output)</a>
+    </div>
+  </div></section>
+</div>
+</body>
+</html>

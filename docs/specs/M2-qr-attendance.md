@@ -216,8 +216,10 @@ Ctrl+K, import result) is approved (2026-10-20, Anuradha):**
 `docs/design-refs/m2/gate-a/screenshots/`, answers in `notes.md`. **Gate B (kiosk scanning,
 card read and checking, results, problem screens) is approved (2026-10-20, Anuradha):**
 [docs/design-refs/m2/gate-b/index.html](../design-refs/m2/gate-b/index.html), screenshots in
-`docs/design-refs/m2/gate-b/screenshots/`, answers in `notes.md`. Gate C (punch log, notices,
-settings, kiosks) follows in the plan. Kiosk rules: text at least 24 px (names and IN/OUT much larger), touch
+`docs/design-refs/m2/gate-b/screenshots/`, answers in `notes.md`. **Gate C (punch log, photo
+dialog and compare, gate notices, kiosks, settings, gate poster) is approved (2026-10-21,
+Anuradha):** [docs/design-refs/m2/gate-c/index.html](../design-refs/m2/gate-c/index.html),
+screenshots in `docs/design-refs/m2/gate-c/screenshots/`, answers in `notes.md`. Kiosk rules: text at least 24 px (names and IN/OUT much larger), touch
 targets at least 64 px, contrast 7:1, colour + icon + word, full screen, honest connection
 messages, all text from the translation file.
 

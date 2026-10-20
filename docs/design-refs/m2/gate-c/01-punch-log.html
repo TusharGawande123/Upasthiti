@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Punch log</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+  <link rel="stylesheet" href="c.css" />
+</head>
+<!--
+  Upasthiti – M2 design gate C – Screen 01: Punch log (/admin/punches). Spec M2 §4.10, §5.3, §7 rules 1 and 21, §9.
+  States (URL hash, join with "+"): (none) default, Super Admin, all plants, today · #auto-refresh (2 new rows after the 30 s refresh) ·
+  #past-day (14/08/2026, photos already deleted) · #empty (plant X280, nothing yet today) · #loading · #error ·
+  #export-too-large (EXPORT_TOO_LARGE) · #plant-head (X280, a "Card of another plant" row, no photo actions) · #corporate-head.
+  Roles also work as "+ph" / "+ch" after any state, e.g. #loading+ph.  MOCKUP ONLY – static HTML, fake data.
+-->
+<body data-active="punches">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="c.js"></script>
+<script src="punches.js"></script>
+<script>
+  window.onMockState = function () {
+    const o = {};
+    if (D.has("empty")) o.empty = true, o.plant = "X280";
+    if (D.has("loading")) o.loading = true;
+    if (D.has("error")) o.error = true;
+    if (D.has("past-day")) o.past = true;
+    if (D.has("export-too-large")) o.exportError = true;
+    if (D.has("auto-refresh")) o.refreshed = true;
+    C.patchShell({ plant: o.plant });
+    C.renderPunchLog(o);
+    const titles = { "auto-refresh": "auto-refresh, 2 new punches", "past-day": "a past day (photos deleted)", empty: "empty: no punches yet today", loading: "loading", error: "could not load", "export-too-large": "export refused: too many rows", "plant-head": "read-only, own plant", "corporate-head": "read-only, all plants" };
+    const key = Object.keys(titles).filter(D.has)[0];
+    C.tag(key ? titles[key] : "default (today, all plants)");
+    if (window.lucide) window.lucide.createIcons();
+  };
+</script>
+</body>
+</html>
