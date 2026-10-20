@@ -496,9 +496,10 @@ employee; no new endpoint.
 ### 5.7 Additive change to the M1 import endpoints (F-38)
 - `POST /api/v1/employees/import?dry_run=false` (Super Admin): the commit response gains
   **`created_employee_ids`** (list of the new employees' IDs, in file order), next to the
-  existing `created`.
+  existing `created`; it also gains **`created_qr_employee_ids`** (the subset whose punch method
+  is QR, the people who can get a card).
 - The apply result of an approved import request (`POST /change-requests/{id}/approve`, and
-  the stored `result` of the request) gains the same **`created_employee_ids`** field.
+  the stored `result` of the request) gains the same two fields.
 - The field is additive; nothing existing changes. The "Issue and print cards" step uses it
   to pre-select the new employees.
 
@@ -1440,3 +1441,4 @@ One line per change made on 2026-10-20 (reason, earlier file).
   picker / the list filtered "Not printed"; the Test cards tab is hidden for Corporate Head and
   Plant Head.
 - 2026-10-20 · D · §5.1: the bulk answer gets `card_ids` (additive), so "Print the N new cards" and F-38 can print exactly the cards just issued.
+- 2026-10-20 · D · §5.7: the import answer and the approved-import result also carry `created_qr_employee_ids`, so the screen can say how many people get a card and how many (face) are left out.

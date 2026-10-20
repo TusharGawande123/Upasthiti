@@ -24,7 +24,7 @@ from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Access, Capability
 from app.modules.auth.scope import plant_filter
 from app.modules.employees import import_excel, operations, queries
-from app.modules.employees.models import Employee
+from app.modules.employees.models import Employee, PunchMethod
 from app.modules.employees.presenter import employee_detail, employee_responses
 from app.modules.employees.rules import EmployeeValues, default_punch_method
 from app.modules.employees.schemas import (
@@ -333,8 +333,7 @@ async def import_employees(
         return _accepted(request.id, request_summary)
 
     context = operations.AuditContext(current_user.actor)
-    for values in checked.values:
-        operations.create_employee(session, context, values)
+    created = [operations.create_employee(session, context, values) for values in checked.values]
     record_audit(
         session,
         actor=current_user.actor,
@@ -343,7 +342,12 @@ async def import_employees(
         after={"file_name": file.filename, "rows": len(checked.values)},
     )
     session.commit()
-    summary.created = len(checked.values)
+    summary.created = len(created)
+    # The "Issue and print cards" step uses these (F-38): everyone new, and those who punch by QR.
+    summary.created_employee_ids = [employee.id for employee in created]
+    summary.created_qr_employee_ids = [
+        employee.id for employee in created if employee.punch_method == PunchMethod.QR.value
+    ]
     return summary
 
 

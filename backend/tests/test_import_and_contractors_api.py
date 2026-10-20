@@ -234,3 +234,78 @@ def test_a_zip_that_unpacks_huge_is_refused(boss: TestClient, k134: PlantIds) ->
 
     assert len(buffer.getvalue()) < 2 * 1024 * 1024
     assert response.json()["error"]["code"] == "IMPORT_TOO_LARGE"
+
+
+# --- The new people's ids, for "Issue and print cards" (F-38) --------------------------------
+
+
+def ids_by_code(session: Session) -> dict[str, str]:
+    return {e.employee_code: str(e.id) for e in session.scalars(select(Employee))}
+
+
+def test_a_saved_import_names_the_new_people_and_those_who_punch_by_qr(
+    boss: TestClient, k134: PlantIds, db_session: Session
+) -> None:
+    rows = [
+        good_row("1001", "Ravi Patil"),  # permanent: face
+        good_row("2001", "Asha Rao", kind="temporary"),  # temporary: QR
+        good_row("2002", "Sunil More", kind="temporary"),
+    ]
+
+    saved = upload(boss, rows, dry_run=False).json()
+
+    ids = ids_by_code(db_session)
+    assert saved["created_employee_ids"] == [ids["1001"], ids["2001"], ids["2002"]]  # file order
+    assert saved["created_qr_employee_ids"] == [ids["2001"], ids["2002"]]
+
+
+def test_a_file_of_face_employees_only_has_no_qr_people(boss: TestClient, k134: PlantIds) -> None:
+    saved = upload(boss, [good_row("1001", "Ravi Patil")], dry_run=False).json()
+
+    assert len(saved["created_employee_ids"]) == 1
+    assert saved["created_qr_employee_ids"] == []
+
+
+def test_a_dry_run_names_nobody_because_nobody_was_saved(boss: TestClient, k134: PlantIds) -> None:
+    checked = upload(boss, [good_row("2001", "Asha Rao", kind="temporary")], dry_run=True).json()
+
+    assert checked["created"] is None
+    assert checked["created_employee_ids"] is None
+    assert checked["created_qr_employee_ids"] is None
+
+
+def test_an_approved_import_request_carries_the_same_two_lists(
+    boss: TestClient, k134: PlantIds, db_app: FastAPI, db_session: Session
+) -> None:
+    corporate = client_for(db_app, db_session, Role.CORPORATE_HEAD, "corp.head")
+    rows = [good_row("1001", "Ravi Patil"), good_row("2001", "Asha Rao", kind="temporary")]
+    sent = upload(corporate, rows, dry_run=False)
+
+    approved = boss.post(
+        f"/api/v1/change-requests/{sent.json()['change_request_id']}/approve", json={}
+    ).json()
+
+    ids = ids_by_code(db_session)
+    assert approved["result"]["created_employee_ids"] == [ids["1001"], ids["2001"]]
+    assert approved["result"]["created_qr_employee_ids"] == [ids["2001"]]
+    assert approved["result"]["employee_ids"] == approved["result"]["created_employee_ids"]
+
+
+def test_the_new_qr_people_can_be_given_cards_straight_away(
+    boss: TestClient, k134: PlantIds
+) -> None:
+    rows = [good_row("1001", "Ravi Patil"), good_row("2001", "Asha Rao", kind="temporary")]
+    saved = upload(boss, rows, dry_run=False).json()
+
+    issued = boss.post(
+        "/api/v1/qr-cards/bulk",
+        json={
+            "action": "issue",
+            "employee_ids": saved["created_qr_employee_ids"],
+            "reason": "New workers from the import",
+        },
+    ).json()
+
+    assert issued["done"] == 1
+    assert issued["skipped"] == []
+    assert len(issued["card_ids"]) == 1
