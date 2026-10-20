@@ -16,3 +16,4 @@
 *.ico binary
 *.xlsx binary
 *.onnx binary
+*.ttf binary
