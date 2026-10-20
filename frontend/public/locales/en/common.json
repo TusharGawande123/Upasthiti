@@ -1234,6 +1234,89 @@
     "noMatch": "No employee matches these filters.",
     "empty": "No cards yet. Select employees and press Issue cards.",
     "emptyHelp": "There are no employees to show yet. Add or import employees first, then come back here.",
-    "goToEmployees": "Go to Employees"
+    "goToEmployees": "Go to Employees",
+    "revokeKind": {
+      "lost": "Lost",
+      "damaged": "Damaged",
+      "left": "Left the company",
+      "other": "Other",
+      "replaced": "Replaced by a new card"
+    },
+    "panel": {
+      "title": "QR card",
+      "serial": "Card serial",
+      "validFrom": "Valid from",
+      "validUntil": "Valid until",
+      "issued": "Issued",
+      "issuedLine": "{{date}} {{time}} by {{name}}",
+      "printed": "Printed",
+      "printedNever": "Not printed yet",
+      "printedLine_one": "{{count}} time, last {{date}} {{time}}",
+      "printedLine_other": "{{count}} times, last {{date}} {{time}}",
+      "printedPlant": "Plant on the card",
+      "plantMatches": "{{plant}} (matches)",
+      "plantDiffers": "{{plant}} (the employee is now at {{current}})",
+      "none": "No working card",
+      "noneHelp": "This employee has no QR card. Issue one so they can punch at the gate.",
+      "faceNote": "This employee punches by face, so no QR card is needed. A QR card is only for employees who punch by QR card.",
+      "leftNote": "This employee has left, so no card can be issued.",
+      "faceSwitched": {
+        "title": "Revoke this card: the kiosk rejects it now.",
+        "text": "{{name}} now punches by face. The card is not revoked automatically. Until you revoke it, the kiosk rejects it."
+      },
+      "reprint": {
+        "title": "Reprint advised.",
+        "text": "This card shows {{printed}}, but the employee now works at {{current}}. The card still works; print a new copy so the plant on it is right."
+      },
+      "print": "Print card",
+      "changeEnd": "Change end date",
+      "issue": "Issue card",
+      "issueNew": "Issue new card",
+      "revoke": "Revoke",
+      "revokeCard": "Revoke card",
+      "history": "Card history",
+      "historyCount_one": "{{count}} earlier card",
+      "historyCount_other": "{{count}} earlier cards",
+      "revokedLine": "Revoked {{date}} by {{name}}: {{kind}}"
+    },
+    "dialog": {
+      "issue": {
+        "title": "Issue a new QR card",
+        "subtitleNew": "{{name}} has no working card.",
+        "subtitleReplace": "{{name}} already has a card.",
+        "replaceTitle": "The current card {{serial}} will stop working at once.",
+        "replaceText": "It is recorded as revoked with the reason “Replaced by” and the new card's serial. Take the old card back if you can.",
+        "validFrom": "Valid from",
+        "validFromHint": "Today, or up to {{days}} days ahead.",
+        "validUntil": "Valid until",
+        "validUntilHint": "Default: {{months}} months. At most 3 years after the start.",
+        "plusMonths": "+{{months}} months",
+        "note": "Note",
+        "optional": "optional",
+        "notePlaceholder": "For example: old card was damaged",
+        "submit": "Issue card",
+        "submitReplace": "Replace card",
+        "doneTitle": "Card {{serial}} issued",
+        "doneText": "Valid {{from}} to {{until}}. Print it and hand it to the worker yourself.",
+        "printNow": "Print now"
+      },
+      "revoke": {
+        "title": "Revoke card {{serial}}",
+        "warning": "The card stops working at every gate immediately. This cannot be undone: issue a new card instead.",
+        "kind": "Why is the card revoked?",
+        "submit": "Revoke card",
+        "done": "Card {{serial}} revoked."
+      },
+      "changeEnd": {
+        "title": "Change the end date",
+        "current": "Card {{serial}} is now valid until {{date}}.",
+        "newDate": "New end date",
+        "hint": "“End today” keeps the card working until the end of today. To stop it at once, revoke it.",
+        "endToday": "End today",
+        "extend": "Extend by {{months}} months",
+        "submit": "Save end date",
+        "done": "End date saved."
+      }
+    }
   }
 }

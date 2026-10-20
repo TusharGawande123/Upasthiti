@@ -4,6 +4,7 @@
 // Reading is for all roles (a Plant Head sees their own plant); every change is for the Super
 // Admin only, and the server checks that again.
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useState } from "react";
 import { apiBlob, apiGet, apiPatch, apiPost } from "@/lib/api-client";
 import { type Page, queryString } from "@/lib/paging";
 
@@ -220,4 +221,29 @@ export async function openPdfInNewTab(makePdf: () => Promise<Blob>, filename: st
     link.click();
   }
   setTimeout(() => URL.revokeObjectURL(address), 60_000);
+}
+
+/**
+ * Printing from a button: opens the tab at once (inside the click) and shows the PDF in it.
+ * `pending` is true while the PDF is being made; `error` holds a failure for the screen to show.
+ * Printing counts, so the card data is refreshed afterwards.
+ */
+export function usePdfPrinting() {
+  const refresh = useRefreshCards();
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<unknown>(null);
+
+  const print = async (makePdf: () => Promise<Blob>, filename: string) => {
+    setPending(true);
+    setError(null);
+    try {
+      await openPdfInNewTab(makePdf, filename);
+    } catch (failure) {
+      setError(failure);
+    } finally {
+      setPending(false);
+      await refresh();
+    }
+  };
+  return { print, pending, error, clearError: () => setError(null) };
 }
