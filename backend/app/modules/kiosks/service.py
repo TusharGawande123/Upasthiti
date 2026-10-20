@@ -53,7 +53,12 @@ class Location:
 
 
 def kiosk_snapshot(kiosk: KioskDevice) -> dict[str, object]:
-    return {"name": kiosk.name, "status": kiosk.status, "plant_id": kiosk.plant_id}
+    return {
+        "name": kiosk.name,
+        "status": kiosk.status,
+        "plant_id": kiosk.plant_id,
+        "sound_muted": kiosk.sound_muted,
+    }
 
 
 def get_kiosk(session: Session, kiosk_id: uuid.UUID) -> KioskDevice:
@@ -143,9 +148,21 @@ def current_pairing_code_issue(session: Session, kiosk: KioskDevice) -> KioskPai
     )
 
 
-def rename_kiosk(session: Session, *, actor: Actor, kiosk: KioskDevice, name: str) -> KioskDevice:
+def update_kiosk(
+    session: Session,
+    *,
+    actor: Actor,
+    kiosk: KioskDevice,
+    name: str | None = None,
+    sound_muted: bool | None = None,
+) -> KioskDevice:
+    """Rename the kiosk and/or switch its tones and voice off or on (F-1). The heartbeat tells
+    the kiosk within a minute; the switch never affects punching."""
     before = kiosk_snapshot(kiosk)
-    kiosk.name = name.strip()
+    if name is not None:
+        kiosk.name = name.strip()
+    if sound_muted is not None:
+        kiosk.sound_muted = sound_muted
     record_audit(
         session,
         actor=actor,

@@ -36,7 +36,7 @@ from app.modules.kiosks.schemas import (
     ReasonRequest,
     RegisterKioskRequest,
     RegisterKioskResponse,
-    RenameKioskRequest,
+    UpdateKioskRequest,
 )
 from app.modules.notices.queries import visible_notices
 from app.modules.org.plants_service import get_plant
@@ -130,15 +130,21 @@ def pairing_qr(
 
 
 @router.patch("/kiosks/{kiosk_id}", response_model=KioskResponse)
-def rename_kiosk(
+def update_kiosk(
     kiosk_id: uuid.UUID,
-    body: RenameKioskRequest,
+    body: UpdateKioskRequest,
     current_user: CurrentUser = Depends(manager),
     session: Session = Depends(get_session),
 ) -> KioskResponse:
     kiosk = _kiosk_in_scope(session, current_user, Capability.MANAGE_KIOSKS, kiosk_id)
     return KioskResponse.from_model(
-        service.rename_kiosk(session, actor=current_user.actor, kiosk=kiosk, name=body.name)
+        service.update_kiosk(
+            session,
+            actor=current_user.actor,
+            kiosk=kiosk,
+            name=body.name,
+            sound_muted=body.sound_muted,
+        )
     )
 
 

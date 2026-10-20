@@ -47,6 +47,7 @@ class Capability(enum.Enum):
     VIEW_NOTICES = "view_notices"  # gate notices (F-25)
     # Create, edit, end. Plant Head: own plant only, never the all-plants notices.
     MANAGE_NOTICES = "manage_notices"
+    DOWNLOAD_GATE_POSTER = "download_gate_poster"  # the A4 poster next to the kiosk (F-34)
 
 
 SUPER_ADMIN = Role.SUPER_ADMIN
@@ -118,6 +119,8 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
         PLANT_HEAD: Access.OWN_PLANT,  # plus the notices for all plants (read only)
     },
     Capability.MANAGE_NOTICES: {SUPER_ADMIN: Access.ALL, PLANT_HEAD: Access.OWN_PLANT},
+    # Not a credential (no personal data), so a Plant Head may print it for their own plant.
+    Capability.DOWNLOAD_GATE_POSTER: {SUPER_ADMIN: Access.ALL, PLANT_HEAD: Access.OWN_PLANT},
 }
 
 

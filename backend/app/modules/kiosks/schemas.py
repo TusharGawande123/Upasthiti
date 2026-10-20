@@ -21,6 +21,9 @@ class KioskResponse(BaseModel):
     app_version: str | None
     revoked_at: datetime | None
     revoke_reason: str | None
+    # M2 (additive): the gate's sound switch (F-1) and the last test card scan (F-27).
+    sound_muted: bool
+    last_self_test_at: datetime | None
 
     @classmethod
     def from_model(cls, kiosk: KioskDevice) -> KioskResponse:
@@ -32,8 +35,11 @@ class CreateKioskRequest(BaseModel):
     name: str = Field(min_length=1, max_length=60)
 
 
-class RenameKioskRequest(BaseModel):
-    name: str = Field(min_length=1, max_length=60)
+class UpdateKioskRequest(BaseModel):
+    """Only the fields that are sent change: the name, and the gate's sound switch (F-1)."""
+
+    name: str | None = Field(default=None, min_length=1, max_length=60)
+    sound_muted: bool | None = None
 
 
 class ReasonRequest(BaseModel):
