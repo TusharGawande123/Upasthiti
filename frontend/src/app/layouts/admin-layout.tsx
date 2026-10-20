@@ -8,6 +8,7 @@ import {
   LayoutDashboard,
   ListChecks,
   type LucideIcon,
+  QrCode,
   ScrollText,
   Search,
   Send,
@@ -60,6 +61,8 @@ const NAV_ITEMS: NavItem[] = [
     icon: FileSpreadsheet,
     roles: ["super_admin", "corporate_head"],
   },
+  // Everyone may read the cards list; only the Super Admin changes cards (the server decides).
+  { to: "/admin/qr-cards", labelKey: "nav.qrCards", icon: QrCode, roles: ALL_ROLES },
   { to: "/admin/contractors", labelKey: "nav.contractors", icon: HardHat, roles: ALL_ROLES },
   { to: "/admin/users", labelKey: "nav.users", icon: Users, roles: ["super_admin"] },
   { to: "/admin/settings", labelKey: "nav.settings", icon: Settings, roles: ALL_ROLES },

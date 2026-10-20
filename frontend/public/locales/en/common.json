@@ -259,7 +259,8 @@
     "contractors": "Contractors",
     "approvals": "Approvals",
     "myRequests": "My requests",
-    "waiting": "waiting"
+    "waiting": "waiting",
+    "qrCards": "QR cards"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -1171,5 +1172,68 @@
       "HOURLY_RATE_REQUIRED": "A temporary worker needs an hourly rate.",
       "IMPORT_CELL_FORMULA": "This cell starts with = + - or @. Type plain text."
     }
+  },
+  "qrCards": {
+    "title": "QR cards",
+    "subtitle": "Issue, print and revoke the QR ID cards of the workers who punch by card. A card works only at the person's own plant.",
+    "readOnly": "Read-only",
+    "readOnlyBanner": {
+      "plantHead": "Read-only, your plant only.",
+      "corporateHead": "Read-only, all plants.",
+      "text": "Only the Super Admin issues, prints and revokes cards, because a printed card works like a key to the gate. If a card is lost or a worker needs one, ask the Super Admin."
+    },
+    "searchPlaceholder": "Search code, name or card serial",
+    "filter": {
+      "type": "Type",
+      "anyType": "Any type",
+      "punchMethod": "Punch method",
+      "anyMethod": "Any method",
+      "contractor": "Contractor",
+      "category": "Category",
+      "state": "Card state",
+      "anyState": "Any state",
+      "printed": "Printed",
+      "anyPrinted": "Printed or not",
+      "printedYes": "Printed",
+      "printedNo": "Not printed",
+      "reprintOnly": "Reprint needed"
+    },
+    "columns": {
+      "employee": "Employee",
+      "typeMethod": "Type Â· punch method",
+      "plant": "Plant",
+      "contractor": "Contractor",
+      "card": "Card",
+      "state": "State",
+      "validUntil": "Valid until",
+      "printed": "Printed"
+    },
+    "state": {
+      "none": "No card",
+      "active": "Active",
+      "expiring": "Ends soon",
+      "not_yet_valid": "Not yet valid",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "reprintNeeded": "Reprint needed (card shows {{plant}})",
+    "relative": {
+      "in_one": "in {{count}} day",
+      "in_other": "in {{count}} days",
+      "ago_one": "{{count}} day ago",
+      "ago_other": "{{count}} days ago",
+      "startsIn_one": "starts in {{count}} day",
+      "startsIn_other": "starts in {{count}} days",
+      "today": "ends today",
+      "revokedOn": "revoked {{date}}"
+    },
+    "notPrinted": "Not printed",
+    "printedTimes_one": "{{count}} time",
+    "printedTimes_other": "{{count}} times",
+    "lastPrinted": "last {{date}}",
+    "noMatch": "No employee matches these filters.",
+    "empty": "No cards yet. Select employees and press Issue cards.",
+    "emptyHelp": "There are no employees to show yet. Add or import employees first, then come back here.",
+    "goToEmployees": "Go to Employees"
   }
 }

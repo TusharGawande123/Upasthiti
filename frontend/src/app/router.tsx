@@ -15,6 +15,7 @@ import { KiosksPage } from "../features/kiosks/kiosks-page";
 import { PlantDetailPage } from "../features/plants/plant-detail-page";
 import { PlantsPage } from "../features/plants/plants-page";
 import { SetupWizardPage } from "../features/plants/setup-wizard-page";
+import { QrCardsPage } from "../features/qr-cards/qr-cards-page";
 import { SettingsPage } from "../features/settings/settings-page";
 import { UsersPage } from "../features/users/users-page";
 import { KioskPairingPage } from "../kiosk/kiosk-pairing-page";
@@ -44,6 +45,7 @@ export const routes: RouteObject[] = [
           { path: "/admin/employees/:employeeId", element: <EmployeeDetailPage /> },
           { path: "/admin/employees/:employeeId/edit", element: <EmployeeFormPage /> },
           { path: "/admin/import", element: <ImportPage /> },
+          { path: "/admin/qr-cards", element: <QrCardsPage /> },
           { path: "/admin/contractors", element: <ContractorsPage /> },
           { path: "/admin/approvals", element: <ApprovalsPage mine={false} /> },
           { path: "/admin/my-requests", element: <ApprovalsPage mine /> },
