@@ -5,9 +5,11 @@ import {
   Factory,
   FileSpreadsheet,
   HardHat,
+  IdCard,
   LayoutDashboard,
   ListChecks,
   type LucideIcon,
+  Printer,
   QrCode,
   ScrollText,
   Search,
@@ -23,7 +25,8 @@ import { NavLink, Outlet } from "react-router";
 import { usePendingCount } from "@/features/approvals/use-approvals";
 import { BrandMark } from "@/features/auth/brand-mark";
 import { type Me, type Role, useMe } from "@/features/auth/use-auth";
-import { CommandPalette } from "@/features/search/command-palette";
+import { useExpiringCount } from "@/features/qr-cards/use-qr-cards";
+import { CommandPalette, type PaletteCommand } from "@/features/search/command-palette";
 import { cn } from "@/lib/utils";
 import { PlantFilterProvider, PlantFilterSelect } from "./plant-filter";
 import { UserMenu } from "./user-menu";
@@ -35,7 +38,7 @@ type NavItem = {
   roles: Role[];
   end?: boolean;
   // A small number next to the label (the approvals waiting for the Super Admin).
-  badge?: "pendingApprovals";
+  badge?: "pendingApprovals" | "expiringCards";
 };
 
 const ALL_ROLES: Role[] = ["super_admin", "corporate_head", "plant_head"];
@@ -62,7 +65,13 @@ const NAV_ITEMS: NavItem[] = [
     roles: ["super_admin", "corporate_head"],
   },
   // Everyone may read the cards list; only the Super Admin changes cards (the server decides).
-  { to: "/admin/qr-cards", labelKey: "nav.qrCards", icon: QrCode, roles: ALL_ROLES },
+  {
+    to: "/admin/qr-cards",
+    labelKey: "nav.qrCards",
+    icon: QrCode,
+    roles: ALL_ROLES,
+    badge: "expiringCards", // cards that end soon; counted for the Super Admin only
+  },
   { to: "/admin/contractors", labelKey: "nav.contractors", icon: HardHat, roles: ALL_ROLES },
   { to: "/admin/users", labelKey: "nav.users", icon: Users, roles: ["super_admin"] },
   { to: "/admin/settings", labelKey: "nav.settings", icon: Settings, roles: ALL_ROLES },
@@ -78,6 +87,7 @@ function AdminShell({ user }: { user: Me }) {
   const [paletteOpen, setPaletteOpen] = useState(false);
   const items = visibleNavItems(user.role);
   const pending = usePendingCount(user.role === "super_admin");
+  const expiring = useExpiringCount(user.role === "super_admin");
 
   // Ctrl+K (or Cmd+K on a Mac) opens the palette from anywhere in the admin area.
   useEffect(() => {
@@ -91,8 +101,35 @@ function AdminShell({ user }: { user: Me }) {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
-  const badgeFor = (item: NavItem): number =>
-    item.badge === "pendingApprovals" ? (pending.data?.count ?? 0) : 0;
+  const badgeFor = (item: NavItem): number => {
+    if (item.badge === "pendingApprovals") return pending.data?.count ?? 0;
+    if (item.badge === "expiringCards") return expiring.data?.count ?? 0;
+    return 0;
+  };
+
+  // Commands for the Ctrl+K palette. Only the Super Admin issues and prints cards.
+  const commands: PaletteCommand[] =
+    user.role === "super_admin"
+      ? [
+          {
+            id: "issue-card",
+            kind: "pickEmployee",
+            label: t("palette.command.issue.label"),
+            hint: t("palette.command.issue.hint"),
+            placeholder: t("palette.command.issue.placeholder"),
+            icon: IdCard,
+            pathFor: (employeeId) => `/admin/employees/${employeeId}?issue=card`,
+          },
+          {
+            id: "print-cards",
+            kind: "go",
+            label: t("palette.command.print.label"),
+            hint: t("palette.command.print.hint"),
+            icon: Printer,
+            to: "/admin/qr-cards?printed=no",
+          },
+        ]
+      : [];
 
   return (
     <div className="flex min-h-screen">
@@ -137,7 +174,10 @@ function AdminShell({ user }: { user: Me }) {
                     {count > 0 ? (
                       <span className="tnum ml-auto hidden rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground xl:inline">
                         {count}
-                        <span className="sr-only"> {t("nav.waiting")}</span>
+                        <span className="sr-only">
+                          {" "}
+                          {t(item.badge === "expiringCards" ? "nav.endingSoon" : "nav.waiting")}
+                        </span>
                       </span>
                     ) : null}
                   </>
@@ -184,6 +224,7 @@ function AdminShell({ user }: { user: Me }) {
         open={paletteOpen}
         onOpenChange={setPaletteOpen}
         pages={items.map((item) => ({ to: item.to, label: t(item.labelKey) }))}
+        commands={commands}
       />
     </div>
   );

@@ -260,7 +260,8 @@
     "approvals": "Approvals",
     "myRequests": "My requests",
     "waiting": "waiting",
-    "qrCards": "QR cards"
+    "qrCards": "QR cards",
+    "endingSoon": "cards end soon"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -300,7 +301,14 @@
   "dashboard": {
     "welcome": "Welcome, {{name}}",
     "placeholderTitle": "Live headcount comes in M5",
-    "placeholderText": "Setup, people and kiosk screens arrive in the next updates."
+    "placeholderText": "Setup, people and kiosk screens arrive in the next updates.",
+    "cardsEndingSoon": {
+      "title": "Cards ending soon",
+      "text_one": "{{count}} QR card ends in the next {{days}} days. Extend it or let it end.",
+      "text_other": "{{count}} QR cards end in the next {{days}} days. Extend them or let them end.",
+      "link": "See these cards",
+      "error": "The number could not be loaded."
+    }
   },
   "users": {
     "title": "Users",
@@ -796,7 +804,21 @@
     "pages": "Pages",
     "hintMove": "move",
     "hintOpen": "open",
-    "hintClose": "close"
+    "hintClose": "close",
+    "commands": "Commands",
+    "back": "Back",
+    "cardHint": "Type a card serial like C000123, or at least 2 letters of a name.",
+    "command": {
+      "issue": {
+        "label": "Issue QR card…",
+        "hint": "Choose an employee, then set the dates",
+        "placeholder": "Type an employee's code or name…"
+      },
+      "print": {
+        "label": "Print QR cards…",
+        "hint": "Open the cards that are not printed yet"
+      }
+    }
   },
   "employees": {
     "title": "Employees",

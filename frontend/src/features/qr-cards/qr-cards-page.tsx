@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { usePlantFilter } from "@/app/layouts/plant-filter";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -116,6 +116,10 @@ export function QrCardsPage() {
   // Only the Super Admin changes, prints and revokes cards (decisions 0005 and 0009).
   const canChange = role === "super_admin";
   const { plantId } = usePlantFilter();
+  // Links from the dashboard ("cards ending soon") and the palette ("print cards") start
+  // with a filter already set.
+  const [linkParams] = useSearchParams();
+  const linkedState = linkParams.get("state") as CardState | null;
 
   const [search, setSearch] = useState("");
   const [typedSearch, setTypedSearch] = useState("");
@@ -123,8 +127,12 @@ export function QrCardsPage() {
   const [punchMethod, setPunchMethod] = useState<"" | "face" | "qr">("");
   const [contractorId, setContractorId] = useState("");
   const [categoryId, setCategoryId] = useState("");
-  const [state, setState] = useState<"" | CardState>("");
-  const [printed, setPrinted] = useState<"" | "yes" | "no">("");
+  const [state, setState] = useState<"" | CardState>(
+    linkedState && STATES.includes(linkedState) ? linkedState : "",
+  );
+  const [printed, setPrinted] = useState<"" | "yes" | "no">(
+    linkParams.get("printed") === "no" ? "no" : linkParams.get("printed") === "yes" ? "yes" : "",
+  );
   const [reprintOnly, setReprintOnly] = useState(false);
   const [page, setPage] = useState(1);
   // Selected people, kept by id across pages (a person of another page stays selected).

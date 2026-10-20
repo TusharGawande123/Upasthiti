@@ -10,8 +10,9 @@ import {
   QrCode,
   TriangleAlert,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -129,6 +130,23 @@ export function EmployeeCardPanel({
   const cards = useEmployeeCards(employee.id);
   const printing = usePdfPrinting();
   const [dialog, setDialog] = useState<"issue" | "revoke" | "end" | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const wantsIssue = searchParams.get("issue") === "card";
+  const mayIssue = canManage && employee.status === "active" && employee.punch_method !== "face";
+
+  // The Ctrl+K command "Issue QR card…" sends the Super Admin here with ?issue=card: open the
+  // issue dialog once the cards are loaded, and remove the word from the address.
+  useEffect(() => {
+    if (!wantsIssue || !cards.isSuccess) return;
+    if (mayIssue) setDialog("issue");
+    setSearchParams(
+      (current) => {
+        current.delete("issue");
+        return current;
+      },
+      { replace: true },
+    );
+  }, [wantsIssue, cards.isSuccess, mayIssue, setSearchParams]);
 
   if (cards.isError) return <Alert tone="danger">{describeError(cards.error, t)}</Alert>;
   if (cards.isPending) return <Skeleton className="h-48 w-full" />;

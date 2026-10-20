@@ -321,3 +321,37 @@ describe("daysBetween", () => {
     expect(daysBetween("2027-02-27", "2027-03-01")).toBe(2);
   });
 });
+
+describe("links with a filter", () => {
+  it("starts with cards that end soon when the link says so (the dashboard link)", async () => {
+    const calls = mockApi({
+      ...LAYOUT,
+      "GET /auth/me": { body: SUPER_ADMIN },
+      "GET /qr-cards": page(ROWS),
+    });
+
+    renderRoute("/admin/qr-cards?state=expiring");
+
+    await screen.findByText("Sunil More");
+    expect(screen.getByLabelText("Card state")).toHaveValue("expiring");
+    expect(
+      calls.some(
+        (call) => call.path.startsWith("/qr-cards?") && call.path.includes("state=expiring"),
+      ),
+    ).toBe(true);
+  });
+
+  it("ignores a state in the link that does not exist", async () => {
+    const calls = mockApi({
+      ...LAYOUT,
+      "GET /auth/me": { body: SUPER_ADMIN },
+      "GET /qr-cards": page(ROWS),
+    });
+
+    renderRoute("/admin/qr-cards?state=nonsense");
+
+    await screen.findByText("Sunil More");
+    expect(screen.getByLabelText("Card state")).toHaveValue("");
+    expect(calls.some((call) => call.path.includes("nonsense"))).toBe(false);
+  });
+});

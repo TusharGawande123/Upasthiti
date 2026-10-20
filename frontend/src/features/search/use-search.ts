@@ -10,6 +10,8 @@ export type SearchResults = {
     full_name: string;
     plant_code: string;
     status: string;
+    // Set when the text was a QR card serial: the serial that matched.
+    card_serial?: string | null;
   }[];
   plants: { id: string; code: string; name: string }[];
   kiosks: { id: string; name: string; plant_id: string }[];
