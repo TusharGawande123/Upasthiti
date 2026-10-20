@@ -1,6 +1,7 @@
 # After every push to main, checks that the live site really works (spec S-18, AC-36).
-# Vercel and Render deploy by themselves; this waits until the backend reports the new
-# commit, then runs a short Playwright check against the live address.
+# Vercel and Render deploy by themselves; when the push changed backend/, this waits until the
+# backend reports the new commit (otherwise it waits 3 minutes for Vercel), then runs a short
+# Playwright check against the live address.
 # Needs the repository variables LIVE_SITE_URL (Vercel address) and BACKEND_HEALTH_URL.
 name: Post-deploy smoke test
 
@@ -34,8 +35,19 @@ jobs:
         if: env.LIVE_SITE_URL != ''
         with:
           persist-credentials: false
-      - name: Wait until the backend runs this commit (up to 20 minutes)
+      # Render only rebuilds when something under backend/ changed. A frontend-only or docs-only
+      # push leaves the backend on its old commit, so waiting for "this commit" would never end.
+      - name: Did this push change the backend?
+        id: backend
         if: env.LIVE_SITE_URL != '' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          count=$(gh api "repos/$GITHUB_REPOSITORY/compare/${{ github.event.before }}...$GITHUB_SHA" --jq '[.files[].filename | select(startswith("backend/"))] | length')
+          echo "Files changed under backend/: $count"
+          if [ "$count" -gt 0 ]; then echo "changed=true" >> "$GITHUB_OUTPUT"; else echo "changed=false" >> "$GITHUB_OUTPUT"; fi
+      - name: Wait until the backend runs this commit (up to 20 minutes)
+        if: steps.backend.outputs.changed == 'true'
         run: |
           for attempt in $(seq 1 40); do
             version=$(curl -fsS --max-time 60 "$BACKEND_HEALTH_URL" | sed -n 's/.*"version":"\([^"]*\)".*/\1/p' || true)
@@ -44,6 +56,9 @@ jobs:
           done
           echo "::error::The backend did not report commit $GITHUB_SHA within 20 minutes."
           exit 1
+      - name: Give Vercel time to publish the website
+        if: steps.backend.outputs.changed == 'false'
+        run: sleep 180
       - uses: actions/setup-node@v7
         if: env.LIVE_SITE_URL != ''
         with:
