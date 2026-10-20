@@ -16,6 +16,13 @@ const timeFormatter = new Intl.DateTimeFormat("en-IN", {
   minute: "2-digit",
   hourCycle: "h23",
 });
+const timeWithSecondsFormatter = new Intl.DateTimeFormat("en-IN", {
+  timeZone: INDIA_TIME_ZONE,
+  hour: "2-digit",
+  minute: "2-digit",
+  second: "2-digit",
+  hourCycle: "h23",
+});
 
 const numberFormatter = new Intl.NumberFormat("en-IN");
 
@@ -33,6 +40,11 @@ export function formatDate(moment: Date | string): string {
 /** 2026-10-12T00:30:00Z -> "06:00" (the time in IST). */
 export function formatTime(moment: Date | string): string {
   return timeFormatter.format(new Date(moment));
+}
+
+/** 2026-10-12T00:30:05Z -> "06:00:05" (the time in IST, with seconds, for the punch log). */
+export function formatTimeWithSeconds(moment: Date | string): string {
+  return timeWithSecondsFormatter.format(new Date(moment));
 }
 
 /**

@@ -5,6 +5,7 @@ import {
   Factory,
   FileSpreadsheet,
   HardHat,
+  History,
   IdCard,
   LayoutDashboard,
   ListChecks,
@@ -57,6 +58,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/admin/my-requests", labelKey: "nav.myRequests", icon: Send, roles: ["corporate_head"] },
   { to: "/admin/plants", labelKey: "nav.plants", icon: Factory, roles: ALL_ROLES },
   { to: "/admin/kiosks", labelKey: "nav.kiosks", icon: Tablet, roles: ALL_ROLES },
+  // The punch log: every role reads it (the server limits a Plant Head to their own plant).
+  { to: "/admin/punches", labelKey: "nav.punches", icon: History, roles: ALL_ROLES },
   { to: "/admin/employees", labelKey: "nav.employees", icon: UserRound, roles: ALL_ROLES },
   {
     to: "/admin/import",

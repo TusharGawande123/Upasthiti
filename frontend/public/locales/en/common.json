@@ -415,7 +415,14 @@
     "NONCE_REUSED": "This request was already used. Please try again.",
     "PUBLIC_KEY_INVALID": "The device key is not valid. Ask the admin for help.",
     "DATABASE_UNAVAILABLE": "The database is not reachable right now. Please try again in a minute.",
-    "SUPER_ADMIN_EXISTS": "A Super Admin already exists."
+    "SUPER_ADMIN_EXISTS": "A Super Admin already exists.",
+    "EXPORT_TOO_LARGE": "At most 5,000 punches per file. Choose one plant.",
+    "SNAPSHOT_PURGED": "This photo was deleted after the retention period.",
+    "SNAPSHOT_NOT_AVAILABLE": "No photo is available for this punch.",
+    "STORAGE_UNAVAILABLE": "The photo store cannot be reached. Try again later.",
+    "NOTICE_TEXT_INVALID": "Write 1 to 200 characters on one line.",
+    "NOTICE_DATES_INVALID": "The end must be after the start, at most 90 days later, and not in the past.",
+    "NOTICE_ENDED": "This notice has ended and cannot be changed."
   },
   "nav": {
     "label": "Main menu",
@@ -433,7 +440,9 @@
     "myRequests": "My requests",
     "waiting": "waiting",
     "qrCards": "QR cards",
-    "endingSoon": "cards end soon"
+    "endingSoon": "cards end soon",
+    "punches": "Punch log",
+    "notices": "Gate notices"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -1643,6 +1652,117 @@
       "sentNote": "After the Super Admin approves, the Super Admin issues and prints the cards. You cannot issue cards.",
       "noQr_one": "No QR card is needed for this file. The one person punches by face. There is nobody to issue a card to.",
       "noQr_other": "No QR cards are needed for this file. All {{count}} people punch by face. There is nobody to issue a card to."
+    }
+  },
+  "punchReasons": {
+    "SNAPSHOT_MISSING": "No photo was sent",
+    "SNAPSHOT_INVALID": "The photo was not usable",
+    "QR_FORMAT_INVALID": "The card could not be read",
+    "QR_SIGNATURE_INVALID": "Not a valid Upasthiti card",
+    "QR_REVOKED": "Card blocked",
+    "QR_NOT_YET_VALID": "Card not active yet",
+    "QR_EXPIRED": "Card expired",
+    "EMPLOYEE_INACTIVE": "Employee has left",
+    "EMPLOYEE_NOT_QR": "Employee punches by face",
+    "WRONG_PLANT": "Card of another plant",
+    "COOLDOWN_ACTIVE": "Already punched (scanned again too soon)",
+    "OUT_TOO_SOON": "Already IN (OUT not allowed yet)"
+  },
+  "punches": {
+    "title": "Punch log",
+    "description": "Every card punch at the gate kiosks, accepted or rejected. Times in IST.",
+    "descriptionOwnPlant": "Every card punch at your plant's gate, accepted or rejected. Times in IST.",
+    "readOnlyPlantHead": "Read-only, your plant only. Only the Super Admin can open punch photos; here you see whether a photo was saved.",
+    "readOnlyCorporateHead": "Read-only. Only the Super Admin can open punch photos; here you see whether a photo was saved.",
+    "noPhotosInFile": "No photos in the file",
+    "export": "Export day (.xlsx)",
+    "unknownCard": "Unknown card",
+    "otherPlantCard": "Card of another plant",
+    "darkPhoto": "Dark photo",
+    "live": "Live",
+    "liveEvery": " · updates every 30 s",
+    "count": "{{formatted}} punches · newest first",
+    "empty": "No punches yet today at this plant.",
+    "emptyDay": "No punches on {{date}}.",
+    "noMatch": "No punch matches these filters.",
+    "showing": "Showing {{from}}–{{to}} of {{total}}",
+    "page": "Page {{page}} of {{last}}",
+    "summary": {
+      "label": "Totals of the day",
+      "in": "Accepted IN",
+      "out": "Accepted OUT",
+      "rejected": "Rejected",
+      "dark": "Dark photos",
+      "hint": "Press a number to show only those punches",
+      "because": "Rejected because:"
+    },
+    "filter": {
+      "date": "Date",
+      "today": "Today",
+      "previousDay": "Previous day",
+      "nextDay": "Next day",
+      "search": "Search by employee code or name",
+      "searchPlaceholder": "Code or name",
+      "result": "Result",
+      "anyResult": "Result: any",
+      "kiosk": "Kiosk",
+      "anyKiosk": "Kiosk: any",
+      "reason": "Reason",
+      "anyReason": "Reason: any"
+    },
+    "columns": {
+      "time": "Time",
+      "employee": "Employee",
+      "direction": "Direction",
+      "result": "Result",
+      "reason": "Reason",
+      "kiosk": "Kiosk",
+      "photo": "Photo",
+      "actions": "Actions"
+    },
+    "direction": {
+      "in": "IN",
+      "out": "OUT"
+    },
+    "result": {
+      "accepted": "Accepted",
+      "rejected": "Rejected"
+    },
+    "photoState": {
+      "stored": "Photo stored",
+      "keptUntil": "kept until {{date}}",
+      "purged": "Photo deleted on {{date}}",
+      "purgedNoDate": "Photo deleted",
+      "notSaved": "Photo not saved",
+      "none": "No photo"
+    },
+    "photo": {
+      "title": "Punch photo",
+      "view": "View photo",
+      "compareShort": "Compare",
+      "compare": "Compare with earlier punches",
+      "older": "Older",
+      "newer": "Newer",
+      "loading": "Loading the photo",
+      "alt": "Photo taken at the punch, {{when}}",
+      "audited": "Viewing is recorded in the audit log.",
+      "purged": "This photo was deleted after the retention period.",
+      "notAvailable": "No photo is available for this punch.",
+      "storageDown": "The photo store cannot be reached. Try again later."
+    },
+    "compare": {
+      "title": "Compare photos",
+      "titleFor": "Compare photos: {{name}}, {{code}}",
+      "explain": "This punch next to the last 3 stored photos of the same card, newest first. Look for a different person using the same card.",
+      "thisPunch": "This punch",
+      "earlier_one": "Earlier punches of this card ({{count}})",
+      "earlier_other": "Earlier punches of this card ({{count}})",
+      "none": "This card has no earlier stored photos.",
+      "failed": "The comparison could not be loaded. Try again.",
+      "audited_one": "{{count}} photo shown. Each photo shown is recorded in the audit log.",
+      "audited_other": "{{count}} photos shown. Each photo shown is recorded in the audit log.",
+      "back": "Back to this photo",
+      "openEmployee": "Open employee"
     }
   }
 }

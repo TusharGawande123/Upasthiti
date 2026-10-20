@@ -113,11 +113,14 @@ export const apiUpload = <T>(path: string, file: File) => {
 export const apiSend = <T>(options: RequestOptions & { path: string }) =>
   request<T>(options.path, options);
 
-/** Downloads a file (for example a PDF). Errors come back as the usual ApiError. */
+/**
+ * Downloads a file (a PDF by default; pass `accept` for a photo or a spreadsheet). Errors come
+ * back as the usual ApiError.
+ */
 export async function apiBlob(
   path: string,
-  options: { method: "GET" | "POST"; body?: unknown },
+  options: { method: "GET" | "POST"; body?: unknown; accept?: string },
 ): Promise<Blob> {
-  const response = await send(path, options, "application/pdf");
+  const response = await send(path, options, options.accept ?? "application/pdf");
   return await response.blob();
 }
