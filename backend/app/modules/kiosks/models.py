@@ -7,6 +7,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     DateTime,
     ForeignKey,
@@ -58,6 +59,10 @@ class KioskDevice(IdMixin, TimestampMixin, Base):
     user_agent: Mapped[str | None] = mapped_column(String(300))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoke_reason: Mapped[str | None] = mapped_column(Text)
+    # M2: tones and voice switched off at this gate (F-1), and the last time a test card was
+    # scanned here (F-27).
+    sound_muted: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    last_self_test_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
 
 
 class KioskPairingCode(IdMixin, Base):
