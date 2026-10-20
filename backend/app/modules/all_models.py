@@ -10,6 +10,7 @@ from app.modules.contractors import models as contractors_models
 from app.modules.employees import models as employees_models
 from app.modules.kiosks import models as kiosks_models
 from app.modules.org import models as org_models
+from app.modules.qr_cards import models as qr_cards_models
 from app.modules.settings import models as settings_models
 from app.modules.users import models as users_models
 
@@ -21,6 +22,7 @@ __all__ = [
     "employees_models",
     "kiosks_models",
     "org_models",
+    "qr_cards_models",
     "settings_models",
     "users_models",
 ]

@@ -32,6 +32,7 @@ from app.modules.employees.rules import (
     clean_code,
     field_error,
 )
+from app.modules.qr_cards.service import revoke_card_of_leaver
 
 MAX_LEFT_DAYS_AHEAD = 30
 MAX_BULK_SIZE = 500
@@ -279,7 +280,8 @@ def mark_left(
     _fail_pending_requests(session, employee.id)
     session.flush()
     _audit(session, context, employee, "employee.mark_left", before=before, reason=reason)
-    # From M2/M3 this is also where QR cards are revoked and face templates deleted (FR-10).
+    # FR-10: the working QR card stops in the same transaction (face templates follow in M3).
+    revoke_card_of_leaver(session, context.actor, employee)
     return employee
 
 

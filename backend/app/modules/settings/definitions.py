@@ -40,6 +40,9 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition("login_lock_minutes", "security", 15, "min", 1, 5, 120),
     SettingDefinition("punch_cooldown_minutes", "punch", 2, "min", 2, 1, 30),
     SettingDefinition("snapshot_retention_days", "snapshots", 60, "days", 2, 7, 365),
+    # QR cards (M2, spec §7 rule 12). Editable once CURRENT_MILESTONE is raised to 2.
+    SettingDefinition("qr_card_default_validity_months", "cards", 6, "months", 2, 1, 36),
+    SettingDefinition("qr_card_expiring_soon_days", "cards", 14, "days", 2, 1, 60),
     # The face values are chosen in M3 from the accuracy tests, so they have no default yet.
     SettingDefinition("face_match_threshold", "face", None, "", 3, 0, 1, is_whole_number=False),
     SettingDefinition("face_match_margin", "face", None, "", 3, 0, 1, is_whole_number=False),

@@ -37,6 +37,9 @@ class Capability(enum.Enum):
     DECIDE_CHANGE_REQUESTS = "decide_change_requests"
     VIEW_OWN_CHANGE_REQUESTS = "view_own_change_requests"
     VIEW_AUDIT = "view_audit"
+    VIEW_QR_CARDS = "view_qr_cards"  # the cards list and an employee's card history (M2)
+    # Issue, revoke, end, extend, bulk, test cards, print. Super Admin only (decisions 0005, 0009).
+    MANAGE_QR_CARDS = "manage_qr_cards"
 
 
 SUPER_ADMIN = Role.SUPER_ADMIN
@@ -84,6 +87,12 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
         CORPORATE_HEAD: Access.ALL,
         PLANT_HEAD: Access.OWN_PLANT,
     },
+    Capability.VIEW_QR_CARDS: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,
+    },
+    Capability.MANAGE_QR_CARDS: {SUPER_ADMIN: Access.ALL},
 }
 
 
