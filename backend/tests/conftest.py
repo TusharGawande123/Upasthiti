@@ -33,6 +33,7 @@ os.environ["STORAGE_BACKEND"] = "local"
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.db import get_engine, get_session, get_session_factory  # noqa: E402
+from app.core.storage import get_storage  # noqa: E402
 from app.main import create_app  # noqa: E402
 from app.modules.auth.rate_limit import (  # noqa: E402
     failed_pairing_limiter,
@@ -44,6 +45,7 @@ from tests.database import create_fresh_test_database, read_test_database_url  #
 
 def clear_cached_settings() -> None:
     get_settings.cache_clear()
+    get_storage.cache_clear()
     get_engine.cache_clear()
     get_session_factory.cache_clear()
 
