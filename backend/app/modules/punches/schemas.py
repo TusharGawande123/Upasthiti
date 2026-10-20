@@ -48,3 +48,66 @@ class KioskPunchResponse(BaseModel):
     message_key: str
     voice_key: str
     details: PunchDetails
+
+
+# --- The admin punch log (spec M2 §5.3) ---------------------------------------------------------
+
+
+class PunchLogEmployee(BaseModel):
+    id: uuid.UUID
+    code: str
+    name: str
+
+
+class PunchLogPlace(BaseModel):
+    id: uuid.UUID
+    name: str
+    code: str | None = None  # plants have a code; kiosks only a name
+
+
+class PunchLogSnapshot(BaseModel):
+    state: Literal["stored", "purged", "upload_failed", "none"]
+    is_dark: bool | None = None  # Super Admin only (F-31)
+    expires_at: datetime | None = None
+    purged_at: datetime | None = None
+
+
+class PunchLogItem(BaseModel):
+    id: uuid.UUID
+    server_received_at: datetime
+    # None when the card was not identified, or (for a Plant Head) when the person belongs to
+    # another plant: then `employee_hidden` is true and the screen says "Card of another plant".
+    employee: PunchLogEmployee | None
+    employee_hidden: bool
+    plant: PunchLogPlace
+    kiosk: PunchLogPlace
+    method: str
+    direction: Literal["in", "out"] | None
+    decision: str
+    reason_codes: list[str]
+    snapshot: PunchLogSnapshot
+
+
+class PunchLocation(BaseModel):
+    lat: float
+    lon: float
+    accuracy_m: float | None
+
+
+class PunchDetail(PunchLogItem):
+    app_version: str | None
+    device_time: datetime | None  # what the kiosk's clock said: never used for a decision
+    location: PunchLocation | None
+
+
+class PunchSummaryResponse(BaseModel):
+    accepted_in: int
+    accepted_out: int
+    rejected: int
+    dark_photos: int | None  # Super Admin only
+    rejected_by_reason: dict[str, int]
+
+
+class PunchCompareResponse(BaseModel):
+    current: PunchLogItem
+    earlier: list[PunchLogItem]  # up to 3, newest first

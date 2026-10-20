@@ -40,6 +40,10 @@ class Capability(enum.Enum):
     VIEW_QR_CARDS = "view_qr_cards"  # the cards list and an employee's card history (M2)
     # Issue, revoke, end, extend, bulk, test cards, print. Super Admin only (decisions 0005, 0009).
     MANAGE_QR_CARDS = "manage_qr_cards"
+    VIEW_PUNCHES = "view_punches"  # the punch log, its summary and detail (M2)
+    EXPORT_PUNCHES = "export_punches"  # the punch log as Excel: text only, never photos
+    # Opening a punch photo, and comparing photos of one card. Super Admin only (decision 0009).
+    VIEW_SNAPSHOTS = "view_snapshots"
 
 
 SUPER_ADMIN = Role.SUPER_ADMIN
@@ -93,6 +97,18 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
         PLANT_HEAD: Access.OWN_PLANT,
     },
     Capability.MANAGE_QR_CARDS: {SUPER_ADMIN: Access.ALL},
+    # Plant Head: punches made at a kiosk of their own plant (spec M2 §5.3).
+    Capability.VIEW_PUNCHES: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,
+    },
+    Capability.EXPORT_PUNCHES: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,
+    },
+    Capability.VIEW_SNAPSHOTS: {SUPER_ADMIN: Access.ALL},
 }
 
 
