@@ -72,12 +72,32 @@ class RegisterKioskResponse(BaseModel):
     server_time: datetime
 
 
+class KioskNoticeItem(BaseModel):
+    id: uuid.UUID
+    text: str
+    level: str  # "normal" or "important"
+    ends_at: datetime
+
+
+class KioskScreenSettings(BaseModel):
+    """What the kiosk screen needs from the server settings (spec §5.2)."""
+
+    voice_enabled: bool
+    sound_enabled: bool
+    result_seconds: int
+    reject_seconds: int
+    snapshot_retention_days: int  # shown in the privacy line on the idle screen
+    dark_threshold: int  # below this brightness the low-light hint appears
+
+
 class KioskMeResponse(BaseModel):
     kiosk_id: uuid.UUID
     kiosk_name: str
     status: str
     plant: PlantSummary
     server_time: datetime
+    notices: list[KioskNoticeItem]
+    kiosk_settings: KioskScreenSettings
 
 
 class KioskReportRequest(BaseModel):

@@ -27,8 +27,10 @@ from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.schemas import (
     CreateKioskRequest,
     KioskMeResponse,
+    KioskNoticeItem,
     KioskReportRequest,
     KioskResponse,
+    KioskScreenSettings,
     KioskWithCodeResponse,
     PlantSummary,
     ReasonRequest,
@@ -36,7 +38,9 @@ from app.modules.kiosks.schemas import (
     RegisterKioskResponse,
     RenameKioskRequest,
 )
+from app.modules.notices.queries import visible_notices
 from app.modules.org.plants_service import get_plant
+from app.modules.settings.service import get_int_setting, get_setting
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["kiosks"])
@@ -188,13 +192,38 @@ def kiosk_me(
     kiosk: KioskDevice = Depends(require_kiosk),
     session: Session = Depends(get_session),
 ) -> KioskMeResponse:
+    """The kiosk's heartbeat (every 60 s): who it is, plus the notices and settings it shows."""
     plant = get_plant(session, kiosk.plant_id)
+    now = utc_now()
     return KioskMeResponse(
         kiosk_id=kiosk.id,
         kiosk_name=kiosk.name,
         status=kiosk.status,
         plant=PlantSummary(id=plant.id, name=plant.name, code=plant.code),
-        server_time=utc_now(),
+        server_time=now,
+        notices=[
+            KioskNoticeItem(
+                id=notice.id,
+                text=notice.text,
+                level=notice.level,
+                ends_at=notice.ends_at,
+            )
+            for notice in visible_notices(session, kiosk.plant_id, now)
+        ],
+        kiosk_settings=_screen_settings(session, kiosk),
+    )
+
+
+def _screen_settings(session: Session, kiosk: KioskDevice) -> KioskScreenSettings:
+    # A kiosk switched to "sound off" at its own gate silences tones and voice together.
+    quiet = kiosk.sound_muted
+    return KioskScreenSettings(
+        voice_enabled=get_setting(session, "kiosk_voice_enabled") == "on" and not quiet,
+        sound_enabled=get_setting(session, "kiosk_sound_enabled") == "on" and not quiet,
+        result_seconds=get_int_setting(session, "kiosk_result_seconds"),
+        reject_seconds=get_int_setting(session, "kiosk_reject_seconds"),
+        snapshot_retention_days=get_int_setting(session, "snapshot_retention_days"),
+        dark_threshold=get_int_setting(session, "snapshot_dark_threshold"),
     )
 
 
