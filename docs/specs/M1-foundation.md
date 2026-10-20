@@ -615,9 +615,6 @@ memory (one backend instance on Render; noted in §9).
       assignment moves with it. A future-dated transfer is applied by a daily job on its
       date. Punches (M2+) are accepted only at the current plant; reports (M5) use the plant
       history, so past months stay with the old plant.
-      *Note 2026-10-19 (decision 0008):* for QR-card punches this changed in M2. A card works at
-      any plant's kiosk, the punch belongs to the kiosk's plant, and a transfer does not touch
-      the card. The old text above stays for history.
     - **Mark as left (Super Admin only):** `left_on` ≥ `joined_on` and not more than 30 days
       in the future; status `left`; open shift assignment closed; any pending change request
       for that employee is closed as `failed` ("employee has left"). From M2/M3 the same
@@ -881,8 +878,6 @@ Accepted extras:
   01/11/2026, then until 31/10/2026 they stay at K134, from 01/11/2026 the plant is TP1 with
   the new category and shift, and the plant history shows both rows; a Plant Head cannot
   transfer; a Corporate Head's transfer waits for approval.
-  *Note 2026-10-19 (decision 0008):* from M2 the employee's QR card keeps working after the
-  transfer, and at every plant.
 - **AC-42 (F-23)** Given a user logged in on two browsers, when they log out the other session
   from the sessions page, then that browser's next request returns `NOT_AUTHENTICATED`; when a
   Super Admin force-logs-out a user, then all that user's sessions end and it is audited.

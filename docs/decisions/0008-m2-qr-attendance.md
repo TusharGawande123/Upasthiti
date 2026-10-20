@@ -1,42 +1,45 @@
 # 0008 – M2 decisions: QR cards and the kiosk punch
 
-Date: 2026-10-19 · Decided by: Tushar Gawande (project lead) · Status: Accepted (with the M2 spec)
+Date: 2026-10-19, revised 2026-10-20 · Answered in chat by: Anuradha (team member) · Status: Accepted
+for the items below; the items marked "Pending Tushar" are not decided (see 0009).
 Details: [docs/specs/M2-qr-attendance.md](../specs/M2-qr-attendance.md) §14.
-Changes on approval: docs/SRS.md (FR-14, §5.b, §8), docs/architecture.md (§3, §7), CLAUDE.md,
-`.env.example`. Amends decision 0005 (who prints cards) and M1 spec §7 rule 10 (plant check).
+Changes on approval: docs/SRS.md (FR-14, §5.b, §8 "Duplicate punch" row), docs/architecture.md
+(§3, §7), CLAUDE.md, `.env.example`.
 
-## Decisions
+Correction (2026-10-20): the first version of this file named Tushar Gawande (project lead) as the
+person who answered. The answers came from Anuradha. Where an answer conflicted with an earlier
+decision or a client answer, the earlier decision is back in force until Tushar decides
+([0009](0009-m2-spec-audit.md)).
 
-1. **A QR card works at any plant's kiosk**, not only at the employee's own plant. The punch is
-   recorded at the kiosk's plant. Card sharing is still checked through the snapshot, the
-   cool-down and (from M4) the impossible-travel rule.
-2. **No plant name on the card.** A transferred worker keeps the same card.
-3. **Default card validity: 6 months** (a setting; the Super Admin can change it at issue).
-4. **Any employee with an active card may punch by QR**, also one whose punch method is face
-   (a fallback when face recognition fails). A snapshot is always taken.
-5. **Card PDFs:** the Super Admin and the Plant Head (own plant's employees only) may print or
-   download them; each download is audited. Issuing, revoking, expiring and extending cards
-   stay with the Super Admin only (decision 0005).
-6. **Snapshots:** 320 px JPEG; a punch without a usable snapshot is rejected (`SNAPSHOT_MISSING`).
-   The Super Admin sees all snapshots, the Plant Head only those of their own plant; every
-   view is audited. Not shown on the kiosk result screen (name + code only).
-7. **IN/OUT:** the server toggles from the last accepted punch; an IN older than 20 hours counts
+## Decisions (inside M2, confirmed by Anuradha)
+
+1. **Default card validity: 6 months** (a setting; the Super Admin can change it at issue). The card
+   expires by itself on its end date; the Super Admin can extend or end it by hand at any time.
+2. **The card prints the issue date, not the end date**, so extending a card never needs a reprint.
+3. **Snapshots:** 320 px JPEG; a punch without a usable snapshot is rejected (`SNAPSHOT_MISSING`);
+   every view is audited. Not shown on the kiosk result screen (name + code only).
+4. **IN/OUT:** the server toggles from the last accepted punch; an IN older than 20 hours counts
    as a forgotten OUT. Cool-down 2 minutes (`COOLDOWN_ACTIVE`); a second scan within 30 minutes
    of an IN is refused (`OUT_TOO_SOON`). Both are settings.
-8. **Kiosk voice** (F-1) uses only the device's own voices and never says the employee's name.
-9. **Gate notices** (F-25): the Super Admin for any or all plants, the Plant Head for their own plant.
-10. **Card size:** CR80 single card, plus A4 sheets of 10.
-11. **No audit row per punch:** the `punches` table is append-only itself.
-12. **Supabase Storage** is reached with the service key, kept only in Render's environment;
-    Supabase's Data API stays switched off.
+5. **Kiosk voice** (F-1) uses only the device's own voices and never says the employee's name.
+6. **Gate notices** (F-25): the Super Admin for any or all plants, the Plant Head for their own plant.
+7. **Card size:** CR80 single card, plus A4 sheets of 10.
+8. **No audit row per punch:** the `punches` table is append-only itself (architecture §3 is updated).
+9. **Supabase Storage** is reached with the service key, kept only in Render's environment;
+   Supabase's Data API stays switched off.
+10. **QR payload without dates** (`UPS1.<key id>.<serial>.<signature>`), so a card can be extended
+    without reprinting.
 
-## Notes
-- Role matrix (decision 0005) widened: the Plant Head gets `PRINT_QR_CARDS` for their own plant's
-  employees and test cards. "Issue and print cards after an import" (F-38) is offered to the
-  Super Admin only.
-- Pulled forward in part: S-25 storage meter (from F-14), F-36 kiosk online badge (from F-3 / FR-24).
-- Follow-ups for later specs: M3 decides whether a face employee punching by card is reported or
-  limited; M4 adds a flag for "IN at one plant, OUT at another" (the plants are 1–3 km apart, so
-  impossible travel cannot catch it); M5 decides which plant a visiting worker's day counts for.
-- **Card content (confirmed 2026-10-19):** the card prints the issue date, not the end date, so
-  extending a card never needs a reprint. The end date lives only in the system.
+## Pending Tushar (earlier decision is back in force)
+These answers were given on 2026-10-19 but conflict with earlier decisions. Details, the earlier
+file and the recommendation are in [0009](0009-m2-spec-audit.md).
+
+| # | Answer given | Back to (earlier decision) |
+|---|---|---|
+| 1 | A card works at any plant | Own current plant only (M1 §7 rule 10, SRS §8) |
+| 3 | No plant printed on the card | Plant printed (SRS FR-14) |
+| 12 | Plant Head may print cards | Super Admin only (0005, CLAUDE.md §1) |
+| 11 | Plant Head may view snapshots | Super Admin only (M1 §7 rule 1, SRS FR-20/FR-27) |
+| 14 | Any employee may punch with a card | Only employees whose punch method is QR (CLAUDE.md §1, SRS FR-07/FR-11) |
+| – | One "Tap to start" after each page load | Detection starts by itself, zero taps (SRS FR-16) |
+| – | S-25 usage meter, F-36 online badge in M2 | "Later" (accepted-extras: F-14, F-3) |

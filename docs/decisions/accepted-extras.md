@@ -62,7 +62,8 @@ Chosen by the lead in chat on 2026-10-13.
   per employee, required category: decision 0005 (not extras) · 2026-10-13
 
 ## M2 – QR attendance (docs/specs/M2-qr-attendance.md)
-Chosen by the lead in chat on 2026-10-19.
+Chosen in chat on 2026-10-19 by Anuradha (team member). Two rows pull a "Later" item (decided by
+the lead, 2026-10-12) forward; they wait for Tushar (decision 0009).
 
 - M2 · F-1 · Voice + sound feedback at the kiosk: device voices only, says no names (decision 0008) · In scope · 2026-10-19
 - M2 · F-6 · M2 part: bulk issue / print / revoke of QR cards + Ctrl+K entries for cards · In scope · 2026-10-19
@@ -70,7 +71,7 @@ Chosen by the lead in chat on 2026-10-19.
 - M2 · S-22 · Locust load test of the punch endpoint (Render-like container + live backend off-hours) · Approved · 2026-10-19
 - M2 · S-23 · Print-and-scan CI test of the card PDF (QR version ≤ 7) · Approved · 2026-10-19
 - M2 · S-24 · Encrypt snapshots (AES-256-GCM) before upload · Approved · 2026-10-19
-- M2 · S-25 · Storage and database usage meter (M2 part of F-14) · Approved · 2026-10-19
+- M2 · S-25 · Storage and database usage meter (M2 part of Later item F-14) · Pending Tushar (not in M2 until he agrees) · 2026-10-20
 - M2 · S-26 · Kiosk error reports to the server log (no images) · Approved · 2026-10-19
 - M2 · S-27 · Kiosk self-update when the frontend version changes · Approved · 2026-10-19
 - M2 · S-28 · Bundle-size check + lazy-loaded kiosk code and QR decoder · Approved · 2026-10-19
@@ -81,7 +82,7 @@ Chosen by the lead in chat on 2026-10-19.
 - M2 · F-33 · "Cards ending soon" badge and list · Approved · 2026-10-19
 - M2 · F-34 · Printable gate poster (how to punch + privacy notice) · Approved · 2026-10-19
 - M2 · F-35 · Punch log Excel export (one day, one plant) · Approved · 2026-10-19
-- M2 · F-36 · Kiosk online/offline badge (small part of F-3) · Approved · 2026-10-19
+- M2 · F-36 · Kiosk online/offline badge (small part of Later item F-3) · Pending Tushar (not in M2 until he agrees) · 2026-10-20
 - M2 · F-38 · "Issue and print cards" step after an Excel import · Approved · 2026-10-19
 - Later: F-28 "inside now" count on the kiosk (M5), F-30 face-in-photo check (M3), F-37 gentle
   late hint (M5, off by default), F-32 employee photo on the ID card (privacy risk) · 2026-10-19
