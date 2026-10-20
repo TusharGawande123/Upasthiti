@@ -667,3 +667,90 @@ def test_a_test_card_has_no_changeable_end_date(boss: TestClient) -> None:
     )
 
     assert response.json()["error"]["code"] == "QR_VALIDITY_INVALID"
+
+
+# --- Quick search by card serial (F-6, step 5) ------------------------------------------------
+
+SEARCH = "/api/v1/search"
+
+
+def found(client: TestClient, text: str) -> list[dict]:
+    response = client.get(SEARCH, params={"q": text})
+    assert response.status_code == 200, response.text
+    return response.json()["employees"]
+
+
+def test_typing_a_card_serial_finds_its_owner_and_says_which_serial_matched(
+    boss: TestClient, worker: dict
+) -> None:
+    serial = issue(boss, worker)["card"]["serial"]
+
+    for typed in (serial, serial.lower(), f"  {serial} "):
+        employees = found(boss, typed)
+        assert [employee["employee_code"] for employee in employees] == ["T-2041"], typed
+        assert employees[0]["card_serial"] == serial
+
+
+def test_the_start_of_a_serial_finds_the_owner_from_four_characters_on(
+    boss: TestClient, worker: dict
+) -> None:
+    serial = issue(boss, worker)["card"]["serial"]  # for example C000001
+
+    assert [e["employee_code"] for e in found(boss, serial[:5])] == ["T-2041"]
+    assert [e["employee_code"] for e in found(boss, serial[:4])] == ["T-2041"]
+    # "C00" is too short to mean a card, so it is not guessed
+    assert found(boss, serial[:3]) == []
+
+
+def test_an_old_replaced_card_still_leads_to_its_owner(boss: TestClient, worker: dict) -> None:
+    old = issue(boss, worker)["card"]["serial"]
+    new = issue(boss, worker)["card"]["serial"]
+
+    assert found(boss, old)[0]["card_serial"] == old
+    assert found(boss, new)[0]["card_serial"] == new
+
+
+def test_a_search_by_name_or_code_has_no_card_serial(boss: TestClient, worker: dict) -> None:
+    issue(boss, worker)
+
+    by_name = found(boss, "sunil")
+    by_code = found(boss, "T-20")
+
+    assert [e["card_serial"] for e in by_name + by_code] == [None, None]
+
+
+def test_a_test_card_serial_or_an_unknown_serial_finds_nobody(
+    boss: TestClient, worker: dict
+) -> None:
+    issue(boss, worker)
+    test_serial = boss.post(TEST_CARDS, json={"label": "Gate test"}).json()["serial"]
+
+    assert found(boss, test_serial) == []
+    assert found(boss, "C999999") == []
+
+
+def test_the_owner_is_found_even_after_they_left(boss: TestClient, worker: dict) -> None:
+    serial = issue(boss, worker)["card"]["serial"]
+    boss.post(
+        f"{EMPLOYEES}/{worker['id']}/mark-left",
+        json={"left_on": iso(today_ist()), "reason": "Contract ended"},
+    )
+
+    employees = found(boss, serial)
+
+    assert [(e["employee_code"], e["status"]) for e in employees] == [("T-2041", "left")]
+
+
+def test_a_plant_head_finds_only_cards_of_their_own_plant(
+    db_app: FastAPI, db_session: Session, boss: TestClient, k134: PlantIds, tp1: PlantIds
+) -> None:
+    mine = make_employee(boss, temporary_body(k134, code="T-1", name="Own Plant"))
+    other = make_employee(boss, temporary_body(tp1, code="T-2", name="Other Plant"))
+    my_serial = issue(boss, mine)["card"]["serial"]
+    other_serial = issue(boss, other)["card"]["serial"]
+    plant_head = head_of(db_app, db_session, k134, "k134.head")
+
+    assert [e["employee_code"] for e in found(plant_head, my_serial)] == ["T-1"]
+    assert found(plant_head, other_serial) == []  # another plant: it looks like it does not exist
+    corporate = client_for(db_app, db_session, Role.CORPORATE_HEAD, "corp.head")
+    assert [e["employee_code"] for e in found(corporate, other_serial)] == ["T-2"]

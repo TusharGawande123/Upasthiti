@@ -1,5 +1,5 @@
-"""Quick search for the Ctrl+K palette (F-6): employees, plants and kiosks, within the user's
-plant scope. At least 2 characters."""
+"""Quick search for the Ctrl+K palette (F-6): employees (by code, name or QR card serial),
+plants and kiosks, within the user's plant scope. At least 2 characters."""
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy import func, or_, select
@@ -45,6 +45,9 @@ def search(
         kiosks_query = kiosks_query.where(KioskDevice.plant_id.in_(kiosk_scope))
 
     plant_codes = dict(session.execute(select(Plant.id, Plant.code)).all())
+    card_serials = queries.matching_card_serials(
+        session, text, [employee.id for employee in employees]
+    )
     return SearchResponse(
         employees=[
             SearchEmployee(
@@ -53,6 +56,7 @@ def search(
                 full_name=employee.full_name,
                 plant_code=plant_codes.get(employee.plant_id, ""),
                 status=employee.status,
+                card_serial=card_serials.get(employee.id),
             )
             for employee in employees
         ],

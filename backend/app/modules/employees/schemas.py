@@ -153,6 +153,8 @@ class SearchEmployee(BaseModel):
     full_name: str
     plant_code: str
     status: str
+    # Set when the search text was a card serial: the serial that matched.
+    card_serial: str | None = None
 
 
 class SearchPlant(BaseModel):
