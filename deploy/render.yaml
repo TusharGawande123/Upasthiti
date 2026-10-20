@@ -34,3 +34,21 @@ services:
       # Render creates a long random value once.
       - key: APP_SECRET_KEY
         generateValue: true
+      # M2: QR cards and snapshots (decision 0008). Typed in Render, never written here.
+      # Make the two keys on your laptop: uv run python -m app.scripts.make_qr_key and
+      # uv run python -m app.scripts.make_snapshot_key. Keep copies in the password manager.
+      - key: QR_SIGNING_KEY
+        sync: false
+      - key: SNAPSHOT_ENCRYPTION_KEY
+        sync: false
+      # Render's disk is wiped at every deploy, so snapshots go to Supabase Storage.
+      - key: STORAGE_BACKEND
+        value: supabase
+      - key: SUPABASE_URL
+        sync: false
+      # Very powerful key: only here, never in the browser or the repository.
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      # A PRIVATE bucket made in Supabase (keep the Data API switched off).
+      - key: SNAPSHOT_BUCKET
+        value: punch-snapshots

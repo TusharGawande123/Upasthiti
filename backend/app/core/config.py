@@ -6,13 +6,18 @@ environment variables only (CLAUDE.md §5, "keep the app portable").
 
 import sys
 from functools import lru_cache
+from pathlib import Path
 from typing import Literal, Self
 
-from pydantic import Field, ValidationError, field_validator, model_validator
+from pydantic import Field, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from app.core.crypto import decode_key
 
 # Used only outside production when APP_PUBLIC_ORIGIN is not set: the Vite dev server.
 DEVELOPMENT_ORIGIN = "http://localhost:5173"
+# Where snapshots go when STORAGE_BACKEND=local and STORAGE_LOCAL_DIR is not set (git-ignored).
+DEFAULT_LOCAL_STORAGE_DIR = Path(__file__).resolve().parents[2] / ".storage"
 
 
 class Settings(BaseSettings):
@@ -42,6 +47,45 @@ class Settings(BaseSettings):
     # The daily job runs inside the backend. Tests and one-off scripts switch it off.
     run_scheduler: bool = True
 
+    # --- M2: QR cards and snapshots (spec §7 rules 2, 14, 17) ---
+    # Secret keys are 32 random bytes as base64url text; make them with the make_*_key
+    # commands. Optional in development (the QR features then answer QR_SIGNING_NOT_CONFIGURED),
+    # required in production.
+    qr_signing_key: SecretStr | None = None
+    # One letter A-Z naming the signing key; printed inside every card's QR code.
+    qr_signing_key_id: str = Field(default="A", pattern=r"^[A-Z]$")
+    snapshot_encryption_key: SecretStr | None = None
+    # "local" = a folder on disk (development, tests, the client's own server);
+    # "supabase" = Supabase Storage (production on Render, whose disk is wiped at each deploy).
+    # Required in production, so nobody ends up on a disk that disappears by accident.
+    storage_backend: Literal["local", "supabase"] | None = None
+    storage_local_dir: Path = DEFAULT_LOCAL_STORAGE_DIR
+    supabase_url: str | None = None
+    supabase_service_key: SecretStr | None = None
+    snapshot_bucket: str = "punch-snapshots"
+
+    @field_validator(
+        "qr_signing_key",
+        "snapshot_encryption_key",
+        "storage_backend",
+        "supabase_url",
+        "supabase_service_key",
+        mode="before",
+    )
+    @classmethod
+    def blank_means_not_set(cls, value: object) -> object:
+        # "QR_SIGNING_KEY=" in a .env file means "not set", not "an empty key".
+        if isinstance(value, str) and not value.strip():
+            return None
+        return value
+
+    @field_validator("qr_signing_key", "snapshot_encryption_key")
+    @classmethod
+    def key_must_be_32_bytes(cls, key: SecretStr | None) -> SecretStr | None:
+        if key is not None:
+            decode_key(key.get_secret_value())  # raises ValueError; the text is never echoed
+        return key
+
     @field_validator("database_url")
     @classmethod
     def use_psycopg_driver(cls, url: str) -> str:
@@ -62,6 +106,31 @@ class Settings(BaseSettings):
             # The error names the field so load_settings_or_exit() can report it.
             raise ValueError("app_public_origin")
         return self
+
+    @model_validator(mode="after")
+    def require_card_and_storage_settings_in_production(self) -> Self:
+        if not self.is_production:
+            return self
+        required: list[tuple[str, object]] = [
+            ("qr_signing_key", self.qr_signing_key),
+            ("snapshot_encryption_key", self.snapshot_encryption_key),
+            ("storage_backend", self.storage_backend),
+        ]
+        if self.storage_backend == "supabase":
+            required += [
+                ("supabase_url", self.supabase_url),
+                ("supabase_service_key", self.supabase_service_key),
+            ]
+        for field_name, value in required:
+            if value is None:
+                # The error names the field so load_settings_or_exit() can report it.
+                raise ValueError(field_name)
+        return self
+
+    @property
+    def effective_storage_backend(self) -> Literal["local", "supabase"]:
+        """The storage to use: the chosen one, or "local" outside production."""
+        return self.storage_backend or "local"
 
     @property
     def is_production(self) -> bool:

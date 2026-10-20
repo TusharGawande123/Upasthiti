@@ -35,3 +35,7 @@ Thumbs.db
 .playwright-mcp/
 playwright-report/
 test-results/
+
+# Local snapshot storage (STORAGE_BACKEND=local): photos of people, never commit
+backend/.storage/
+.storage/
