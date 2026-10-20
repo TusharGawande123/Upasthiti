@@ -555,6 +555,11 @@ def test_bulk_issue_skips_and_lists_who_cannot_get_a_card(
 
     body = response.json()
     assert body["done"] == 9
+    # the answer names exactly the nine new cards, so the screen can print them
+    assert len(body["card_ids"]) == 9
+    listed = boss.get(CARDS, params={"q": "T-", "page_size": 50}).json()["items"]
+    new_ids = {item["card"]["id"] for item in listed if item["card"]} & set(body["card_ids"])
+    assert new_ids == set(body["card_ids"])
     skipped = {(row["employee_code"], row["code"]) for row in body["skipped"]}
     assert skipped == {
         ("T-1", "QR_CARD_EXISTS"),
@@ -593,6 +598,7 @@ def test_bulk_revoke_uses_one_request_id_and_lists_cards_already_revoked(
 
     body = response.json()
     assert body["done"] == 2
+    assert body["card_ids"] == []
     assert [(row["card_serial"], row["code"]) for row in body["skipped"]] == [
         (cards[0]["serial"], "QR_CARD_REVOKED")
     ]

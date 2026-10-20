@@ -185,6 +185,7 @@ def bulk_cards(
     session.commit()
     return BulkCardsResponse(
         done=result.done,
+        card_ids=result.card_ids,
         skipped=[
             SkippedItem(code=row.code, employee_code=row.employee_code, card_serial=row.card_serial)
             for row in result.skipped

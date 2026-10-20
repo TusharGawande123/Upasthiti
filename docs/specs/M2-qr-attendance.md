@@ -423,7 +423,7 @@ is also the translation key: `errors.<CODE>` in the admin, `kiosk.punch.<CODE>.*
 | POST | /api/v1/qr-cards/{id}/revoke | Super Admin | `{ kind: "lost"\|"damaged"\|"left"\|"other", reason }` | `200 { card }` | `QR_CARD_NOT_FOUND`, `QR_CARD_REVOKED` |
 | GET | /api/v1/qr-cards/{id}/card.pdf | Super Admin | – | `application/pdf` (one CR80 page), `Cache-Control: no-store`; audit `qr_card.print`; sets `printed_plant_id` | `QR_CARD_NOT_FOUND`, `QR_CARD_REVOKED`, `EMPLOYEE_LEFT`, `FORBIDDEN` |
 | POST | /api/v1/qr-cards/print | Super Admin | `{ card_ids[] (1–200), layout: "a4_sheet"\|"single_cards" }` | `application/pdf` | `PRINT_TOO_LARGE`, `QR_CARD_REVOKED` (serials in `details`), `FORBIDDEN` |
-| POST | /api/v1/qr-cards/bulk | Super Admin | `{ action: "issue", employee_ids[] (≤500), valid_until?, reason }` or `{ action: "revoke", card_ids[] (≤500), kind, reason }` | `200 { done: n, skipped: [{ employee_code, code }] }` (all valid rows done in one transaction; skipped rows explained, e.g. `EMPLOYEE_NOT_QR`) | `BULK_TOO_LARGE` |
+| POST | /api/v1/qr-cards/bulk | Super Admin | `{ action: "issue", employee_ids[] (≤500), valid_until?, reason }` or `{ action: "revoke", card_ids[] (≤500), kind, reason }` | `200 { done: n, skipped: [{ employee_code, card_serial, code }], card_ids: [...] }` (all valid rows done in one transaction; skipped rows explained, e.g. `EMPLOYEE_NOT_QR`; `card_ids` = the new cards of a bulk issue, so the screen can print exactly those) | `BULK_TOO_LARGE` |
 | GET · POST | /api/v1/qr-test-cards | Super Admin | `{ label (e.g. "Gate test K134") }` | list · `201 { card }` (F-27) | `QR_SIGNING_NOT_CONFIGURED` |
 | POST | /api/v1/qr-test-cards/{id}/revoke | Super Admin | `{ reason }` | `200 { card }` | `QR_CARD_REVOKED` |
 
@@ -1439,3 +1439,4 @@ One line per change made on 2026-10-20 (reason, earlier file).
   works until 23:59:59 IST) with a hint to use Revoke; Ctrl+K Issue / Print use an employee
   picker / the list filtered "Not printed"; the Test cards tab is hidden for Corporate Head and
   Plant Head.
+- 2026-10-20 · D · §5.1: the bulk answer gets `card_ids` (additive), so "Print the N new cards" and F-38 can print exactly the cards just issued.

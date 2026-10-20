@@ -50,6 +50,8 @@ class SkippedRow:
 class BulkResult:
     done: int = 0
     skipped: list[SkippedRow] = field(default_factory=list)
+    # The new cards of a bulk issue, so the screen can print exactly those.
+    card_ids: list[uuid.UUID] = field(default_factory=list)
 
 
 # --- Issue ------------------------------------------------------------------------------------
@@ -246,7 +248,8 @@ def bulk_issue(
         if problem is not None:
             result.skipped.append(SkippedRow(code=problem, employee_code=employee.employee_code))
             continue
-        issue_card(session, actor, employee, valid_until=valid_until, reason=reason)
+        issued = issue_card(session, actor, employee, valid_until=valid_until, reason=reason)
+        result.card_ids.append(issued.card.id)
         result.done += 1
     return result
 

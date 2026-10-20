@@ -105,6 +105,7 @@ class SkippedItem(BaseModel):
 class BulkCardsResponse(BaseModel):
     done: int
     skipped: list[SkippedItem]
+    card_ids: list[uuid.UUID]  # the new cards of a bulk issue (empty for a bulk revoke)
 
 
 class CreateTestCardRequest(BaseModel):
