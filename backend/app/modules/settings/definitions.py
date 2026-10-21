@@ -16,7 +16,7 @@ SettingValueType = int | float | str | None
 @dataclass(frozen=True)
 class SettingDefinition:
     key: str
-    group: str  # screen card: kiosk, punch, face, snapshots, salary, security
+    group: str  # screen card: kiosk, kiosk_screen, punch, face, snapshots, cards, salary, security
     default: SettingValueType
     unit: str
     used_from: int  # milestone number
@@ -48,10 +48,14 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition("qr_card_default_validity_months", "cards", 2, "months", 2, 1, 36),
     SettingDefinition("qr_card_expiring_soon_days", "cards", 14, "days", 2, 1, 60),
     # The kiosk screen (M2, F-1): tones, spoken line and how long a result stays on screen.
-    SettingDefinition("kiosk_voice_enabled", "kiosk", "on", "", 2, allowed_values=("on", "off")),
-    SettingDefinition("kiosk_sound_enabled", "kiosk", "on", "", 2, allowed_values=("on", "off")),
-    SettingDefinition("kiosk_result_seconds", "kiosk", 4, "s", 2, 2, 10),
-    SettingDefinition("kiosk_reject_seconds", "kiosk", 6, "s", 2, 3, 15),
+    SettingDefinition(
+        "kiosk_voice_enabled", "kiosk_screen", "on", "", 2, allowed_values=("on", "off")
+    ),
+    SettingDefinition(
+        "kiosk_sound_enabled", "kiosk_screen", "on", "", 2, allowed_values=("on", "off")
+    ),
+    SettingDefinition("kiosk_result_seconds", "kiosk_screen", 4, "s", 2, 2, 10),
+    SettingDefinition("kiosk_reject_seconds", "kiosk_screen", 6, "s", 2, 3, 15),
     # The face values are chosen in M3 from the accuracy tests, so they have no default yet.
     SettingDefinition("face_match_threshold", "face", None, "", 3, 0, 1, is_whole_number=False),
     SettingDefinition("face_match_margin", "face", None, "", 3, 0, 1, is_whole_number=False),

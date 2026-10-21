@@ -568,11 +568,11 @@
       },
       "punch": {
         "title": "Punch rules",
-        "description": "Cool-down and travel checks."
+        "description": "Cool-down, the gap before OUT, and the longest open IN."
       },
       "snapshots": {
         "title": "Snapshots",
-        "description": "How long QR-punch photos are kept."
+        "description": "How long QR-punch photos are kept, and the dark photo limit."
       },
       "face": {
         "title": "Face recognition",
@@ -581,6 +581,14 @@
       "salary": {
         "title": "Salary estimate",
         "description": "Used only for the salary estimate."
+      },
+      "cards": {
+        "title": "QR cards",
+        "description": "ID cards of temporary workers."
+      },
+      "kiosk_screen": {
+        "title": "Kiosk sound and screen",
+        "description": "What every gate kiosk plays and how long it shows a result."
       }
     },
     "items": {
@@ -635,6 +643,42 @@
       "salary_day_basis": {
         "label": "Salary day basis",
         "help": "Days used to work out the per-day salary (26, 30 or actual days)."
+      },
+      "min_minutes_before_out": {
+        "label": "Earliest OUT after IN",
+        "help": "A scan this soon after an IN is refused as “Already IN”, so a double scan never closes the day by mistake."
+      },
+      "open_in_max_hours": {
+        "label": "Longest open IN",
+        "help": "If the last IN is older than this, the next scan is a new IN and the old day stays incomplete. 20 hours covers a 12-hour night shift."
+      },
+      "snapshot_dark_threshold": {
+        "label": "Dark photo limit",
+        "help": "A photo whose average brightness is below this gets the Dark photo mark in the punch log. The punch itself is decided as normal."
+      },
+      "qr_card_default_validity_months": {
+        "label": "Default card validity",
+        "help": "The end date suggested when a card is issued. The Super Admin can still pick another date."
+      },
+      "qr_card_expiring_soon_days": {
+        "label": "“Ends soon” warning",
+        "help": "Cards that end within this many days show “Ends soon” and are counted on the dashboard."
+      },
+      "kiosk_voice_enabled": {
+        "label": "Voice",
+        "help": "The kiosk says “Checked in”, “Checked out” or the reason, in English. The name is never spoken."
+      },
+      "kiosk_sound_enabled": {
+        "label": "Sounds",
+        "help": "Short tones: two rising notes when accepted, one soft note for already punched, two low notes when rejected."
+      },
+      "kiosk_result_seconds": {
+        "label": "Result screen time",
+        "help": "How long an accepted result stays on the kiosk screen before it is ready for the next person."
+      },
+      "kiosk_reject_seconds": {
+        "label": "Rejected screen time",
+        "help": "Rejections stay longer, so the worker can read what to do next."
       }
     },
     "units": {
@@ -643,7 +687,21 @@
       "h": "h",
       "tries": "tries",
       "days": "days",
-      "km/h": "km/h"
+      "km/h": "km/h",
+      "months": "months",
+      "s": "seconds",
+      "of 255": "of 255"
+    },
+    "choices": {
+      "on": "On",
+      "off": "Off",
+      "26": "26 days",
+      "30": "30 days",
+      "actual": "Actual days"
+    },
+    "retentionWarning": {
+      "title": "Lowering to {{days}} days also shortens the photos already stored.",
+      "text": "Photos older than {{days}} days are deleted tonight at 00:05 IST and cannot be brought back. The gate posters say “kept for {{current}} days”: download and print them again after saving."
     }
   },
   "audit": {
@@ -866,6 +924,9 @@
       "overtimeRule": "Overtime counts after {{length}} of work, at each employee's own rate.",
       "futureOnly": "Changes apply from today. Days already worked out keep their values. The overtime rate is set on each employee.",
       "save": "Save shift"
+    },
+    "poster": {
+      "button": "Download gate poster (A4 PDF)"
     }
   },
   "setup": {
@@ -914,7 +975,9 @@
       "plant": "Plant",
       "status": "Status",
       "accuracy": "Location at pairing",
-      "lastSeen": "Last seen"
+      "lastSeen": "Last seen",
+      "lastSelfTest": "Last self-test",
+      "sound": "Sound"
     },
     "status": {
       "active": "Active",
@@ -963,6 +1026,14 @@
       "description": "Kiosks at this plant's gate.",
       "all": "All kiosks",
       "empty": "No kiosk at this plant yet."
+    },
+    "sound": {
+      "on": "On",
+      "off": "Off",
+      "for": "Sound at {{name}}"
+    },
+    "selfTest": {
+      "never": "Never tested"
     }
   },
   "plantFilter": {
