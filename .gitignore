@@ -39,3 +39,5 @@ test-results/
 # Local snapshot storage (STORAGE_BACKEND=local): photos of people, never commit
 backend/.storage/
 .storage/
+# Load test data: fake keys and private kiosk keys of a throwaway database, never commit
+backend/loadtest/.data/
