@@ -569,3 +569,33 @@ def test_times_are_shown_in_ist(boss: TestClient, db_session: Session, day: dict
     assert day["punches"]["in"].server_received_at.astimezone(UTC).hour == 1
     rows = open_sheet(boss.get(f"{PUNCHES}/export.xlsx"))
     assert any(row[1] == "07:02:00" for row in rows)
+
+
+# --- Security review of M2: fixes ---------------------------------------------------------------
+
+
+def test_a_plant_head_cannot_find_people_of_other_plants_by_search_or_id(
+    db_app: FastAPI, db_session: Session, day: dict, k134: PlantIds, ravi: Card, asha: Card
+) -> None:
+    """Ravi (plant TP1) scanned at the K134 gate. The row is shown as "card of another plant",
+    so a search or an id filter must not confirm who it is (letter by letter)."""
+    head = head_of(db_app, db_session, k134, "head.k134")
+
+    by_name = head.get(PUNCHES, params={"q": "Ravi"}).json()["items"]
+    by_code_start = head.get(PUNCHES, params={"q": "T-30"}).json()["items"]
+    by_id = head.get(PUNCHES, params={"employee_id": str(ravi.employee_id)}).json()["items"]
+
+    assert by_name == [] and by_code_start == [] and by_id == []
+    # Their own plant's people are still found.
+    assert head.get(PUNCHES, params={"q": "Asha"}).json()["items"] != []
+    assert head.get(PUNCHES, params={"employee_id": str(asha.employee_id)}).json()["items"] != []
+
+
+def test_the_photo_view_entry_says_whose_photo_it_was(
+    boss: TestClient, db_session: Session, day: dict
+) -> None:
+    boss.get(f"{PUNCHES}/{pid(day, 'in')}/snapshot")
+
+    (entry,) = views(db_session)
+    assert entry.after is not None
+    assert entry.after["employee_id"] == str(day["punches"]["in"].employee_id)

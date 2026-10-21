@@ -194,7 +194,7 @@ export function useRevokeTestCard() {
 
 /** The PDF of one card (one CR80 page). */
 export const fetchCardPdf = (cardId: string) =>
-  apiBlob(`/qr-cards/${cardId}/card.pdf`, { method: "GET" });
+  apiBlob(`/qr-cards/${cardId}/card.pdf`, { method: "POST" });
 
 /** The PDF of many cards, on A4 sheets of ten or one card per page. */
 export const fetchCardsPdf = (cardIds: string[], layout: PrintLayout) =>

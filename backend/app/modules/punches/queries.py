@@ -57,6 +57,12 @@ def punches_statement(
     ):
         if value is not None:
             statement = statement.where(column == value)
+    if only_plant_ids is not None and filters.employee_id is not None:
+        # Rows of other plants' people are hidden in the log, so they must not be findable
+        # by their id either (the answer "no rows" would confirm the person exists).
+        statement = statement.where(
+            Punch.employee_id.in_(select(Employee.id).where(Employee.plant_id.in_(only_plant_ids)))
+        )
     if filters.reason_code:
         statement = statement.where(Punch.reason_codes.contains([filters.reason_code]))
     if filters.dark_only:
@@ -71,6 +77,9 @@ def punches_statement(
                 func.lower(Employee.full_name).contains(cleaned.lower()),
             )
         )
+        if only_plant_ids is not None:
+            # Same reason as above: a search must not reveal who the hidden rows belong to.
+            statement = statement.where(Employee.plant_id.in_(only_plant_ids))
     return statement
 
 

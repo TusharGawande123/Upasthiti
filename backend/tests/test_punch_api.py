@@ -733,3 +733,148 @@ def test_a_report_needs_a_paired_kiosk(db_client: TestClient) -> None:
     response = db_client.post(REPORT, json={"kind": "other", "message": "x", "count": 1})
 
     assert response.status_code == 401
+
+
+# --- Security review of M2: fixes ---------------------------------------------------------------
+
+
+def test_a_revoked_test_card_is_refused_and_leaves_no_punch_and_no_photo(
+    boss: TestClient, db_client: TestClient, db_session: Session, device: Device, kiosk: KioskDevice
+) -> None:
+    card = boss.post("/api/v1/qr-test-cards", json={"label": "Gate test"}).json()
+    boss.post(f"/api/v1/qr-test-cards/{card['id']}/revoke", json={"reason": "Not needed"})
+
+    answer = send(db_client, device, build_payload(get_settings(), card["serial"])).json()
+
+    assert answer["decision"] == "rejected" and answer["reason_code"] == "QR_REVOKED"
+    assert answer["punch_id"] is None and answer["employee"] is None
+    assert punch_rows(db_session) == [] and snapshot_rows(db_session) == []
+
+
+def test_a_missing_storage_setting_never_stops_the_gate(
+    db_client: TestClient,
+    db_session: Session,
+    device: Device,
+    kiosk: KioskDevice,
+    worker: Worker,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    def storage_not_configured() -> None:
+        raise StorageError("SUPABASE_URL is not set")
+
+    monkeypatch.setattr(punch_service, "get_storage", storage_not_configured)
+
+    answer = send(db_client, device, worker.qr_text).json()
+
+    assert answer["decision"] == "accepted"
+    (snapshot,) = snapshot_rows(db_session)
+    assert snapshot.state == "upload_failed"
+
+
+def test_a_failed_save_leaves_no_photo_file_without_a_row(
+    db_client: TestClient,
+    db_session: Session,
+    device: Device,
+    kiosk: KioskDevice,
+    worker: Worker,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    """If the database fails after the photo was uploaded, the file must not stay behind: no
+    row would point to it, so the purge job would never delete it (DPDP retention)."""
+    files: list[str] = []
+    deleted: list[str] = []
+
+    class RecordingStorage:
+        def save(self, key: str, data: bytes) -> None:
+            files.append(key)
+
+        def read(self, key: str) -> bytes:
+            raise StorageError("not used")
+
+        def delete(self, keys: list[str]) -> None:
+            deleted.extend(keys)
+
+    monkeypatch.setattr(punch_service, "get_storage", RecordingStorage)
+    real_commit = Session.commit
+    commits = 0
+
+    def failing_commit(self: Session) -> None:
+        nonlocal commits
+        commits += 1
+        if commits == 1:  # the device check commits first and must work
+            real_commit(self)
+            return
+        raise RuntimeError("the database went away")
+
+    monkeypatch.setattr(Session, "commit", failing_commit)
+    try:
+        # The app answers an unexpected failure with a 500 (or lets a test client re-raise it).
+        try:
+            response = send(db_client, device, worker.qr_text)
+            assert response.status_code == 500
+        except RuntimeError:
+            pass
+    finally:
+        monkeypatch.setattr(Session, "commit", real_commit)
+
+    assert len(files) == 1 and deleted == files
+    assert punch_rows(db_session) == []
+
+
+@pytest.mark.parametrize("accuracy", [1e9, float("inf")])
+def test_a_silly_location_accuracy_is_a_validation_error_not_a_server_error(
+    db_client: TestClient,
+    db_session: Session,
+    device: Device,
+    kiosk: KioskDevice,
+    worker: Worker,
+    accuracy: float,
+) -> None:
+    body = {
+        "client_punch_id": str(uuid.uuid4()),
+        "method": "qr",
+        "qr_payload": worker.qr_text,
+        "snapshot_jpeg": photo_text(),
+        "location": {"lat": 19.85, "lon": 75.25, "accuracy_m": accuracy},
+    }
+    raw = json.dumps(body).encode()  # json.dumps writes Infinity, which the schema must refuse
+    headers = device.headers("POST", PUNCH, raw) | {"Content-Type": "application/json"}
+
+    response = db_client.post(PUNCH, content=raw, headers=headers)
+
+    assert response.status_code == 422
+    assert punch_rows(db_session) == []
+
+
+def test_a_progressive_jpeg_is_refused_before_it_is_decoded(
+    db_client: TestClient, db_session: Session, device: Device, kiosk: KioskDevice, worker: Worker
+) -> None:
+    import base64
+
+    buffer = io.BytesIO()
+    Image.new("RGB", (320, 240), (120, 130, 140)).save(buffer, format="JPEG", progressive=True)
+    photo = base64.b64encode(buffer.getvalue()).decode()
+
+    answer = send(db_client, device, worker.qr_text, snapshot=photo).json()
+
+    assert answer["reason_code"] == "SNAPSHOT_INVALID"
+    assert snapshot_rows(db_session) == []
+
+
+def test_a_card_text_in_a_report_is_cut_out_before_it_is_logged(
+    db_client: TestClient,
+    device: Device,
+    kiosk: KioskDevice,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    sneaky = "failed on UPS1.A.C000123.ABCDEFGH then\nfake log line‮"
+
+    with caplog.at_level(logging.WARNING):
+        response = report(db_client, device, message=sneaky)
+
+    assert response.status_code == 204
+    record = next(r for r in caplog.records if r.getMessage() == "kiosk report")
+    message = record.fields["message"]  # type: ignore[attr-defined]
+    assert "UPS1" not in message and "C000123" not in message
+    assert "\n" not in message and "‮" not in message
+    assert message.startswith("failed on [card]")

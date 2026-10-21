@@ -6,6 +6,7 @@ Head only reads). Devices: `/kiosk/register` (pairing code) and `/kiosk/me` (sig
 
 import io
 import logging
+import re
 import uuid
 
 import segno
@@ -233,6 +234,17 @@ def _screen_settings(session: Session, kiosk: KioskDevice) -> KioskScreenSetting
     )
 
 
+# The kiosk is not trusted: a changed or buggy one could send a card text or a name. Card
+# texts are cut out here, and control or direction-changing characters (which can fake log
+# lines) are removed.
+_CARD_TEXT = re.compile(r"UPS1\.[A-Za-z0-9._-]*")
+_UNSAFE_CHARACTERS = re.compile(r"[\x00-\x1f\x7f\u200e\u200f\u202a-\u202e\u2066-\u2069]")
+
+
+def clean_report_message(message: str) -> str:
+    return _UNSAFE_CHARACTERS.sub(" ", _CARD_TEXT.sub("[card]", message))
+
+
 @router.post("/kiosk/report", status_code=204)
 def kiosk_report(
     body: KioskReportRequest,
@@ -249,7 +261,7 @@ def kiosk_report(
                 "kiosk_id": str(kiosk.id),
                 "plant_id": str(kiosk.plant_id),
                 "kind": body.kind,
-                "message": body.message,
+                "message": clean_report_message(body.message),
                 "count": body.count,
                 "app_version": body.app_version,
             }

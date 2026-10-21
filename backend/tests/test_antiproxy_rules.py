@@ -10,7 +10,7 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.antiproxy.context import Outcome, PunchContext, PunchLimits
+from app.antiproxy.context import Outcome, PunchContext, PunchLimits, RuleResult
 from app.antiproxy.engine import run_qr_rules
 from app.antiproxy.rules.cooldown import check_in_out
 from app.antiproxy.rules.qr_credential import check_qr_credential
@@ -510,3 +510,9 @@ def test_a_test_card_still_needs_a_usable_photo(
     decision = run_qr_rules(make_context(qr_text=qr_text, snapshot_bytes=b"junk"))
 
     assert decision.reason_codes == ["SNAPSHOT_INVALID"]
+
+
+def test_a_rule_cannot_reject_without_a_reason_code() -> None:
+    """A refusal without a code could slip through as a pass, so it cannot be built at all."""
+    with pytest.raises(ValueError):
+        RuleResult(Outcome.REJECT)

@@ -66,6 +66,23 @@ def self_test_answer(kiosk_name: str, server_time: datetime) -> KioskPunchRespon
     )
 
 
+def refused_test_card_answer(
+    kiosk_name: str, reason_code: str, server_time: datetime
+) -> KioskPunchResponse:
+    """A refused TEST card (revoked): shown like any rejection, but no punch row is made."""
+    return KioskPunchResponse(
+        punch_id=None,
+        decision="rejected",
+        direction=None,
+        employee=None,
+        server_time=server_time,
+        reason_code=reason_code,
+        message_key=f"kiosk.punch.{reason_code}",
+        voice_key=f"kiosk.punch.{reason_code}.voice",
+        details=PunchDetails(kiosk_name=kiosk_name),
+    )
+
+
 def _earlier_punch_details(
     session: Session, punch: Punch, kiosk_name: str, limits: PunchLimits
 ) -> PunchDetails:

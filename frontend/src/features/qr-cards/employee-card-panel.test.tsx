@@ -278,7 +278,7 @@ describe("issue dialog", () => {
         status: 201,
         body: { card: card({ id: "card-2", serial: "C000456" }), replaced_card: null },
       },
-      "GET /qr-cards/card-2/card.pdf": { body: {} },
+      "POST /qr-cards/card-2/card.pdf": { body: {} },
     });
     const user = userEvent.setup();
 

@@ -53,9 +53,11 @@ class KioskWithCodeResponse(BaseModel):
 
 
 class LocationReport(BaseModel):
-    lat: float = Field(ge=-90, le=90)
-    lon: float = Field(ge=-180, le=180)
-    accuracy_m: float = Field(ge=0)
+    # Bounded and finite: the database column holds up to 99999.9, and "inf" or "NaN" must
+    # never reach it (that would turn a punch into a server error).
+    lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
+    lon: float = Field(ge=-180, le=180, allow_inf_nan=False)
+    accuracy_m: float = Field(ge=0, le=99999, allow_inf_nan=False)
 
 
 class RegisterKioskRequest(BaseModel):

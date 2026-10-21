@@ -45,6 +45,10 @@ def inspect_snapshot(raw: bytes, dark_threshold: int) -> CheckedSnapshot:
             width, height = image.size  # read from the header: nothing is decoded yet
             if not (MIN_WIDTH <= width <= MAX_WIDTH and MIN_HEIGHT <= height <= MAX_HEIGHT):
                 raise SnapshotInvalidError("wrong size")
+            # A progressive JPEG can take very long to decode and the kiosk never makes one
+            # (the browser's canvas writes baseline JPEGs), so it is refused before decoding.
+            if image.info.get("progressive") or image.info.get("progression"):
+                raise SnapshotInvalidError("progressive JPEG")
             image.load()  # decode everything; a truncated file fails here
             picture = image.convert("RGB")
             # Pillow copies a file's comment (and more) into this info dictionary and writes it

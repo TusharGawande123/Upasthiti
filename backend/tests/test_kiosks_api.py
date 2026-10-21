@@ -298,3 +298,17 @@ def test_wrong_codes_from_anyone_are_capped_even_when_the_ip_changes(
 
     assert last is not None and last.status_code == 429
     assert guesses <= 32
+
+
+def test_renaming_a_kiosk_to_a_name_already_used_at_the_plant_is_a_clear_conflict(
+    boss: TestClient, plant: dict
+) -> None:
+    new_kiosk(boss, plant, "Gate 1")
+    second = new_kiosk(boss, plant, "Gate 2")
+
+    clash = boss.patch(f"{KIOSKS}/{second['kiosk']['id']}", json={"name": "gate 1"})
+    same_name_again = boss.patch(f"{KIOSKS}/{second['kiosk']['id']}", json={"name": "Gate 2"})
+
+    assert clash.status_code == 409
+    assert clash.json()["error"]["code"] == "KIOSK_NAME_EXISTS"
+    assert same_name_again.status_code == 200  # keeping its own name is fine

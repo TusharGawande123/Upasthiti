@@ -42,7 +42,8 @@ def add_photo(
     expires_in: timedelta,
     state: str = "stored",
 ) -> PunchSnapshot:
-    """A rejected punch with a photo; a real file exists when the state is `stored`."""
+    """A rejected punch with a photo. A real file exists for `stored`, and also for
+    `upload_failed`: an upload that timed out may still have written its file."""
     punch = Punch(
         client_punch_id=uuid.uuid4(),
         kiosk_id=kiosk.id,
@@ -55,7 +56,7 @@ def add_photo(
     session.add(punch)
     session.flush()
     key = f"snapshots/2026/10/20/{punch.id}.bin"
-    if state == "stored":
+    if state in ("stored", "upload_failed"):
         storage.save(key, b"encrypted bytes")
     now = utc_now()
     snapshot = PunchSnapshot(
@@ -141,7 +142,7 @@ def test_many_photos_are_purged_in_batches(
     assert still_stored == 0
 
 
-def test_a_photo_whose_upload_failed_is_marked_purged_after_its_retention(
+def test_a_photo_whose_upload_failed_is_deleted_and_marked_purged_after_its_retention(
     db_session: Session, kiosk: KioskDevice, storage: LocalStorage
 ) -> None:
     old = add_photo(
@@ -157,6 +158,10 @@ def test_a_photo_whose_upload_failed_is_marked_purged_after_its_retention(
     db_session.refresh(recent)
     assert old.state == "purged" and old.purged_at is not None
     assert recent.state == "upload_failed"
+    # The file that a timed-out upload may have left behind is gone too (DPDP retention).
+    with pytest.raises(StorageError):
+        storage.read(old.storage_key)
+    assert storage.read(recent.storage_key) == b"encrypted bytes"
 
 
 class FailingStorage:

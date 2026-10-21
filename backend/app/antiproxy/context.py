@@ -31,6 +31,11 @@ class RuleResult:
     outcome: Outcome
     reason_code: str | None = None
 
+    def __post_init__(self) -> None:
+        # A refusal without a reason could never be stored or shown, so it cannot exist.
+        if self.outcome is Outcome.REJECT and not self.reason_code:
+            raise ValueError("A rejecting rule must give a reason code")
+
     @classmethod
     def passed(cls) -> RuleResult:
         return cls(Outcome.ALLOW)

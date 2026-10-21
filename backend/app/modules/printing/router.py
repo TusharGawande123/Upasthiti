@@ -42,7 +42,9 @@ def _pdf_response(printed: PrintedPdf) -> Response:
     )
 
 
-@router.get("/qr-cards/{card_id}/card.pdf")
+# A POST like the other print routes: it raises the print count and writes an audit entry, so the
+# Origin check must apply (a GET link from another site must not be able to do that).
+@router.post("/qr-cards/{card_id}/card.pdf")
 def card_pdf(
     card_id: uuid.UUID,
     current_user: CurrentUser = Depends(manager),

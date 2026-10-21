@@ -16,36 +16,14 @@ from app.modules.auth.rate_limit import punch_limiter
 from app.modules.kiosks.dependencies import require_kiosk
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches import service
-from app.modules.punches.schemas import MAX_BODY_BYTES, KioskPunchRequest, KioskPunchResponse
+from app.modules.punches.schemas import KioskPunchRequest, KioskPunchResponse
 
 router = APIRouter(tags=["punches"])
 
 
-async def limit_body(request: Request) -> None:
-    """Refuse a request body above 64 KB, before anyone parses it."""
-    too_large = ApiError("PAYLOAD_TOO_LARGE", "The request is too large.", 413)
-    declared = request.headers.get("content-length", "")
-    if declared.isdigit() and int(declared) > MAX_BODY_BYTES:
-        raise too_large
-
-    # A sender may leave out Content-Length, so the real bytes are counted as they arrive.
-    chunks: list[bytes] = []
-    size = 0
-    async for chunk in request.stream():
-        size += len(chunk)
-        if size > MAX_BODY_BYTES:
-            raise too_large
-        chunks.append(chunk)
-    # Starlette keeps the body here, so the next step (signature check, JSON parsing) can
-    # read it again although the stream is already used up.
-    request._body = b"".join(chunks)  # noqa: SLF001  # pyright: ignore[reportAttributeAccessIssue]
-
-
-@router.post(
-    "/punch/kiosk",
-    response_model=KioskPunchResponse,
-    dependencies=[Depends(limit_body)],
-)
+# The 64 KB body limit is enforced earlier, by BodyLimitMiddleware (app/core/body_limit.py):
+# FastAPI would parse the body before any dependency of this route could refuse it.
+@router.post("/punch/kiosk", response_model=KioskPunchResponse)
 def punch_at_kiosk(
     body: KioskPunchRequest,
     request: Request,

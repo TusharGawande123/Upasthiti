@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, Depends, FastAPI
 
 from app.api_docs import DOCS_URL, add_protected_docs
+from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import get_settings, load_settings_or_exit
 from app.core.errors import register_error_handlers
 from app.core.logging import add_request_id_middleware, setup_logging
@@ -70,6 +71,8 @@ def create_app() -> FastAPI:
 
     add_security_headers_middleware(app)
     add_request_id_middleware(app)
+    # Added last, so it is the outermost layer and sees the bytes before anything reads them.
+    app.add_middleware(BodyLimitMiddleware)
     register_error_handlers(app)
 
     # Every write request must come from our own site (CSRF protection, spec §8).

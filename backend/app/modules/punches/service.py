@@ -28,7 +28,12 @@ from app.core.time import utc_now
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees.models import Employee
 from app.modules.kiosks.models import KioskDevice
-from app.modules.punches.answers import ALREADY_PUNCHED_CODES, punch_answer, self_test_answer
+from app.modules.punches.answers import (
+    ALREADY_PUNCHED_CODES,
+    punch_answer,
+    refused_test_card_answer,
+    self_test_answer,
+)
 from app.modules.punches.models import (
     Punch,
     PunchDecision,
@@ -38,7 +43,7 @@ from app.modules.punches.models import (
 )
 from app.modules.punches.schemas import KioskPunchRequest, KioskPunchResponse
 from app.modules.punches.snapshots import CheckedSnapshot
-from app.modules.qr_cards.models import QrCredential
+from app.modules.qr_cards.models import CardKind, QrCredential
 from app.modules.qr_cards.payload import parse_payload
 from app.modules.settings.service import get_int_setting
 
@@ -93,11 +98,18 @@ def record_kiosk_punch(
     if decision.outcome is Outcome.SELF_TEST:
         return _record_self_test(session, kiosk, context, client, now)
 
+    if context.card is not None and context.card.kind == CardKind.TEST.value:
+        # A refused test card (revoked) is not a worker's punch: no row, no photo (F-27).
+        return refused_test_card_answer(kiosk.name, decision.reason_codes[0], now)
+
     punch = _build_punch(kiosk, request, client, context, decision, now)
     snapshot = _store_snapshot(session, punch, context, decision, now, storage)
-    session.add(punch)
     try:
+        session.add(punch)
         session.flush()  # the unique (kiosk, client_punch_id) rule is checked here
+        if snapshot is not None:
+            session.add(snapshot)
+        session.commit()
     except IntegrityError:
         # Another request with the same id won the race: undo and give its answer.
         session.rollback()
@@ -106,9 +118,12 @@ def record_kiosk_punch(
         if winner is None:
             raise
         return punch_answer(session, winner, kiosk.name, limits)
-    if snapshot is not None:
-        session.add(snapshot)
-    session.commit()
+    except Exception:
+        # Any other failure must not leave an encrypted photo behind that no row points to:
+        # the purge job works from the rows, so such a file would never be deleted.
+        session.rollback()
+        _delete_file_quietly(snapshot, storage)
+        raise
     return punch_answer(session, punch, kiosk.name, limits)
 
 
@@ -218,7 +233,7 @@ def _store_snapshot(
 
     retention_days = get_int_setting(session, "snapshot_retention_days")
     key = f"snapshots/{now:%Y/%m/%d}/{punch.id}.bin"
-    stored_size = _upload(punch, checked, key, get_settings(), storage or get_storage())
+    stored_size = _upload(punch, checked, key, get_settings(), storage)
     return PunchSnapshot(
         punch_id=punch.id,
         storage_key=key,
@@ -234,7 +249,7 @@ def _store_snapshot(
 
 
 def _upload(
-    punch: Punch, checked: CheckedSnapshot, key: str, settings: Settings, storage: Storage
+    punch: Punch, checked: CheckedSnapshot, key: str, settings: Settings, storage: Storage | None
 ) -> int | None:
     """The size of the stored file, or None when it could not be stored."""
     if settings.snapshot_encryption_key is None:
@@ -244,7 +259,8 @@ def _upload(
         checked.jpeg, punch.id, decode_key(settings.snapshot_encryption_key.get_secret_value())
     )
     try:
-        storage.save(key, encrypted)
+        # Looked up inside the try: a missing storage setting is a storage failure too.
+        (storage or get_storage()).save(key, encrypted)
     except StorageError:
         # Only the punch id is logged: never the photo, the key text or a person's name.
         logger.warning(

@@ -14,6 +14,9 @@ from sqlalchemy.orm import Session
 from app.core.storage import Storage, StorageError
 from app.modules.punches.models import PunchSnapshot, SnapshotState
 
+# `upload_failed` is included on purpose: a timed-out upload may still have written the file.
+KEPT_STATES = (SnapshotState.STORED.value, SnapshotState.UPLOAD_FAILED.value)
+
 
 def shorten_snapshot_expiry(session: Session, retention_days: int) -> int:
     """Move later expiry dates back to `taken_at + retention_days`. Returns how many changed."""
@@ -21,7 +24,7 @@ def shorten_snapshot_expiry(session: Session, retention_days: int) -> int:
     result = session.execute(
         update(PunchSnapshot)
         .where(
-            PunchSnapshot.state == SnapshotState.STORED.value,
+            PunchSnapshot.state.in_(KEPT_STATES),
             PunchSnapshot.expires_at > new_expiry,
         )
         .values(expires_at=new_expiry, updated_at=func.now())
@@ -42,16 +45,18 @@ def purge_expired_snapshots(
     """Delete the files of photos past their expiry, and mark their rows `purged`.
 
     Only the file and the state change: the punch and the snapshot row stay for the records.
+    A photo marked `upload_failed` is deleted too: the upload may have timed out after the
+    storage had already saved the file, and deleting a file that is not there is not an error.
     Safe to repeat. A batch whose delete fails is left for the next run and stops this run
     (the same rows would fail again straight away). Returns how many photos were purged.
     """
-    purged = _mark_unstored_photos_purged(session, now)
+    purged = 0
     while True:
         due = list(
             session.scalars(
                 select(PunchSnapshot)
                 .where(
-                    PunchSnapshot.state == SnapshotState.STORED.value,
+                    PunchSnapshot.state.in_(KEPT_STATES),
                     PunchSnapshot.expires_at < now,
                 )
                 .order_by(PunchSnapshot.expires_at, PunchSnapshot.id)
@@ -70,17 +75,3 @@ def purge_expired_snapshots(
             row.purged_at = now
         session.commit()  # after each batch, so a crash loses at most one batch of work
         purged += len(due)
-
-
-def _mark_unstored_photos_purged(session: Session, now: datetime) -> int:
-    """A photo whose upload failed has no file to delete; past its retention it counts as purged."""
-    result = session.execute(
-        update(PunchSnapshot)
-        .where(
-            PunchSnapshot.state == SnapshotState.UPLOAD_FAILED.value,
-            PunchSnapshot.expires_at < now,
-        )
-        .values(state=SnapshotState.PURGED.value, purged_at=now, updated_at=func.now())
-    )
-    session.commit()
-    return result.rowcount  # pyright: ignore[reportAttributeAccessIssue]

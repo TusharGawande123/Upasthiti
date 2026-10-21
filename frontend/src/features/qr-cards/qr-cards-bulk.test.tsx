@@ -378,7 +378,7 @@ describe("test cards tab", () => {
       answers({
         "GET /qr-test-cards": { body: [TEST_CARD] },
         "POST /qr-test-cards/t-1/revoke": { body: { ...TEST_CARD, state: "revoked" } },
-        "GET /qr-cards/t-1/card.pdf": { body: {} },
+        "POST /qr-cards/t-1/card.pdf": { body: {} },
       }),
     );
     const user = userEvent.setup();

@@ -322,7 +322,7 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 | GET/POST | /kiosk/me (heartbeat, notices, kiosk settings) · /kiosk/report · /kiosk/sync (M4) | kiosk | Health; error report; offline batch upload |
 | POST | /punch/challenge · /punch/kiosk | kiosk | Liveness challenge; submit a punch |
 | POST | /enrol/consent · /enrol/face · DELETE /enrol/face/{employee} | HR | Consent + enrolment |
-| GET/POST/PATCH | /qr-cards · /employees/{id}/qr-cards · /qr-cards/{id}/revoke · /qr-cards/bulk · /qr-cards/print · GET /qr-cards/{id}/card.pdf · /qr-test-cards | Super Admin (lists: all roles in scope) | QR credentials (M2 spec §5.1) |
+| GET/POST/PATCH | /qr-cards · /employees/{id}/qr-cards · /qr-cards/{id}/revoke · /qr-cards/bulk · /qr-cards/print · POST /qr-cards/{id}/card.pdf · /qr-test-cards | Super Admin (lists: all roles in scope) | QR credentials (M2 spec §5.1) |
 | GET | /punches · /punches/summary · /punches/{id} · /punches/{id}/snapshot · /punches/{id}/compare · /punches/export.xlsx | roles in scope; photos Super Admin only | Punch log (M2 spec §5.3) |
 | CRUD | /notices · POST /notices/{id}/end | Super Admin, Plant Head (own plant) | Gate notices (M2) |
 | GET | /attendance/daily · /attendance/employee/{id} | roles | Attendance |

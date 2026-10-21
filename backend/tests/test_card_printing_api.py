@@ -73,7 +73,7 @@ def test_a_single_card_downloads_as_one_page_pdf_with_the_servers_qr(
 ) -> None:
     card = new_card(boss, k134, 1)
 
-    response = boss.get(f"{CARDS}/{card['id']}/card.pdf")
+    response = boss.post(f"{CARDS}/{card['id']}/card.pdf")
 
     assert response.status_code == 200
     assert response.headers["content-type"] == "application/pdf"
@@ -90,8 +90,8 @@ def test_every_print_is_counted_dated_and_audited_with_the_plant_on_the_card(
 ) -> None:
     card = new_card(boss, k134, 1)
 
-    boss.get(f"{CARDS}/{card['id']}/card.pdf")
-    boss.get(f"{CARDS}/{card['id']}/card.pdf")
+    boss.post(f"{CARDS}/{card['id']}/card.pdf")
+    boss.post(f"{CARDS}/{card['id']}/card.pdf")
 
     row = stored(db_session, card)
     assert row.print_count == 2
@@ -110,13 +110,13 @@ def test_the_printed_plant_follows_a_transfer_only_when_the_card_is_printed_agai
 ) -> None:
     other = create_plant(boss, db_session, "TP1")
     card = new_card(boss, k134, 1)
-    boss.get(f"{CARDS}/{card['id']}/card.pdf")
+    boss.post(f"{CARDS}/{card['id']}/card.pdf")
     employee = db_session.scalars(select(Employee)).one()
     employee.plant_id = uuid.UUID(other.id)  # the employee moved to TP1
     db_session.commit()
 
     before = boss.get(CARDS, params={"reprint_needed": "true"}).json()["items"]
-    boss.get(f"{CARDS}/{card['id']}/card.pdf")
+    boss.post(f"{CARDS}/{card['id']}/card.pdf")
     after = boss.get(CARDS, params={"reprint_needed": "true"}).json()["items"]
 
     assert [item["employee"]["code"] for item in before] == ["T-1"]
@@ -130,7 +130,7 @@ def test_the_plant_on_the_printed_card_is_the_employees_current_plant(
 ) -> None:
     card = new_card(boss, k134, 1)
 
-    response = boss.get(f"{CARDS}/{card['id']}/card.pdf")
+    response = boss.post(f"{CARDS}/{card['id']}/card.pdf")
 
     text = pdf_pages(response.content)[0].get_textpage().get_text_range()
     assert "K134" in text
@@ -143,7 +143,7 @@ def test_the_pdf_never_shows_the_end_date(boss: TestClient, k134: PlantIds) -> N
     ends = card["valid_until"]  # e.g. 2027-04-19
     end_as_printed = f"{ends[8:10]}/{ends[5:7]}/{ends[0:4]}"
 
-    response = boss.get(f"{CARDS}/{card['id']}/card.pdf")
+    response = boss.post(f"{CARDS}/{card['id']}/card.pdf")
 
     text = pdf_pages(response.content)[0].get_textpage().get_text_range()
     assert end_as_printed not in text
@@ -215,7 +215,7 @@ def test_the_same_card_chosen_twice_is_printed_and_counted_once(
 def test_a_test_card_prints_without_a_plant(boss: TestClient, db_session: Session) -> None:
     card = boss.post("/api/v1/qr-test-cards", json={"label": "Gate test K134"}).json()
 
-    response = boss.get(f"{CARDS}/{card['id']}/card.pdf")
+    response = boss.post(f"{CARDS}/{card['id']}/card.pdf")
 
     text = pdf_pages(response.content)[0].get_textpage().get_text_range()
     assert "TEST – NOT AN ID CARD" in text
@@ -242,7 +242,7 @@ def test_a_revoked_card_cannot_be_printed_and_nothing_is_counted(
     assert error["code"] == "QR_CARD_REVOKED"
     assert error["details"] == {"serials": [bad["serial"]]}
     assert stored(db_session, good).print_count == 0  # all or nothing
-    assert boss.get(f"{CARDS}/{bad['id']}/card.pdf").json()["error"]["code"] == "QR_CARD_REVOKED"
+    assert boss.post(f"{CARDS}/{bad['id']}/card.pdf").json()["error"]["code"] == "QR_CARD_REVOKED"
 
 
 def test_more_than_200_cards_are_refused(boss: TestClient) -> None:
@@ -261,7 +261,7 @@ def test_an_empty_list_is_refused(boss: TestClient) -> None:
 def test_an_unknown_card_is_not_found(boss: TestClient, k134: PlantIds) -> None:
     card = new_card(boss, k134, 1)
 
-    unknown = boss.get(f"{CARDS}/{uuid.uuid4()}/card.pdf")
+    unknown = boss.post(f"{CARDS}/{uuid.uuid4()}/card.pdf")
     mixed = boss.post(f"{CARDS}/print", json={"card_ids": [card["id"], str(uuid.uuid4())]})
 
     assert unknown.json()["error"]["code"] == "QR_CARD_NOT_FOUND"
@@ -275,7 +275,7 @@ def test_nothing_is_printed_or_counted_without_a_signing_key(
     monkeypatch.delenv("QR_SIGNING_KEY")
     get_settings.cache_clear()
 
-    response = boss.get(f"{CARDS}/{card['id']}/card.pdf")
+    response = boss.post(f"{CARDS}/{card['id']}/card.pdf")
 
     assert response.status_code == 503
     assert response.json()["error"]["code"] == "QR_SIGNING_NOT_CONFIGURED"
@@ -297,7 +297,7 @@ def test_only_the_super_admin_may_print(
 
     for client in (corporate, plant_head):
         for response in (
-            client.get(f"{CARDS}/{card['id']}/card.pdf"),
+            client.post(f"{CARDS}/{card['id']}/card.pdf"),
             client.post(f"{CARDS}/print", json={"card_ids": [card["id"]]}),
         ):
             assert response.status_code == 403
@@ -309,7 +309,7 @@ def test_printing_needs_a_login(db_client: TestClient, boss: TestClient, k134: P
     card = new_card(boss, k134, 1)
     logged_out = TestClient(db_client.app, headers=dict(db_client.headers))
 
-    response = logged_out.get(f"{CARDS}/{card['id']}/card.pdf")
+    response = logged_out.post(f"{CARDS}/{card['id']}/card.pdf")
 
     assert response.status_code == 401
 
@@ -324,7 +324,7 @@ def test_a_card_of_an_employee_who_left_cannot_be_printed(
     employee.status = "left"
     db_session.commit()
 
-    response = boss.get(f"{CARDS}/{card['id']}/card.pdf")
+    response = boss.post(f"{CARDS}/{card['id']}/card.pdf")
 
     assert response.status_code == 409
     assert response.json()["error"]["code"] == "EMPLOYEE_LEFT"

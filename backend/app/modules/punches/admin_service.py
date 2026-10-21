@@ -68,7 +68,12 @@ def read_snapshot(
         action="snapshot.view",
         entity_type="punch",
         entity_id=punch.id,
-        after={"punch_id": str(punch.id), "taken_at": snapshot.taken_at.isoformat()},
+        after={
+            "punch_id": str(punch.id),
+            # Whose photo was opened: "who looked at my photos" can be answered per person.
+            "employee_id": str(punch.employee_id) if punch.employee_id else None,
+            "taken_at": snapshot.taken_at.isoformat(),
+        },
         plant_id=punch.plant_id,
     )
     session.commit()
