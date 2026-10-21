@@ -42,3 +42,8 @@ We never use that API (the backend connects straight to Postgres as the owner, w
 RLS), so migration 0006 turns RLS on for every table and removes anon/authenticated grants,
 with no policies. Every new table must do the same; `tests/test_row_level_security.py` checks it.
 The later mail about explicit grants from 2026-10-30 needs no action: we want no grants.
+
+Follow-up the same day (migration 0007): the Security Advisor still showed one warning
+(`function_search_path_mutable` on the audit trigger function, fixed with an empty search_path)
+and 18 notes (`rls_enabled_no_policy`). Each table now has an explicit `deny_all` policy
+(`USING (false)`), which says in writing what RLS without a policy already meant.
