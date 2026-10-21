@@ -1,7 +1,7 @@
 """QR cards: employee ID cards and gate test cards, with a never-reused serial counter.
 
-Revision ID: 0006
-Revises: 0005
+Revision ID: 0008
+Revises: 0007
 Create Date: 2026-10-20 12:00:00.000000+00:00
 """
 
@@ -10,8 +10,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0006"
-down_revision: str | Sequence[str] | None = "0005"
+revision: str = "0008"
+down_revision: str | Sequence[str] | None = "0007"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -117,6 +117,11 @@ def upgrade() -> None:
         ["employee_id", "issued_at"],
         unique=False,
     )
+
+    # Row-Level Security: Supabase would otherwise serve this table over its public data API.
+    # The backend connects as the table owner, which ignores RLS (CLAUDE.md section 5).
+    op.execute("ALTER TABLE qr_credentials ENABLE ROW LEVEL SECURITY")
+    op.execute("CREATE POLICY deny_all ON qr_credentials FOR ALL USING (false) WITH CHECK (false)")
 
 
 def downgrade() -> None:

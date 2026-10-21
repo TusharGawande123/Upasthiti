@@ -1,7 +1,7 @@
 """Punches (append-only, like the audit log) and their snapshots.
 
-Revision ID: 0007
-Revises: 0006
+Revision ID: 0009
+Revises: 0008
 Create Date: 2026-10-20 14:00:00.000000+00:00
 """
 
@@ -11,8 +11,8 @@ import sqlalchemy as sa
 from alembic import op
 from sqlalchemy.dialects import postgresql
 
-revision: str = "0007"
-down_revision: str | Sequence[str] | None = "0006"
+revision: str = "0009"
+down_revision: str | Sequence[str] | None = "0008"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -111,7 +111,7 @@ def upgrade() -> None:
         BEGIN
             RAISE EXCEPTION 'punches is append-only: rows can be added, never changed';
         END;
-        $$ LANGUAGE plpgsql
+        $$ LANGUAGE plpgsql SET search_path = ''
         """
     )
     op.execute(
@@ -122,6 +122,11 @@ def upgrade() -> None:
         "CREATE TRIGGER punches_no_truncate BEFORE TRUNCATE ON punches "
         "FOR EACH STATEMENT EXECUTE FUNCTION refuse_punch_change()"
     )
+
+    # Row-Level Security: Supabase would otherwise serve this table over its public data API.
+    # The backend connects as the table owner, which ignores RLS (CLAUDE.md section 5).
+    op.execute("ALTER TABLE punches ENABLE ROW LEVEL SECURITY")
+    op.execute("CREATE POLICY deny_all ON punches FOR ALL USING (false) WITH CHECK (false)")
 
     op.create_table(
         "punch_snapshots",
@@ -177,6 +182,11 @@ def upgrade() -> None:
         unique=False,
         postgresql_where=sa.text("state = 'stored'"),
     )
+
+    # Row-Level Security: Supabase would otherwise serve this table over its public data API.
+    # The backend connects as the table owner, which ignores RLS (CLAUDE.md section 5).
+    op.execute("ALTER TABLE punch_snapshots ENABLE ROW LEVEL SECURITY")
+    op.execute("CREATE POLICY deny_all ON punch_snapshots FOR ALL USING (false) WITH CHECK (false)")
 
 
 def downgrade() -> None:

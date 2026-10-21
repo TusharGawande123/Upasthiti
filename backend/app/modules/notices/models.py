@@ -1,4 +1,4 @@
-"""Gate notices shown on the kiosk idle screen (F-25; spec §6, migration 0008).
+"""Gate notices shown on the kiosk idle screen (F-25; spec §6, migration 0010).
 
 A notice is plain text for one plant or all plants, between a start and an end. Nothing is
 deleted: an ended or past notice stays in the list.

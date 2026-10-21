@@ -1,4 +1,4 @@
-"""Punches and their snapshots (SRS FR-17, FR-25; spec §6, migration 0007).
+"""Punches and their snapshots (SRS FR-17, FR-25; spec §6, migration 0009).
 
 A punch row is written once and never changed or deleted: a database trigger refuses UPDATE,
 DELETE and TRUNCATE (the same rule as the audit log, CLAUDE.md §5 and the Labour Codes). A mistake

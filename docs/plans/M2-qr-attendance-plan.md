@@ -135,7 +135,7 @@ Save this plan as `docs/plans/M2-qr-attendance-plan.md` (Status: Approved).
 2. `feat(backend):` config fields + production checks; `app/core/crypto.py` (Ed25519 + AES-GCM);
    `app/scripts/make_qr_key.py` and `make_snapshot_key.py` (print a new key for `.env`);
    `.env.example` with comments; tests for AC-27.
-3. `feat(qr-cards):` migration `0006_qr_cards` (`qr_credentials` incl. `printed_plant_id`,
+3. `feat(qr-cards):` migration `0008_qr_cards` (`qr_credentials` incl. `printed_plant_id`,
    `qr_card_serial_seq`, partial unique index for one active card, check constraints). Module
    `app/modules/qr_cards/`:
    - `payload.py`: build/parse `UPS1.<key id>.<serial>.<sig>` and a strict regex;
@@ -177,8 +177,8 @@ Save this plan as `docs/plans/M2-qr-attendance-plan.md` (Status: Approved).
 ### Slice B – Kiosk punch, snapshot, storage
 9. `feat(backend):` `app/core/storage.py` (local + Supabase) with tests against a fake HTTP
    transport (upload, read, delete, timeout, retry); `.storage/` is git-ignored.
-10. `feat(punches):` migrations `0007_punches` (`punches` + UPDATE/DELETE/TRUNCATE trigger, as in
-    `0002`; `punch_snapshots`) and `0008_kiosk_notices_and_kiosk_fields` (`kiosk_notices`;
+10. `feat(punches):` migrations `0009_punches` (`punches` + UPDATE/DELETE/TRUNCATE trigger, as in
+    `0002`; `punch_snapshots`) and `0010_kiosk_notices_and_kiosk_fields` (`kiosk_notices`;
     `kiosk_devices.sound_muted`, `last_self_test_at`). Both migrations come now, because the
     self-test flow writes the kiosk field.
 11. `feat(antiproxy):` `app/antiproxy/`:
@@ -312,8 +312,8 @@ Save this plan as `docs/plans/M2-qr-attendance-plan.md` (Status: Approved).
     `app/antiproxy/rules/{snapshot,qr_credential,cooldown}.py`;
   - `app/modules/{qr_cards,punches,notices,printing}/…`, `printing/fonts/*.ttf`;
   - `app/scripts/{make_qr_key,make_snapshot_key,e2e_card_video}.py`;
-  - `migrations/versions/0006_qr_cards.py`, `0007_punches.py`,
-    `0008_kiosk_notices_and_kiosk_fields.py`;
+  - `migrations/versions/0008_qr_cards.py`, `0009_punches.py`,
+    `0010_kiosk_notices_and_kiosk_fields.py`;
   - `loadtest/`, `tests/{kiosk_helpers,image_helpers}.py`, `tests/test_*` per module.
 - **Backend changed:** `app/main.py`, `app/core/config.py`, `app/modules/all_models.py`,
   `auth/{permissions,rate_limit}.py`, `kiosks/{router,service,models,schemas}.py`,

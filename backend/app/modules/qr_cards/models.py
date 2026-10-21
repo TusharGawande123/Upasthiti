@@ -1,4 +1,4 @@
-"""QR ID cards and gate test cards (SRS FR-14, FR-15; spec §6, migration 0006).
+"""QR ID cards and gate test cards (SRS FR-14, FR-15; spec §6, migration 0008).
 
 A card row holds only the serial, the validity dates and the history. The QR text itself
 (payload and signature) is never stored: Ed25519 signatures are deterministic, so the server

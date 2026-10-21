@@ -3,7 +3,7 @@
 
 import uuid
 from collections.abc import Callable
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, datetime, time, timedelta
 
 import pytest
 from fastapi import FastAPI
@@ -16,6 +16,7 @@ from app.antiproxy.rules.cooldown import check_in_out
 from app.antiproxy.rules.qr_credential import check_qr_credential
 from app.antiproxy.rules.snapshot import check_snapshot
 from app.core.config import get_settings
+from app.core.time import IST, today_ist
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches.models import Direction, Punch
 from app.modules.qr_cards.models import QrCredential
@@ -30,8 +31,10 @@ LIMITS = PunchLimits(
     open_in_max_hours=20,
     snapshot_dark_threshold=40,
 )
-# A fixed "server time": Tuesday 20 Oct 2026, 10:00 IST (04:30 UTC).
-NOW = datetime(2026, 10, 20, 4, 30, tzinfo=UTC)
+# "Server time" for the rules: today at 10:00 IST (04:30 UTC). It follows the real date because a
+# card made by the test is valid from today, and a fixed date would one day be "before" it.
+TODAY_IST = today_ist()
+NOW = datetime.combine(TODAY_IST, time(10, 0), tzinfo=IST).astimezone(UTC)
 
 
 @pytest.fixture
@@ -231,7 +234,7 @@ def set_card_dates(session: Session, worker: Worker, **dates: object) -> None:
 def test_a_card_is_valid_on_both_of_its_end_days(
     db_session: Session, make_context: Callable[..., PunchContext], worker: Worker
 ) -> None:
-    today = NOW.date()  # 20 Oct 2026 in IST as well
+    today = TODAY_IST
     set_card_dates(db_session, worker, valid_from=today, valid_until=today)
 
     assert check_qr_credential(make_context(qr_text=worker.qr_text)).outcome is Outcome.ALLOW
@@ -256,9 +259,9 @@ def test_a_card_that_has_not_started_or_has_ended_is_refused(
 def test_the_card_day_is_the_ist_day_not_the_utc_day(
     db_session: Session, make_context: Callable[..., PunchContext], worker: Worker
 ) -> None:
-    # 23:00 UTC on the 20th is already 04:30 IST on the 21st.
-    late_utc = datetime(2026, 10, 20, 23, 0, tzinfo=UTC)
-    set_card_dates(db_session, worker, valid_from=late_utc.date(), valid_until=late_utc.date())
+    # 23:00 UTC today is already 04:30 IST tomorrow.
+    late_utc = datetime.combine(TODAY_IST, time(23, 0), tzinfo=UTC)
+    set_card_dates(db_session, worker, valid_from=TODAY_IST, valid_until=TODAY_IST)
 
     context = make_context(qr_text=worker.qr_text, now=late_utc)
 
@@ -410,8 +413,8 @@ def test_a_night_shift_in_at_seven_pm_is_followed_by_an_out_at_seven_am(
     make_context: Callable[..., PunchContext],
     worker: Worker,
 ) -> None:
-    in_time = datetime(2026, 10, 19, 13, 30, tzinfo=UTC)  # 19:00 IST
-    out_time = datetime(2026, 10, 20, 1, 35, tzinfo=UTC)  # 07:05 IST next day
+    in_time = datetime.combine(TODAY_IST - timedelta(days=1), time(19, 0), tzinfo=IST)
+    out_time = datetime.combine(TODAY_IST, time(7, 5), tzinfo=IST)  # 12 h 5 min later
     add_punch(db_session, kiosk, worker, "in", NOW - in_time)
 
     context = make_context(qr_text=worker.qr_text, now=out_time)

@@ -517,9 +517,13 @@ Common errors for all admin endpoints: as M1 (`NOT_AUTHENTICATED`, `FORBIDDEN`,
 
 ## 6. Data model changes
 Conventions as M1: UUID `id`, `created_at` / `updated_at` as `timestamptz` (UTC), constraint
-names per the M0 convention, nothing hard-deleted. Existing migrations end at `0005_people`.
+names per the M0 convention, nothing hard-deleted. Existing migrations end at
+`0007_deny_all_policies_and_fixed_search_path` (main; the M2 migrations are therefore 0008 to 0010).
+Every new table also gets Row-Level Security and a `deny_all` policy in its own migration, and
+the append-only trigger function of `punches` has a fixed `search_path` (CLAUDE.md §5, decision
+0007); `tests/test_row_level_security.py` checks it.
 
-**Migration `0006_qr_cards`**
+**Migration `0008_qr_cards`**
 | Table | Columns (type) | Keys / indexes / constraints |
 |---|---|---|
 | `qr_credentials` | kind (`employee`/`test`), employee_id (FK employees, null only for `test`), label (text null, test cards only), card_serial (text: `C` + 6–9 digits for employee cards, `T` + 6–9 digits for test cards; from the sequence `qr_card_serial_seq`), key_id (char(1), A–Z), valid_from (date, IST), valid_until (date; test cards: far future), issued_by (FK users), issued_at (timestamptz), note (text null), revoked_at (timestamptz null), revoked_by (FK users null), revoke_kind (`lost`/`damaged`/`left`/`replaced`/`other` null), revoke_reason (text null), print_count (int, default 0), last_printed_at (timestamptz null), **printed_plant_id (FK plants, null; set at every print to the employee's current plant)**, last_used_at (timestamptz null, test cards only) | unique `card_serial`; **partial unique (employee_id) where kind = `employee` and revoked_at is null** (one active card); check `kind = 'test'` ⇔ employee_id is null; check `valid_until >= valid_from`; check revoke fields all set or all null; index (employee_id, issued_at) |
@@ -529,7 +533,7 @@ server re-creates the same payload from serial + key whenever it prints. The pay
 holds no plant and no date; the plant on the printed card is for people, the server checks the
 employee's current plant.
 
-**Migration `0007_punches`**
+**Migration `0009_punches`**
 | Table | Columns | Keys / constraints |
 |---|---|---|
 | `punches` | client_punch_id (uuid), kiosk_id (FK kiosk_devices), plant_id (FK plants: the kiosk's plant), employee_id (FK null), qr_credential_id (FK null), method (`qr`; `face` added in M3), direction (`in`/`out` null), decision (`accepted`/`rejected`; `flagged` reserved for M4), reason_codes (text[], empty when accepted), server_received_at (timestamptz), device_claimed_at (timestamptz null, never trusted), was_offline (bool, default false; M4), lat / lon (numeric(9,6) null), accuracy_m (numeric null), ip (inet null), app_version (text null) | unique (kiosk_id, client_punch_id); index (plant_id, server_received_at); index (employee_id, server_received_at desc) where decision = `accepted`; index (qr_credential_id, server_received_at desc) (F-29); check direction not null when accepted; **trigger refuses UPDATE and DELETE** (append-only, like `audit_logs`) |
@@ -538,7 +542,7 @@ employee's current plant.
 Columns for M3 (match and liveness scores) and M4b (phone, outside plant) are added by their
 own migrations.
 
-**Migration `0008_kiosk_notices_and_kiosk_fields`**
+**Migration `0010_kiosk_notices_and_kiosk_fields`**
 | Table | Columns | Keys / constraints |
 |---|---|---|
 | `kiosk_notices` | plant_id (FK null = all plants), text (text, 1–200 characters), level (`normal`/`important`), starts_at, ends_at (timestamptz), created_by (FK users), ended_at (null), ended_by (FK null) | check `ends_at > starts_at`; index (plant_id, starts_at, ends_at) |

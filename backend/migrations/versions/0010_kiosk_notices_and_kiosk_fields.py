@@ -1,7 +1,7 @@
 """Gate notices, and two new fields on kiosks (sound switch, last self-test).
 
-Revision ID: 0008
-Revises: 0007
+Revision ID: 0010
+Revises: 0009
 Create Date: 2026-10-20 14:30:00.000000+00:00
 """
 
@@ -10,8 +10,8 @@ from collections.abc import Sequence
 import sqlalchemy as sa
 from alembic import op
 
-revision: str = "0008"
-down_revision: str | Sequence[str] | None = "0007"
+revision: str = "0010"
+down_revision: str | Sequence[str] | None = "0009"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
@@ -67,6 +67,10 @@ def upgrade() -> None:
         ["plant_id", "starts_at", "ends_at"],
         unique=False,
     )
+    # Row-Level Security: Supabase would otherwise serve this table over its public data API.
+    # The backend connects as the table owner, which ignores RLS (CLAUDE.md section 5).
+    op.execute("ALTER TABLE kiosk_notices ENABLE ROW LEVEL SECURITY")
+    op.execute("CREATE POLICY deny_all ON kiosk_notices FOR ALL USING (false) WITH CHECK (false)")
     op.add_column(
         "kiosk_devices",
         sa.Column("sound_muted", sa.Boolean(), server_default=sa.text("false"), nullable=False),
