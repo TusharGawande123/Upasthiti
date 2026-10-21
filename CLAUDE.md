@@ -127,6 +127,12 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - NEVER let a Corporate Head's employee change take effect without a Super Admin's
   approval; the server decides this from the role, never from a client flag.
 - NEVER commit secrets; use .env (ignored) + .env.example.
+- Every table needs Row-Level Security: in the migration that creates it, run
+  `ALTER TABLE <name> ENABLE ROW LEVEL SECURITY` and
+  `CREATE POLICY deny_all ON <name> FOR ALL USING (false) WITH CHECK (false)` (no grants to
+  anon). Supabase exposes `public` tables over its own API otherwise; our backend uses the owner
+  role, which ignores RLS. A trigger function needs `SET search_path = ''`. Tests fail when
+  one is missing (decision 0007).
 - NEVER start building a milestone before its spec and plan are approved.
 - NEVER build the legally risky future-scope items (section 1): automatic
   PF/ESIC/PT/TDS calculation, statutory reports, challans, Form 16, tax filing.

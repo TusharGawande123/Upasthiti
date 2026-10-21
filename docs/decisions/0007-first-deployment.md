@@ -35,3 +35,15 @@ write, or put the limit on the account and the kiosk instead of the IP.
 ## Still to do on the live system
 - Real-device check of kiosk pairing (phone, laptop, gate PC): location accuracy and messages.
 - Draw the real geofence of each plant on site (the 7 plants are created, none has a geofence).
+
+## Supabase security mail (2026-10-17): Row-Level Security
+Supabase warned that tables in `public` were open to its Data API (`rls_disabled_in_public`).
+We never use that API (the backend connects straight to Postgres as the owner, which ignores
+RLS), so migration 0006 turns RLS on for every table and removes anon/authenticated grants,
+with no policies. Every new table must do the same; `tests/test_row_level_security.py` checks it.
+The later mail about explicit grants from 2026-10-30 needs no action: we want no grants.
+
+Follow-up the same day (migration 0007): the Security Advisor still showed one warning
+(`function_search_path_mutable` on the audit trigger function, fixed with an empty search_path)
+and 18 notes (`rls_enabled_no_policy`). Each table now has an explicit `deny_all` policy
+(`USING (false)`), which says in writing what RLS without a policy already meant.
