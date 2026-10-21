@@ -4,7 +4,8 @@
 // - One automatic retry for a lost connection, a server error or NONCE_REUSED (a new signature
 //   is made for every attempt).
 // - After 5 seconds without an answer the screen says the server is starting (Render wakes up);
-//   after 60 seconds the kiosk gives up and says honestly that the punch was NOT saved.
+//   after 60 seconds the kiosk gives up. It cannot know whether the server saved the punch
+//   meanwhile, so it says "not sure": a new scan then answers "already punched" if it was saved.
 import { ApiError } from "@/lib/api-client";
 import { signedRequest } from "../signer";
 import type { PunchAnswer } from "./punch-types";
@@ -72,7 +73,7 @@ export async function sendPunch(
   let giveUpTimer: ReturnType<typeof setTimeout> | undefined;
   const giveUp = new Promise<PunchOutcome>((resolve) => {
     giveUpTimer = setTimeout(
-      () => resolve({ kind: "failed", code: "NETWORK_OFFLINE" }),
+      () => resolve({ kind: "failed", code: "SERVER_NO_ANSWER" }),
       GIVE_UP_AFTER_MS,
     );
   });

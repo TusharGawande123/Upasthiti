@@ -133,10 +133,11 @@ def gate_poster_pdf(plant_name: str, plant_code: str, retention_days: int) -> by
             "A photo is taken at each card punch, only to stop card sharing. "
             f"It is kept for {retention_days} days and then deleted. Only the Super Admin can "
             "open it, and every view is recorded. It is never used for face recognition and "
-            "never shared outside the company."
+            "never shared outside the company. Your name, code and punch times are kept as "
+            "attendance records, as the law requires."
         ),
-        y=238,
-        height=40,
+        y=236,
+        height=45,
     )
     pdf.set_font(FONT_NAME, "B", 13)
     pdf.set_text_color(*INK)

@@ -488,7 +488,7 @@ def test_the_export_has_the_days_punches_as_text_and_is_audited(
     rows = open_sheet(response)
     assert rows[0] == [
         "Date",
-        "Time",
+        "Time (IST)",
         "Plant (kiosk)",
         "Employee code",
         "Name",

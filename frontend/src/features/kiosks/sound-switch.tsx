@@ -4,6 +4,8 @@
 // (the Corporate Head) sees the state as words. Status is never colour alone: icon + word.
 import { CircleCheck, CircleDashed, Volume2, VolumeX } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { toast } from "sonner";
+import { describeError } from "@/features/auth/error-message";
 import { formatDate, formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { type Kiosk, useSetKioskSound } from "./use-kiosks";
@@ -29,7 +31,12 @@ export function SoundSwitch({ kiosk, canManage }: { kiosk: Kiosk; canManage: boo
         aria-checked={on}
         aria-label={t("kiosks.sound.for", { name: kiosk.name })}
         disabled={setSound.isPending}
-        onClick={() => setSound.mutate({ id: kiosk.id, sound_muted: on })}
+        onClick={() =>
+          setSound.mutate(
+            { id: kiosk.id, sound_muted: on },
+            { onError: (error) => toast.error(describeError(error, t)) },
+          )
+        }
         className={cn(
           "relative h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 transition-colors disabled:opacity-60",
           on ? "border-primary bg-primary" : "border-input bg-muted",

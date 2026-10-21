@@ -84,7 +84,7 @@ def read_snapshot(
 
 COLUMNS = (
     ("Date", 12),
-    ("Time", 10),
+    ("Time (IST)", 10),
     ("Plant (kiosk)", 22),
     ("Employee code", 15),
     ("Name", 28),

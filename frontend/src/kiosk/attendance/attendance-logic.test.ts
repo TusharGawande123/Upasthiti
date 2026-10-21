@@ -207,7 +207,7 @@ describe("punch client", () => {
     expect(onSlow).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(GIVE_UP_AFTER_MS);
 
-    await expect(pending).resolves.toEqual({ kind: "failed", code: "NETWORK_OFFLINE" });
+    await expect(pending).resolves.toEqual({ kind: "failed", code: "SERVER_NO_ANSWER" });
   });
 
   it("does not call 'slow' when the answer comes quickly", async () => {

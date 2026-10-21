@@ -160,28 +160,28 @@
         "voice": "Card not valid. Please see the plant office."
       },
       "QR_FORMAT_INVALID": {
-        "title": "NOT ACCEPTED",
+        "title": "TRY AGAIN",
         "message": "The card could not be read.",
         "next": "Hold it still, about 20 cm from the camera.",
         "voice": "Card not read. Please try again."
       },
       "SNAPSHOT_MISSING": {
-        "title": "NOT ACCEPTED",
+        "title": "TRY AGAIN",
         "message": "The photo could not be taken.",
         "next": "Stand in front of the camera and try again.",
         "voice": "Photo not taken. Please try again."
       },
       "SNAPSHOT_INVALID": {
-        "title": "NOT ACCEPTED",
+        "title": "TRY AGAIN",
         "message": "The photo could not be taken.",
         "next": "Stand in front of the camera and try again.",
         "voice": "Photo not taken. Please try again."
       },
       "QR_SIGNING_NOT_CONFIGURED": {
         "title": "NOT ACCEPTED",
-        "message": "Cards are not set up on the server.",
-        "next": "Tell the admin.",
-        "voice": "Cards are not set up. Tell the admin."
+        "message": "This kiosk cannot read cards yet.",
+        "next": "Please see the plant office.",
+        "voice": "Cards cannot be read yet. Please see the plant office."
       },
       "COOLDOWN_ACTIVE": {
         "title": "ALREADY PUNCHED",
@@ -201,6 +201,12 @@
         "next": "Try again in a moment.",
         "voice": "No internet. Punch not saved."
       },
+      "SERVER_NO_ANSWER": {
+        "title": "NOT SURE",
+        "message": "The server did not answer in time.",
+        "next": "Scan your card again. If it was saved, you will see it.",
+        "voice": "Not sure if saved. Please scan again."
+      },
       "INTERNAL_ERROR": {
         "title": "ERROR",
         "message": "Something went wrong.",
@@ -209,9 +215,9 @@
       },
       "TOO_MANY_REQUESTS": {
         "title": "PLEASE WAIT",
-        "message": "Please wait a moment and try again.",
-        "next": "Your punch was NOT saved.",
-        "voice": "Please wait and try again."
+        "message": "Your punch was NOT saved.",
+        "next": "Wait a moment, then try again.",
+        "voice": "Not saved. Please wait and try again."
       },
       "PAYLOAD_TOO_LARGE": {
         "title": "NOT SAVED",
@@ -247,7 +253,7 @@
       "chipChecking": "Checking…",
       "cardRead": "Card read. Look at the camera",
       "checking": "Checking…",
-      "serverWaking": "The server is starting. Please wait…",
+      "serverWaking": "Please wait. The server is starting; this can take up to a minute.",
       "notACard": "This is not an Upasthiti ID card.",
       "lowLight": "Too dark. Please switch on the gate light.",
       "startCamera": "Start camera",
@@ -269,13 +275,15 @@
       "kioskOk": "KIOSK OK",
       "welcome": "Welcome,",
       "goodbye": "Goodbye,",
-      "employeeCode": "Employee code",
+      "codeLine": "Employee code {{code}}",
+      "codeChecked": "Employee code {{code}} · {{status}}",
       "checkedIn": "Checked in",
       "checkedOut": "Checked out",
       "serverTime": "Server time",
       "backIn": "Back to scanning in {{count}} s",
       "forAdmin": "For the admin:",
-      "already": "Already {{direction}} at {{time}}. No need to punch again.",
+      "alreadyInAt": "Already IN at {{time}}. No need to punch again.",
+      "alreadyOutAt": "Already OUT at {{time}}. No need to punch again.",
       "outAfter": "Already IN at {{time}}. You can punch OUT after {{outTime}}.",
       "selfTestChecks": "Camera ✓ · Server ✓ · Clock ✓ (server time {{time}})",
       "noAttendance": "No attendance was recorded."
@@ -417,6 +425,12 @@
     "DATABASE_UNAVAILABLE": "The database is not reachable right now. Please try again in a minute.",
     "SUPER_ADMIN_EXISTS": "A Super Admin already exists.",
     "EXPORT_TOO_LARGE": "At most 5,000 punches per file. Choose one plant.",
+    "QR_CARD_REVOKED": "A revoked card cannot be printed or changed. Issue a new card.",
+    "QR_CARD_NOT_FOUND": "This card was not found.",
+    "QR_VALIDITY_INVALID": "Choose an end date on or after the start date, within 3 years.",
+    "PRINT_TOO_LARGE": "At most 200 cards can be printed at a time.",
+    "EMPLOYEE_NOT_QR": "This employee punches by face and cannot have a card.",
+    "QR_SIGNING_NOT_CONFIGURED": "Cards are not set up on the server yet. Ask the project lead.",
     "SNAPSHOT_PURGED": "This photo was deleted after the retention period.",
     "SNAPSHOT_NOT_AVAILABLE": "No photo is available for this punch.",
     "STORAGE_UNAVAILABLE": "The photo store cannot be reached. Try again later.",
@@ -1474,7 +1488,7 @@
     },
     "columns": {
       "employee": "Employee",
-      "typeMethod": "Type Â· punch method",
+      "typeMethod": "Type · punch method",
       "plant": "Plant",
       "contractor": "Contractor",
       "card": "Card",
@@ -1563,8 +1577,10 @@
         "validFrom": "Valid from",
         "validFromHint": "Today, or up to {{days}} days ahead.",
         "validUntil": "Valid until",
-        "validUntilHint": "Default: {{months}} months. At most 3 years after the start.",
-        "plusMonths": "+{{months}} months",
+        "validUntilHint_one": "Default: {{months}} month. At most 3 years after the start.",
+        "validUntilHint_other": "Default: {{months}} months. At most 3 years after the start.",
+        "plusMonths_one": "+{{months}} month",
+        "plusMonths_other": "+{{months}} months",
         "note": "Note",
         "optional": "optional",
         "notePlaceholder": "For example: old card was damaged",
@@ -1587,7 +1603,8 @@
         "newDate": "New end date",
         "hint": "“End today” keeps the card working until the end of today. To stop it at once, revoke it.",
         "endToday": "End today",
-        "extend": "Extend by {{months}} months",
+        "extend_one": "Extend by {{months}} month",
+        "extend_other": "Extend by {{months}} months",
         "submit": "Save end date",
         "done": "End date saved."
       }
@@ -1752,7 +1769,8 @@
     "darkPhoto": "Dark photo",
     "live": "Live",
     "liveEvery": " · updates every 30 s",
-    "count": "{{formatted}} punches · newest first",
+    "count_one": "{{formatted}} punch · newest first",
+    "count_other": "{{formatted}} punches · newest first",
     "empty": "No punches yet today at this plant.",
     "emptyDay": "No punches on {{date}}.",
     "noMatch": "No punch matches these filters.",
@@ -1884,7 +1902,7 @@
       "explain": "Workers see it on the gate screen while they punch.",
       "plant": "Shown at",
       "text": "Notice text",
-      "textHint": "One line of plain text, shown exactly as typed. Marathi or Hindi works too.",
+      "textHint": "One line of plain text, shown exactly as typed, to everyone at the gate. Do not write names, employee codes, phone numbers, pay or health details.",
       "level": "Level",
       "normalHint": "Shown in the notices list.",
       "importantHint": "Shown first, in amber, with the word Important.",

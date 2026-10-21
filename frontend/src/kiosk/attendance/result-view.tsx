@@ -55,6 +55,7 @@ const KNOWN_CODES = new Set([
   "SNAPSHOT_INVALID",
   "QR_SIGNING_NOT_CONFIGURED",
   "NETWORK_OFFLINE",
+  "SERVER_NO_ANSWER",
   "INTERNAL_ERROR",
   "TOO_MANY_REQUESTS",
   "PAYLOAD_TOO_LARGE",
@@ -149,7 +150,6 @@ function describeAnswer(answer: PunchAnswer, t: TFunction): Shown {
   const time = hhmm(answer.server_time);
   const name = answer.employee?.display_name;
   const code = answer.employee?.employee_code ?? "";
-  const codeLine = `${t("kiosk.result.employeeCode")} ${code}`;
   if (kind === "in" || kind === "out") {
     const isIn = kind === "in";
     return {
@@ -161,7 +161,10 @@ function describeAnswer(answer: PunchAnswer, t: TFunction): Shown {
       name,
       card: {
         icon: IdCard,
-        main: `${codeLine} · ${t(isIn ? "kiosk.result.checkedIn" : "kiosk.result.checkedOut")}`,
+        main: t("kiosk.result.codeChecked", {
+          code,
+          status: t(isIn ? "kiosk.result.checkedIn" : "kiosk.result.checkedOut"),
+        }),
       },
       time,
     };
@@ -175,14 +178,14 @@ function describeAnswer(answer: PunchAnswer, t: TFunction): Shown {
             time: lastTime,
             outTime: hhmm(answer.details.out_allowed_from),
           })
-        : t("kiosk.result.already", { direction: lastOut ? "OUT" : "IN", time: lastTime });
+        : t(lastOut ? "kiosk.result.alreadyOutAt" : "kiosk.result.alreadyInAt", { time: lastTime });
     return {
       look: "already",
       icon: Info,
       shape: "square",
       word: t(lastOut ? "kiosk.result.alreadyOut" : "kiosk.result.alreadyIn"),
       name,
-      card: { icon: Info, main, sub: codeLine },
+      card: { icon: Info, main, sub: t("kiosk.result.codeLine", { code }) },
       time,
     };
   }

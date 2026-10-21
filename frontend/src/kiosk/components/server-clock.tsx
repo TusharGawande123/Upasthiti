@@ -18,7 +18,8 @@ export function formatIstTime(moment: Date, withSeconds = true): string {
     hour: "2-digit",
     minute: "2-digit",
     second: withSeconds ? "2-digit" : undefined,
-    hour12: false,
+    // "h23" on purpose: with hour12:false some browsers write midnight as 24:30 (night shifts).
+    hourCycle: "h23",
   }).format(moment);
 }
 

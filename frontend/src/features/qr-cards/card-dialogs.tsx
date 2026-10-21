@@ -155,7 +155,7 @@ export function IssueCardDialog({ employee, replacing, onClose }: IssueDialogPro
             <Field
               id="card-valid-until"
               label={t("qrCards.dialog.issue.validUntil")}
-              hint={t("qrCards.dialog.issue.validUntilHint", { months })}
+              hint={t("qrCards.dialog.issue.validUntilHint", { months, count: months })}
             >
               <Input
                 id="card-valid-until"
@@ -171,7 +171,7 @@ export function IssueCardDialog({ employee, replacing, onClose }: IssueDialogPro
                 className="mt-2"
                 onClick={() => setTypedUntil(defaultValidUntil(validFrom, months))}
               >
-                {t("qrCards.dialog.issue.plusMonths", { months })}
+                {t("qrCards.dialog.issue.plusMonths", { months, count: months })}
               </Button>
             </Field>
           </div>
@@ -344,7 +344,7 @@ export function ChangeValidUntilDialog({ card, onClose }: { card: Card; onClose:
                 variant="outline"
                 onClick={() => setValidUntil(addMonths(extendFrom, months))}
               >
-                {t("qrCards.dialog.changeEnd.extend", { months })}
+                {t("qrCards.dialog.changeEnd.extend", { months, count: months })}
               </Button>
             </div>
           </Field>

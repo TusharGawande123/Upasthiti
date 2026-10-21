@@ -16,7 +16,7 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "typecheck": "tsc -b",
-    "i18n:check": "node scripts/check-translations.mjs",
+    "i18n:check": "node scripts/check-translations.mjs && node scripts/check-error-codes.mjs",
     "size": "node scripts/check-bundles.mjs"
   },
   "dependencies": {

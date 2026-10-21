@@ -108,6 +108,10 @@ open, but the power settings must allow it too:
 - Android: Settings › Display › Screen timeout: the longest; with Developer options on, also
   **Stay awake** (screen never sleeps while charging).
 
+**Camera position.** Aim the camera only at the person standing at the kiosk: at face height,
+with no view of the road, the queue behind or other workstations. Photos of people who are not
+punching have no reason to exist. Fix the gate poster (see below) next to the kiosk.
+
 **Light.** Workers must be visible in the photo. If the gate is too dark the kiosk says
 **Too dark. Please switch on the gate light.**
 
