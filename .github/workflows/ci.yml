@@ -104,6 +104,10 @@ jobs:
           ' >> "$GITHUB_STEP_SUMMARY"
       - name: Production build
         run: npm run build
+      - name: Bundle sizes and no kiosk code in the admin's first load
+        run: |
+          npm run size | tee -a "$GITHUB_STEP_SUMMARY"
+          test "${PIPESTATUS[0]}" -eq 0
 
   e2e:
     name: e2e
