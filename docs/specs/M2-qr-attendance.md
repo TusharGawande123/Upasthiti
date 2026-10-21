@@ -1310,7 +1310,7 @@ Exact versions are fixed by the lockfiles at build time. All are free and open-s
 | locust | latest | MIT | **New, dev only (S-22):** load test |
 | pypdfium2 | latest | Apache-2.0 / BSD-3-Clause | **New, dev only (S-23):** render card PDFs to images in tests |
 | zxing-cpp (Python) | latest | Apache-2.0 | **New, dev only (S-23):** decode the rendered QR in tests |
-| size-limit + @size-limit/preset-app | latest | MIT | **New, dev only (S-28):** bundle-size budget in CI |
+| (size-limit not used) | – | – | **S-28 changed:** our own two small scripts `frontend/scripts/bundle-check.mjs` and `check-bundles.mjs` check the budgets, so no new dependency |
 | Web Speech API, Web Audio API, Screen Wake Lock, MediaDevices | browser built-in | – | Voice, tones, keep screen on, camera; nothing to install |
 
 No paid service is used. Supabase Storage is part of the existing free project (decision

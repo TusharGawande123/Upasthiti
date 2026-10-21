@@ -878,3 +878,43 @@ def test_a_card_text_in_a_report_is_cut_out_before_it_is_logged(
     assert "UPS1" not in message and "C000123" not in message
     assert "\n" not in message and "‮" not in message
     assert message.startswith("failed on [card]")
+
+
+def test_a_card_follows_a_dated_transfer_once_the_daily_job_has_moved_the_person(
+    boss: TestClient,
+    db_client: TestClient,
+    db_session: Session,
+    device: Device,
+    kiosk: KioskDevice,
+    tp1: PlantIds,
+    worker: Worker,
+) -> None:
+    """AC-11, the transfer part. The employee's plant changes when the daily job runs on the
+    effective day (00:05 IST), so until then the card still belongs to the old plant."""
+    from app.core.time import today_ist
+    from app.modules.employees.operations import apply_due_transfers
+
+    tomorrow = today_ist() + timedelta(days=1)
+    moved = boss.post(
+        f"/api/v1/employees/{worker.employee_id}/transfer",
+        json={
+            "to_plant_id": tp1.id,
+            "category_id": tp1.staff_id,
+            "shift_id": tp1.shift_id,
+            "effective_from": tomorrow.isoformat(),
+            "reason": "Needed at TP1",
+        },
+    )
+    assert moved.status_code == 200, moved.text
+    new_device = Device()
+    make_active_kiosk(db_session, tp1, new_device, "TP1 gate")
+
+    before = send(db_client, new_device, worker.qr_text).json()
+    apply_due_transfers(db_session, tomorrow)  # what the daily job does on the effective day
+    db_session.commit()
+    at_new_plant = send(db_client, new_device, worker.qr_text).json()
+    at_old_plant = send(db_client, device, worker.qr_text).json()
+
+    assert before["reason_code"] == "WRONG_PLANT"
+    assert at_new_plant["decision"] == "accepted" and at_new_plant["direction"] == "in"
+    assert at_old_plant["reason_code"] == "WRONG_PLANT"

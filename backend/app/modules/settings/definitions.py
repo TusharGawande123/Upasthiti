@@ -44,7 +44,7 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition("min_minutes_before_out", "punch", 30, "min", 2, 2, 240),
     SettingDefinition("open_in_max_hours", "punch", 20, "h", 2, 12, 24),
     SettingDefinition("snapshot_dark_threshold", "snapshots", 40, "of 255", 2, 10, 120),
-    # QR cards (M2, spec §7 rule 12). Editable once CURRENT_MILESTONE is raised to 2.
+    # QR cards (M2, spec §7 rule 12).
     SettingDefinition("qr_card_default_validity_months", "cards", 2, "months", 2, 1, 36),
     SettingDefinition("qr_card_expiring_soon_days", "cards", 14, "days", 2, 1, 60),
     # The kiosk screen (M2, F-1): tones, spoken line and how long a result stays on screen.
