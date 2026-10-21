@@ -7,6 +7,7 @@ How Upasthiti runs on the free tiers (docs/decisions/0002-hosting.md, 0004):
 | Website (admin + kiosk) | Vercel Hobby | `frontend/vercel.json` |
 | Backend API | Render Free (Docker, Singapore) | `deploy/render.yaml`, `backend/Dockerfile` |
 | Database | Supabase Free (Mumbai) | only `DATABASE_URL` |
+| Punch photos (from M2) | Supabase Storage, private bucket `punch-snapshots` | `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` |
 
 The browser only ever talks to the Vercel address. Vercel forwards `/api/*` to Render, so
 the site and the API share one origin and the login cookie stays simple.
@@ -80,6 +81,39 @@ Repository → Settings → Secrets and variables → Actions → **Variables**:
 the IP of your `auth.login` entry with your real public IP (search "what is my IP"). If
 it shows a Vercel/Render address instead, try `1` or `3` in Render's environment. The IP is
 used only for logs and rate limits, never as proof of location.
+
+### 8. QR cards and punch photos (once, before M2 is merged)
+From M2 the live backend **refuses to start** without these values, so set them up before the
+M2 pull request is merged (spec M2 §7 rule 14, decision 0008).
+
+1. **Private bucket.** Supabase → Storage → New bucket → name `punch-snapshots`,
+   **Public bucket switched off**. Add no policies: only the backend's service key reaches it.
+2. **Data API off.** Supabase → Project Settings → Data API → switch the Data API off. The
+   backend talks to Postgres directly; nothing should reach our tables through Supabase's
+   own REST API (every table also has Row-Level Security with a deny-all policy).
+3. **Two keys, made on your laptop** (from `backend/`):
+   ```powershell
+   uv run python -m app.scripts.make_qr_key        # prints QR_SIGNING_KEY=...
+   uv run python -m app.scripts.make_snapshot_key  # prints SNAPSHOT_ENCRYPTION_KEY=...
+   ```
+   Store both in the password manager at once. Losing `QR_SIGNING_KEY` means every printed
+   card must be re-issued; losing `SNAPSHOT_ENCRYPTION_KEY` means the stored photos can no
+   longer be opened. Never paste them in chat, an issue or the repository.
+4. **Render → upasthiti-backend → Environment**, add:
+   - `QR_SIGNING_KEY` and `SNAPSHOT_ENCRYPTION_KEY`: the two values from step 3;
+   - `QR_SIGNING_KEY_ID`: `A` (the default; change it only when a new key replaces this one);
+   - `SUPABASE_URL`: Project Settings → API → Project URL (`https://<project>.supabase.co`);
+   - `SUPABASE_SERVICE_KEY`: the **`service_role`** key (Project Settings → API Keys). It
+     bypasses every Supabase rule: it lives only in Render, never in the website or the repo;
+   - `STORAGE_BACKEND=supabase` and `SNAPSHOT_BUCKET=punch-snapshots` come from
+     `render.yaml`.
+5. Save (Render redeploys) and open `/api/v1/health/ready`. After the merge, scan a TEST card
+   at a kiosk (it shows **KIOSK OK** and stores nothing). The first real card punch (the M2
+   demo) must then show its photo in the punch log, and the file's public bucket URL must
+   fail in a browser.
+
+Render's own disk is wiped at every deploy, which is why the photos live in Supabase Storage.
+They are encrypted (AES-256-GCM) before upload, so the bucket holds no readable photo.
 
 ## Every later deployment
 Merging a pull request into `main` deploys both automatically. The post-deploy smoke test

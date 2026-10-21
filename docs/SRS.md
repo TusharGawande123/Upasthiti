@@ -188,8 +188,10 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 
 ### 4.d QR credentials
 - **FR-14 (M, M2)** Issue a QR card with an Ed25519-signed payload, valid-from and valid-until
-  dates, and a card serial. Print the ID card (PDF, CR80 size, with name, code and plant);
-  A4 sheets of cards are an extra.
+  dates, and a card serial. Print the ID card (PDF, CR80 size, with name, code and plant) and
+  A4 sheets of 10 cards (core since M2). The card shows **no end date**: validity is kept on
+  the card record and checked by the server. Only the Super Admin issues and prints cards
+  (decision 0009).
 - **FR-15 (M, M2)** Revoke a card instantly, with a reason, and re-issue (new serial). A
   revoked or expired card is rejected at the kiosk.
 
@@ -317,10 +319,12 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 | GET/POST | /change-requests · /change-requests/{id}/approve · /reject | Super Admin | Approvals inbox |
 | POST | /kiosks · /kiosks/{id}/revoke | plant admin | Create kiosk + pairing code; revoke |
 | POST | /kiosk/register | pairing code | Register the device public key |
-| POST | /kiosk/heartbeat · /kiosk/sync | kiosk | Health; offline batch upload |
+| GET/POST | /kiosk/me (heartbeat, notices, kiosk settings) · /kiosk/report · /kiosk/sync (M4) | kiosk | Health; error report; offline batch upload |
 | POST | /punch/challenge · /punch/kiosk | kiosk | Liveness challenge; submit a punch |
 | POST | /enrol/consent · /enrol/face · DELETE /enrol/face/{employee} | HR | Consent + enrolment |
-| POST | /qr/issue · /qr/revoke · GET /qr/{id}/card.pdf | HR | QR credentials |
+| GET/POST/PATCH | /qr-cards · /employees/{id}/qr-cards · /qr-cards/{id}/revoke · /qr-cards/bulk · /qr-cards/print · GET /qr-cards/{id}/card.pdf · /qr-test-cards | Super Admin (lists: all roles in scope) | QR credentials (M2 spec §5.1) |
+| GET | /punches · /punches/summary · /punches/{id} · /punches/{id}/snapshot · /punches/{id}/compare · /punches/export.xlsx | roles in scope; photos Super Admin only | Punch log (M2 spec §5.3) |
+| CRUD | /notices · POST /notices/{id}/end | Super Admin, Plant Head (own plant) | Gate notices (M2) |
 | GET | /attendance/daily · /attendance/employee/{id} | roles | Attendance |
 | POST | /regularisations · /regularisations/{id}/decide | supervisor / HR | Corrections |
 | GET | /dashboard/live (SSE) · /dashboard/summary | roles | Live headcount |
@@ -361,12 +365,12 @@ unless the user is an admin).
 | Photo, video or mask spoof | Liveness challenge + anti-spoof model (`LIVENESS_FAILED`, `SPOOF_SUSPECTED`) |
 | Twins, beard, helmet, safety glasses | Several enrolment shots; a margin over the second-best match → `NEED_EMPLOYEE_CODE`; re-enrolment option |
 | QR screenshot shared / card lent | Snapshot at each punch + cool-down + impossible travel; HR review |
-| Revoked, expired or damaged card | `QR_REVOKED`, `QR_EXPIRED`; unreadable → "Hold the card still / see HR" |
+| Revoked, expired or damaged card | `QR_REVOKED`, `QR_EXPIRED`, `QR_NOT_YET_VALID`, `QR_SIGNATURE_INVALID`; unreadable → "Hold the card still / see HR" |
 | Network down at the kiosk | Offline queue, signed, synced later; "Saved – will be confirmed" |
 | Device clock wrong | Server time only; claimed device time is used only for offline punches within the window, otherwise flagged |
-| Duplicate punch | `COOLDOWN_ACTIVE` → "Already IN at 08:02" |
+| Duplicate punch | `COOLDOWN_ACTIVE` → "Already IN at 08:02" (within the cool-down, default 2 min); `OUT_TOO_SOON` → "OUT after 08:32" (IN less than 30 min ago); both settings |
 | Night shift across midnight | The attendance date belongs to the shift's start date |
-| Transfer between plants | Employee plant history; punches allowed only at the current plant |
+| Transfer between plants | Employee plant history; punches allowed only at the current plant (`WRONG_PLANT`); the card is reprinted |
 | No check-out | Day marked incomplete → regularisation |
 | Face fails repeatedly | Employee code fallback; then supervisor-verified QR/manual punch (proposed extra), logged |
 

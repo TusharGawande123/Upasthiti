@@ -1,7 +1,8 @@
 # Setting up a gate kiosk
 
 For the plant office and the admin. A kiosk is a phone, tablet or PC with a camera that
-stands at a plant gate. This page is about **pairing** (the first setup). Pairing needs
+stands at a plant gate. This page covers **pairing** (the first setup) and **daily use** at the
+gate (from M2). Pairing needs
 **location switched on**; there is no other way and no approval route (decision 0005).
 
 ## Before you start (admin)
@@ -56,5 +57,82 @@ if you need help; it is also in the audit log.
   paired again (the admin adds it as a new kiosk).
 - The 50 m accuracy limit and the margin around the geofence are settings the Super Admin
   can change (Settings).
-- Attendance punching itself arrives in a later update (M2). Until then the kiosk only shows
-  that it is paired and online.
+- Location must stay allowed after pairing too: from M4 every punch is checked against the
+  geofence.
+
+## Punching with a QR card (from M2)
+
+After pairing, the kiosk shows the camera picture, the server time and **Show your ID card to
+the camera**. Nobody has to tap anything: scanning starts by itself.
+
+1. The worker holds the card in front of the camera (10–30 cm).
+2. **Card read. Look at the camera**: the kiosk takes one small photo of the worker. It stops
+   card sharing; the photo is encrypted and deleted after the retention period (60 days by
+   default, a setting).
+3. The answer comes from the server: **IN** (green) or **OUT** (blue) with the name, or a
+   reason in red, such as **Already IN** or a card that no longer works. A rejected card never
+   shows the name. The line **For the admin: CODE** tells the admin what happened.
+
+Workers can punch only at **their own plant's** gate, and only if their punch method is QR.
+
+## Make the device a good gate kiosk
+
+**Full screen and sound.** Tap the screen once after the page opens (**Tap once to turn on
+sound and full screen**). Browsers allow sound only after a tap. Without it the kiosk still
+works, silently.
+
+**Windows PC (Chrome or Edge).** Make a desktop shortcut that opens the kiosk full screen
+and allows sound without a tap. Right-click the desktop › New › Shortcut, and use one of
+these targets (with your site address):
+
+```text
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk https://<site>/kiosk --autoplay-policy=no-user-gesture-required
+"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --kiosk https://<site>/kiosk --edge-kiosk-type=fullscreen --autoplay-policy=no-user-gesture-required
+```
+
+Put the shortcut in the Startup folder (Win + R › `shell:startup`) so the kiosk opens after a
+restart. To leave kiosk mode, press Alt + F4.
+
+**Android phone or tablet (Chrome).**
+- Settings › Security › **App pinning** (or "Pin windows") on; open the kiosk in Chrome and
+  pin it, so the screen stays on the kiosk page.
+- Keep the device on its charger.
+
+**Camera and location.** The first time, the browser asks for the camera: press **Allow**.
+If it was refused, tap the padlock next to the address, set **Camera** and **Location** to
+**Allow**, and press **Try again**.
+
+**Keep the screen on.** The kiosk asks the device to keep its screen on while the page is
+open, but the power settings must allow it too:
+- Windows: Settings › System › Power › Screen and sleep: **Never** when plugged in.
+- Android: Settings › Display › Screen timeout: the longest; with Developer options on, also
+  **Stay awake** (screen never sleeps while charging).
+
+**Light.** Workers must be visible in the photo. If the gate is too dark the kiosk says
+**Too dark. Please switch on the gate light.**
+
+**Updates.** The kiosk checks for a new version every 5 minutes and reloads itself only after
+30 seconds with nobody punching, never in the middle of a punch.
+
+## Every morning: the TEST card
+
+The Super Admin prints a **TEST card** (QR cards › Test cards) for each gate. The guard or the
+Plant Head shows it to the kiosk at the start of the day. **KIOSK OK** with the server time
+means the camera, the internet connection and the server all work. A TEST card records no
+attendance and takes no photo.
+
+## The gate poster
+
+Plants › the plant › **Download gate poster (A4 PDF)** gives an A4 page with how to punch and the photo
+privacy notice (how long photos are kept). Print it and fix it next to the kiosk.
+
+## If the kiosk shows a problem while punching
+
+| The screen says | What to do |
+|---|---|
+| Camera is blocked | Tap the padlock next to the address, set Camera to Allow, press **Try again** |
+| No camera found | Check the camera cable; close other apps that use the camera |
+| No internet | Check the Wi-Fi or mobile data. Punches are not saved while offline (offline saving comes in M4) |
+| The server is starting. Please wait… | The free server was asleep; it wakes in under a minute. Keep the card ready |
+| This is not an Upasthiti ID card | Use the card printed by the plant office |
+| Too dark | Switch on the gate light |

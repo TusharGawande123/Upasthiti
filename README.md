@@ -57,6 +57,22 @@ design: [docs/architecture.md](docs/architecture.md)
 
 Then create the tables: `cd backend; uv run alembic upgrade head`.
 
+### QR card and photo keys (from M2)
+
+Issuing QR cards and storing punch photos need two keys of your own. Make them once and paste
+each printed line into `.env` (they are secret: never commit or share them):
+
+```powershell
+cd backend
+uv run python -m app.scripts.make_qr_key        # QR_SIGNING_KEY=...
+uv run python -m app.scripts.make_snapshot_key  # SNAPSHOT_ENCRYPTION_KEY=...
+```
+
+Without them the app still starts locally, but issuing a card answers
+`QR_SIGNING_NOT_CONFIGURED`. Locally the encrypted punch photos are saved in
+`backend/.storage/` (git-ignored, `STORAGE_BACKEND=local`); the live site uses a private
+Supabase Storage bucket ([deploy/README.md](deploy/README.md)).
+
 ## Run it
 
 ```powershell
@@ -66,7 +82,8 @@ Then create the tables: `cd backend; uv run alembic upgrade head`.
 - Admin: <http://localhost:5173/admin> opens the login page. There is no default account:
   create the first Super Admin once with
   `cd backend; uv run python -m app.scripts.create_super_admin` (it asks in the terminal).
-- Kiosk: <http://localhost:5173/kiosk> (pairing screen; see [kiosk setup guide](docs/guides/kiosk-setup.md))
+- Kiosk: <http://localhost:5173/kiosk> (pairing, then the punch screen; see the
+  [kiosk setup guide](docs/guides/kiosk-setup.md)). The camera works on `localhost` without https.
 - API docs: <http://localhost:8000/api/docs>
 - Test data: `cd backend; uv run python -m app.scripts.make_fake_data` fills an empty
   development database with the 7 plants and 650 invented employees. It refuses to run in
@@ -83,7 +100,7 @@ Or start them yourself in two terminals: `cd backend; uv run fastapi dev app/mai
 
 | Where | Command | What it does |
 |---|---|---|
-| `backend/` | `uv run pytest` | Tests + coverage (must stay ≥ 70%). Database tests need `TEST_DATABASE_URL` (a database whose name ends in `_test`, see `.env.example`) and skip without it |
+| `backend/` | `uv run pytest` | Tests + coverage (must stay ≥ 75%). Database tests need `TEST_DATABASE_URL` (a database whose name ends in `_test`, see `.env.example`) and skip without it |
 | `backend/` | `uv run ruff check . ; uv run ruff format .` | Lint and format |
 | `backend/` | `uv run pyright` | Type check |
 | `backend/` | `uv run alembic upgrade head` | Apply database migrations |
@@ -91,9 +108,11 @@ Or start them yourself in two terminals: `cd backend; uv run fastapi dev app/mai
 | `frontend/` | `npm test` | Vitest tests + coverage |
 | `frontend/` | `npm run lint` / `npm run lint:fix` | Biome lint and format |
 | `frontend/` | `npm run typecheck` · `npm run build` | TypeScript check · production build |
+| `frontend/` | `npm run size` | After `npm run build`: bundle size budgets, and no kiosk code in the admin's first load |
 | `frontend/` | `npm run i18n:check` | Every text key used in code exists in `public/locales/en/common.json` |
 | `e2e/` | `npx playwright test` | End-to-end tests (own database `upasthiti_e2e`, wiped on every run; add `--headed` to watch the browser) |
 | root | `pre-commit run --all-files` | Every git hook on every file |
+| `backend/` | `uv run python loadtest/prepare_data.py`, then Locust | Load test of the kiosk punch (by hand, not in CI): [backend/loadtest/README.md](backend/loadtest/README.md) |
 
 ## How we work (CLAUDE.md §8)
 
