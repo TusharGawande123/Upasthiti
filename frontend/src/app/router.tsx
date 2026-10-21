@@ -91,6 +91,13 @@ const adminPages: RouteObject[] = [
     ),
   },
   {
+    path: "/admin/notices",
+    lazy: page(
+      () => import("../features/notices/notices-page"),
+      (m) => m.NoticesPage,
+    ),
+  },
+  {
     path: "/admin/punches",
     lazy: page(
       () => import("../features/punches/punches-page"),

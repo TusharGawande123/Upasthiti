@@ -68,6 +68,7 @@ describe("menu by role", () => {
       "nav.plants",
       "nav.kiosks",
       "nav.punches", // read-only, own plant (design gate C)
+      "nav.notices", // reads all notices, writes its own plant's (design gate C)
       "nav.employees",
       "nav.qrCards", // read-only for a Plant Head (design gate A)
       "nav.contractors",

@@ -10,6 +10,7 @@ import {
   LayoutDashboard,
   ListChecks,
   type LucideIcon,
+  Megaphone,
   Printer,
   QrCode,
   ScrollText,
@@ -60,6 +61,8 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/admin/kiosks", labelKey: "nav.kiosks", icon: Tablet, roles: ALL_ROLES },
   // The punch log: every role reads it (the server limits a Plant Head to their own plant).
   { to: "/admin/punches", labelKey: "nav.punches", icon: History, roles: ALL_ROLES },
+  // Everyone reads gate notices; the Super Admin and the Plant Head write them (the server decides).
+  { to: "/admin/notices", labelKey: "nav.notices", icon: Megaphone, roles: ALL_ROLES },
   { to: "/admin/employees", labelKey: "nav.employees", icon: UserRound, roles: ALL_ROLES },
   {
     to: "/admin/import",

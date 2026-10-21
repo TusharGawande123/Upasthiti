@@ -9,7 +9,7 @@ only for their own plant, and never changes a notice meant for every plant.
 import uuid
 from datetime import datetime, timedelta
 
-from sqlalchemy import Select, and_, or_, select
+from sqlalchemy import Select, and_, case, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
@@ -118,8 +118,12 @@ def list_notices(
     state: NoticeState | None,
 ) -> tuple[list[NoticeResponse], int]:
     now = utc_now()
+    # Showing and scheduled notices first, then the ended ones; newest start first in each group
+    # (design gate C).
+    ended_last = case((_state_condition("ended", now), 1), else_=0)
     statement = _visible_to(
-        select(KioskNotice).order_by(KioskNotice.starts_at.desc(), KioskNotice.id), current_user
+        select(KioskNotice).order_by(ended_last, KioskNotice.starts_at.desc(), KioskNotice.id),
+        current_user,
     )
     if plant_id is not None:
         statement = statement.where(KioskNotice.plant_id == plant_id)

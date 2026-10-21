@@ -33,3 +33,22 @@ export function addMonths(isoDate: string, months: number): string {
 export function defaultValidUntil(start: string, months: number): string {
   return addDays(addMonths(start, months), -1);
 }
+
+const ISTDATE = new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" });
+const ISTTIME = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "Asia/Kolkata",
+  hour: "2-digit",
+  minute: "2-digit",
+  hourCycle: "h23",
+});
+
+/** The IST date ("2026-10-20") and time ("07:02") of an instant, for date and time inputs. */
+export function istDateAndTime(moment: Date | string): { date: string; time: string } {
+  const instant = new Date(moment);
+  return { date: ISTDATE.format(instant), time: ISTTIME.format(instant) };
+}
+
+/** "2026-10-20" and "23:59" typed in IST become an exact instant for the server. */
+export function istToIso(date: string, time: string): string {
+  return `${date}T${time}:00+05:30`;
+}

@@ -202,6 +202,16 @@ def test_a_plant_head_sees_own_plant_and_all_plant_notices_but_changes_only_thei
     assert items["For everyone"]["can_change"] is False
 
 
+def test_open_notices_come_first_then_the_ended_ones_newest_start_first(
+    boss: TestClient, notices: dict
+) -> None:
+    order = [item["text"] for item in boss.get(NOTICES).json()["items"]]
+
+    assert order[-1] == "Old news"  # the ended one, although it started last
+    assert order[0] == "Next week"  # the newest start among the open ones
+    assert set(order[1:4]) == {"For K134", "For TP1", "For everyone"}
+
+
 def test_notices_filter_by_state_plant_and_all_plants(
     boss: TestClient, notices: dict, k134: PlantIds
 ) -> None:

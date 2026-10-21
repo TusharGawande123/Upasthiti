@@ -1764,5 +1764,77 @@
       "back": "Back to this photo",
       "openEmployee": "Open employee"
     }
+  },
+  "notices": {
+    "title": "Gate notices",
+    "description": "Short messages shown on the gate kiosk screen. Workers see them while they punch.",
+    "new": "New notice",
+    "edit": "Edit",
+    "endNow": "End now",
+    "allPlants": "All plants",
+    "readOnlyCorporateHead": "Read-only. Only the Super Admin and the Plant Head of a plant write notices.",
+    "plantHeadNote": "You write notices for your own plant. Notices for all plants are written by the Super Admin; you can read them but not change them.",
+    "count_one": "{{formatted}} notice",
+    "count_other": "{{formatted}} notices",
+    "empty": "No gate notices yet. Press New notice to write one.",
+    "noMatch": "No notice matches these filters.",
+    "endedBy": "Ended by {{name}}",
+    "state": {
+      "showing": "Showing now",
+      "scheduled": "Scheduled",
+      "ended": "Ended"
+    },
+    "level": {
+      "normal": "Normal",
+      "important": "Important"
+    },
+    "filter": {
+      "state": "State",
+      "anyState": "State: any",
+      "allPlantsOnly": "Notices for all plants"
+    },
+    "columns": {
+      "text": "Notice",
+      "plant": "Plant",
+      "level": "Level",
+      "starts": "Starts",
+      "ends": "Ends",
+      "state": "State",
+      "createdBy": "Created by"
+    },
+    "end": {
+      "title": "End this notice now?",
+      "explain": "The notice disappears from the gate screens within a minute. It stays in this list as Ended.",
+      "confirm": "End now"
+    },
+    "form": {
+      "newTitle": "New gate notice",
+      "editTitle": "Edit gate notice",
+      "explain": "Workers see it on the gate screen while they punch.",
+      "plant": "Shown at",
+      "text": "Notice text",
+      "textHint": "One line of plain text, shown exactly as typed. Marathi or Hindi works too.",
+      "level": "Level",
+      "normalHint": "Shown in the notices list.",
+      "importantHint": "Shown first, in amber, with the word Important.",
+      "startDate": "Start date",
+      "startTime": "Start time",
+      "endDate": "End date",
+      "endTime": "End time",
+      "untilTonight": "Until tonight 23:59",
+      "sevenDays": "7 days",
+      "datesHint": "Times are IST. At most {{days}} days after the start. The notice disappears by itself at the end.",
+      "preview": "How it looks at the gate",
+      "previewEmpty": "Your notice appears here as you type.",
+      "previewNote": "Live preview of the notices panel of the gate screen ({{where}}).",
+      "within": "Kiosks show it within 2 minutes after saving.",
+      "save": "Save notice"
+    },
+    "error": {
+      "text": "Write 1 to 200 characters.",
+      "endBeforeStart": "The end must be after the start.",
+      "tooLong": "A notice can show for at most 90 days.",
+      "endPast": "The end is already past."
+    }
   }
 }
