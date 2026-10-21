@@ -11,6 +11,7 @@ import { BACKEND_ENV, BACKEND_FOLDER, FRONTEND_URL, TMP_FOLDER } from "../backen
 export const E2E_PASSWORD = "E2e-Test-Password-1";
 export const SUPER_ADMIN_LOGIN = "e2e.super";
 export const CORPORATE_HEAD_LOGIN = "e2e.corporate";
+export const PLANT_HEAD_LOGIN = "e2e.plant";
 
 export async function logIn(page: Page, login: string, password = E2E_PASSWORD) {
   await page.goto("/admin/login");
@@ -63,7 +64,11 @@ export async function openKioskDevice(
 export function adminApi(page: Page) {
   // Writes must come from our own site (CSRF check), like a real browser request.
   const headers = { Origin: FRONTEND_URL };
-  async function call<T>(method: "get" | "post" | "put", path: string, body?: unknown): Promise<T> {
+  async function call<T>(
+    method: "get" | "post" | "put" | "patch",
+    path: string,
+    body?: unknown,
+  ): Promise<T> {
     const response = await page.request[method](`/api/v1${path}`, { headers, data: body });
     expect(response.ok(), `${method.toUpperCase()} ${path}: ${response.status()}`).toBe(true);
     return (await response.json()) as T;
@@ -72,6 +77,7 @@ export function adminApi(page: Page) {
     get: <T>(path: string) => call<T>("get", path),
     post: <T>(path: string, body: unknown = {}) => call<T>("post", path, body),
     put: <T>(path: string, body: unknown) => call<T>("put", path, body),
+    patch: <T>(path: string, body: unknown) => call<T>("patch", path, body),
   };
 }
 
@@ -172,4 +178,14 @@ export async function openKioskWithCard(serial: string, pairingCode: string) {
     rmSync(clip, { force: true });
   };
   return { device, close };
+}
+
+/** Gives a seeded user (for example the Plant Head) the plant, through the Super Admin's API. */
+export async function assignPlant(api: Api, username: string, plantId: string): Promise<void> {
+  const users = await api.get<{ items: Array<{ id: string; username: string }> }>(
+    "/users?page_size=200",
+  );
+  const user = users.items.find((item) => item.username === username);
+  if (!user) throw new Error(`The user ${username} should exist (see the e2e seed).`);
+  await api.patch(`/users/${user.id}`, { plant_id: plantId });
 }
