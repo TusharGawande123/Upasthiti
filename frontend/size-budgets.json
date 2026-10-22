@@ -1,0 +1,32 @@
+[
+  {
+    "name": "Admin first load (JavaScript)",
+    "pattern": "^(index|jsx-runtime|useQuery)-.*.js$",
+    "maxGzipBytes": 154500
+  },
+  {
+    "name": "Admin menu and layout",
+    "pattern": "^admin-layout-.*.js$",
+    "maxGzipBytes": 24400
+  },
+  {
+    "name": "Kiosk screen (loaded only on /kiosk)",
+    "pattern": "^kiosk-pairing-page-.*.js$",
+    "maxGzipBytes": 53000
+  },
+  {
+    "name": "QR decoder, JavaScript (kiosk only)",
+    "pattern": "^ponyfill-.*.js$",
+    "maxGzipBytes": 16500
+  },
+  {
+    "name": "QR decoder, WebAssembly (kiosk only)",
+    "pattern": "^zxing_reader-.*.wasm$",
+    "maxGzipBytes": 506400
+  },
+  {
+    "name": "Styles",
+    "pattern": "^index-.*.css$",
+    "maxGzipBytes": 11300
+  }
+]

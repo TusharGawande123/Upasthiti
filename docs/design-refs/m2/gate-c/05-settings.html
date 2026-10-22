@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+  <link rel="stylesheet" href="c.css" />
+  <style>
+    /* same layout as the approved M1 settings screen (m1/gate-a/04-settings.html) */
+    .layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 28px; align-items: start; }
+    .toc { position: sticky; top: 88px; display: grid; gap: 2px; }
+    .toc a { display: flex; align-items: center; gap: 10px; height: 38px; padding: 0 10px; border-radius: 8px; color: var(--muted-foreground); font-weight: 500; text-decoration: none; font-size: 14px; }
+    .toc a svg { width: 17px; height: 17px; }
+    .toc a.on { background: var(--surface); color: var(--foreground); font-weight: 600; box-shadow: var(--shadow-xs); border: 1px solid var(--border); }
+    .toc .dot { margin-left: auto; font-size: 11.5px; font-weight: 700; color: var(--primary); }
+    .toc .new { margin-left: auto; font-size: 11px; font-weight: 700; color: var(--primary-soft-foreground); background: var(--primary-soft); border-radius: 6px; padding: 1px 6px; }
+    .group-head { display: flex; align-items: center; gap: 12px; padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .group-icon { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; background: var(--primary-soft); color: var(--primary); flex: none; }
+    .group-icon svg { width: 19px; height: 19px; }
+    .row { display: grid; grid-template-columns: minmax(0, 1fr) 190px 200px; gap: 20px; align-items: start; padding: 18px 22px; border-bottom: 1px solid var(--border); }
+    .row:last-child { border-bottom: 0; }
+    .row.changed { background: linear-gradient(90deg, rgba(31,58,147,0.05), transparent 60%); box-shadow: inset 3px 0 0 var(--primary); }
+    .row-label { font-weight: 600; font-size: 14.5px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+    .row-help { color: var(--muted-foreground); font-size: 13.5px; margin-top: 3px; max-width: 62ch; }
+    .unit-input .input { border-radius: 10px 0 0 10px; text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+    .meta { font-size: 13px; color: var(--muted-foreground); line-height: 1.6; }
+    .reset { display: inline-flex; align-items: center; gap: 6px; font-weight: 600; color: var(--primary); font-size: 13px; background: none; border: 0; padding: 0; cursor: pointer; text-decoration: underline; text-underline-offset: 3px; }
+    /* sticky at the bottom of the window in the app; static here so full-page screenshots show it after the cards */
+    .savebar { position: static; bottom: 16px; z-index: 15; margin-top: 18px; display: flex; align-items: center; gap: 12px; padding: 12px 14px 12px 18px; background: var(--foreground); color: #fff; border-radius: 14px; box-shadow: var(--shadow-lg); }
+    .savebar .btn-outline { background: transparent; color: #fff; border-color: rgba(255,255,255,0.35); }
+    .savebar .btn-light { background: #fff; color: var(--foreground); }
+    .change-line { display: grid; grid-template-columns: 1fr auto; gap: 12px; padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 14px; }
+    .change-line:last-child { border-bottom: 0; }
+    .old { text-decoration: line-through; color: var(--muted-foreground); }
+    .collapsed { display: flex; align-items: center; gap: 12px; padding: 14px 22px; }
+    .collapsed .group-icon { width: 34px; height: 34px; }
+    .row .alert { grid-column: 1 / -1; margin-top: -4px; }
+  </style>
+</head>
+<!--
+  Upasthiti – M2 design gate C – Screen 05: Settings with the M2 changes. Spec M2 §4.12, §7 rule 12 (11 settings), §9 (retention).
+  New cards "QR cards" and "Kiosk sound and screen"; "Punch rules" and "Snapshots" become editable. The M1 groups that do not
+  change in M2 (Kiosk and location, Security, Face, Salary) are drawn collapsed here only to keep the mockup short.
+  States (URL hash): (none) Super Admin editing, retention lowered 60 -> 30 days with its warning · #range-error · #save-reason ·
+  #corporate-head / #plant-head (read-only).  MOCKUP ONLY – static HTML, fake data.
+-->
+<body data-active="settings">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="c.js"></script>
+<script>
+  const RO = C.isCh || C.isPh;
+
+  // one number setting. o: { id, label, help, value, unit, def, range, changed, error, warn, locked, badge }
+  function numRow(o) {
+    const control = RO || o.locked
+      ? '<span class="val-box">' + (o.locked ? D.icon("lock") : "") + o.value + " " + o.unit + "</span>"
+      : '<div><div class="unit-input"><input id="' + o.id + '" class="input" value="' + o.value + '" inputmode="numeric"' + (o.error ? ' aria-invalid="true" aria-describedby="' + o.id + '-err"' : "") + ' /><span class="unit">' + o.unit + "</span></div>" +
+        (o.error ? '<div id="' + o.id + '-err" class="field-error">' + D.icon("circle-alert", 15) + o.error + "</div>" : "") + "</div>";
+    const meta = '<div class="meta meta-col">Default <b class="tnum" style="color:var(--foreground)">' + o.def + "</b> · Range <span class=\"tnum\" style=\"white-space:nowrap\">" + o.range + "</span><br/>" +
+      (RO || o.locked ? "" : o.changed || o.error ? '<button class="reset">' + D.icon("rotate-ccw", 14) + "Reset to default</button>" : '<span style="display:inline-flex;gap:6px;align-items:center">' + D.icon("check", 14) + "Using default</span>") + "</div>";
+    return '<div class="row' + (o.changed && !RO ? " changed" : "") + '"><div><div class="row-label"><label for="' + o.id + '">' + o.label + "</label>" +
+      (o.changed && !RO ? '<span class="badge badge-info" style="height:22px">' + D.icon("pencil") + "Changed</span>" : "") + (o.badge || "") + "</div>" +
+      '<div class="row-help">' + o.help + "</div></div>" + control + meta + (o.warn && !RO ? o.warn : "") + "</div>";
+  }
+  // one on/off setting (shadcn Switch with a word)
+  function switchRow(o) {
+    const control = RO ? '<span class="val-box">' + D.icon(o.on ? "volume-2" : "volume-x") + (o.on ? "On" : "Off") + "</span>"
+      : '<button class="sw" role="switch" aria-checked="' + o.on + '" id="' + o.id + '" aria-label="' + o.label + '"><span class="sw-track"><span class="sw-thumb"></span></span><span class="sw-word">' + D.icon(o.icon) + (o.on ? "On" : "Off") + "</span></button>";
+    return '<div class="row"><div><div class="row-label"><label for="' + o.id + '">' + o.label + '</label></div><div class="row-help">' + o.help + "</div></div>" + control +
+      '<div class="meta meta-col">Default <b style="color:var(--foreground)">On</b><br/>' + (RO ? "" : '<span style="display:inline-flex;gap:6px;align-items:center">' + D.icon("check", 14) + "Using default</span>") + "</div></div>";
+  }
+  function group(id, icon, title, sub, badge, rows) {
+    return '<section id="' + id + '" class="card anim-fade-up" style="overflow:hidden"><div class="group-head"><span class="group-icon">' + D.icon(icon) + "</span>" +
+      '<div class="flex-1"><h2 style="font-size:16px;font-weight:700;margin:0">' + title + '</h2><div class="meta">' + sub + "</div></div>" + (badge || "") + "</div>" + rows + "</section>";
+  }
+  function collapsed(icon, title, text) {
+    return '<section class="card collapsed"><span class="group-icon" style="background:var(--muted);color:var(--muted-foreground)">' + D.icon(icon) + '</span><div class="flex-1"><b>' + title + '</b><div class="meta">' + text + "</div></div>" +
+      '<span class="badge badge-neutral">' + D.icon("check") + "No change in M2</span>" + D.icon("chevron-down", 18, "color:var(--muted-foreground)") + "</section>";
+  }
+
+  function page(o) {
+    const lowered = !RO;
+    const retention = numRow({ id: "s-ret", label: "Snapshot retention", value: lowered ? 30 : 60, unit: "days", def: "60 days", range: "7–365", changed: lowered,
+      help: "QR-punch photos are deleted automatically after this many days (DPDP Act: keep personal data only as long as needed). Raising it keeps new photos longer; photos already stored keep their old date.",
+      warn: '<div class="alert alert-warning" role="alert">' + D.icon("triangle-alert", 20) + "<div><b>Lowering to 30 days also shortens the photos already stored.</b> Photos older than 30 days are deleted tonight at 00:05 IST and cannot be brought back. " +
+        'The gate posters say "kept for 60 days": download and print them again after saving.</div></div>' });
+    const dark = numRow({ id: "s-dark", label: "Dark photo limit", value: 40, unit: "of 255", def: "40", range: "10–120",
+      help: "A photo whose average brightness is below this gets the Dark photo mark in the punch log (the punch itself is decided as normal). Higher marks more photos." });
+
+    const punch = numRow({ id: "s-cool", label: "Punch cool-down", value: 2, unit: "minutes", def: "2 min", range: "1–30",
+      help: 'A second scan of the same card within this time is refused as "Already punched". No photo is kept for it.' }) +
+      numRow({ id: "s-out", label: "Earliest OUT after IN", value: 30, unit: "minutes", def: "30 min", range: "2–240",
+        help: 'A scan this soon after IN is refused as "Already IN", so a double scan never closes the day by mistake.', badge: '<span class="badge badge-new" style="height:22px">' + D.icon("sparkles") + "New</span>" }) +
+      numRow({ id: "s-open", label: "Longest open IN", value: 20, unit: "hours", def: "20 h", range: "12–24",
+        help: "If the last IN is older than this, the next scan is a new IN and the old day stays incomplete. 20 h covers a 12 h night shift.", badge: '<span class="badge badge-new" style="height:22px">' + D.icon("sparkles") + "New</span>" }) +
+      numRow({ id: "s-travel", label: "Impossible travel speed", value: 60, unit: "km/h", def: "60 km/h", range: "10–200", locked: true,
+        help: "Two punches at different plants faster than this speed are flagged.", badge: '<span class="badge badge-neutral" style="height:22px">' + D.icon("clock") + "Used from M4</span>" });
+
+    const cards = numRow({ id: "s-valid", label: "Default card validity", value: 2, unit: "months", def: "2 months", range: "1–36",
+      help: "The end date suggested when a card is issued. The Super Admin can still pick another date in the issue dialog." }) +
+      numRow({ id: "s-soon", label: '"Ends soon" warning', value: 14, unit: "days", def: "14 days", range: "1–60",
+        help: 'Cards that end within this many days show "Ends soon" and are counted on the dashboard.' });
+
+    const rejectErr = D.has("range-error");
+    const kiosk = switchRow({ id: "s-voice", label: "Voice", on: true, icon: "audio-lines", help: 'The kiosk says "Checked in", "Checked out" or the reason, in English. The name is never spoken.' }) +
+      switchRow({ id: "s-sound", label: "Sounds", on: true, icon: "volume-2", help: "Short tones: two rising notes when accepted, one soft note for already punched, two low notes when rejected." }) +
+      numRow({ id: "s-res", label: "Result screen time", value: RO ? 4 : 5, unit: "seconds", def: "4 s", range: "2–10", changed: !RO,
+        help: "How long an accepted result stays on the kiosk screen before it is ready for the next person." }) +
+      numRow({ id: "s-rej", label: "Rejected screen time", value: rejectErr ? 20 : 6, unit: "seconds", def: "6 s", range: "3–15", error: rejectErr ? "Use a value from 3 to 15." : "",
+        help: "Rejections stay longer, so the worker can read what to do next." });
+    const kioskNote = '<div class="kiosk-notes" style="border-top:1px solid var(--border)"><div>' + D.icon("tablet-smartphone") + '<span>One kiosk can also be muted on its own on the <a class="link" href="04-kiosks.html">Kiosks</a> page. Changes reach the kiosks within 2 minutes.</span></div></div>';
+
+    const head = D.pageHead({
+      title: "Settings",
+      desc: RO ? "Company-wide rules for all 7 plants. Only the Super Admin can change them." : "Company-wide rules for all 7 plants. Every change is saved in the audit log with your reason.",
+      actions: RO ? '<span class="badge badge-neutral">' + D.icon("lock") + "Read-only</span>" : '<span class="badge badge-info">' + D.icon("shield-check") + "You can edit (Super Admin)</span>",
+    });
+    const banner = RO ? C.roBanner("Read-only.", "Only the Super Admin changes settings. You see the values that the kiosks and the server use now.") : "";
+    const toc = '<nav class="toc anim-fade-up" aria-label="Setting groups">' +
+      '<a href="#g-kiosk">' + D.icon("map-pin") + "Kiosk and location</a>" + '<a href="#g-security">' + D.icon("lock") + "Security</a>" +
+      '<a href="#g-punch">' + D.icon("timer") + "Punch rules</a>" + '<a href="#g-snap" class="on">' + D.icon("camera") + "Snapshots" + (RO ? "" : '<span class="dot tnum">1</span>') + "</a>" +
+      '<a href="#g-cards">' + D.icon("qr-code") + 'QR cards<span class="new">New</span></a>' + '<a href="#g-ksound">' + D.icon("volume-2") + "Kiosk sound" + (RO ? '<span class="new">New</span>' : '<span class="dot tnum">' + (rejectErr ? 2 : 1) + "</span>") + "</a>" +
+      '<a href="#g-face">' + D.icon("scan-face") + "Face</a>" + '<a href="#g-salary">' + D.icon("indian-rupee") + "Salary</a></nav>";
+
+    const unsaved = rejectErr ? 3 : 2;
+    const savebar = RO ? "" : '<div class="savebar" role="region" aria-label="Unsaved changes">' + D.icon("pencil-line", 18, "opacity:.8") +
+      '<span><b class="tnum">' + unsaved + " unsaved changes</b>" + (rejectErr ? ' · <span style="color:#ffd0cb">' + D.icon("circle-alert", 14, "display:inline;vertical-align:-2px") + " 1 needs fixing</span>" : "") + "</span>" +
+      '<span class="ml-auto"></span><button class="btn btn-outline">Discard</button><button class="btn btn-light"' + (rejectErr ? ' aria-disabled="true" style="opacity:.55"' : "") + ">Save changes…</button></div>";
+
+    document.getElementById("page").innerHTML = head + banner + '<div class="layout">' + toc + '<div class="space-y-5">' +
+      collapsed("map-pin", "Kiosk and location", "GPS accuracy limit 50 m · geofence margin 25 m · pairing code 10 min") +
+      collapsed("lock", "Security", "Log out after 60 min idle · longest session 12 h · lock after 5 wrong passwords for 15 min") +
+      group("g-punch", "timer", "Punch rules", "Checked by the server for every punch. Server time only, never the kiosk clock.", '<span class="badge badge-success">' + D.icon("circle-check") + "In use from M2</span>", punch) +
+      group("g-snap", "camera", "Snapshots", "The photo taken at each QR punch, for the Super Admin to check card sharing.", '<span class="badge badge-success">' + D.icon("circle-check") + "In use from M2</span>", retention + dark) +
+      group("g-cards", "qr-code", "QR cards", "ID cards of temporary workers.", '<span class="badge badge-new">' + D.icon("sparkles") + "New in M2</span>", cards) +
+      group("g-ksound", "volume-2", "Kiosk sound and screen", "What every gate kiosk plays and how long it shows a result.", '<span class="badge badge-new">' + D.icon("sparkles") + "New in M2</span>", kiosk + kioskNote) +
+      collapsed("scan-face", "Face", "Used from M3; values come from the accuracy tests") +
+      collapsed("indian-rupee", "Salary estimate", "Used from M7: salary days per month 30") +
+      savebar + "</div></div>";
+  }
+
+  function reasonDialog() {
+    return D.dialog({
+      icon: "save", title: "Save 2 changes", desc: "The reason is saved in the audit log with your name.", width: 580,
+      body: '<div class="space-y-4"><div class="card" style="box-shadow:none">' +
+        '<div class="change-line"><span>Snapshot retention</span><span class="tnum" style="white-space:nowrap"><span class="old">60 days</span> ' + D.icon("arrow-right", 14, "display:inline;vertical-align:-2px") + " <b>30 days</b></span></div>" +
+        '<div class="change-line"><span>Result screen time</span><span class="tnum" style="white-space:nowrap"><span class="old">4 s</span> ' + D.icon("arrow-right", 14, "display:inline;vertical-align:-2px") + " <b>5 s</b></span></div></div>" +
+        '<div class="alert alert-warning" role="alert">' + D.icon("triangle-alert", 20) + "<div><b>Photos older than 30 days will be deleted tonight at 00:05 IST.</b> This cannot be undone. Punches stay; only their photos go.</div></div>" +
+        '<div><label class="label" for="reason">Reason <span style="color:var(--danger)">(required)</span></label>' +
+        '<textarea id="reason" class="input textarea">Plant meeting on 19/10/2026: 30 days is enough to check card sharing. Result screen a little longer for the TP1 gate.</textarea>' +
+        '<div class="help tnum" style="text-align:right">108 / 500</div></div></div>',
+      foot: '<button class="btn btn-outline">Cancel</button><button class="btn btn-primary">' + D.icon("check", 16) + "Save 2 changes</button>",
+    });
+  }
+
+  window.onMockState = function () {
+    C.patchShell();
+    page();
+    let title = RO ? "read-only" : "editing: retention lowered, warning shown";
+    if (D.has("range-error")) title = "a value out of range";
+    if (D.has("save-reason") && !RO) { D.mount(reasonDialog()); title = "save asks for a reason (repeats the warning)"; }
+    C.tag(title);
+    if (window.lucide) window.lucide.createIcons();
+  };
+</script>
+</body>
+</html>

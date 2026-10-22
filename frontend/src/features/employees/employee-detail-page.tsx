@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { describeError } from "@/features/auth/error-message";
 import { useMe } from "@/features/auth/use-auth";
+import { EmployeeCardPanel } from "@/features/qr-cards/employee-card-panel";
 import { formatDate, formatRupees, formatTime } from "@/lib/format";
 import { EmployeeStatusBadge, initialsOf, TypeBadge } from "./employee-badges";
 import { MarkLeftDialog, ReactivateDialog, TransferDialog } from "./employee-dialogs";
@@ -166,6 +167,8 @@ export function EmployeeDetailPage() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
         <div className="space-y-5">
+          <EmployeeCardPanel employee={employee} canManage={role === "super_admin"} />
+
           <Card>
             <CardHeader className="flex-row items-center justify-between">
               <CardTitle>{t("employees.detail.details")}</CardTitle>

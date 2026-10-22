@@ -1,19 +1,26 @@
 """Reading employees: lists with filters, one employee with history, the timeline (F-19)
 and quick search (F-6). Every query honours the user's plant scope."""
 
+import re
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import ColumnElement, Select, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
 from app.core.pagination import PageParams, fetch_page
 from app.modules.audit.models import AuditLog
 from app.modules.employees.models import Employee, EmployeePlantHistory, ShiftAssignment
+from app.modules.qr_cards.models import CardKind, QrCredential
 from app.modules.users.models import User
 
 SEARCH_LIMIT = 8
+# An employee card serial: "C" and digits, e.g. C000123 (test cards, "T...", belong to nobody).
+CARD_SERIAL_PATTERN = re.compile(r"C[0-9]{1,9}")
+# A short start like "C1" would match nobody useful, so a serial is matched by its first
+# characters only from this length on (the full serial always works).
+MIN_SERIAL_PREFIX_LENGTH = 4
 
 
 @dataclass(frozen=True)
@@ -141,8 +148,48 @@ def timeline(session: Session, employee_id: uuid.UUID) -> list[TimelineEvent]:
 def search(
     session: Session, text: str, *, only_plant_ids: frozenset[uuid.UUID] | None
 ) -> list[Employee]:
-    statement = _scoped(select(Employee), only_plant_ids).where(_matches(text))
+    condition = _matches(text)
+    serial = _card_serial(text)
+    if serial is not None:
+        # Typing a card serial finds its owner, also when that card was replaced or revoked
+        # (someone found an old card and wants to know whose it was).
+        owner_ids = select(QrCredential.employee_id).where(_serial_matches(serial))
+        condition = or_(condition, Employee.id.in_(owner_ids))
+    statement = _scoped(select(Employee), only_plant_ids).where(condition)
     return list(session.scalars(statement.order_by(Employee.employee_code).limit(SEARCH_LIMIT)))
+
+
+def matching_card_serials(
+    session: Session, text: str, employee_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, str]:
+    """For a search by card serial: which serial matched, per employee (newest if several)."""
+    serial = _card_serial(text)
+    if serial is None or not employee_ids:
+        return {}
+    rows = session.execute(
+        select(QrCredential.employee_id, QrCredential.card_serial)
+        .where(QrCredential.employee_id.in_(employee_ids), _serial_matches(serial))
+        .order_by(QrCredential.card_serial)
+    )
+    # Oldest serial first, so the newest overwrites.
+    return {
+        employee_id: card_serial for employee_id, card_serial in rows if employee_id is not None
+    }
+
+
+def _card_serial(text: str) -> str | None:
+    """The text in serial form (upper case), or None when it does not look like a serial."""
+    candidate = text.strip().upper()
+    return candidate if CARD_SERIAL_PATTERN.fullmatch(candidate) else None
+
+
+def _serial_matches(serial: str) -> ColumnElement[bool]:
+    condition = (
+        QrCredential.card_serial.startswith(serial)
+        if len(serial) >= MIN_SERIAL_PREFIX_LENGTH
+        else QrCredential.card_serial == serial
+    )
+    return condition & (QrCredential.kind == CardKind.EMPLOYEE.value)
 
 
 def _scoped(

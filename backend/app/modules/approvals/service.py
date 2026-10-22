@@ -24,7 +24,7 @@ from app.modules.approvals.payloads import from_json, values_from_json
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees import operations
 from app.modules.employees.import_excel import values_from_saved_rows
-from app.modules.employees.models import Employee
+from app.modules.employees.models import Employee, PunchMethod
 
 
 def try_without_saving(session: Session, change: Callable[[], Any]) -> None:
@@ -85,7 +85,17 @@ def apply_payload(
         created = [
             operations.create_employee(session, context, values) for values in checked.values
         ]
-        return {"employee_ids": [str(employee.id) for employee in created]}
+        created_ids = [str(employee.id) for employee in created]
+        return {
+            "employee_ids": created_ids,
+            # F-38: the same two lists as a direct import, for "Issue and print cards".
+            "created_employee_ids": created_ids,
+            "created_qr_employee_ids": [
+                str(employee.id)
+                for employee in created
+                if employee.punch_method == PunchMethod.QR.value
+            ],
+        }
     raise ApiError("VALIDATION_FAILED", "Unknown change.", 422)
 
 

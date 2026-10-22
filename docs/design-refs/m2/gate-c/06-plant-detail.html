@@ -1,0 +1,75 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Plant detail</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+  <link rel="stylesheet" href="c.css" />
+  <style>
+    .ov { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+    .count-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px; background: var(--border); border-top: 1px solid var(--border); }
+    .count-grid div { background: var(--surface); padding: 12px 16px; }
+    .count-grid b { display: block; font-size: 20px; font-weight: 750; }
+    .count-grid span { font-size: 12.5px; color: var(--muted-foreground); }
+  </style>
+</head>
+<!--
+  Upasthiti – M2 design gate C – Screen 06: plant detail (/admin/plants/:id), Overview tab, with the gate poster (F-34).
+  Spec M2 §4.12, §5.5 (GET /plants/{id}/gate-poster.pdf), §7 rules 1 and 20. The thumbnail is page 1 of the REAL poster PDF
+  (backend app/modules/printing/poster_pdf.py, rendered by render_poster.py); the button opens screenshots/poster.pdf.
+  States (URL hash): (none) Super Admin, K134 · #plant-head (own plant X280) · #corporate-head (no poster: not in the role matrix).
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<body data-active="plants">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="c.js"></script>
+<script src="kiosks.js"></script>
+<script>
+  function check(title, text, href) {
+    return '<div class="check-row"><span class="check-icon ci-ok">' + D.icon("check") + '</span><div class="check-text"><b>' + title + "</b><span>" + text + '</span></div><a class="btn btn-ghost btn-sm act" href="' + (href || "#") + '">View</a></div>';
+  }
+  window.onMockState = function () {
+    C.patchShell();
+    const code = C.isPh ? "X280" : "K134";
+    const banner = C.isPh ? C.roBanner("Read-only plant setup.", "Only the Super Admin changes this plant's details, geofence, shifts and categories. You manage its kiosks and can download its gate poster.")
+      : C.isCh ? C.roBanner("Read-only.", "You can view this plant. The Super Admin and the plant's Plant Head manage its setup, kiosks and gate poster.") : "";
+    const ready = '<section class="card" aria-labelledby="ready-title"><div class="card-head"><div><h2 id="ready-title" class="card-title" style="font-size:18px">Ready for attendance?</h2><p class="muted" style="margin:2px 0 0;font-size:13.5px">All five checks pass.</p></div>' +
+      '<span class="badge badge-success" style="height:30px;font-size:13.5px">' + D.icon("circle-check") + "Ready</span></div>" +
+      '<div style="padding:6px 22px 10px">' + check("Geofence", "Version 2 · polygon · margin 25 m") + check("Shifts", '<span class="tnum">General 07:00–19:00 · Night 19:00–07:00</span>') +
+      check("Employee categories", "4 active: Staff, Worker, Operator, Helper") + check("Kiosk at the gate", (code === "X280" ? "X280 gate" : "K134 main gate") + " · active", "04-kiosks.html#plant-tab") +
+      check("Employees", '<span class="tnum">' + (code === "X280" ? 118 : 142) + " active employees</span>") + "</div></section>";
+    const details = '<section class="card"><div class="card-head"><h2 class="card-title">Plant details</h2></div><dl class="kv card-pad">' +
+      '<dt>Code</dt><dd class="code" style="font-weight:700">' + code + "</dd><dt>Name</dt><dd>" + C.PLANT_NAMES[code] + "</dd>" +
+      '<dt>Status</dt><dd><span class="badge badge-success">' + D.icon("circle-check") + 'Active</span></dd><dt>Added</dt><dd class="tnum">12/10/2026 10:41 IST · Asha Rao</dd></dl>' +
+      '<div class="count-grid"><div><b class="tnum">3</b><span>Departments</span></div><div><b class="tnum">2</b><span>Shifts</span></div><div><b class="tnum">4</b><span>Categories</span></div></div></section>';
+    const poster = C.isCh ? "" :
+      '<section class="card card-pad" aria-labelledby="poster-title"><div class="poster-card">' +
+      '<a class="poster-link" href="screenshots/poster.pdf" target="_blank" rel="noopener" aria-label="Open the gate poster (A4 PDF) in a new tab"><img class="poster-thumb" src="screenshots/poster-' + code.toLowerCase() + '.png" alt="Preview of the A4 gate poster: three steps, what to do if rejected, and the photo notice" /></a>' +
+      '<div><h2 id="poster-title" class="card-title" style="display:flex;gap:8px;align-items:center">' + D.icon("printer", 18, "color:var(--primary)") + "Gate poster</h2>" +
+      '<p class="muted" style="font-size:13.5px;margin:6px 0 12px">An A4 poster for the wall next to the kiosk: the three steps (card, camera, IN or OUT), what to do if it says NOT ACCEPTED, and the photo notice with the retention days (now 60). No personal data.</p>' +
+      C.posterButton(true) + '<div class="ext-note" style="margin-top:8px">' + D.icon("external-link") + "Opens the PDF in a new tab. Print it again after the photo retention changes.</div></div></div></section>";
+    document.getElementById("page").innerHTML = '<div class="anim-fade-up">' + C.plantHeader(code, "overview") + "</div>" + banner +
+      '<div class="ov anim-fade-up anim-delay-1">' + ready + '<div class="space-y-4">' + poster + details + "</div></div>";
+    C.tag(C.isPh ? "own plant, poster button" : C.isCh ? "no poster (not in the role)" : "overview with the gate poster");
+    if (window.lucide) window.lucide.createIcons();
+  };
+</script>
+</body>
+</html>

@@ -1,0 +1,250 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Gate notices</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=Noto+Sans+Devanagari:wght@400;600&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+  <link rel="stylesheet" href="c.css" />
+</head>
+<!--
+  Upasthiti – M2 design gate C – Screen 03: Gate notices (/admin/notices, F-25). Spec M2 §4.11, §5.4, §7 rules 1 and 11, §9.
+  States (URL hash, join with "+"): (none) list, Super Admin · #new · #new-filled · #new-errors · #new-all-plants (long text, all plants) ·
+  #edit · #end-now · #edit-ended (NOTICE_ENDED) · #empty · #plant-head (X280; all-plant notices read-only) · #new+ph (plant fixed) ·
+  #corporate-head (read-only).  MOCKUP ONLY – static HTML, fake data. Today in the mockup: Tue 20/10/2026, 10:15 IST.
+-->
+<body data-active="notices">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="c.js"></script>
+<script>
+  // ---------- fake notices (API fields: plant | null, text, level, starts_at, ends_at, state, created_by, ended_at, ended_by, can_change) ----------
+  const N = [
+    { id: 1, plant: "K134", text: "Gate 2 is closed for repair until 14:00. Please use Gate 1.", level: "important", from: "20/10/2026 07:00", to: "20/10/2026 14:00", state: "showing", by: "Asha Rao", on: "20/10/2026 06:52" },
+    { id: 2, plant: null, text: "Safety shoes and helmets are required inside the plant.", level: "normal", from: "01/10/2026 00:00", to: "29/12/2026 23:59", state: "showing", by: "Asha Rao", on: "30/09/2026 17:10" },
+    { id: 3, plant: "TP1", text: "Canteen timing today: 12:30 to 13:15.", level: "normal", from: "20/10/2026 06:00", to: "20/10/2026 23:59", state: "showing", by: "Vaishali Kulkarni", on: "20/10/2026 05:48" },
+    { id: 4, plant: null, text: "Plant holiday on Friday 23/10/2026 for Dussehra. Night shift workers: please punch OUT before leaving.", level: "important", from: "21/10/2026 06:00", to: "23/10/2026 23:59", state: "scheduled", by: "Asha Rao", on: "19/10/2026 16:05" },
+    { id: 5, plant: "X280", text: "Free eye check-up camp at the plant office on Saturday, 10:00 to 13:00.", level: "normal", from: "22/10/2026 00:00", to: "24/10/2026 13:00", state: "scheduled", by: "Sameer Joshi", on: "19/10/2026 11:30" },
+    { id: 6, plant: "X280", text: "Water supply cut from 10:00 to 12:00 today.", level: "normal", from: "15/10/2026 07:00", to: "15/10/2026 12:00", state: "ended", by: "Sameer Joshi", on: "15/10/2026 06:40", ended: "15/10/2026 12:00", endedBy: null },
+    { id: 7, plant: "K134", text: "Gate 1 lock is broken. Use the side gate.", level: "important", from: "12/10/2026 06:00", to: "14/10/2026 18:00", state: "ended", by: "Asha Rao", on: "12/10/2026 05:55", ended: "13/10/2026 11:20", endedBy: "Asha Rao" },
+    { id: 8, plant: "K134", text: "उद्या सकाळी ७ वाजता सुरक्षा प्रशिक्षण आहे. सर्वांनी वेळेवर यावे.", level: "normal", from: "09/10/2026 08:00", to: "10/10/2026 09:00", state: "ended", by: "Asha Rao", on: "09/10/2026 07:41", ended: "10/10/2026 09:00", endedBy: null },
+  ];
+
+  function stateChip(n) {
+    if (n.state === "showing") return '<span class="badge badge-live">' + D.icon("monitor-check") + "Showing now</span>";
+    if (n.state === "scheduled") return '<span class="badge badge-info">' + D.icon("calendar-clock") + "Scheduled</span>";
+    return '<span class="badge badge-ended">' + D.icon("circle-stop") + "Ended</span>" +
+      '<span class="sub tnum" style="display:block;font-size:12px;color:var(--muted-foreground);margin-top:4px;white-space:normal;max-width:150px">' + (n.endedBy ? "Ended early " + n.ended.slice(0, 5) + " " + n.ended.slice(11) + " · " + n.endedBy : "Ended on time") + "</span>";
+  }
+  function levelCell(n) {
+    return n.level === "important" ? '<span class="lvl lvl-imp">' + D.icon("triangle-alert") + "Important</span>" : '<span class="lvl">' + D.icon("megaphone") + "Normal</span>";
+  }
+  function plantCell(n) {
+    return n.plant ? '<b class="code">' + n.plant + "</b>" : '<span class="plant-all">' + D.icon("globe") + "All plants</span>";
+  }
+  // can_change comes from the server: Super Admin any; Plant Head own plant only; Corporate Head never
+  function canChange(n) {
+    if (n.state === "ended") return false;
+    if (C.isSa) return true;
+    if (C.isPh) return n.plant === "X280";
+    return false;
+  }
+  function actionsCell(n) {
+    if (C.isCh) return "";
+    if (canChange(n)) {
+      return '<td><div class="row-acts"><button class="btn btn-outline" aria-label="Edit notice: ' + D.esc(n.text.slice(0, 30)) + '">' + D.icon("pencil") + "Edit</button>" +
+        '<button class="btn btn-danger-outline" aria-label="End notice now">' + D.icon("circle-stop") + "End now</button></div></td>";
+    }
+    if (n.state !== "ended" && C.isPh && !n.plant) return '<td><span class="ro-cell">' + D.icon("lock") + "Set by the Super Admin for all plants</span></td>";
+    return "<td></td>";
+  }
+  function row(n) {
+    const imp = n.level === "important";
+    return '<tr class="' + (n.state === "ended" ? "tr-ended" : "") + '">' +
+      '<td><div class="nt-text ' + (imp ? "is-important" : "") + '" lang="' + (/[ऀ-ॿ]/.test(n.text) ? "mr" : "en-IN") + '">' + D.icon(imp ? "triangle-alert" : "megaphone") + "<span>" + D.esc(n.text) + "</span></div></td>" +
+      "<td>" + plantCell(n) + "</td><td>" + levelCell(n) + "</td>" +
+      '<td class="tnum" style="white-space:nowrap"><span class="muted" style="font-size:12px">From</span> ' + n.from + '<br/><span class="muted" style="font-size:12px">To</span> <span style="margin-left:13px">' + n.to + "</span></td>" +
+      "<td>" + stateChip(n) + "</td>" +
+      '<td><b style="font-weight:600">' + n.by + '</b><span class="sub tnum" style="display:block;font-size:12px;color:var(--muted-foreground)">' + n.on + "</span></td>" +
+      actionsCell(n) + "</tr>";
+  }
+
+  function listPage(o) {
+    o = o || {};
+    const rows = C.isPh ? N.filter(function (n) { return !n.plant || n.plant === "X280"; }) : N;
+    const count = function (st) { return rows.filter(function (n) { return n.state === st; }).length; };
+    const canCreate = !C.isCh;
+    const head = D.pageHead({
+      title: "Gate notices",
+      desc: C.isPh ? "Short messages on the X280 gate screen, for example a closed gate or a holiday. Workers read them while they punch."
+        : "Short messages on the kiosk screen at the gate, for example a closed gate or a holiday. Workers read them while they punch.",
+      actions: canCreate && !o.empty ? '<button class="btn btn-primary btn-lg">' + D.icon("plus", 18) + "New notice</button>" : C.isCh ? '<span class="badge badge-neutral">' + D.icon("lock") + "Read-only</span>" : "",
+    });
+    let banner = "";
+    if (C.isCh) banner = C.roBanner("Read-only, all plants.", "The Super Admin and each Plant Head write gate notices. You can see every notice and when it shows.");
+    if (C.isPh) banner = '<div class="alert alert-info" role="note" style="margin-bottom:16px">' + D.icon("info", 20) + "<div><b>You can add and change notices for X280.</b> Notices for all plants come from the Super Admin; you can see them here but not change them.</div></div>";
+    const tip = '<div class="field-hint" style="margin:0 0 14px">' + D.icon("monitor") + "<span>A kiosk shows at most 3 notices at once, Important ones first, and takes up a new notice within 2 minutes. Nothing is deleted: ended notices stay in the list.</span></div>";
+
+    const tabs = '<div class="seg-tabs" role="tablist" aria-label="Notice state">' +
+      '<button role="tab" aria-selected="true">All<span class="n">' + rows.length + "</span></button>" +
+      '<button role="tab" aria-selected="false">' + D.icon("monitor-check") + 'Showing now<span class="n">' + count("showing") + "</span></button>" +
+      '<button role="tab" aria-selected="false">' + D.icon("calendar-clock") + 'Scheduled<span class="n">' + count("scheduled") + "</span></button>" +
+      '<button role="tab" aria-selected="false">' + D.icon("circle-stop") + 'Ended<span class="n">' + count("ended") + "</span></button></div>";
+    const toolbar = '<div class="toolbar">' + tabs +
+      (C.isPh ? '<span class="badge badge-outline" style="height:42px;padding:0 12px;border-radius:10px">' + D.icon("factory", 15, "color:var(--muted-foreground)") + '<b class="code">X280</b> and all-plant notices</span>'
+        : C.filterBtn("Shown at", "Any plant", false)) +
+      '<label class="search-input ml-auto" style="width:240px"><i data-lucide="search"></i><span class="sr-only">Search notice text</span><input class="input" placeholder="Search notice text" /></label></div>';
+
+    const thead = '<thead><tr><th scope="col">Notice</th><th scope="col">Shown at</th><th scope="col">Level</th><th scope="col">When (IST)</th><th scope="col">State</th><th scope="col">Created by</th>' +
+      (C.isCh ? "" : '<th scope="col"><span class="sr-only">Actions</span></th>') + "</tr></thead>";
+    let table = '<div style="overflow-x:auto"><table class="table nt">' + thead + "<tbody>" + rows.map(row).join("") + "</tbody></table></div>" +
+      '<div class="table-foot"><span class="tnum">Showing ' + rows.length + " of " + rows.length + '</span><span>Showing now and Scheduled first, then Ended (newest first)</span></div>';
+    if (o.empty) {
+      table = '<div class="empty" style="padding:64px 24px 60px"><div class="empty-icon">' + D.icon("megaphone") + "</div><h2>No gate notices yet</h2>" +
+        "<p>Write a short message for the gate screen, for example a closed gate or a plant holiday. Workers see it while they punch.</p>" +
+        (canCreate ? '<div class="flex justify-center gap-2" style="margin-top:20px"><button class="btn btn-primary btn-lg">' + D.icon("plus", 18) + "New notice</button></div>" : "") + "</div>";
+    }
+    document.getElementById("page").innerHTML = head + banner + (o.empty ? "" : tip) + '<div class="card anim-fade-up anim-delay-1" style="overflow:hidden">' + (o.empty ? "" : toolbar) + table + "</div>";
+  }
+
+  // ---------- kiosk idle-screen preview (gate B look, scaled) ----------
+  function kioskNotice(n, cls) {
+    if (n.placeholder) return '<div class="kp-notice is-empty is-mine">' + D.icon("megaphone") + "<p>Your notice appears here.</p></div>";
+    if (n.level === "important") return '<div class="kp-notice is-important ' + (cls || "") + '">' + D.icon("triangle-alert") + '<p><span class="tagword">Important</span>' + D.esc(n.text) + "</p></div>";
+    return '<div class="kp-notice ' + (cls || "") + '">' + D.icon("megaphone") + "<p>" + D.esc(n.text) + "</p></div>";
+  }
+  function preview(mine, plant, others, notes) {
+    // important first, then the newest start; at most 3
+    const all = [Object.assign({ mine: true }, mine)].concat(others);
+    all.sort(function (a, b) { return (b.level === "important") - (a.level === "important"); });
+    const shown = all.slice(0, 3);
+    const kiosk = plant === "X280" ? "X280 gate" : "K134 main gate";
+    return '<div class="kp-frame" aria-hidden="true"><div class="kp"><div class="kp-stripe"></div>' +
+      '<div class="kp-top"><div class="kp-logo"></div><div><b>Sheet Shapers · ' + plant + "</b><span>" + kiosk + '</span></div><div class="kp-clock">10:15</div></div>' +
+      '<div class="kp-side"><div class="kp-instr"><div class="illo">' + D.icon("id-card") + "</div><h3>Show your ID card to the camera</h3></div>" +
+      shown.map(function (n) { return kioskNotice(n, n.mine ? "is-mine" : "is-other"); }).join("") + "</div>" +
+      '<div class="kp-foot">A photo is taken at each card punch to stop card sharing. Kept for 60 days.</div></div></div>' +
+      '<div class="preview-cap">' + notes.map(function (t) { return "<div>" + D.icon(t[0]) + "<span>" + t[1] + "</span></div>"; }).join("") + "</div>";
+  }
+
+  // ---------- the notice form (dialog) ----------
+  // f: { title, plant, plantLocked, text, level, from, to, quickTo, errors:{text,dates}, counter, edit, ended }
+  function formDialog(f) {
+    const len = f.text.length;
+    const counterCls = len > 200 ? "is-over" : len >= 180 ? "is-near" : "";
+    const plantOptions = ["All plants (every gate kiosk)", "K134 · Sheet Shapers India Pvt Ltd (K-134)", "X280 · Sheet Shapers India Pvt Ltd (X-280)", "TP1 · Tirupati Pressco, Unit 1"];
+    const plantControl = f.plantLocked
+      ? '<div class="lock-field" id="nf-plant">' + D.icon("factory") + '<b class="code">X280</b><span style="font-weight:500">Sheet Shapers (X-280) · your plant</span><span class="ml">' + D.icon("lock") + "</span></div>"
+      : D.select("nf-plant", plantOptions, f.plant === "all" ? plantOptions[0] : f.plant === "K134" ? plantOptions[1] : plantOptions[1]);
+    const choice = function (val, icon, title, d) {
+      const on = f.level === val;
+      return '<button class="choice" role="radio" aria-checked="' + on + '"><span class="ci">' + D.icon(icon) + '</span><span style="min-width:0"><b>' + title + '</b><span class="d">' + d + '</span></span><span class="tick">' + D.icon("check") + "</span></button>";
+    };
+    const dt = function (id, label, date, time, err, quick) {
+      return '<div><span class="label" id="' + id + '-l">' + label + ' <span class="opt">IST</span></span><div class="dt-row" role="group" aria-labelledby="' + id + '-l">' +
+        '<label class="icon-input"><span class="sr-only">' + label + " date</span>" + D.icon("calendar") + '<input class="input" value="' + date + '"' + (err ? ' aria-invalid="true" aria-describedby="nf-dates-err"' : "") + " /></label>" +
+        '<label class="icon-input"><span class="sr-only">' + label + " time</span>" + D.icon("clock-3") + '<input class="input" value="' + time + '"' + (err ? ' aria-invalid="true"' : "") + " /></label></div>" + (quick || "") + "</div>";
+    };
+    const quickFrom = '<div class="quick"><button aria-pressed="' + (f.fromNow ? "true" : "false") + '">Now</button><button aria-pressed="false">Tomorrow 06:00</button></div>';
+    const quickTo = '<div class="quick">' + ["Today 23:59", "Tomorrow 23:59", "+7 days"].map(function (q) { return '<button aria-pressed="' + (f.quickTo === q) + '">' + q + "</button>"; }).join("") + "</div>";
+
+    const errSummary = f.errors ? '<div class="alert alert-danger" role="alert">' + D.icon("circle-alert", 20) + "<div><b>Fix 2 things before saving.</b> Nothing was saved.</div></div>" : "";
+    const endedAlert = f.ended ? '<div class="alert alert-danger" role="alert">' + D.icon("circle-stop", 20) + '<div style="flex:1"><b>This notice has ended. Create a new one.</b> It ended at 14:00 while you were editing. <span class="code" style="font-size:12px">(NOTICE_ENDED)</span></div><button class="btn btn-outline btn-sm" style="background:#fff">' + D.icon("copy", 15) + "Copy into a new notice</button></div>" : "";
+
+    const form = '<div class="nf-form">' + errSummary + endedAlert +
+      D.field({ id: "nf-plant", label: "Shown at", req: !f.plantLocked, control: plantControl, help: f.plantLocked ? "Plant Heads write notices for their own plant." : f.plant === "all" ? "Shown at all 7 plant gates." : "", hintIcon: f.plant === "all" ? "globe" : "info" }) +
+      "<div>" + '<label class="label" for="nf-text">Notice text<span class="req" aria-hidden="true">*</span><span class="sr-only"> (required)</span></label>' +
+      '<textarea id="nf-text" class="input textarea" rows="3" style="min-height:76px" maxlength="200" placeholder="For example: Gate 2 is closed until 14:00. Please use Gate 1." aria-describedby="nf-count nf-text-help' + (f.errors ? " nf-text-err" : "") + '"' + (f.errors ? ' aria-invalid="true"' : "") + ">" + D.esc(f.text) + "</textarea>" +
+      '<div class="count-row"><div>' + (f.errors ? '<div class="field-error" id="nf-text-err" role="alert" style="margin-top:0">' + D.icon("circle-alert", 15) + "<span>Write 1 to 200 characters.</span></div>" : "") +
+      '<div class="field-hint" id="nf-text-help" style="margin-top:' + (f.errors ? "6px" : "0") + '">' + D.icon("type") + "<span>One line of plain text, shown exactly as typed. Marathi or Hindi works too.</span></div></div>" +
+      '<span class="counter ' + counterCls + '" id="nf-count" aria-live="polite">' + len + "/200" + (len >= 180 && len <= 200 ? " · " + (200 - len) + " left" : "") + "</span></div></div>" +
+      '<div><span class="label" id="nf-level">Level</span><div class="choice-grid" role="radiogroup" aria-labelledby="nf-level">' +
+      choice("normal", "megaphone", "Normal", "Shown in the notices list.") + choice("important", "triangle-alert", "Important", "Shown first, in amber, with the word Important.") + "</div></div>" +
+      '<div class="form-grid">' + dt("nf-from", "Starts", f.from[0], f.from[1], false, quickFrom) + dt("nf-to", "Ends", f.to[0], f.to[1], !!f.errors, quickTo) + "</div>" +
+      (f.errors ? '<div class="field-error" id="nf-dates-err" role="alert" style="margin-top:-8px">' + D.icon("circle-alert", 15) + "<span>The end must be after the start, within 90 days.</span></div>"
+        : '<div class="field-hint" style="margin-top:-6px">' + D.icon("info") + "<span>At most 90 days after the start. The notice disappears by itself at the end.</span></div>") +
+      (f.edit ? '<div class="muted" style="font-size:12.5px">Created by Asha Rao on 20/10/2026 06:52. Every change is saved in the audit log.</div>' : "") +
+      "</div>";
+
+    const plant = f.plantLocked ? "X280" : f.plant === "all" ? "K134" : "K134";
+    const mine = len ? { text: f.text, level: f.level } : { placeholder: true };
+    if (f.ended) mine.ended = true;
+    const others = plant === "X280" ? [{ text: "Safety shoes and helmets are required inside the plant.", level: "normal" }]
+      : f.edit ? [{ text: "Safety shoes and helmets are required inside the plant.", level: "normal" }]
+      : [{ text: "Gate 2 is closed for repair until 14:00. Please use Gate 1.", level: "important" }, { text: "Safety shoes and helmets are required inside the plant.", level: "normal" }];
+    const notes = [
+      ["eye", "<b>Live preview</b> of the notices on the " + (plant === "X280" ? "X280 gate" : "K134 main gate") + " kiosk at 10:15 today (camera left out). <span class=\"legend-mine\"></span> is your notice; the others are already showing."],
+      ["list-ordered", "At most 3 notices show at once, Important ones first. More than 3 take turns every 8 seconds."],
+    ];
+    if (f.plant === "all") notes[0][1] = "<b>Live preview</b> at one of the 7 gates (K134, 10:15 today). <span class=\"legend-mine\"></span> is your notice; the others are already showing there.";
+    if (f.text.length > 150) notes[1] = ["text", "Long notices take more lines on the gate screen. Short is easier to read from a distance."];
+    const side = '<div class="nf-side"><div class="cmp-label" style="margin-bottom:10px">' + D.icon("monitor-smartphone") + "How it looks at the gate</div>" + preview(mine, plant, others, notes) + "</div>";
+
+    if (f.ended) notes[0] = ["circle-stop", "<b>Ended:</b> this notice is no longer on the gate screen. To show it again, copy it into a new notice."];
+    const foot = f.ended ? '<button class="btn btn-primary">Close</button>' : ((f.edit ? '<button class="btn btn-danger-outline" style="margin-right:auto">' + D.icon("circle-stop", 16) + "End now</button>" : '<span class="muted" style="margin-right:auto;font-size:13px;display:inline-flex;gap:6px;align-items:center">' + D.icon("timer", 15) + "Kiosks show it within 2 minutes after saving.</span>") +
+      '<button class="btn btn-outline">Cancel</button><button class="btn btn-primary"' + (f.ended ? ' aria-disabled="true"' : "") + ">" + D.icon("check", 16) + (f.edit ? "Save changes" : "Save notice") + "</button>");
+    return D.dialog({ icon: f.edit ? "pencil" : "megaphone", title: f.title, desc: f.desc, width: 1120, body: '<div class="nf-grid">' + form + side + "</div>", foot: foot })
+      .replace('<div class="dlg-body">', '<div class="dlg-body" style="padding:0">').replace('class="dialog anim-scale-in"', 'class="dialog anim-scale-in nf-dialog"');
+  }
+
+  function endDialog() {
+    return D.dialog({
+      alert: true, icon: "circle-stop", tone: "di-danger", width: 560,
+      title: "End this notice now?",
+      desc: "It disappears from the K134 gate kiosk within 2 minutes. It stays in this list as Ended; nothing is deleted.",
+      body: '<div class="kp-notice is-important" style="font-size:15px;padding:12px 14px;border-width:2px">' + D.icon("triangle-alert") + '<p><span class="tagword" style="font-size:13px;height:24px;padding:0 8px">Important</span>Gate 2 is closed for repair until 14:00. Please use Gate 1.</p></div>' +
+        '<p class="muted" style="font-size:13px;margin:12px 0 0">K134 · planned until 20/10/2026 14:00 · created by Asha Rao. Ending is saved in the audit log.</p>',
+      foot: '<button class="btn btn-outline" autofocus>Cancel</button><button class="btn btn-primary" style="background:var(--danger)">' + D.icon("circle-stop", 16) + "End now</button>",
+    });
+  }
+
+  window.onMockState = function () {
+    C.patchShell();
+    const empty = D.has("empty");
+    listPage({ empty: empty });
+    let html = "", title = C.isPh ? "list, own plant" : C.isCh ? "read-only list" : "list";
+    const base = { text: "", level: "normal", from: ["20/10/2026", "10:15"], to: ["20/10/2026", "23:59"], quickTo: "Today 23:59", fromNow: true };
+    if (D.has("new")) {
+      html = formDialog(Object.assign({}, base, { title: "New gate notice", desc: "Workers see it on the gate screen while they punch.", plant: C.isPh ? "X280" : "K134", plantLocked: C.isPh }));
+      title = "new notice (empty)";
+    } else if (D.has("new-filled")) {
+      html = formDialog(Object.assign({}, base, { title: "New gate notice", desc: "Workers see it on the gate screen while they punch.", plant: "K134", text: "Truck unloading at Gate 1 from 11:00 to 12:30. Please use the side gate.", level: "important", to: ["20/10/2026", "12:30"], quickTo: "" }));
+      title = "new notice, typed, Important";
+    } else if (D.has("new-errors")) {
+      html = formDialog(Object.assign({}, base, { title: "New gate notice", desc: "Workers see it on the gate screen while they punch.", plant: "K134", to: ["20/10/2026", "09:00"], quickTo: "", errors: true }));
+      title = "new notice, 2 errors";
+    } else if (D.has("new-all-plants")) {
+      html = formDialog(Object.assign({}, base, { title: "New gate notice", desc: "Workers see it on the gate screen while they punch.", plant: "all", level: "normal",
+        text: "Free health check-up for all workers at the plant office from Monday 26/10/2026. Bring your ID card. Contract workers: ask your contractor for your time slot. Office open 09:00 to 17:00.", to: ["27/10/2026", "23:59"], quickTo: "+7 days" }));
+      title = "new notice for all plants, long text";
+    } else if (D.has("edit")) {
+      html = formDialog(Object.assign({}, base, { title: "Edit notice", desc: "Showing now at K134 since 07:00. Changes reach the kiosk within 2 minutes.", plant: "K134", edit: true, text: "Gate 2 is closed for repair until 15:30. Please use Gate 1.", level: "important", from: ["20/10/2026", "07:00"], to: ["20/10/2026", "15:30"], quickTo: "", fromNow: false }));
+      title = "edit a notice that is showing";
+    } else if (D.has("edit-ended")) {
+      html = formDialog(Object.assign({}, base, { title: "Edit notice", desc: "K134 · this notice is no longer showing.", plant: "K134", edit: true, ended: true, text: "Gate 2 is closed for repair until 14:00. Please use Gate 1.", level: "important", from: ["20/10/2026", "07:00"], to: ["20/10/2026", "14:00"], quickTo: "", fromNow: false }));
+      title = "edit refused: the notice has ended";
+    } else if (D.has("end-now")) {
+      html = endDialog(); title = "end now: confirm";
+    } else if (empty) title = "empty";
+    if (html) D.mount(html);
+    C.tag(title);
+    if (window.lucide) window.lucide.createIcons();
+  };
+</script>
+</body>
+</html>

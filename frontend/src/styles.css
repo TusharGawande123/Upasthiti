@@ -48,6 +48,30 @@
   --warning: #6b3f00;
   --warning-soft: #fff3d6;
   --muted-foreground: #3b4658;
+  /* Result floods (design gate B, M2): white text on green / blue / red, ink on amber. */
+  --flood-in: #035a40;
+  --flood-in-dark: #02402e;
+  --flood-out: #1f3a93;
+  --flood-out-dark: #162a6e;
+  --flood-already: #ffc233;
+  --flood-already-dark: #0e1726;
+  --flood-reject: #8a1a10;
+  --flood-reject-dark: #5f110a;
+}
+
+/* The scan line sweeping the camera guide frame (only when motion is welcome). */
+@keyframes kiosk-sweep {
+  from {
+    transform: translateY(-100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .kiosk-scanline {
+    animation: kiosk-sweep 2.4s ease-in-out infinite alternate;
+  }
 }
 
 @theme inline {

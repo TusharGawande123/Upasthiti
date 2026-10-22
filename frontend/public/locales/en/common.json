@@ -115,7 +115,187 @@
         "message": "Pairing did not work. Try again, or ask the admin for help.",
         "steps": ["Press “Try again”.", "If it keeps failing, tell the admin the code below."]
       }
-    }
+    },
+    "punch": {
+      "QR_REVOKED": {
+        "title": "NOT ACCEPTED",
+        "message": "This card is blocked.",
+        "next": "Please see the plant office.",
+        "voice": "Card blocked. Please see the plant office."
+      },
+      "QR_EXPIRED": {
+        "title": "NOT ACCEPTED",
+        "message": "This card has expired.",
+        "next": "Please see the plant office.",
+        "voice": "Card expired. Please see the plant office."
+      },
+      "QR_NOT_YET_VALID": {
+        "title": "NOT ACCEPTED",
+        "message": "This card is not active yet.",
+        "next": "Please see the plant office.",
+        "voice": "Card not active yet. Please see the plant office."
+      },
+      "WRONG_PLANT": {
+        "title": "NOT ACCEPTED",
+        "message": "This card is for another plant.",
+        "next": "Please see the plant office.",
+        "voice": "Card for another plant. Please see the plant office."
+      },
+      "EMPLOYEE_NOT_QR": {
+        "title": "NOT ACCEPTED",
+        "message": "This card cannot be used for punching.",
+        "next": "Please see the plant office.",
+        "voice": "Card cannot be used. Please see the plant office."
+      },
+      "EMPLOYEE_INACTIVE": {
+        "title": "NOT ACCEPTED",
+        "message": "This card cannot be used.",
+        "next": "Please see the plant office.",
+        "voice": "Card cannot be used. Please see the plant office."
+      },
+      "QR_SIGNATURE_INVALID": {
+        "title": "NOT ACCEPTED",
+        "message": "This card is not valid.",
+        "next": "Please see the plant office.",
+        "voice": "Card not valid. Please see the plant office."
+      },
+      "QR_FORMAT_INVALID": {
+        "title": "TRY AGAIN",
+        "message": "The card could not be read.",
+        "next": "Hold it still, about 20 cm from the camera.",
+        "voice": "Card not read. Please try again."
+      },
+      "SNAPSHOT_MISSING": {
+        "title": "TRY AGAIN",
+        "message": "The photo could not be taken.",
+        "next": "Stand in front of the camera and try again.",
+        "voice": "Photo not taken. Please try again."
+      },
+      "SNAPSHOT_INVALID": {
+        "title": "TRY AGAIN",
+        "message": "The photo could not be taken.",
+        "next": "Stand in front of the camera and try again.",
+        "voice": "Photo not taken. Please try again."
+      },
+      "QR_SIGNING_NOT_CONFIGURED": {
+        "title": "NOT ACCEPTED",
+        "message": "This kiosk cannot read cards yet.",
+        "next": "Please see the plant office.",
+        "voice": "Cards cannot be read yet. Please see the plant office."
+      },
+      "COOLDOWN_ACTIVE": {
+        "title": "ALREADY PUNCHED",
+        "message": "Already {{direction}} at {{time}}.",
+        "next": "No need to punch again.",
+        "voice": "Already punched."
+      },
+      "OUT_TOO_SOON": {
+        "title": "ALREADY IN",
+        "message": "Already IN at {{time}}.",
+        "next": "You can punch OUT after {{outTime}}.",
+        "voice": "Already checked in."
+      },
+      "NETWORK_OFFLINE": {
+        "title": "NOT SAVED",
+        "message": "No internet. Your punch was NOT saved.",
+        "next": "Try again in a moment.",
+        "voice": "No internet. Punch not saved."
+      },
+      "SERVER_NO_ANSWER": {
+        "title": "NOT SURE",
+        "message": "The server did not answer in time.",
+        "next": "Scan your card again. If it was saved, you will see it.",
+        "voice": "Not sure if saved. Please scan again."
+      },
+      "INTERNAL_ERROR": {
+        "title": "ERROR",
+        "message": "Something went wrong.",
+        "next": "Try again. If it repeats, see the plant office.",
+        "voice": "Something went wrong. Please try again."
+      },
+      "TOO_MANY_REQUESTS": {
+        "title": "PLEASE WAIT",
+        "message": "Your punch was NOT saved.",
+        "next": "Wait a moment, then try again.",
+        "voice": "Not saved. Please wait and try again."
+      },
+      "PAYLOAD_TOO_LARGE": {
+        "title": "NOT SAVED",
+        "message": "The photo was too large.",
+        "next": "Try again.",
+        "voice": "Please try again."
+      },
+      "CAMERA_BLOCKED": {
+        "title": "Camera is blocked",
+        "message": "Allow the camera for this site.",
+        "steps": [
+          "Tap the padlock or camera icon next to the web address.",
+          "Set Camera to “Allow”.",
+          "Press “Try again”."
+        ]
+      },
+      "CAMERA_NOT_FOUND": {
+        "title": "No camera found",
+        "message": "Connect a camera.",
+        "steps": ["Check that the camera is plugged in.", "Close other apps that use the camera."]
+      },
+      "BROWSER_NOT_SUPPORTED": {
+        "title": "This browser cannot read cards",
+        "message": "Open this page in Google Chrome or Microsoft Edge.",
+        "steps": ["Install or update Chrome or Edge.", "Open the kiosk address again."]
+      }
+    },
+    "attendance": {
+      "showCard": "Show your ID card to the camera",
+      "cameraLabel": "Camera picture",
+      "chipCardRead": "Card read",
+      "chipLookAtCamera": "Look at the camera",
+      "chipChecking": "Checking…",
+      "cardRead": "Card read. Look at the camera",
+      "checking": "Checking…",
+      "serverWaking": "Please wait. The server is starting; this can take up to a minute.",
+      "notACard": "This is not an Upasthiti ID card.",
+      "lowLight": "Too dark. Please switch on the gate light.",
+      "startCamera": "Start camera",
+      "privacy": "A photo is taken at each card punch to stop card sharing. Kept for {{days}} days.",
+      "help": "Need help? Ask the plant office.",
+      "online": "Online",
+      "offline": "No internet",
+      "ist": "IST",
+      "important": "Important",
+      "notices": "Notices",
+      "noticePage": "{{current}} of {{total}}",
+      "tryAgain": "Try again"
+    },
+    "result": {
+      "in": "IN",
+      "out": "OUT",
+      "alreadyIn": "ALREADY IN",
+      "alreadyOut": "ALREADY OUT",
+      "kioskOk": "KIOSK OK",
+      "welcome": "Welcome,",
+      "goodbye": "Goodbye,",
+      "codeLine": "Employee code {{code}}",
+      "codeChecked": "Employee code {{code}} · {{status}}",
+      "checkedIn": "Checked in",
+      "checkedOut": "Checked out",
+      "serverTime": "Server time",
+      "backIn": "Back to scanning in {{count}} s",
+      "forAdmin": "For the admin:",
+      "alreadyInAt": "Already IN at {{time}}. No need to punch again.",
+      "alreadyOutAt": "Already OUT at {{time}}. No need to punch again.",
+      "outAfter": "Already IN at {{time}}. You can punch OUT after {{outTime}}.",
+      "selfTestChecks": "Camera ✓ · Server ✓ · Clock ✓ (server time {{time}})",
+      "noAttendance": "No attendance was recorded."
+    },
+    "voice": {
+      "in": "Checked in.",
+      "out": "Checked out.",
+      "alreadyIn": "Already checked in.",
+      "alreadyOut": "Already checked out.",
+      "selfTest": "Kiosk test passed."
+    },
+    "soundBanner": "Tap once to turn on sound and full screen"
   },
   "health": {
     "checking": "Checking server…",
@@ -243,7 +423,20 @@
     "NONCE_REUSED": "This request was already used. Please try again.",
     "PUBLIC_KEY_INVALID": "The device key is not valid. Ask the admin for help.",
     "DATABASE_UNAVAILABLE": "The database is not reachable right now. Please try again in a minute.",
-    "SUPER_ADMIN_EXISTS": "A Super Admin already exists."
+    "SUPER_ADMIN_EXISTS": "A Super Admin already exists.",
+    "EXPORT_TOO_LARGE": "At most 5,000 punches per file. Choose one plant.",
+    "QR_CARD_REVOKED": "A revoked card cannot be printed or changed. Issue a new card.",
+    "QR_CARD_NOT_FOUND": "This card was not found.",
+    "QR_VALIDITY_INVALID": "Choose an end date on or after the start date, within 3 years.",
+    "PRINT_TOO_LARGE": "At most 200 cards can be printed at a time.",
+    "EMPLOYEE_NOT_QR": "This employee punches by face and cannot have a card.",
+    "QR_SIGNING_NOT_CONFIGURED": "Cards are not set up on the server yet. Ask the project lead.",
+    "SNAPSHOT_PURGED": "This photo was deleted after the retention period.",
+    "SNAPSHOT_NOT_AVAILABLE": "No photo is available for this punch.",
+    "STORAGE_UNAVAILABLE": "The photo store cannot be reached. Try again later.",
+    "NOTICE_TEXT_INVALID": "Write 1 to 200 characters on one line.",
+    "NOTICE_DATES_INVALID": "The end must be after the start, at most 90 days later, and not in the past.",
+    "NOTICE_ENDED": "This notice has ended and cannot be changed."
   },
   "nav": {
     "label": "Main menu",
@@ -259,7 +452,11 @@
     "contractors": "Contractors",
     "approvals": "Approvals",
     "myRequests": "My requests",
-    "waiting": "waiting"
+    "waiting": "waiting",
+    "qrCards": "QR cards",
+    "endingSoon": "cards end soon",
+    "punches": "Punch log",
+    "notices": "Gate notices"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -299,7 +496,14 @@
   "dashboard": {
     "welcome": "Welcome, {{name}}",
     "placeholderTitle": "Live headcount comes in M5",
-    "placeholderText": "Setup, people and kiosk screens arrive in the next updates."
+    "placeholderText": "Setup, people and kiosk screens arrive in the next updates.",
+    "cardsEndingSoon": {
+      "title": "Cards ending soon",
+      "text_one": "{{count}} QR card ends in the next {{days}} days. Extend it or let it end.",
+      "text_other": "{{count}} QR cards end in the next {{days}} days. Extend them or let them end.",
+      "link": "See these cards",
+      "error": "The number could not be loaded."
+    }
   },
   "users": {
     "title": "Users",
@@ -378,11 +582,11 @@
       },
       "punch": {
         "title": "Punch rules",
-        "description": "Cool-down and travel checks."
+        "description": "Cool-down, the gap before OUT, and the longest open IN."
       },
       "snapshots": {
         "title": "Snapshots",
-        "description": "How long QR-punch photos are kept."
+        "description": "How long QR-punch photos are kept, and the dark photo limit."
       },
       "face": {
         "title": "Face recognition",
@@ -391,6 +595,14 @@
       "salary": {
         "title": "Salary estimate",
         "description": "Used only for the salary estimate."
+      },
+      "cards": {
+        "title": "QR cards",
+        "description": "ID cards of temporary workers."
+      },
+      "kiosk_screen": {
+        "title": "Kiosk sound and screen",
+        "description": "What every gate kiosk plays and how long it shows a result."
       }
     },
     "items": {
@@ -445,6 +657,42 @@
       "salary_day_basis": {
         "label": "Salary day basis",
         "help": "Days used to work out the per-day salary (26, 30 or actual days)."
+      },
+      "min_minutes_before_out": {
+        "label": "Earliest OUT after IN",
+        "help": "A scan this soon after an IN is refused as “Already IN”, so a double scan never closes the day by mistake."
+      },
+      "open_in_max_hours": {
+        "label": "Longest open IN",
+        "help": "If the last IN is older than this, the next scan is a new IN and the old day stays incomplete. 20 hours covers a 12-hour night shift."
+      },
+      "snapshot_dark_threshold": {
+        "label": "Dark photo limit",
+        "help": "A photo whose average brightness is below this gets the Dark photo mark in the punch log. The punch itself is decided as normal."
+      },
+      "qr_card_default_validity_months": {
+        "label": "Default card validity",
+        "help": "The end date suggested when a card is issued. The Super Admin can still pick another date."
+      },
+      "qr_card_expiring_soon_days": {
+        "label": "“Ends soon” warning",
+        "help": "Cards that end within this many days show “Ends soon” and are counted on the dashboard."
+      },
+      "kiosk_voice_enabled": {
+        "label": "Voice",
+        "help": "The kiosk says “Checked in”, “Checked out” or the reason, in English. The name is never spoken."
+      },
+      "kiosk_sound_enabled": {
+        "label": "Sounds",
+        "help": "Short tones: two rising notes when accepted, one soft note for already punched, two low notes when rejected."
+      },
+      "kiosk_result_seconds": {
+        "label": "Result screen time",
+        "help": "How long an accepted result stays on the kiosk screen before it is ready for the next person."
+      },
+      "kiosk_reject_seconds": {
+        "label": "Rejected screen time",
+        "help": "Rejections stay longer, so the worker can read what to do next."
       }
     },
     "units": {
@@ -453,7 +701,21 @@
       "h": "h",
       "tries": "tries",
       "days": "days",
-      "km/h": "km/h"
+      "km/h": "km/h",
+      "months": "months",
+      "s": "seconds",
+      "of 255": "of 255"
+    },
+    "choices": {
+      "on": "On",
+      "off": "Off",
+      "26": "26 days",
+      "30": "30 days",
+      "actual": "Actual days"
+    },
+    "retentionWarning": {
+      "title": "Lowering to {{days}} days also shortens the photos already stored.",
+      "text": "Photos older than {{days}} days are deleted tonight at 00:05 IST and cannot be brought back. The gate posters say “kept for {{current}} days”: download and print them again after saving."
     }
   },
   "audit": {
@@ -676,6 +938,9 @@
       "overtimeRule": "Overtime counts after {{length}} of work, at each employee's own rate.",
       "futureOnly": "Changes apply from today. Days already worked out keep their values. The overtime rate is set on each employee.",
       "save": "Save shift"
+    },
+    "poster": {
+      "button": "Download gate poster (A4 PDF)"
     }
   },
   "setup": {
@@ -724,7 +989,9 @@
       "plant": "Plant",
       "status": "Status",
       "accuracy": "Location at pairing",
-      "lastSeen": "Last seen"
+      "lastSeen": "Last seen",
+      "lastSelfTest": "Last self-test",
+      "sound": "Sound"
     },
     "status": {
       "active": "Active",
@@ -773,6 +1040,14 @@
       "description": "Kiosks at this plant's gate.",
       "all": "All kiosks",
       "empty": "No kiosk at this plant yet."
+    },
+    "sound": {
+      "on": "On",
+      "off": "Off",
+      "for": "Sound at {{name}}"
+    },
+    "selfTest": {
+      "never": "Never tested"
     }
   },
   "plantFilter": {
@@ -795,7 +1070,21 @@
     "pages": "Pages",
     "hintMove": "move",
     "hintOpen": "open",
-    "hintClose": "close"
+    "hintClose": "close",
+    "commands": "Commands",
+    "back": "Back",
+    "cardHint": "Type a card serial like C000123, or at least 2 letters of a name.",
+    "command": {
+      "issue": {
+        "label": "Issue QR card…",
+        "hint": "Choose an employee, then set the dates",
+        "placeholder": "Type an employee's code or name…"
+      },
+      "print": {
+        "label": "Print QR cards…",
+        "hint": "Open the cards that are not printed yet"
+      }
+    }
   },
   "employees": {
     "title": "Employees",
@@ -1170,6 +1459,471 @@
       "EMPLOYEE_CODE_EXISTS": "This employee code is already used.",
       "HOURLY_RATE_REQUIRED": "A temporary worker needs an hourly rate.",
       "IMPORT_CELL_FORMULA": "This cell starts with = + - or @. Type plain text."
+    }
+  },
+  "qrCards": {
+    "title": "QR cards",
+    "subtitle": "Issue, print and revoke the QR ID cards of the workers who punch by card. A card works only at the person's own plant.",
+    "readOnly": "Read-only",
+    "readOnlyBanner": {
+      "plantHead": "Read-only, your plant only.",
+      "corporateHead": "Read-only, all plants.",
+      "text": "Only the Super Admin issues, prints and revokes cards, because a printed card works like a key to the gate. If a card is lost or a worker needs one, ask the Super Admin."
+    },
+    "searchPlaceholder": "Search code, name or card serial",
+    "filter": {
+      "type": "Type",
+      "anyType": "Any type",
+      "punchMethod": "Punch method",
+      "anyMethod": "Any method",
+      "contractor": "Contractor",
+      "category": "Category",
+      "state": "Card state",
+      "anyState": "Any state",
+      "printed": "Printed",
+      "anyPrinted": "Printed or not",
+      "printedYes": "Printed",
+      "printedNo": "Not printed",
+      "reprintOnly": "Reprint needed"
+    },
+    "columns": {
+      "employee": "Employee",
+      "typeMethod": "Type · punch method",
+      "plant": "Plant",
+      "contractor": "Contractor",
+      "card": "Card",
+      "state": "State",
+      "validUntil": "Valid until",
+      "printed": "Printed"
+    },
+    "state": {
+      "none": "No card",
+      "active": "Active",
+      "expiring": "Ends soon",
+      "not_yet_valid": "Not yet valid",
+      "expired": "Expired",
+      "revoked": "Revoked"
+    },
+    "reprintNeeded": "Reprint needed (card shows {{plant}})",
+    "relative": {
+      "in_one": "in {{count}} day",
+      "in_other": "in {{count}} days",
+      "ago_one": "{{count}} day ago",
+      "ago_other": "{{count}} days ago",
+      "startsIn_one": "starts in {{count}} day",
+      "startsIn_other": "starts in {{count}} days",
+      "today": "ends today",
+      "revokedOn": "revoked {{date}}"
+    },
+    "notPrinted": "Not printed",
+    "printedTimes_one": "{{count}} time",
+    "printedTimes_other": "{{count}} times",
+    "lastPrinted": "last {{date}}",
+    "noMatch": "No employee matches these filters.",
+    "empty": "No cards yet. Select employees and press Issue cards.",
+    "emptyHelp": "There are no employees to show yet. Add or import employees first, then come back here.",
+    "goToEmployees": "Go to Employees",
+    "revokeKind": {
+      "lost": "Lost",
+      "damaged": "Damaged",
+      "left": "Left the company",
+      "other": "Other",
+      "replaced": "Replaced by a new card"
+    },
+    "panel": {
+      "title": "QR card",
+      "serial": "Card serial",
+      "validFrom": "Valid from",
+      "validUntil": "Valid until",
+      "issued": "Issued",
+      "issuedLine": "{{date}} {{time}} by {{name}}",
+      "printed": "Printed",
+      "printedNever": "Not printed yet",
+      "printedLine_one": "{{count}} time, last {{date}} {{time}}",
+      "printedLine_other": "{{count}} times, last {{date}} {{time}}",
+      "printedPlant": "Plant on the card",
+      "plantMatches": "{{plant}} (matches)",
+      "plantDiffers": "{{plant}} (the employee is now at {{current}})",
+      "none": "No working card",
+      "noneHelp": "This employee has no QR card. Issue one so they can punch at the gate.",
+      "faceNote": "This employee punches by face, so no QR card is needed. A QR card is only for employees who punch by QR card.",
+      "leftNote": "This employee has left, so no card can be issued.",
+      "faceSwitched": {
+        "title": "Revoke this card: the kiosk rejects it now.",
+        "text": "{{name}} now punches by face. The card is not revoked automatically. Until you revoke it, the kiosk rejects it."
+      },
+      "reprint": {
+        "title": "Reprint advised.",
+        "text": "This card shows {{printed}}, but the employee now works at {{current}}. The card still works; print a new copy so the plant on it is right."
+      },
+      "print": "Print card",
+      "changeEnd": "Change end date",
+      "issue": "Issue card",
+      "issueNew": "Issue new card",
+      "revoke": "Revoke",
+      "revokeCard": "Revoke card",
+      "history": "Card history",
+      "historyCount_one": "{{count}} earlier card",
+      "historyCount_other": "{{count}} earlier cards",
+      "revokedLine": "Revoked {{date}} by {{name}}: {{kind}}"
+    },
+    "dialog": {
+      "issue": {
+        "title": "Issue a new QR card",
+        "subtitleNew": "{{name}} has no working card.",
+        "subtitleReplace": "{{name}} already has a card.",
+        "replaceTitle": "The current card {{serial}} will stop working at once.",
+        "replaceText": "It is recorded as revoked with the reason “Replaced by” and the new card's serial. Take the old card back if you can.",
+        "validFrom": "Valid from",
+        "validFromHint": "Today, or up to {{days}} days ahead.",
+        "validUntil": "Valid until",
+        "validUntilHint_one": "Default: {{months}} month. At most 3 years after the start.",
+        "validUntilHint_other": "Default: {{months}} months. At most 3 years after the start.",
+        "plusMonths_one": "+{{months}} month",
+        "plusMonths_other": "+{{months}} months",
+        "note": "Note",
+        "optional": "optional",
+        "notePlaceholder": "For example: old card was damaged",
+        "submit": "Issue card",
+        "submitReplace": "Replace card",
+        "doneTitle": "Card {{serial}} issued",
+        "doneText": "Valid {{from}} to {{until}}. Print it and hand it to the worker yourself.",
+        "printNow": "Print now"
+      },
+      "revoke": {
+        "title": "Revoke card {{serial}}",
+        "warning": "The card stops working at every gate immediately. This cannot be undone: issue a new card instead.",
+        "kind": "Why is the card revoked?",
+        "submit": "Revoke card",
+        "done": "Card {{serial}} revoked."
+      },
+      "changeEnd": {
+        "title": "Change the end date",
+        "current": "Card {{serial}} is now valid until {{date}}.",
+        "newDate": "New end date",
+        "hint": "“End today” keeps the card working until the end of today. To stop it at once, revoke it.",
+        "endToday": "End today",
+        "extend_one": "Extend by {{months}} month",
+        "extend_other": "Extend by {{months}} months",
+        "submit": "Save end date",
+        "done": "End date saved."
+      }
+    },
+    "tabs": {
+      "employees": "Employees",
+      "test": "Test cards"
+    },
+    "selectPage": "Select everyone on this page",
+    "selectOne": "Select {{name}}",
+    "skip": {
+      "EMPLOYEE_NOT_QR": "Skipped: punches by face",
+      "QR_CARD_EXISTS": "Skipped: already has card {{serial}}",
+      "NO_CARD": "Skipped: has no card",
+      "QR_CARD_REVOKED": "Skipped: already revoked",
+      "EMPLOYEE_LEFT": "Skipped: has left",
+      "EMPLOYEE_NOT_FOUND": "Skipped: not found",
+      "QR_CARD_NOT_FOUND": "Skipped: card not found"
+    },
+    "bulk": {
+      "selected": "selected",
+      "clear": "Clear the selection",
+      "tooMany": "Select at most {{max}} people for this action.",
+      "hintTitle": "What each button will do with these {{count}} people",
+      "button": {
+        "issue": "Issue cards",
+        "print": "Print cards (A4)",
+        "revoke": "Revoke cards"
+      },
+      "hint": {
+        "issue": "{{ok}} get a new card, {{skipped}} are skipped (they already have a card or punch by face).",
+        "print": "{{ok}} of {{total}} have a card to print.",
+        "revoke": "{{ok}} cards that are not revoked yet."
+      },
+      "willSkip": "will be skipped",
+      "andMore_one": "and {{count}} more",
+      "andMore_other": "and {{count}} more",
+      "skippedNote_one": "{{count}} person was skipped. Nothing was changed for them.",
+      "skippedNote_other": "{{count}} people were skipped. Nothing was changed for them.",
+      "printNew_one": "Print the {{count}} new card (A4)",
+      "printNew_other": "Print the {{count}} new cards (A4)",
+      "printPart": "Print cards {{from}}–{{to}} (A4)",
+      "printInParts": "A PDF holds at most {{max}} cards, so the new cards are printed in parts.",
+      "issue": {
+        "title_one": "Issue a card to {{count}} person",
+        "title_other": "Issue cards to {{count}} people",
+        "description": "Only people who punch by QR card and have no card yet get one. The others are skipped, not failed.",
+        "willGet": "will get a new card",
+        "submit_one": "Issue {{count}} card",
+        "submit_other": "Issue {{count}} cards",
+        "resultTitle_one": "{{count}} card issued",
+        "resultTitle_other": "{{count}} cards issued",
+        "resultText": "They are ready to print. Print them and hand each card to the worker yourself."
+      },
+      "revoke": {
+        "title_one": "Revoke {{count}} card",
+        "title_other": "Revoke {{count}} cards",
+        "description": "Of the {{total}} people you selected, {{skipped}} are skipped because they have no card or it is already revoked.",
+        "submit_one": "Revoke {{count}} card",
+        "submit_other": "Revoke {{count}} cards",
+        "done_one": "{{count}} card revoked.",
+        "done_other": "{{count}} cards revoked.",
+        "resultTitle_one": "{{count}} card revoked",
+        "resultTitle_other": "{{count}} cards revoked",
+        "resultText": "The cards stop working at every gate immediately."
+      }
+    },
+    "print": {
+      "title_one": "Print {{count}} card",
+      "title_other": "Print {{count}} cards",
+      "description": "Each card shows the person's current plant.",
+      "leftOut_one": "{{count}} selected person is left out: no card, or the card is revoked.",
+      "leftOut_other": "{{count}} selected people are left out: no card, or the card is revoked.",
+      "layout": "Layout",
+      "layouts": {
+        "a4_sheet": {
+          "title": "A4 sheets of 10",
+          "text": "2 cards across, 5 down, with cut marks. Best for many cards."
+        },
+        "single_cards": {
+          "title": "One card per page",
+          "text": "Card size 85.6 × 54 mm, one page each. For a card printer."
+        }
+      },
+      "note": "The PDF opens in a new tab. Print it from there. Every print is counted and written to the audit log; the file is not saved on the server.",
+      "submit_one": "Print {{count}} card",
+      "submit_other": "Print {{count}} cards",
+      "tooManyTitle": "Too many cards to print",
+      "tooManyText": "You selected {{count}} cards.",
+      "tooManyTip": "Print at most {{max}} cards at a time. Filter by plant or contractor, select that group, print it, then do the next group."
+    },
+    "test": {
+      "new": "New test card",
+      "newTitle": "New test card",
+      "newText": "A test card is scanned at a gate kiosk to check that it works. It belongs to nobody and never makes attendance.",
+      "label": "Label",
+      "labelHint": "Say where it is used, for example “Gate test K134”.",
+      "labelPlaceholder": "Gate test K134",
+      "create": "Create test card",
+      "created": "Test card {{serial}} created.",
+      "explain": "A guard scans a test card at the gate kiosk each morning. The kiosk shows “Kiosk OK” and nothing is recorded as attendance.",
+      "columns": {
+        "serial": "Card",
+        "label": "Label",
+        "state": "State",
+        "lastUsed": "Last used"
+      },
+      "never": "Never",
+      "print": "Print",
+      "empty": "No test cards yet. Create one to check a gate kiosk.",
+      "revokeTitle": "Revoke test card {{serial}}"
+    },
+    "afterImport": {
+      "title": "Next step: ID cards",
+      "text": "{{qr}} of these people punch by QR card and have no card yet. {{face}} punch by face and are left out.",
+      "button_one": "Issue and print the card for this employee",
+      "button_other": "Issue and print cards for these {{count}} employees",
+      "dialogTitle_one": "Issue a card to {{count}} employee",
+      "dialogTitle_other": "Issue cards to {{count}} employees",
+      "dialogText": "All of them punch by QR card and have no card yet.",
+      "faceLeftOut": "skipped: punch by face",
+      "defaultReason": "New workers from the Excel import of {{date}}",
+      "printNote": "After issuing you can print the cards, in parts of at most {{max}}. Cards can be printed later too.",
+      "submit_one": "Issue {{count}} card",
+      "submit_other": "Issue {{count}} cards",
+      "issuedTitle_one": "{{count}} card issued",
+      "issuedTitle_other": "{{count}} cards issued",
+      "issuedFace_one": "{{count}} face employee got no card.",
+      "issuedFace_other": "{{count}} face employees got no card.",
+      "issuedText": "Print the cards now. You can also print later from the QR cards page: filter by Not printed.",
+      "goToCards": "Go to QR cards",
+      "onlySuperAdmin": "Only the Super Admin issues and prints QR cards.",
+      "sentNote": "After the Super Admin approves, the Super Admin issues and prints the cards. You cannot issue cards.",
+      "noQr_one": "No QR card is needed for this file. The one person punches by face. There is nobody to issue a card to.",
+      "noQr_other": "No QR cards are needed for this file. All {{count}} people punch by face. There is nobody to issue a card to."
+    }
+  },
+  "punchReasons": {
+    "SNAPSHOT_MISSING": "No photo was sent",
+    "SNAPSHOT_INVALID": "The photo was not usable",
+    "QR_FORMAT_INVALID": "The card could not be read",
+    "QR_SIGNATURE_INVALID": "Not a valid Upasthiti card",
+    "QR_REVOKED": "Card blocked",
+    "QR_NOT_YET_VALID": "Card not active yet",
+    "QR_EXPIRED": "Card expired",
+    "EMPLOYEE_INACTIVE": "Employee has left",
+    "EMPLOYEE_NOT_QR": "Employee punches by face",
+    "WRONG_PLANT": "Card of another plant",
+    "COOLDOWN_ACTIVE": "Already punched (scanned again too soon)",
+    "OUT_TOO_SOON": "Already IN (OUT not allowed yet)"
+  },
+  "punches": {
+    "title": "Punch log",
+    "description": "Every card punch at the gate kiosks, accepted or rejected. Times in IST.",
+    "descriptionOwnPlant": "Every card punch at your plant's gate, accepted or rejected. Times in IST.",
+    "readOnlyPlantHead": "Read-only, your plant only. Only the Super Admin can open punch photos; here you see whether a photo was saved.",
+    "readOnlyCorporateHead": "Read-only. Only the Super Admin can open punch photos; here you see whether a photo was saved.",
+    "noPhotosInFile": "No photos in the file",
+    "export": "Export day (.xlsx)",
+    "unknownCard": "Unknown card",
+    "otherPlantCard": "Card of another plant",
+    "darkPhoto": "Dark photo",
+    "live": "Live",
+    "liveEvery": " · updates every 30 s",
+    "count_one": "{{formatted}} punch · newest first",
+    "count_other": "{{formatted}} punches · newest first",
+    "empty": "No punches yet today at this plant.",
+    "emptyDay": "No punches on {{date}}.",
+    "noMatch": "No punch matches these filters.",
+    "showing": "Showing {{from}}–{{to}} of {{total}}",
+    "page": "Page {{page}} of {{last}}",
+    "summary": {
+      "label": "Totals of the day",
+      "in": "Accepted IN",
+      "out": "Accepted OUT",
+      "rejected": "Rejected",
+      "dark": "Dark photos",
+      "hint": "Press a number to show only those punches",
+      "because": "Rejected because:"
+    },
+    "filter": {
+      "date": "Date",
+      "today": "Today",
+      "previousDay": "Previous day",
+      "nextDay": "Next day",
+      "search": "Search by employee code or name",
+      "searchPlaceholder": "Code or name",
+      "result": "Result",
+      "anyResult": "Result: any",
+      "kiosk": "Kiosk",
+      "anyKiosk": "Kiosk: any",
+      "reason": "Reason",
+      "anyReason": "Reason: any"
+    },
+    "columns": {
+      "time": "Time",
+      "employee": "Employee",
+      "direction": "Direction",
+      "result": "Result",
+      "reason": "Reason",
+      "kiosk": "Kiosk",
+      "photo": "Photo",
+      "actions": "Actions"
+    },
+    "direction": {
+      "in": "IN",
+      "out": "OUT"
+    },
+    "result": {
+      "accepted": "Accepted",
+      "rejected": "Rejected"
+    },
+    "photoState": {
+      "stored": "Photo stored",
+      "keptUntil": "kept until {{date}}",
+      "purged": "Photo deleted on {{date}}",
+      "purgedNoDate": "Photo deleted",
+      "notSaved": "Photo not saved",
+      "none": "No photo"
+    },
+    "photo": {
+      "title": "Punch photo",
+      "view": "View photo",
+      "compareShort": "Compare",
+      "compare": "Compare with earlier punches",
+      "older": "Older",
+      "newer": "Newer",
+      "loading": "Loading the photo",
+      "alt": "Photo taken at the punch, {{when}}",
+      "audited": "Viewing is recorded in the audit log.",
+      "purged": "This photo was deleted after the retention period.",
+      "notAvailable": "No photo is available for this punch.",
+      "storageDown": "The photo store cannot be reached. Try again later."
+    },
+    "compare": {
+      "title": "Compare photos",
+      "titleFor": "Compare photos: {{name}}, {{code}}",
+      "explain": "This punch next to the last 3 stored photos of the same card, newest first. Look for a different person using the same card.",
+      "thisPunch": "This punch",
+      "earlier_one": "Earlier punches of this card ({{count}})",
+      "earlier_other": "Earlier punches of this card ({{count}})",
+      "none": "This card has no earlier stored photos.",
+      "failed": "The comparison could not be loaded. Try again.",
+      "audited_one": "{{count}} photo shown. Each photo shown is recorded in the audit log.",
+      "audited_other": "{{count}} photos shown. Each photo shown is recorded in the audit log.",
+      "back": "Back to this photo",
+      "openEmployee": "Open employee"
+    }
+  },
+  "notices": {
+    "title": "Gate notices",
+    "description": "Short messages shown on the gate kiosk screen. Workers see them while they punch.",
+    "new": "New notice",
+    "edit": "Edit",
+    "endNow": "End now",
+    "allPlants": "All plants",
+    "readOnlyCorporateHead": "Read-only. Only the Super Admin and the Plant Head of a plant write notices.",
+    "plantHeadNote": "You write notices for your own plant. Notices for all plants are written by the Super Admin; you can read them but not change them.",
+    "count_one": "{{formatted}} notice",
+    "count_other": "{{formatted}} notices",
+    "empty": "No gate notices yet. Press New notice to write one.",
+    "noMatch": "No notice matches these filters.",
+    "endedBy": "Ended by {{name}}",
+    "state": {
+      "showing": "Showing now",
+      "scheduled": "Scheduled",
+      "ended": "Ended"
+    },
+    "level": {
+      "normal": "Normal",
+      "important": "Important"
+    },
+    "filter": {
+      "state": "State",
+      "anyState": "State: any",
+      "allPlantsOnly": "Notices for all plants"
+    },
+    "columns": {
+      "text": "Notice",
+      "plant": "Plant",
+      "level": "Level",
+      "starts": "Starts",
+      "ends": "Ends",
+      "state": "State",
+      "createdBy": "Created by"
+    },
+    "end": {
+      "title": "End this notice now?",
+      "explain": "The notice disappears from the gate screens within a minute. It stays in this list as Ended.",
+      "confirm": "End now"
+    },
+    "form": {
+      "newTitle": "New gate notice",
+      "editTitle": "Edit gate notice",
+      "explain": "Workers see it on the gate screen while they punch.",
+      "plant": "Shown at",
+      "text": "Notice text",
+      "textHint": "One line of plain text, shown exactly as typed, to everyone at the gate. Do not write names, employee codes, phone numbers, pay or health details.",
+      "level": "Level",
+      "normalHint": "Shown in the notices list.",
+      "importantHint": "Shown first, in amber, with the word Important.",
+      "startDate": "Start date",
+      "startTime": "Start time",
+      "endDate": "End date",
+      "endTime": "End time",
+      "untilTonight": "Until tonight 23:59",
+      "sevenDays": "7 days",
+      "datesHint": "Times are IST. At most {{days}} days after the start. The notice disappears by itself at the end.",
+      "preview": "How it looks at the gate",
+      "previewEmpty": "Your notice appears here as you type.",
+      "previewNote": "Live preview of the notices panel of the gate screen ({{where}}).",
+      "within": "Kiosks show it within 2 minutes after saving.",
+      "save": "Save notice"
+    },
+    "error": {
+      "text": "Write 1 to 200 characters.",
+      "endBeforeStart": "The end must be after the start.",
+      "tooLong": "A notice can show for at most 90 days.",
+      "endPast": "The end is already past."
     }
   }
 }

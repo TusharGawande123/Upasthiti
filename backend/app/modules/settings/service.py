@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
 from app.modules.audit.service import Actor, record_audit
+from app.modules.punches.retention import shorten_snapshot_expiry
 from app.modules.settings.definitions import (
     DEFINITIONS_BY_KEY,
     SETTING_DEFINITIONS,
@@ -69,6 +70,10 @@ def update_settings(
             after={"key": key, "value": value},
             reason=reason,
         )
+        if key == "snapshot_retention_days" and isinstance(value, int):
+            # Lowering the retention also shortens photos that are already stored (spec §7
+            # rule 4). Raising it only affects new photos.
+            shorten_snapshot_expiry(session, value)
     session.commit()
     return list_settings(session)
 

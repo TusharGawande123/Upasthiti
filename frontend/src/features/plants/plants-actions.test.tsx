@@ -98,7 +98,11 @@ describe("plant details", () => {
     await user.type(within(dialog).getByLabelText("Name"), "New Plant");
     await user.click(within(dialog).getByRole("button", { name: "Add a plant" }));
 
-    expect(await screen.findByRole("heading", { name: "New Plant" })).toBeInTheDocument();
+    // The plant page is the biggest lazily loaded page (the map library). On a busy machine
+    // under coverage its first load can take longer than the usual wait.
+    expect(
+      await screen.findByRole("heading", { name: "New Plant" }, { timeout: 20_000 }),
+    ).toBeInTheDocument();
     expect(body(calls, "POST", "/plants")).toMatchObject({ code: "NEW1", name: "New Plant" });
   });
 

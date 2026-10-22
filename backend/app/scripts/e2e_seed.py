@@ -25,6 +25,8 @@ E2E_PASSWORD = "E2e-Test-Password-1"  # noqa: S105 (fake, for local/CI tests onl
 E2E_USERS = (
     ("e2e.super", "E2E Super Admin", Role.SUPER_ADMIN),
     ("e2e.corporate", "E2E Corporate Head", Role.CORPORATE_HEAD),
+    # No plant yet: the punch tests give this Plant Head the plant they make.
+    ("e2e.plant", "E2E Plant Head", Role.PLANT_HEAD),
 )
 
 

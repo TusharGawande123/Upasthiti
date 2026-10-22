@@ -1,0 +1,94 @@
+/*
+  Upasthiti – M2 design gate A: extra styles for the QR cards screens.
+  MOCKUP ONLY (docs/design-refs). Builds on tokens.css, shell.css, bc.css and d.css; no token changes.
+*/
+
+/* ---------- QR cards table ---------- */
+.table.qr td, .table.qr th { padding: 10px 8px; }
+.table.qr .sub { white-space: nowrap; }
+.table.qr td { vertical-align: middle; }
+.table.qr .sub { display: block; font-size: 12.5px; color: var(--muted-foreground); margin-top: 3px; line-height: 1.3; }
+.table.qr .sub svg { width: 13px; height: 13px; vertical-align: -2px; margin-right: 3px; }
+.table.qr .sub.warn { color: var(--warning); font-weight: 600; }
+.table.qr tr.is-read-only { cursor: default; }
+.badge-wrap { height: auto; min-height: 26px; padding: 3px 10px; white-space: normal; line-height: 1.3; text-align: left; }
+.badge-dashed { background: var(--surface); color: var(--muted-foreground); border: 1px dashed var(--input-border); }
+.badge-expired { background: var(--surface); color: #34404f; border-color: var(--input-border); }
+.state-col { min-width: 176px; }
+.state-col .badge-wrap { margin-top: 6px; max-width: 176px; align-items: flex-start; }
+.state-col .badge-wrap svg { margin-top: 2px; flex: none; }
+
+/* selection hint above the dark bulk bar */
+.sel-hint {
+  position: sticky; bottom: 78px; z-index: 14; width: min(560px, 100%); margin: 16px auto -4px;
+  background: var(--surface); border: 1px solid var(--border-strong); border-radius: 14px; box-shadow: var(--shadow-md); padding: 12px 14px;
+  font-size: 13.5px;
+}
+.sel-hint ul { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; }
+.sel-hint li { display: flex; gap: 8px; align-items: flex-start; }
+.sel-hint li svg { width: 16px; height: 16px; margin-top: 2px; flex: none; color: var(--muted-foreground); }
+
+/* result panel after a bulk action */
+.result-panel { margin: 16px 16px 0; border: 1px solid #bfe3d2; background: var(--success-soft); border-radius: var(--radius-lg); padding: 14px 16px; color: #03513a; }
+.result-panel .skipped { margin-top: 10px; background: var(--surface); border: 1px solid var(--border); border-radius: 10px; color: var(--foreground); }
+.result-panel .skipped-row { display: flex; gap: 12px; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--border); font-size: 13.5px; }
+.result-panel .skipped-row:last-child { border-bottom: 0; }
+
+/* ---------- Card panel on the employee page ---------- */
+.qp-grid { display: grid; grid-template-columns: 250px minmax(0, 1fr); gap: 22px; align-items: start; }
+.qp-grid.no-thumb { grid-template-columns: minmax(0, 1fr); }
+.card-thumb { margin: 0; }
+.card-thumb img { display: block; width: 100%; border-radius: 12px; border: 1px solid var(--border-strong); box-shadow: var(--shadow-md); }
+.card-thumb.is-dim img { filter: grayscale(1); opacity: .55; }
+.card-thumb figcaption { font-size: 12.5px; color: var(--muted-foreground); margin-top: 8px; display: flex; gap: 6px; align-items: flex-start; }
+.card-thumb figcaption svg { width: 14px; height: 14px; margin-top: 2px; flex: none; }
+.serial-big { font-size: 22px; font-weight: 750; letter-spacing: .02em; }
+.qp-actions { display: flex; gap: 10px; flex-wrap: wrap; padding: 14px 20px; border-top: 1px solid var(--border); background: #fafbfc; align-items: center; border-radius: 0 0 var(--radius-lg) var(--radius-lg); }
+.qp-actions .push { margin-left: auto; }
+.qp-kv .kv { grid-template-columns: 128px minmax(0, 1fr); padding: 9px 0; border-bottom: 1px dashed var(--border); align-items: center; }
+.qp-kv .kv:last-child { border-bottom: 0; }
+.qp-banner { margin: 16px 20px 0; }
+.history-table td, .history-table th { padding: 10px 14px; white-space: nowrap; }
+.history-table td.wrap { white-space: normal; min-width: 220px; }
+.collapsed-row { display: flex; align-items: center; gap: 10px; padding: 14px 20px; font-weight: 600; }
+.collapsed-row svg { color: var(--muted-foreground); }
+
+/* ---------- Card layouts page ---------- */
+.layout-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; align-items: start; }
+.layout-card { padding: 18px; }
+.pinned { position: relative; }
+.pinned img { display: block; width: 100%; border-radius: 12px; border: 1px solid var(--border-strong); box-shadow: var(--shadow-md); }
+.pin-dot {
+  position: absolute; width: 26px; height: 26px; margin: -13px 0 0 -13px; border-radius: 99px; display: grid; place-items: center;
+  background: var(--signal); color: var(--signal-foreground); font-weight: 800; font-size: 13px; box-shadow: 0 0 0 3px #fff, 0 2px 6px rgba(14,23,38,.35);
+}
+.callouts { list-style: none; margin: 14px 0 0; padding: 0; display: grid; gap: 8px; }
+.callouts li { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; }
+.callouts .n { width: 22px; height: 22px; border-radius: 99px; background: var(--signal); color: var(--signal-foreground); font-weight: 800; font-size: 12px; display: grid; place-items: center; flex: none; margin-top: 1px; box-shadow: 0 0 0 1px rgba(14,23,38,.15); }
+
+/* ---------- Dashboard card and palette extras ---------- */
+.soon-card { padding: 18px 20px; border-color: #f1d79c; background: linear-gradient(180deg, #fffaf0, #fff); }
+.pin-note { position: absolute; z-index: 70; background: var(--foreground); color: #fff; font-size: 12.5px; font-weight: 600; padding: 6px 10px; border-radius: 8px; box-shadow: var(--shadow-md); }
+.pin-note::before { content: ""; position: absolute; left: -5px; top: 50%; margin-top: -5px; border: 5px solid transparent; border-left: 0; border-right-color: var(--foreground); }
+
+/* ---------- Import follow-up ---------- */
+.next-step { display: flex; gap: 16px; align-items: center; padding: 18px 20px; border-radius: var(--radius-lg); border: 1px solid #cdd6f4; background: var(--primary-soft); text-align: left; }
+.next-step .ns-icon { width: 48px; height: 48px; border-radius: 14px; display: grid; place-items: center; background: var(--primary); color: #fff; flex: none; }
+.next-step .ns-icon svg { width: 24px; height: 24px; }
+.print-part { display: flex; align-items: center; gap: 14px; padding: 14px 16px; border: 1px solid var(--border-strong); border-radius: 12px; background: var(--surface); text-align: left; }
+
+/* dim a page that sits behind a dialog (static mockup) */
+.is-dimmed { filter: none; }
+
+/* Tailwind preflight makes svg display:block; small inline icons next to text must stay inline */
+.table.qr .sub svg, .kv dd svg, .callouts svg { display: inline-block; vertical-align: -3px; }
+
+/* headings inside cards and dialogs: Tailwind preflight removes the weight, so set it again */
+.card-pad h2, .dialog h2, .dlg-body h2 { font-weight: 700; letter-spacing: -0.01em; }
+/* big tick / icon inside the round "done" ring (the small tiles keep their own icon size) */
+.done-ring.dr-success > svg, .done-ring.dr-info > svg { width: 42px !important; height: 42px !important; }
+/* small icons that sit inside a sentence */
+p > svg, .field-hint > svg + span svg { display: inline-block; }
+.empty-icon > svg, .pal-empty .empty-icon > svg { width: 34px !important; height: 34px !important; }
+.pal-empty .empty-icon > svg { width: 26px !important; height: 26px !important; }
+.table.qr span > svg { display: inline-block; }

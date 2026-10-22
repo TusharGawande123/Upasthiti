@@ -1,62 +1,214 @@
 // All page addresses of the website. One app, two areas: /admin (dashboard) and /kiosk (gate).
+//
+// Every page is loaded only when it is first opened ("lazy"), so the gate kiosk never downloads
+// the admin screens, and the admin never downloads the kiosk's camera and QR decoder (S-28).
 import { createBrowserRouter, Navigate, type RouteObject } from "react-router";
-import { DashboardPage } from "../features/admin/dashboard-page";
-import { ApprovalsPage } from "../features/approvals/approvals-page";
-import { AuditPage } from "../features/audit/audit-page";
-import { LoginPage } from "../features/auth/login-page";
-import { NewPasswordPage } from "../features/auth/new-password-page";
-import { SessionsPage } from "../features/auth/sessions-page";
-import { ContractorsPage } from "../features/contractors/contractors-page";
-import { EmployeeDetailPage } from "../features/employees/employee-detail-page";
-import { EmployeeFormPage } from "../features/employees/employee-form-page";
-import { EmployeesPage } from "../features/employees/employees-page";
-import { ImportPage } from "../features/employees/import-page";
-import { KiosksPage } from "../features/kiosks/kiosks-page";
-import { PlantDetailPage } from "../features/plants/plant-detail-page";
-import { PlantsPage } from "../features/plants/plants-page";
-import { SetupWizardPage } from "../features/plants/setup-wizard-page";
-import { SettingsPage } from "../features/settings/settings-page";
-import { UsersPage } from "../features/users/users-page";
-import { KioskPairingPage } from "../kiosk/kiosk-pairing-page";
-import { AdminLayout } from "./layouts/admin-layout";
-import { RequireAuth } from "./layouts/require-auth";
 import { NotFoundPage } from "./not-found-page";
 
-export const routes: RouteObject[] = [
-  { path: "/", element: <Navigate to="/admin" replace /> },
-  // Pages that do not need a finished login.
-  { path: "/admin/login", element: <LoginPage /> },
-  { path: "/admin/new-password", element: <NewPasswordPage /> },
+type LazyRoute = NonNullable<RouteObject["lazy"]>;
+
+function BlankWhileLoading() {
+  return null;
+}
+
+// `pick` names the page component inside the loaded file (pages use named exports).
+function page<Module>(
+  load: () => Promise<Module>,
+  pick: (loaded: Module) => React.ComponentType,
+): LazyRoute {
+  return async () => ({ Component: pick(await load()) });
+}
+
+const adminPages: RouteObject[] = [
   {
-    // Everything else in /admin needs a logged-in user and shows the menu.
-    element: <RequireAuth />,
+    path: "/admin",
+    lazy: page(
+      () => import("../features/admin/dashboard-page"),
+      (m) => m.DashboardPage,
+    ),
+  },
+  {
+    path: "/admin/setup",
+    lazy: page(
+      () => import("../features/plants/setup-wizard-page"),
+      (m) => m.SetupWizardPage,
+    ),
+  },
+  {
+    path: "/admin/plants",
+    lazy: page(
+      () => import("../features/plants/plants-page"),
+      (m) => m.PlantsPage,
+    ),
+  },
+  {
+    path: "/admin/plants/:plantId",
+    lazy: page(
+      () => import("../features/plants/plant-detail-page"),
+      (m) => m.PlantDetailPage,
+    ),
+  },
+  {
+    path: "/admin/kiosks",
+    lazy: page(
+      () => import("../features/kiosks/kiosks-page"),
+      (m) => m.KiosksPage,
+    ),
+  },
+  {
+    path: "/admin/employees",
+    lazy: page(
+      () => import("../features/employees/employees-page"),
+      (m) => m.EmployeesPage,
+    ),
+  },
+  {
+    path: "/admin/employees/new",
+    lazy: page(
+      () => import("../features/employees/employee-form-page"),
+      (m) => m.EmployeeFormPage,
+    ),
+  },
+  {
+    path: "/admin/employees/:employeeId",
+    lazy: page(
+      () => import("../features/employees/employee-detail-page"),
+      (m) => m.EmployeeDetailPage,
+    ),
+  },
+  {
+    path: "/admin/employees/:employeeId/edit",
+    lazy: page(
+      () => import("../features/employees/employee-form-page"),
+      (m) => m.EmployeeFormPage,
+    ),
+  },
+  {
+    path: "/admin/import",
+    lazy: page(
+      () => import("../features/employees/import-page"),
+      (m) => m.ImportPage,
+    ),
+  },
+  {
+    path: "/admin/notices",
+    lazy: page(
+      () => import("../features/notices/notices-page"),
+      (m) => m.NoticesPage,
+    ),
+  },
+  {
+    path: "/admin/punches",
+    lazy: page(
+      () => import("../features/punches/punches-page"),
+      (m) => m.PunchesPage,
+    ),
+  },
+  {
+    path: "/admin/qr-cards",
+    lazy: page(
+      () => import("../features/qr-cards/qr-cards-page"),
+      (m) => m.QrCardsPage,
+    ),
+  },
+  {
+    path: "/admin/contractors",
+    lazy: page(
+      () => import("../features/contractors/contractors-page"),
+      (m) => m.ContractorsPage,
+    ),
+  },
+  {
+    path: "/admin/approvals",
+    lazy: page(
+      () => import("../features/approvals/approvals-page"),
+      (m) => () => <m.ApprovalsPage mine={false} />,
+    ),
+  },
+  {
+    path: "/admin/my-requests",
+    lazy: page(
+      () => import("../features/approvals/approvals-page"),
+      (m) => () => <m.ApprovalsPage mine />,
+    ),
+  },
+  {
+    path: "/admin/users",
+    lazy: page(
+      () => import("../features/users/users-page"),
+      (m) => m.UsersPage,
+    ),
+  },
+  {
+    path: "/admin/settings",
+    lazy: page(
+      () => import("../features/settings/settings-page"),
+      (m) => m.SettingsPage,
+    ),
+  },
+  {
+    path: "/admin/audit",
+    lazy: page(
+      () => import("../features/audit/audit-page"),
+      (m) => m.AuditPage,
+    ),
+  },
+  {
+    path: "/admin/sessions",
+    lazy: page(
+      () => import("../features/auth/sessions-page"),
+      (m) => m.SessionsPage,
+    ),
+  },
+];
+
+export const routes: RouteObject[] = [
+  {
+    // Shown (blank) for the moment the first page's code is loading.
+    HydrateFallback: BlankWhileLoading,
     children: [
+      { path: "/", element: <Navigate to="/admin" replace /> },
+      // Pages that do not need a finished login.
       {
-        element: <AdminLayout />,
+        path: "/admin/login",
+        lazy: page(
+          () => import("../features/auth/login-page"),
+          (m) => m.LoginPage,
+        ),
+      },
+      {
+        path: "/admin/new-password",
+        lazy: page(
+          () => import("../features/auth/new-password-page"),
+          (m) => m.NewPasswordPage,
+        ),
+      },
+      {
+        // Everything else in /admin needs a logged-in user and shows the menu.
+        lazy: page(
+          () => import("./layouts/require-auth"),
+          (m) => m.RequireAuth,
+        ),
         children: [
-          { path: "/admin", element: <DashboardPage /> },
-          { path: "/admin/setup", element: <SetupWizardPage /> },
-          { path: "/admin/plants", element: <PlantsPage /> },
-          { path: "/admin/plants/:plantId", element: <PlantDetailPage /> },
-          { path: "/admin/kiosks", element: <KiosksPage /> },
-          { path: "/admin/employees", element: <EmployeesPage /> },
-          { path: "/admin/employees/new", element: <EmployeeFormPage /> },
-          { path: "/admin/employees/:employeeId", element: <EmployeeDetailPage /> },
-          { path: "/admin/employees/:employeeId/edit", element: <EmployeeFormPage /> },
-          { path: "/admin/import", element: <ImportPage /> },
-          { path: "/admin/contractors", element: <ContractorsPage /> },
-          { path: "/admin/approvals", element: <ApprovalsPage mine={false} /> },
-          { path: "/admin/my-requests", element: <ApprovalsPage mine /> },
-          { path: "/admin/users", element: <UsersPage /> },
-          { path: "/admin/settings", element: <SettingsPage /> },
-          { path: "/admin/audit", element: <AuditPage /> },
-          { path: "/admin/sessions", element: <SessionsPage /> },
+          {
+            lazy: page(
+              () => import("./layouts/admin-layout"),
+              (m) => m.AdminLayout,
+            ),
+            children: adminPages,
+          },
         ],
       },
+      {
+        path: "/kiosk",
+        lazy: page(
+          () => import("../kiosk/kiosk-pairing-page"),
+          (m) => m.KioskPairingPage,
+        ),
+      },
+      { path: "*", element: <NotFoundPage /> },
     ],
   },
-  { path: "/kiosk", element: <KioskPairingPage /> },
-  { path: "*", element: <NotFoundPage /> },
 ];
 
 export function createAppRouter() {

@@ -8,7 +8,7 @@ screen shows it read-only, because changing it would have no effect yet.
 from dataclasses import dataclass
 
 # Bump this in each milestone, so its settings become editable.
-CURRENT_MILESTONE = 1
+CURRENT_MILESTONE = 2
 
 SettingValueType = int | float | str | None
 
@@ -16,7 +16,7 @@ SettingValueType = int | float | str | None
 @dataclass(frozen=True)
 class SettingDefinition:
     key: str
-    group: str  # screen card: kiosk, punch, face, snapshots, salary, security
+    group: str  # screen card: kiosk, kiosk_screen, punch, face, snapshots, cards, salary, security
     default: SettingValueType
     unit: str
     used_from: int  # milestone number
@@ -40,6 +40,22 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition("login_lock_minutes", "security", 15, "min", 1, 5, 120),
     SettingDefinition("punch_cooldown_minutes", "punch", 2, "min", 2, 1, 30),
     SettingDefinition("snapshot_retention_days", "snapshots", 60, "days", 2, 7, 365),
+    # Used by the card punch rules (M2, spec §7 rule 12).
+    SettingDefinition("min_minutes_before_out", "punch", 30, "min", 2, 2, 240),
+    SettingDefinition("open_in_max_hours", "punch", 20, "h", 2, 12, 24),
+    SettingDefinition("snapshot_dark_threshold", "snapshots", 40, "of 255", 2, 10, 120),
+    # QR cards (M2, spec §7 rule 12).
+    SettingDefinition("qr_card_default_validity_months", "cards", 2, "months", 2, 1, 36),
+    SettingDefinition("qr_card_expiring_soon_days", "cards", 14, "days", 2, 1, 60),
+    # The kiosk screen (M2, F-1): tones, spoken line and how long a result stays on screen.
+    SettingDefinition(
+        "kiosk_voice_enabled", "kiosk_screen", "on", "", 2, allowed_values=("on", "off")
+    ),
+    SettingDefinition(
+        "kiosk_sound_enabled", "kiosk_screen", "on", "", 2, allowed_values=("on", "off")
+    ),
+    SettingDefinition("kiosk_result_seconds", "kiosk_screen", 4, "s", 2, 2, 10),
+    SettingDefinition("kiosk_reject_seconds", "kiosk_screen", 6, "s", 2, 3, 15),
     # The face values are chosen in M3 from the accuracy tests, so they have no default yet.
     SettingDefinition("face_match_threshold", "face", None, "", 3, 0, 1, is_whole_number=False),
     SettingDefinition("face_match_margin", "face", None, "", 3, 0, 1, is_whole_number=False),

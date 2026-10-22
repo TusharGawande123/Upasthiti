@@ -1,7 +1,15 @@
 // Excel import in three steps: 1) download the template and choose the file, 2) the check
 // (a dry run: nothing is saved yet) and 3) the result. All or nothing: the file is saved only
 // when it has zero errors. For a Corporate Head the same file is sent for approval.
-import { Check, CircleX, Download, FileSpreadsheet, Loader2, UploadCloud } from "lucide-react";
+import {
+  Check,
+  CircleX,
+  Download,
+  FileSpreadsheet,
+  Loader2,
+  Lock,
+  UploadCloud,
+} from "lucide-react";
 import { type DragEvent, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
@@ -18,6 +26,7 @@ import {
 } from "@/components/ui/table";
 import { describeError } from "@/features/auth/error-message";
 import { useMe } from "@/features/auth/use-auth";
+import { IssueCardsAfterImport } from "@/features/qr-cards/issue-after-import";
 import { ApiError } from "@/lib/api-client";
 import { formatNumber } from "@/lib/format";
 import { cn } from "@/lib/utils";
@@ -31,12 +40,17 @@ import {
 const MAX_BYTES = 2 * 1024 * 1024;
 const MAX_ERRORS_SHOWN = 200;
 
-type Outcome = { kind: "created"; count: number } | { kind: "sent"; count: number };
+// "created": the people are saved; qrIds are the new people who punch by QR card (F-38).
+type Outcome =
+  | { kind: "created"; count: number; qrIds: string[] }
+  | { kind: "sent"; count: number };
 
 export function ImportPage() {
   const { t } = useTranslation();
   const me = useMe();
   const forApproval = me.data?.role === "corporate_head";
+  // Only the Super Admin issues and prints cards (decisions 0005 and 0009).
+  const isSuperAdmin = me.data?.role === "super_admin";
   const importer = useImportEmployees();
   const inputRef = useRef<HTMLInputElement>(null);
   const [file, setFile] = useState<File | null>(null);
@@ -83,7 +97,11 @@ export function ImportPage() {
         onSuccess: (result) =>
           isPendingApproval(result)
             ? setOutcome({ kind: "sent", count: report?.ok_rows ?? 0 })
-            : setOutcome({ kind: "created", count: result.created ?? report?.ok_rows ?? 0 }),
+            : setOutcome({
+                kind: "created",
+                count: result.created ?? report?.ok_rows ?? 0,
+                qrIds: result.created_qr_employee_ids ?? [],
+              }),
       },
     );
   };
@@ -312,6 +330,19 @@ export function ImportPage() {
           <p className="mx-auto mt-1 max-w-md text-sm text-muted-foreground">
             {outcome.kind === "created" ? t("import.done.createdText") : t("import.done.sentText")}
           </p>
+          {outcome.kind === "created" && isSuperAdmin ? (
+            <div className="mx-auto mt-6 max-w-xl">
+              <IssueCardsAfterImport qrEmployeeIds={outcome.qrIds} totalCreated={outcome.count} />
+            </div>
+          ) : null}
+          {outcome.kind === "sent" ? (
+            <Alert tone="info" className="mx-auto mt-5 max-w-xl text-left">
+              <Lock aria-hidden />
+              <span>
+                <b>{t("qrCards.afterImport.onlySuperAdmin")}</b> {t("qrCards.afterImport.sentNote")}
+              </span>
+            </Alert>
+          ) : null}
           <div className="mt-5 flex justify-center gap-2">
             <Button variant="outline" onClick={reset}>
               {t("import.done.another")}

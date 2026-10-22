@@ -5,6 +5,8 @@ Head only reads). Devices: `/kiosk/register` (pairing code) and `/kiosk/me` (sig
 """
 
 import io
+import logging
+import re
 import uuid
 
 import segno
@@ -18,6 +20,7 @@ from app.core.errors import ApiError
 from app.core.time import utc_now
 from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
+from app.modules.auth.rate_limit import report_limiter
 from app.modules.auth.scope import ensure_plant_in_scope, plant_filter
 from app.modules.kiosks import service
 from app.modules.kiosks.dependencies import require_kiosk
@@ -25,16 +28,22 @@ from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.schemas import (
     CreateKioskRequest,
     KioskMeResponse,
+    KioskNoticeItem,
+    KioskReportRequest,
     KioskResponse,
+    KioskScreenSettings,
     KioskWithCodeResponse,
     PlantSummary,
     ReasonRequest,
     RegisterKioskRequest,
     RegisterKioskResponse,
-    RenameKioskRequest,
+    UpdateKioskRequest,
 )
+from app.modules.notices.queries import visible_notices
 from app.modules.org.plants_service import get_plant
+from app.modules.settings.service import get_int_setting, get_setting
 
+logger = logging.getLogger(__name__)
 router = APIRouter(tags=["kiosks"])
 viewer = require(Capability.VIEW_KIOSKS)
 manager = require(Capability.MANAGE_KIOSKS)
@@ -122,15 +131,21 @@ def pairing_qr(
 
 
 @router.patch("/kiosks/{kiosk_id}", response_model=KioskResponse)
-def rename_kiosk(
+def update_kiosk(
     kiosk_id: uuid.UUID,
-    body: RenameKioskRequest,
+    body: UpdateKioskRequest,
     current_user: CurrentUser = Depends(manager),
     session: Session = Depends(get_session),
 ) -> KioskResponse:
     kiosk = _kiosk_in_scope(session, current_user, Capability.MANAGE_KIOSKS, kiosk_id)
     return KioskResponse.from_model(
-        service.rename_kiosk(session, actor=current_user.actor, kiosk=kiosk, name=body.name)
+        service.update_kiosk(
+            session,
+            actor=current_user.actor,
+            kiosk=kiosk,
+            name=body.name,
+            sound_muted=body.sound_muted,
+        )
     )
 
 
@@ -184,11 +199,72 @@ def kiosk_me(
     kiosk: KioskDevice = Depends(require_kiosk),
     session: Session = Depends(get_session),
 ) -> KioskMeResponse:
+    """The kiosk's heartbeat (every 60 s): who it is, plus the notices and settings it shows."""
     plant = get_plant(session, kiosk.plant_id)
+    now = utc_now()
     return KioskMeResponse(
         kiosk_id=kiosk.id,
         kiosk_name=kiosk.name,
         status=kiosk.status,
         plant=PlantSummary(id=plant.id, name=plant.name, code=plant.code),
-        server_time=utc_now(),
+        server_time=now,
+        notices=[
+            KioskNoticeItem(
+                id=notice.id,
+                text=notice.text,
+                level=notice.level,
+                ends_at=notice.ends_at,
+            )
+            for notice in visible_notices(session, kiosk.plant_id, now)
+        ],
+        kiosk_settings=_screen_settings(session, kiosk),
     )
+
+
+def _screen_settings(session: Session, kiosk: KioskDevice) -> KioskScreenSettings:
+    # A kiosk switched to "sound off" at its own gate silences tones and voice together.
+    quiet = kiosk.sound_muted
+    return KioskScreenSettings(
+        voice_enabled=get_setting(session, "kiosk_voice_enabled") == "on" and not quiet,
+        sound_enabled=get_setting(session, "kiosk_sound_enabled") == "on" and not quiet,
+        result_seconds=get_int_setting(session, "kiosk_result_seconds"),
+        reject_seconds=get_int_setting(session, "kiosk_reject_seconds"),
+        snapshot_retention_days=get_int_setting(session, "snapshot_retention_days"),
+        dark_threshold=get_int_setting(session, "snapshot_dark_threshold"),
+    )
+
+
+# The kiosk is not trusted: a changed or buggy one could send a card text or a name. Card
+# texts are cut out here, and control or direction-changing characters (which can fake log
+# lines) are removed.
+_CARD_TEXT = re.compile(r"UPS1\.[A-Za-z0-9._-]*")
+_UNSAFE_CHARACTERS = re.compile(r"[\x00-\x1f\x7f\u200e\u200f\u202a-\u202e\u2066-\u2069]")
+
+
+def clean_report_message(message: str) -> str:
+    return _UNSAFE_CHARACTERS.sub(" ", _CARD_TEXT.sub("[card]", message))
+
+
+@router.post("/kiosk/report", status_code=204)
+def kiosk_report(
+    body: KioskReportRequest,
+    kiosk: KioskDevice = Depends(require_kiosk),
+) -> Response:
+    """A problem the kiosk noticed (camera error, script error...). It goes to the server log
+    only, as one JSON line; nothing is stored in the database (S-26)."""
+    if not report_limiter.allow(str(kiosk.id)):
+        raise ApiError("TOO_MANY_REQUESTS", "Too many reports. Try again later.", 429)
+    logger.warning(
+        "kiosk report",
+        extra={
+            "fields": {
+                "kiosk_id": str(kiosk.id),
+                "plant_id": str(kiosk.plant_id),
+                "kind": body.kind,
+                "message": clean_report_message(body.message),
+                "count": body.count,
+                "app_version": body.app_version,
+            }
+        },
+    )
+    return Response(status_code=204)

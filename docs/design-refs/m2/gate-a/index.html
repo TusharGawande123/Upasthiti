@@ -1,0 +1,112 @@
+<!doctype html>
+<!--
+  Upasthiti – M2 design gate A: index of all QR card mockups and their states (URL hash).
+  Open with a browser (needs internet for Inter, Tailwind CDN and Lucide) or run "python -m http.server 8765" in this folder.
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti M2 gate A index</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    body { padding: 40px 24px 80px; }
+    .wrap { max-width: 1040px; margin: 0 auto; }
+    h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 6px; }
+    .lead { color: var(--muted-foreground); margin: 0 0 28px; max-width: 70ch; font-size: 15px; }
+    section { margin-bottom: 20px; }
+    section > .card { padding: 18px 22px; }
+    h2 { font-size: 17px; margin: 0 0 2px; }
+    .meta { color: var(--muted-foreground); font-size: 13px; margin: 0 0 12px; }
+    .states { display: flex; flex-wrap: wrap; gap: 8px; }
+    .states a {
+      display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 999px; text-decoration: none;
+      border: 1px solid var(--border-strong); background: var(--surface); color: var(--foreground); font-weight: 600; font-size: 13px;
+    }
+    .states a:hover { background: var(--primary-soft); border-color: #b9c6ef; }
+    .states a.role { border-style: dashed; color: var(--muted-foreground); }
+    .states a.main { background: var(--primary); border-color: var(--primary); color: #fff; }
+    .tag { display: inline-block; font-size: 12px; font-weight: 600; color: var(--primary-soft-foreground); background: var(--primary-soft); border-radius: 6px; padding: 1px 7px; margin-left: 6px; }
+    code { font-feature-settings: "zero", "cv05", "cv08"; background: var(--muted); padding: 1px 6px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>M2 design gate A: QR cards</h1>
+  <p class="lead">Seven admin screens for the QR card work of milestone M2 (spec <code>docs/specs/M2-qr-attendance.md</code> §4.6 to §4.9, §4.12, §4.13). Same look as the approved M1 gate ("Steel &amp; Signal", Inter). Role variants are hash tokens: add <code>+ph</code> (Plant Head) or <code>+ch</code> (Corporate Head) to any state, for example <code>#loading+ph</code>. Screenshots are in <code>screenshots/</code>. Notes, questions and accessibility: <a href="notes.md">notes.md</a>.</p>
+
+  <section><div class="card">
+    <h2>01 QR cards list <span class="tag">/admin/qr-cards</span></h2>
+    <p class="meta">Spec §4.6, §7 rules 1 and 3. Super Admin unless stated.</p>
+    <div class="states">
+      <a class="main" href="01-qr-cards.html">default</a><a href="01-qr-cards.html#selected">selected (bulk bar)</a><a href="01-qr-cards.html#bulk-result">bulk-result</a>
+      <a href="01-qr-cards.html#empty">empty</a><a href="01-qr-cards.html#loading">loading</a><a href="01-qr-cards.html#error">error</a><a href="01-qr-cards.html#no-match">no-match</a><a href="01-qr-cards.html#ending-soon">ending-soon (from dashboard)</a>
+      <a class="role" href="01-qr-cards.html#plant-head">plant-head</a><a class="role" href="01-qr-cards.html#corporate-head">corporate-head</a>
+    </div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>02 Test cards tab <span class="tag">/admin/qr-cards, tab Test cards</span></h2>
+    <p class="meta">Spec §4.6, F-27. Super Admin only; the tab is hidden for the two read-only roles.</p>
+    <div class="states">
+      <a class="main" href="02-test-cards.html">default</a><a href="02-test-cards.html#new">new (dialog)</a><a href="02-test-cards.html#empty">empty</a>
+      <a class="role" href="02-test-cards.html#plant-head">plant-head (opens the link)</a><a class="role" href="02-test-cards.html#corporate-head">corporate-head (opens the link)</a>
+    </div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>03 Card panel on the employee page <span class="tag">/admin/employees/:id</span></h2>
+    <p class="meta">Spec §4.7, §7 rule 3.</p>
+    <div class="states">
+      <a class="main" href="03-employee-card-panel.html#active">active</a><a href="03-employee-card-panel.html#none">none</a><a href="03-employee-card-panel.html#face-employee">face-employee</a><a href="03-employee-card-panel.html#face-switched">face-switched</a>
+      <a href="03-employee-card-panel.html#reprint">reprint</a><a href="03-employee-card-panel.html#revoked">revoked</a><a href="03-employee-card-panel.html#expired">expired</a><a href="03-employee-card-panel.html#history">history</a>
+      <a class="role" href="03-employee-card-panel.html#read-only">read-only (Corporate Head)</a><a class="role" href="03-employee-card-panel.html#read-only+ph">read-only (Plant Head)</a>
+    </div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>04 Dialogs <span class="tag">Super Admin only</span></h2>
+    <p class="meta">Spec §4.8, §4.9, §4.6.</p>
+    <p class="meta" style="margin-bottom:6px"><b>On the employee page</b></p>
+    <div class="states" style="margin-bottom:12px">
+      <a class="main" href="04-dialogs.html#issue">issue</a><a href="04-dialogs.html#issue-replace">issue-replace</a><a href="04-dialogs.html#issue-done">issue-done</a>
+      <a href="04-dialogs.html#revoke">revoke</a><a href="04-dialogs.html#revoke-error">revoke-error</a>
+      <a href="04-dialogs.html#change-end">change-end</a><a href="04-dialogs.html#change-end-today">change-end-today</a><a href="04-dialogs.html#change-end-extend">change-end-extend</a>
+    </div>
+    <p class="meta" style="margin-bottom:6px"><b>On the QR cards list</b></p>
+    <div class="states">
+      <a href="04-dialogs.html#bulk-issue">bulk-issue</a><a href="04-dialogs.html#bulk-issue-result">bulk-issue-result</a><a href="04-dialogs.html#bulk-revoke">bulk-revoke</a>
+      <a href="04-dialogs.html#print">print</a><a href="04-dialogs.html#print-error">print-error</a><a href="04-dialogs.html#print-too-many">print-too-many</a>
+    </div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>05 Card layouts <span class="tag">real PDF output</span></h2>
+    <p class="meta">Spec §4.9. Employee card, long name, test card and the A4 sheet, with call-outs.</p>
+    <div class="states"><a class="main" href="05-card-layouts.html">open</a></div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>06 Dashboard card, sidebar badge and Ctrl+K <span class="tag">F-33, F-6</span></h2>
+    <p class="meta">Spec §4.12, §4.13, §5.6.</p>
+    <div class="states">
+      <a class="main" href="06-dashboard-and-search.html">dashboard (Super Admin)</a>
+      <a href="06-dashboard-and-search.html#palette">palette: card serial</a><a href="06-dashboard-and-search.html#palette-actions">palette: commands</a>
+      <a class="role" href="06-dashboard-and-search.html#plant-head">dashboard (Plant Head)</a><a class="role" href="06-dashboard-and-search.html#palette-actions+ph">commands (Plant Head)</a><a class="role" href="06-dashboard-and-search.html#palette-actions+ch">commands (Corporate Head)</a>
+      <a class="role" href="06-dashboard-and-search.html#palette+ph">serial (Plant Head)</a><a class="role" href="06-dashboard-and-search.html#palette-other-plant+ph">serial of another plant (Plant Head)</a>
+    </div>
+  </div></section>
+
+  <section><div class="card">
+    <h2>07 Import result with "Issue and print cards" <span class="tag">F-38</span></h2>
+    <p class="meta">Spec §4.12, §5.7, §7 rule 3.</p>
+    <div class="states">
+      <a class="main" href="07-import-result.html#done">done</a><a href="07-import-result.html#approved">approved (request)</a><a href="07-import-result.html#confirm">confirm</a><a href="07-import-result.html#issued">issued (follow-up)</a><a href="07-import-result.html#no-qr">no-qr</a>
+      <a class="role" href="07-import-result.html#corporate-head">corporate-head</a>
+    </div>
+  </div></section>
+</div>
+</body>
+</html>

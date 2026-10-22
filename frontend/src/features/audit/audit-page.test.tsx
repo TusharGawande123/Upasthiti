@@ -67,7 +67,10 @@ describe("menu by role", () => {
       "nav.dashboard",
       "nav.plants",
       "nav.kiosks",
+      "nav.punches", // read-only, own plant (design gate C)
+      "nav.notices", // reads all notices, writes its own plant's (design gate C)
       "nav.employees",
+      "nav.qrCards", // read-only for a Plant Head (design gate A)
       "nav.contractors",
       "nav.settings",
       "nav.audit",
@@ -77,5 +80,8 @@ describe("menu by role", () => {
     expect(labels("corporate_head")).toContain("nav.myRequests");
     expect(labels("corporate_head")).toContain("nav.import");
     expect(labels("plant_head")).not.toContain("nav.import");
+    // Every role may read the QR cards list; the server limits what each one can change.
+    expect(labels("super_admin")).toContain("nav.qrCards");
+    expect(labels("corporate_head")).toContain("nav.qrCards");
   });
 });

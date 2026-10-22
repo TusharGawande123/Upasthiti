@@ -136,6 +136,10 @@ class ImportResponse(BaseModel):
     error_rows: int
     errors: list[ImportRowError]
     created: int | None = None
+    # After a real import (F-38): the new employees in file order, and those who punch by QR
+    # card (the ones that can get a card).
+    created_employee_ids: list[uuid.UUID] | None = None
+    created_qr_employee_ids: list[uuid.UUID] | None = None
 
 
 class TimelineEventResponse(BaseModel):
@@ -153,6 +157,8 @@ class SearchEmployee(BaseModel):
     full_name: str
     plant_code: str
     status: str
+    # Set when the search text was a card serial: the serial that matched.
+    card_serial: str | None = None
 
 
 class SearchPlant(BaseModel):

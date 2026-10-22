@@ -11,6 +11,7 @@ import { describeError } from "@/features/auth/error-message";
 import { formatDate, formatTime } from "@/lib/format";
 import { AddKioskDialog } from "./add-kiosk-dialog";
 import { KioskStatusBadge } from "./kiosks-page";
+import { LastSelfTest, SoundSwitch } from "./sound-switch";
 import { type KioskWithCode, useKiosks } from "./use-kiosks";
 
 type Props = { plantId: string; canManage: boolean };
@@ -55,6 +56,8 @@ export function PlantKiosksTab({ plantId, canManage }: Props) {
             <div key={kiosk.id} className="flex flex-wrap items-center gap-3 px-4 py-3">
               <span className="font-semibold">{kiosk.name}</span>
               <KioskStatusBadge status={kiosk.status} />
+              <LastSelfTest kiosk={kiosk} />
+              <SoundSwitch kiosk={kiosk} canManage={canManage} />
               <span className="tnum ml-auto text-sm text-muted-foreground">
                 {kiosk.last_seen_at
                   ? `${formatDate(kiosk.last_seen_at)}, ${formatTime(kiosk.last_seen_at)}`

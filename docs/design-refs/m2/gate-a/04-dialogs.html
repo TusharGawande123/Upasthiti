@@ -1,0 +1,214 @@
+<!doctype html>
+<!--
+  Upasthiti – M2 design gate A – Screen 04: QR card dialogs (Super Admin only). Spec M2 §4.8, §4.9, §4.6, §7 rule 3.
+  States (URL hash):
+    on the employee page   #issue · #issue-replace · #issue-done · #revoke · #revoke-error ·
+                           #change-end · #change-end-today · #change-end-extend
+    on the QR cards list   #bulk-issue · #bulk-issue-result · #bulk-revoke · #print · #print-error · #print-too-many
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti QR card dialogs</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+</head>
+<body data-active="qr-cards">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="m2.js"></script>
+<script>
+  const CANCEL = '<button class="btn btn-outline btn-lg">Cancel</button>';
+  const person = function (code, name, plant, extra) {
+    return '<div class="flex items-center gap-3" style="padding:10px 12px;border:1px solid var(--border);border-radius:12px;background:var(--muted)"><span class="avatar" style="width:36px;height:36px">' + D.initials(name) + '</span><div style="line-height:1.3"><b>' + name + '</b><div class="muted" style="font-size:13px"><span class="code">' + code + "</span> · " + plant + (extra || "") + "</div></div></div>";
+  };
+  const dateInput = function (id, label, value, help, extra, error) {
+    return D.field({ id: id, label: label, req: true, control: '<input id="' + id + '" class="input tnum" value="' + value + '" inputmode="numeric"' + (error ? ' aria-invalid="true"' : "") + (extra || "") + " />", help: help, error: error });
+  };
+  const reason = function (id, label, value, error, placeholder) {
+    return D.field({ id: id, label: label, req: true, error: error, help: error ? "" : "Saved in the audit log. At least 3 characters.",
+      control: '<textarea id="' + id + '" class="input textarea" style="min-height:72px"' + (error ? ' aria-invalid="true"' : "") + ' placeholder="' + (placeholder || "") + '">' + value + "</textarea>" });
+  };
+  const kindChoices = function (selected) {
+    const items = [["Lost", "search-x"], ["Damaged", "image-off"], ["Left the company", "log-out"], ["Other", "ellipsis"]];
+    return '<div><div class="label" id="kind-l">Why is it being revoked?<span class="req" aria-hidden="true">*</span></div><div class="choice-grid" role="radiogroup" aria-labelledby="kind-l" style="grid-template-columns:1fr 1fr">' +
+      items.map(function (i) {
+        return '<button type="button" role="radio" class="choice" aria-checked="' + (i[0] === selected) + '"><span class="ci">' + D.icon(i[1]) + '</span><span style="min-width:0"><b>' + i[0] + '</b></span><span class="tick">' + D.icon("check") + "</span></button>";
+      }).join("") + "</div></div>";
+  };
+  const sixMonths = '<button type="button" class="btn btn-outline btn-sm" style="margin-top:8px">' + D.icon("calendar-plus", 15) + "+6 months</button>";
+  const tile = function (cls, icon, color, n, text) {
+    return '<div class="result-tile ' + cls + '"><span class="done-ring" style="width:46px;height:46px;margin:0;background:#fff;color:' + color + '">' + D.icon(icon) + '</span><div><b class="big tnum">' + n + "</b><span>" + text + "</span></div></div>";
+  };
+  const miniRow = function (code, name, icon, label, tone) {
+    return '<tr><td><b class="code">' + code + "</b></td><td>" + name + '</td><td><span class="badge ' + tone + '" style="height:22px">' + D.icon(icon) + label + "</span></td></tr>";
+  };
+
+  // ---------------- the dialogs ----------------
+  const DIALOGS = {
+    // ===== on the employee page =====
+    issue: function () {
+      return D.dialog({
+        icon: "id-card", title: "Issue a QR card", desc: "The card works only at this person's own plant, and the plant name is printed on it.",
+        body: '<div class="space-y-4">' + person("T-2043", "Mahesh Kadam", "X280 · Helper") +
+          '<div class="form-grid">' + dateInput("vf", "Valid from", "20/10/2026", "Today, or up to 60 days ahead.") +
+          '<div>' + dateInput("vu", "Valid until", "19/04/2027", "Default: 6 months. At most 3 years after the start.") + sixMonths + "</div></div>" +
+          D.field({ id: "note", label: "Note", opt: true, control: '<textarea id="note" class="input textarea" style="min-height:64px" placeholder="For example: new joiner, batch of 20/10"></textarea>' }) + "</div>",
+        foot: CANCEL + '<button class="btn btn-primary btn-lg">' + D.icon("id-card", 18) + "Issue card</button>",
+      });
+    },
+    "issue-replace": function () {
+      return D.dialog({
+        icon: "id-card", title: "Issue a new QR card", desc: "Sunil More already has a card.",
+        body: '<div class="space-y-4"><div class="alert alert-warning" role="alert">' + D.icon("triangle-alert", 20) + "<div><b>The current card C000123 will stop working at once.</b> It is recorded as revoked with the reason \"Replaced by C000456\" (the serial of the new card). Take the old card back if you can.</div></div>" +
+          person("T-2041", "Sunil More", "K134 · Helper") +
+          '<div class="form-grid">' + dateInput("vf", "Valid from", "20/10/2026", "Today, or up to 60 days ahead.") +
+          '<div>' + dateInput("vu", "Valid until", "19/04/2027", "Default: 6 months. At most 3 years after the start.") + sixMonths + "</div></div>" +
+          D.field({ id: "note", label: "Note", opt: true, control: '<textarea id="note" class="input textarea" style="min-height:64px" placeholder="For example: old card was damaged"></textarea>' }) + "</div>",
+        foot: CANCEL + '<button class="btn btn-primary btn-lg">' + D.icon("id-card", 18) + "Replace card</button>",
+      });
+    },
+    "issue-done": function () {
+      return '<div class="overlay"></div><div class="dialog anim-scale-in" role="dialog" aria-modal="true" aria-labelledby="dlg-title" style="width:min(480px,calc(100vw - 32px))"><div style="padding:36px 28px 24px;text-align:center"><div class="done-ring dr-success">' + D.icon("check") + "</div>" +
+        '<h2 id="dlg-title" style="margin:0 0 6px;font-size:24px">Card <span class="code">C000456</span> issued</h2><p class="muted" style="margin:0 auto 6px;max-width:40ch">For Sunil More (T-2041), valid <span class="tnum">20/10/2026</span> to <span class="tnum">19/04/2027</span>.</p>' +
+        '<p style="margin:0 auto 20px;max-width:40ch;font-size:13.5px;color:var(--muted-foreground)">Card <span class="code">C000123</span> no longer works.</p>' +
+        '<div class="flex flex-col gap-2"><button class="btn btn-primary btn-lg" style="width:100%">' + D.icon("printer", 18) + "Print now</button><button class=\"btn btn-ghost btn-lg\" style=\"width:100%\">Close</button></div>" +
+        '<p style="margin:12px 0 0;font-size:12.5px;color:var(--muted-foreground)">' + D.icon("external-link", 13, "vertical-align:-2px") + " Print now opens the card in a new tab.</p></div></div>";
+    },
+    revoke: function (error) {
+      return D.dialog({
+        icon: "ban", tone: "di-danger", alert: true, title: "Revoke this card", desc: "Card <b class=\"code\">C000123</b> of Sunil More (T-2041).",
+        body: '<div class="space-y-4"><div class="alert alert-danger" role="note">' + D.icon("circle-alert", 20) + "<div><b>The card stops working at every gate immediately.</b> A revoked card is never switched back on. To give the person a card again, issue a new one.</div></div>" +
+          kindChoices("Lost") + reason("rr", "Reason", error ? "ok" : "Lost on the bus, reported by the contractor.", error ? "Write at least 3 characters." : "") + "</div>",
+        foot: CANCEL + '<button class="btn btn-lg" style="background:var(--danger);color:#fff">' + D.icon("ban", 18) + "Revoke card</button>",
+      });
+    },
+    "change-end": function (mode) {
+      const value = mode === "today" ? "20/10/2026" : mode === "extend" ? "19/10/2027" : "19/04/2027";
+      const note = mode === "today"
+        ? '<div class="alert alert-warning" role="status">' + D.icon("triangle-alert", 20) + "<div><b>The card still works until 23:59 tonight (IST).</b> To stop it right now, use Revoke instead.</div></div>"
+        : '<div class="alert alert-info" role="note">' + D.icon("info", 20) + "<div><b>No reprint is needed.</b> The end date is not printed on the card. The server checks it at every punch.</div></div>";
+      return D.dialog({
+        icon: "calendar-clock", title: "Change the end date", desc: "Card <b class=\"code\">C000123</b> of Sunil More (T-2041). It now ends on <b class=\"tnum\">19/04/2027</b>.",
+        body: '<div class="space-y-4">' + note +
+          dateInput("ne", "New end date", value, "Today or later.") +
+          '<div class="flex gap-2 flex-wrap" role="group" aria-label="Shortcuts"><button type="button" class="btn btn-outline btn-sm" aria-pressed="' + (mode === "today") + '"' + (mode === "today" ? ' style="background:var(--primary-soft);border-color:#b9c6ef"' : "") + ">" + D.icon("calendar-x", 15) + 'End today</button><button type="button" class="btn btn-outline btn-sm" aria-pressed="' + (mode === "extend") + '"' + (mode === "extend" ? ' style="background:var(--primary-soft);border-color:#b9c6ef"' : "") + ">" + D.icon("calendar-plus", 15) + "Extend by 6 months</button></div>" +
+          reason("er", "Reason", mode === "today" ? "Contract ends today, confirmed by the contractor." : mode === "extend" ? "Contract extended by the plant manager." : "", "", "Why is the date changing?") + "</div>",
+        foot: CANCEL + '<button class="btn btn-primary btn-lg">' + D.icon("check", 18) + "Save new date</button>",
+      });
+    },
+
+    // ===== on the QR cards list =====
+    "bulk-issue": function () {
+      return D.dialog({
+        icon: "id-card", title: "Issue cards to 5 people", desc: "Only people who punch by QR card and have no card yet get one. The others are skipped, not failed.", width: 640,
+        body: '<div class="space-y-4"><div class="grid gap-3" style="grid-template-columns:1fr 1fr">' + tile("rt-ok", "circle-check", "var(--success)", 3, "will get a new card") + tile("rt-neutral", "skip-forward", "var(--muted-foreground)", 2, "will be skipped") + "</div>" +
+          '<div class="mini-wrap"><table class="mini-table"><thead><tr><th>Code</th><th>Name</th><th>Result</th></tr></thead><tbody>' +
+          miniRow("T-2043", "Mahesh Kadam", "circle-check", "New card", "badge-success") + miniRow("T-2048", "Ujwala Mane", "circle-check", "New card", "badge-success") + miniRow("T-2049", "Vijay Bhor", "circle-check", "New card", "badge-success") +
+          miniRow("T-2041", "Sunil More", "skip-forward", "Skipped: already has card C000123", "badge-neutral") + miniRow("T-2071", "Santosh Chavan", "skip-forward", "Skipped: punches by face", "badge-neutral") + "</tbody></table></div>" +
+          '<div class="form-grid">' + dateInput("bv", "Valid until", "19/04/2027", "Valid from today. Default: 6 months.") + reason("br", "Reason", "New workers, batch of 20/10/2026.") + "</div>" +
+          '<div class="field-hint">' + D.icon("info") + "<span>All cards are issued in one go. If the server fails, no card is issued. One audit entry is written for each card.</span></div></div>",
+        foot: CANCEL + '<button class="btn btn-primary btn-lg">' + D.icon("id-card", 18) + "Issue 3 cards</button>",
+      });
+    },
+    "bulk-issue-result": function () {
+      const skipped = [["T-2041", "Sunil More", "C000123"], ["T-2044", "Poonam Zende", "C000098"], ["T-2050", "Nisha Tambe", "C000140"]];
+      return '<div class="overlay"></div><div class="dialog anim-scale-in" role="dialog" aria-modal="true" aria-labelledby="dlg-title" style="width:min(600px,calc(100vw - 32px))"><div style="padding:32px 28px 8px;text-align:center"><div class="done-ring dr-success">' + D.icon("check") + "</div>" +
+        '<h2 id="dlg-title" style="margin:0 0 6px;font-size:24px"><span class="tnum">37</span> cards issued</h2><p class="muted" style="margin:0 auto 16px;max-width:46ch">Valid until <span class="tnum">19/04/2027</span>. They are ready to print.</p></div>' +
+        '<div style="padding:0 28px 8px"><div class="alert alert-warning" role="status">' + D.icon("skip-forward", 20) + '<div><b><span class="tnum">3</span> skipped: they already have a card.</b> Nothing was changed for them.</div></div>' +
+        '<div class="mini-wrap" style="margin-top:12px"><table class="mini-table"><thead><tr><th>Code</th><th>Name</th><th>Why skipped</th></tr></thead><tbody>' +
+        skipped.map(function (s) { return "<tr><td><b class=\"code\">" + s[0] + "</b></td><td>" + s[1] + '</td><td><span class="badge badge-neutral" style="height:22px">' + D.icon("skip-forward") + "Already has card " + s[2] + "</span></td></tr>"; }).join("") + "</tbody></table></div></div>" +
+        '<div class="dlg-foot"><button class="btn btn-outline btn-lg">Close</button><button class="btn btn-primary btn-lg">' + D.icon("printer", 18) + "Print the 37 new cards (A4)</button></div></div>";
+    },
+    "bulk-revoke": function () {
+      return D.dialog({
+        icon: "ban", tone: "di-danger", alert: true, title: "Revoke 3 cards", desc: "Of the 4 people you selected, 1 card is skipped because it is already revoked.", width: 640,
+        body: '<div class="space-y-4"><div class="alert alert-danger" role="note">' + D.icon("circle-alert", 20) + "<div><b>These cards stop working at every gate immediately.</b> A revoked card is never switched back on.</div></div>" +
+          '<div class="mini-wrap"><table class="mini-table"><thead><tr><th>Code</th><th>Name</th><th>Card</th><th>Result</th></tr></thead><tbody>' +
+          '<tr><td><b class="code">T-2041</b></td><td>Sunil More</td><td class="code">C000123</td><td><span class="badge badge-danger" style="height:22px">' + D.icon("ban") + "Will be revoked</span></td></tr>" +
+          '<tr><td><b class="code">T-2042</b></td><td>Rekha Jagtap</td><td class="code">C000031</td><td><span class="badge badge-danger" style="height:22px">' + D.icon("ban") + "Will be revoked</span></td></tr>" +
+          '<tr><td><b class="code">T-2051</b></td><td>Prashant Kolhe</td><td class="code">C000029</td><td><span class="badge badge-danger" style="height:22px">' + D.icon("ban") + "Will be revoked</span></td></tr>" +
+          '<tr><td><b class="code">T-2047</b></td><td>Kiran Shelar</td><td class="code">C000067</td><td><span class="badge badge-neutral" style="height:22px">' + D.icon("skip-forward") + "Skipped: already revoked</span></td></tr></tbody></table></div>" +
+          kindChoices("Left the company") + reason("bkr", "Reason", "Contract with Shree Manpower Services ended on 19/10/2026.") + "</div>",
+        foot: CANCEL + '<button class="btn btn-lg" style="background:var(--danger);color:#fff">' + D.icon("ban", 18) + "Revoke 3 cards</button>",
+      });
+    },
+    print: function () {
+      const opt = function (on, icon, title, desc, meta) {
+        return '<button type="button" role="radio" class="choice" aria-checked="' + on + '"><span class="ci">' + D.icon(icon) + '</span><span style="min-width:0"><b>' + title + '</b><span class="d">' + desc + '</span><span class="d" style="color:var(--foreground);font-weight:600;margin-top:4px">' + meta + '</span></span><span class="tick">' + D.icon("check") + "</span></button>";
+      };
+      return D.dialog({
+        icon: "printer", title: "Print 8 cards", desc: "Each card shows the person's current plant.", width: 600,
+        body: '<div class="space-y-4"><div><div class="label" id="lay-l">Page layout</div><div class="choice-grid" role="radiogroup" aria-labelledby="lay-l" style="grid-template-columns:1fr">' +
+          opt(true, "layout-grid", "A4 sheets of 10", "2 cards across, 5 down, with cut marks. Best for many cards.", "1 sheet for 8 cards") +
+          opt(false, "id-card", "One card per page", "Card size 85.6 × 54 mm, one page each. For a card printer.", "8 pages") + "</div></div>" +
+          '<div class="alert alert-info" role="note">' + D.icon("info", 20) + "<div><b>Print at most 200 cards at a time.</b> For more, print in parts. Every print is counted and written to the audit log.</div></div>" +
+          '<div class="field-hint">' + D.icon("external-link") + "<span>The PDF opens in a new tab. Print it from there. The file is not saved on the server.</span></div></div>",
+        foot: CANCEL + '<button class="btn btn-primary btn-lg">' + D.icon("external-link", 18) + "Open PDF</button>",
+      });
+    },
+    "print-error": function () {
+      return D.dialog({
+        icon: "ban", tone: "di-danger", alert: true, title: "Some cards cannot be printed", desc: "A revoked card never works again, so it is not printed.", width: 600,
+        body: '<div class="space-y-4"><div class="alert alert-danger" role="alert">' + D.icon("circle-alert", 20) + "<div><b>2 of the 8 selected cards are revoked.</b> Nothing was printed. <span class=\"err-code code\">QR_CARD_REVOKED</span></div></div>" +
+          '<div class="mini-wrap"><table class="mini-table"><thead><tr><th>Card</th><th>Employee</th><th>State</th></tr></thead><tbody>' +
+          '<tr class="row-bad"><td><b class="code">C000067</b></td><td>Kiran Shelar · T-2047</td><td><span class="badge badge-danger" style="height:22px">' + D.icon("ban") + "Revoked</span></td></tr>" +
+          '<tr class="row-bad"><td><b class="code">C000072</b></td><td>Bhushan Wagh · T-2054</td><td><span class="badge badge-danger" style="height:22px">' + D.icon("ban") + "Revoked</span></td></tr></tbody></table></div>" +
+          '<p class="muted" style="margin:0">Take them out of the selection and print the other 6, or go back to the list.</p></div>',
+        foot: '<button class="btn btn-outline btn-lg">Back to the list</button><button class="btn btn-primary btn-lg">' + D.icon("printer", 18) + "Print the other 6</button>",
+      });
+    },
+    "print-too-many": function () {
+      return D.dialog({
+        icon: "triangle-alert", tone: "di-warning", alert: true, title: "Too many cards to print", desc: "You selected 238 cards.", width: 560,
+        body: '<div class="space-y-4"><div class="alert alert-warning" role="alert">' + D.icon("triangle-alert", 20) + "<div><b>Print at most 200 cards at a time.</b> Select fewer cards, then print again. <span class=\"err-code code\">PRINT_TOO_LARGE</span></div></div>" +
+          '<div class="field-hint">' + D.icon("lightbulb") + "<span>Tip: filter by plant or contractor, select that group, print it, then do the next group.</span></div></div>",
+        foot: '<button class="btn btn-outline btn-lg">Back to the list</button><button class="btn btn-primary btn-lg" disabled aria-disabled="true">' + D.icon("external-link", 18) + "Open PDF</button>",
+      });
+    },
+  };
+
+  window.onMockState = function () {
+    D.patchShell();
+    const names = ["issue", "issue-replace", "issue-done", "revoke-error", "revoke", "change-end-today", "change-end-extend", "change-end", "bulk-issue-result", "bulk-issue", "bulk-revoke", "print-error", "print-too-many", "print"];
+    const state = names.filter(D.has)[0] || "issue";
+    const onEmployee = /^(issue|revoke|change-end)/.test(state) && !/^bulk/.test(state);
+    // the page behind the dialog
+    if (onEmployee) {
+      const side = document.getElementById("sidebar");
+      side.querySelectorAll(".sb-item[aria-current]").forEach(function (el) { el.removeAttribute("aria-current"); });
+      side.querySelector('.sb-item[title="Employees"]').setAttribute("aria-current", "page");
+      M2.renderEmployee(state === "issue" ? "none" : "active");
+    } else {
+      const sets = { "bulk-issue": ["T-2043", "T-2048", "T-2049", "T-2041", "T-2071"], "bulk-issue-result": ["T-2043", "T-2048", "T-2049", "T-2041", "T-2071"], "bulk-revoke": ["T-2041", "T-2042", "T-2051", "T-2047"], print: ["T-2041", "T-2042", "T-2044", "T-2045", "T-2046", "T-2050", "T-2051", "T-2071"], "print-error": ["T-2041", "T-2042", "T-2044", "T-2045", "T-2046", "T-2047", "T-2054", "T-2051"], "print-too-many": ["T-2041", "T-2042", "T-2044", "T-2045"] };
+      M2.renderList({ selected: sets[state], hint: false, count: state === "print-too-many" ? 238 : 0 });
+    }
+    let html;
+    if (state === "revoke-error") html = DIALOGS.revoke(true);
+    else if (state === "revoke") html = DIALOGS.revoke(false);
+    else if (state === "change-end-today") html = DIALOGS["change-end"]("today");
+    else if (state === "change-end-extend") html = DIALOGS["change-end"]("extend");
+    else if (state === "change-end") html = DIALOGS["change-end"]("");
+    else html = DIALOGS[state]();
+    D.mount(html);
+    M2.tagTitle("dialog: " + state);
+  };
+</script>
+</body>
+</html>

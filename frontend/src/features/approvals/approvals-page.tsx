@@ -34,6 +34,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { describeError } from "@/features/auth/error-message";
+import { IssueCardsAfterImport } from "@/features/qr-cards/issue-after-import";
 import { ReasonDialog } from "@/features/users/user-dialogs";
 import { ApiError } from "@/lib/api-client";
 import { formatDate, formatTime } from "@/lib/format";
@@ -124,6 +125,9 @@ function RequestDrawer({
       : null;
   const failedErrors =
     (request.result?.errors as { code: string; message: string }[] | undefined) ?? [];
+  // An approved import names the new people (F-38); older requests do not, so no card step.
+  const createdIds = request.result?.created_employee_ids as string[] | undefined;
+  const createdQrIds = request.result?.created_qr_employee_ids as string[] | undefined;
 
   const finish = (message: string) => {
     toast.success(message);
@@ -162,6 +166,14 @@ function RequestDrawer({
                   t("approvals.drawer.failedText")}
               </span>
             </Alert>
+          ) : null}
+
+          {canDecide &&
+          request.kind === "employee.import" &&
+          request.status === "approved" &&
+          createdIds &&
+          createdQrIds ? (
+            <IssueCardsAfterImport qrEmployeeIds={createdQrIds} totalCreated={createdIds.length} />
           ) : null}
 
           <dl className="space-y-2 text-sm">

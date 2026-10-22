@@ -241,6 +241,7 @@ describe("employee detail", () => {
     "GET /auth/me": { body: me },
     "GET /employees/e-1": { body: detail },
     "GET /employees/e-1/timeline": { body: TIMELINE },
+    "GET /employees/e-1/qr-cards": { body: { cards: [] } },
   });
 
   it("shows details, plant history and a timeline with who, when and which fields", async () => {

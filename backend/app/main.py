@@ -9,6 +9,7 @@ from contextlib import asynccontextmanager
 from fastapi import APIRouter, Depends, FastAPI
 
 from app.api_docs import DOCS_URL, add_protected_docs
+from app.core.body_limit import BodyLimitMiddleware
 from app.core.config import get_settings, load_settings_or_exit
 from app.core.errors import register_error_handlers
 from app.core.logging import add_request_id_middleware, setup_logging
@@ -23,7 +24,12 @@ from app.modules.employees.router import router as employees_router
 from app.modules.employees.search_router import router as search_router
 from app.modules.health.router import router as health_router
 from app.modules.kiosks.router import router as kiosks_router
+from app.modules.notices.router import router as notices_router
 from app.modules.org.router import router as org_router
+from app.modules.printing.router import router as printing_router
+from app.modules.punches.admin_router import router as punch_log_router
+from app.modules.punches.router import router as punches_router
+from app.modules.qr_cards.router import router as qr_cards_router
 from app.modules.settings.router import router as settings_router
 from app.modules.users.router import router as users_router
 
@@ -65,6 +71,8 @@ def create_app() -> FastAPI:
 
     add_security_headers_middleware(app)
     add_request_id_middleware(app)
+    # Added last, so it is the outermost layer and sees the bytes before anything reads them.
+    app.add_middleware(BodyLimitMiddleware)
     register_error_handlers(app)
 
     # Every write request must come from our own site (CSRF protection, spec §8).
@@ -78,6 +86,11 @@ def create_app() -> FastAPI:
     api_router.include_router(kiosks_router)
     api_router.include_router(contractors_router)
     api_router.include_router(employees_router)
+    api_router.include_router(qr_cards_router)
+    api_router.include_router(printing_router)
+    api_router.include_router(punches_router)
+    api_router.include_router(punch_log_router)
+    api_router.include_router(notices_router)
     api_router.include_router(approvals_router)
     api_router.include_router(search_router)
     app.include_router(api_router)

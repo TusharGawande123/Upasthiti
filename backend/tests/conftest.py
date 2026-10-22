@@ -1,5 +1,6 @@
 """Shared test setup: safe test settings and a helper that builds a fresh app."""
 
+import base64
 import os
 from collections.abc import Callable, Iterator
 
@@ -20,20 +21,33 @@ os.environ["DATABASE_URL"] = UNREACHABLE_DATABASE_URL
 os.environ["APP_SECRET_KEY"] = "test-secret-key-for-pytest-only-0123456789"
 TEST_ORIGIN = "http://testserver"
 os.environ["APP_PUBLIC_ORIGIN"] = TEST_ORIGIN
+# Test-only keys (32 bytes each, made up for the tests). They let tests that start the app in
+# production mode pass the "keys are required in production" check.
+os.environ["QR_SIGNING_KEY"] = (
+    base64.urlsafe_b64encode(b"test-qr-signing-key-for-pytest-0").decode().rstrip("=")
+)
+os.environ["SNAPSHOT_ENCRYPTION_KEY"] = (
+    base64.urlsafe_b64encode(b"test-snapshot-key-for-pytest-000").decode().rstrip("=")
+)
+os.environ["STORAGE_BACKEND"] = "local"
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.db import get_engine, get_session, get_session_factory  # noqa: E402
+from app.core.storage import get_storage  # noqa: E402
 from app.main import create_app  # noqa: E402
 from app.modules.auth.rate_limit import (  # noqa: E402
     failed_pairing_limiter,
     login_limiter,
     pairing_limiter,
+    punch_limiter,
+    report_limiter,
 )
 from tests.database import create_fresh_test_database, read_test_database_url  # noqa: E402
 
 
 def clear_cached_settings() -> None:
     get_settings.cache_clear()
+    get_storage.cache_clear()
     get_engine.cache_clear()
     get_session_factory.cache_clear()
 
@@ -129,4 +143,6 @@ def fresh_rate_limits() -> Iterator[None]:
     login_limiter.reset()
     pairing_limiter.reset()
     failed_pairing_limiter.reset()
+    punch_limiter.reset()
+    report_limiter.reset()
     yield

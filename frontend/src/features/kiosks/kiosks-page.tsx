@@ -33,6 +33,7 @@ import { usePlants } from "@/features/plants/use-plants";
 import { ReasonDialog } from "@/features/users/user-dialogs";
 import { formatDate, formatTime } from "@/lib/format";
 import { AddKioskDialog } from "./add-kiosk-dialog";
+import { LastSelfTest, SoundSwitch } from "./sound-switch";
 import {
   type Kiosk,
   type KioskStatus,
@@ -212,6 +213,8 @@ export function KiosksPage() {
                 <TableHead>{t("kiosks.columns.status")}</TableHead>
                 <TableHead>{t("kiosks.columns.accuracy")}</TableHead>
                 <TableHead>{t("kiosks.columns.lastSeen")}</TableHead>
+                <TableHead>{t("kiosks.columns.lastSelfTest")}</TableHead>
+                <TableHead>{t("kiosks.columns.sound")}</TableHead>
                 <TableHead>
                   <span className="sr-only">{t("common.actions")}</span>
                 </TableHead>
@@ -244,6 +247,12 @@ export function KiosksPage() {
                       {kiosk.last_seen_at
                         ? `${formatDate(kiosk.last_seen_at)}, ${formatTime(kiosk.last_seen_at)}`
                         : t("kiosks.never")}
+                    </TableCell>
+                    <TableCell>
+                      <LastSelfTest kiosk={kiosk} />
+                    </TableCell>
+                    <TableCell>
+                      <SoundSwitch kiosk={kiosk} canManage={canManage} />
                     </TableCell>
                     <TableCell>
                       {canManage && kiosk.status !== "revoked" ? (

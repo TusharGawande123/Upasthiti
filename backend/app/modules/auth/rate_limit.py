@@ -76,3 +76,8 @@ pairing_limiter = RateLimiter(max_attempts=10, window_seconds=TEN_MINUTES)
 # backend is reached directly, so a global cap stops guessing a 6-digit code.
 FAILED_PAIRINGS_ALL = "all"
 failed_pairing_limiter = RateLimiter(max_attempts=30, window_seconds=TEN_MINUTES)
+
+# Kiosk calls (M2, spec §7 rule 5): at most 60 punches a minute and 20 error reports an hour
+# per kiosk. The key is the kiosk id, which is known only after the signature was checked.
+punch_limiter = RateLimiter(max_attempts=60, window_seconds=60)
+report_limiter = RateLimiter(max_attempts=20, window_seconds=60 * 60)

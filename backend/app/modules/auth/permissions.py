@@ -37,6 +37,17 @@ class Capability(enum.Enum):
     DECIDE_CHANGE_REQUESTS = "decide_change_requests"
     VIEW_OWN_CHANGE_REQUESTS = "view_own_change_requests"
     VIEW_AUDIT = "view_audit"
+    VIEW_QR_CARDS = "view_qr_cards"  # the cards list and an employee's card history (M2)
+    # Issue, revoke, end, extend, bulk, test cards, print. Super Admin only (decisions 0005, 0009).
+    MANAGE_QR_CARDS = "manage_qr_cards"
+    VIEW_PUNCHES = "view_punches"  # the punch log, its summary and detail (M2)
+    EXPORT_PUNCHES = "export_punches"  # the punch log as Excel: text only, never photos
+    # Opening a punch photo, and comparing photos of one card. Super Admin only (decision 0009).
+    VIEW_SNAPSHOTS = "view_snapshots"
+    VIEW_NOTICES = "view_notices"  # gate notices (F-25)
+    # Create, edit, end. Plant Head: own plant only, never the all-plants notices.
+    MANAGE_NOTICES = "manage_notices"
+    DOWNLOAD_GATE_POSTER = "download_gate_poster"  # the A4 poster next to the kiosk (F-34)
 
 
 SUPER_ADMIN = Role.SUPER_ADMIN
@@ -84,6 +95,32 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
         CORPORATE_HEAD: Access.ALL,
         PLANT_HEAD: Access.OWN_PLANT,
     },
+    Capability.VIEW_QR_CARDS: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,
+    },
+    Capability.MANAGE_QR_CARDS: {SUPER_ADMIN: Access.ALL},
+    # Plant Head: punches made at a kiosk of their own plant (spec M2 §5.3).
+    Capability.VIEW_PUNCHES: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,
+    },
+    Capability.EXPORT_PUNCHES: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,
+    },
+    Capability.VIEW_SNAPSHOTS: {SUPER_ADMIN: Access.ALL},
+    Capability.VIEW_NOTICES: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,  # plus the notices for all plants (read only)
+    },
+    Capability.MANAGE_NOTICES: {SUPER_ADMIN: Access.ALL, PLANT_HEAD: Access.OWN_PLANT},
+    # Not a credential (no personal data), so a Plant Head may print it for their own plant.
+    Capability.DOWNLOAD_GATE_POSTER: {SUPER_ADMIN: Access.ALL, PLANT_HEAD: Access.OWN_PLANT},
 }
 
 

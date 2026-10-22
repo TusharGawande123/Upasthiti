@@ -11,7 +11,10 @@ dependencies = [
     "cryptography>=50.0.2",
     "fastapi>=0.143.0",
     "fastapi-cli>=0.0.32",
+    "fpdf2>=2.8.9",
+    "httpx2>=2.15.1",
     "openpyxl>=3.1.5",
+    "pillow>=13.0.0",
     "psycopg[binary]>=3.3.6",
     "pydantic-settings>=2.15.0",
     "python-multipart>=0.0.32",
@@ -26,11 +29,17 @@ dependencies = [
 [dependency-groups]
 dev = [
     "faker>=40.43.0",
-    "httpx2>=2.13.1",
+    "pypdfium2>=5.14.0",
     "pyright>=1.1.414",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.0",
+    "zxing-cpp>=3.1.1",
+]
+# Only for the hand-run load test (loadtest/, S-22); never installed in CI or the Docker image.
+# Install with: uv sync --group loadtest
+loadtest = [
+    "locust>=2.46.7",
 ]
 
 [tool.ruff]
@@ -59,7 +68,7 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=70"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=75"
 
 [tool.coverage.run]
 branch = true

@@ -1,0 +1,62 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti QR cards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+</head>
+<!--
+  Upasthiti – M2 design gate A – Screen 01: QR cards (/admin/qr-cards). Spec M2 §2.1, §4.6, §7 rules 1 and 3.
+  States (URL hash, join with "+"): (none) default, Super Admin · #selected (5 selected, bulk bar + hint) ·
+  #empty · #loading · #error · #no-match · #ending-soon (link target of the dashboard card) ·
+  #bulk-result (37 issued, 3 skipped) · #plant-head (read-only, own plant X280) · #corporate-head (read-only, all plants).
+  Roles also work as "+ph" / "+ch" after any state, e.g. #loading+ph.  MOCKUP ONLY – static HTML, fake data.
+-->
+<body data-active="qr-cards">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="m2.js"></script>
+<script>
+  window.onMockState = function () {
+    D.patchShell();
+    const o = { selected: [] };
+    if (D.has("selected")) o.selected = ["T-2043", "T-2048", "T-2049", "T-2041", "T-2071"];
+    if (D.has("loading")) o.loading = true;
+    if (D.has("error")) o.error = true;
+    if (D.has("empty")) o.empty = true;
+    if (D.has("no-match")) o.noMatch = true;
+    if (D.has("ending-soon")) o.endingSoon = true;
+    if (D.has("bulk-result")) {
+      o.resultPanel = '<div class="result-panel anim-fade-up" role="status"><div class="flex items-center gap-3">' + D.icon("circle-check", 22) +
+        '<div style="flex:1"><b style="font-size:15px">37 cards issued. 3 skipped: they already have a card.</b><div style="font-size:13.5px">The new cards are valid until 19/04/2027. Nothing was changed for the skipped people.</div></div>' +
+        '<button class="btn btn-primary">' + D.icon("printer", 16) + 'Print the 37 new cards (A4)</button><button class="btn btn-outline" style="background:#fff" aria-label="Dismiss">' + D.icon("x", 16) + "</button></div>" +
+        '<div class="skipped" role="list" aria-label="Skipped people"><div class="skipped-row" role="listitem"><b class="code">T-2041</b><span>Sunil More</span><span class="badge badge-success" style="height:22px;margin-left:auto">' + D.icon("circle-check") + 'Active</span><span class="muted">already has card <b class="code">C000123</b></span></div>' +
+        '<div class="skipped-row" role="listitem"><b class="code">T-2044</b><span>Poonam Zende</span><span class="badge badge-success" style="height:22px;margin-left:auto">' + D.icon("circle-check") + 'Active</span><span class="muted">already has card <b class="code">C000098</b></span></div>' +
+        '<div class="skipped-row" role="listitem"><b class="code">T-2050</b><span>Nisha Tambe</span><span class="badge badge-success" style="height:22px;margin-left:auto">' + D.icon("circle-check") + 'Active</span><span class="muted">already has card <b class="code">C000140</b></span></div></div></div>';
+    }
+    M2.renderList(o);
+    if (D.has("bulk-result")) D.toast("37 cards issued. 3 skipped.", "See skipped");
+    const titles = { selected: "5 selected, bulk bar", empty: "no cards yet", loading: "loading (skeleton rows)", error: "could not load", "no-match": "filters match nobody", "ending-soon": "opened from the dashboard card", "bulk-result": "bulk issue finished", "plant-head": "read-only, own plant", "corporate-head": "read-only, all plants" };
+    const key = Object.keys(titles).filter(D.has)[0];
+    M2.tagTitle(key ? titles[key] : "default");
+    if (window.lucide) window.lucide.createIcons();
+  };
+</script>
+</body>
+</html>

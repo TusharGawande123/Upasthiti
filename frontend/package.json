@@ -16,7 +16,8 @@
     "lint": "biome check .",
     "lint:fix": "biome check --write .",
     "typecheck": "tsc -b",
-    "i18n:check": "node scripts/check-translations.mjs"
+    "i18n:check": "node scripts/check-translations.mjs && node scripts/check-error-codes.mjs",
+    "size": "node scripts/check-bundles.mjs"
   },
   "dependencies": {
     "@fontsource-variable/inter": "^5.3.0",
@@ -28,6 +29,7 @@
     "@turf/buffer": "^7.4.0",
     "@turf/circle": "^7.4.0",
     "@turf/kinks": "^7.4.0",
+    "barcode-detector": "3.2.2",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "^1.1.1",
@@ -45,7 +47,8 @@
     "react-router": "^8.4.0",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
-    "zod": "^4.6.7"
+    "zod": "^4.6.7",
+    "zxing-wasm": "3.1.3"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",

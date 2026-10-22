@@ -94,8 +94,11 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   Faker (fake data), APScheduler (daily job). All free licences.
 - Backend: Python 3.14, FastAPI, Pydantic 2, SQLAlchemy 2.1 (sync) + Alembic,
   psycopg 3, PostgreSQL, argon2-cffi, cryptography (Ed25519 QR signing,
-  ECDSA verify, AES-256-GCM templates), Shapely, segno, XlsxWriter,
-  fpdf2, APScheduler 3.
+  ECDSA verify, AES-256-GCM templates and snapshots), Shapely, segno, XlsxWriter,
+  fpdf2, Pillow (snapshot checks), httpx2 (Supabase Storage), APScheduler 3.
+- Added in M2 (all free): barcode-detector 3.2.2 (QR reading, wasm served from our own site),
+  Locust (load test, own `loadtest` group, never in CI or Docker), pypdfium2 + zxing-cpp
+  (tests only: scan a printed card back).
 - Face (server): InsightFace buffalo_l (SCRFD det_10g + ArcFace w600k_r50,
   512-d) via onnxruntime, anti-spoofing (MiniFASNet or a CelebA-Spoof model,
   the better one chosen in M3),
@@ -188,7 +191,12 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
       (spec docs/specs/M1-foundation.md, decisions 0005, 0006 and 0007; merged, PR #4).
       Still open: real-device check of kiosk pairing (phone, laptop, gate PC) and the real
       geofence of each plant (to be drawn on site).
-- [ ] M2 QR attendance end-to-end at the kiosk (with snapshot)
+- [x] M2 QR attendance end-to-end at the kiosk (with snapshot): QR cards (issue, revoke,
+      print CR80 / A4, test cards), kiosk punch with the first anti-proxy rules, encrypted
+      snapshots (purged after the retention setting), punch log, gate notices, gate poster
+      (spec docs/specs/M2-qr-attendance.md, decisions 0008, 0009, 0010). Before it goes live:
+      Supabase bucket + Render keys (deploy/README.md §8). First demo and the live load
+      test follow the merge.
 - [ ] M3 Face enrolment + face/liveness attendance at the kiosk
 - [ ] M4 Anti-proxy engine + kiosk geofence + offline kiosk sync
 - [ ] M4b Optional phone punching (admin-controlled per employee) + temp workers'
@@ -237,7 +245,7 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - Backend (from backend/):
   - `uv sync`: install dependencies.
   - `uv run fastapi dev app/main.py`: run the API locally (docs at /api/docs).
-  - `uv run pytest`: run the tests (coverage floor 60%, raised each milestone).
+  - `uv run pytest`: run the tests (coverage floor 75% since M2, raised each milestone).
   - `uv run ruff check . && uv run ruff format .`: lint and format.
   - `uv run pyright`: type check.
   - `uv run alembic upgrade head`: migrate the database.
@@ -247,6 +255,10 @@ The skeleton exists since M0; the README.md has the full first-time setup.
     (asks in the terminal; no default account). Added in M1.
   - `uv run python -m app.scripts.make_fake_data`: 650 fake employees across the 7
     plants for local testing; refuses in production. Added in M1.
+  - `uv run python -m app.scripts.make_qr_key` and `make_snapshot_key`: print a new key line
+    for `.env` (QR_SIGNING_KEY, SNAPSHOT_ENCRYPTION_KEY). Added in M2.
+  - `uv run python loadtest/prepare_data.py`, then Locust: load test of the kiosk punch
+    (backend/loadtest/README.md). Added in M2.
   - `uv run python scripts/download_models.py`: download the face models (sha256 checked);
     added in M3.
 - Frontend (from frontend/):
@@ -254,7 +266,8 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   - `npm test` (Vitest + coverage), `npm run lint` / `npm run lint:fix` (Biome),
     `npm run typecheck`, `npm run build`.
   - `npm run i18n:check`: every text key used in code exists in
-    `public/locales/en/common.json`.
+    `public/locales/en/common.json`, and every server error code has an `errors.<CODE>` text.
+  - `npm run size` (after the build): bundle budgets; the admin's first load has no kiosk code.
 - End-to-end (from e2e/): `npx playwright test` (starts backend + frontend itself; add
   `--headed` to watch the browser). It needs the local Postgres (`docker compose up -d`),
   uses its own database `upasthiti_e2e` (wiped each run) and runs tests one after another.
@@ -297,7 +310,9 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   approval route, no network check, no extra hardware (decision 0005).
 - Default shift 07:00–19:00; the Super Admin can add shifts (setting, never
   hard-coded). Each new plant also gets the categories Staff, Worker, Operator, Helper.
-- QR snapshot retention default: 60 days (a setting).
+- QR snapshot retention default: 60 days (a setting). Snapshots are encrypted (AES-256-GCM,
+  the punch id is bound in); only the Super Admin opens them and every view is audited. QR cards
+  are valid 2 months by default (a setting). A card works only at its owner's plant.
 - Backend settings come only from environment variables (`.env` locally):
   `APP_ENV` (unset = production, which switches off /api/docs), `APP_VERSION`,
   `DATABASE_URL` (required), `LOG_LEVEL`; from M1 also `APP_SECRET_KEY` (required),
@@ -307,6 +322,11 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   `TEST_DATABASE_URL` (tests; the name must end in `_test`) and `E2E_LOGIN_LIMIT` (honoured
   only when `APP_ENV=test`; production always allows 20 logins per IP per 10 minutes). A missing required
   variable stops the app with a message that names it but never prints its value.
+  From M2, required in production: `QR_SIGNING_KEY`, `SNAPSHOT_ENCRYPTION_KEY`,
+  `STORAGE_BACKEND` (`local` for development, `supabase` live) with `SUPABASE_URL`,
+  `SUPABASE_SERVICE_KEY`; optional `SNAPSHOT_BUCKET` (default `punch-snapshots`),
+  `QR_SIGNING_KEY_ID` (a letter, default A) and `STORAGE_LOCAL_DIR`. Lose a key and cards or
+  photos are lost: keep both in the password manager.
 - Every error response: `{ "error": { "code", "message", "details" } }`.
   Server logs are JSON in UTC with an `X-Request-ID`; SQL parameter values are never
   logged (they can contain personal data).

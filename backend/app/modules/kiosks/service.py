@@ -53,7 +53,12 @@ class Location:
 
 
 def kiosk_snapshot(kiosk: KioskDevice) -> dict[str, object]:
-    return {"name": kiosk.name, "status": kiosk.status, "plant_id": kiosk.plant_id}
+    return {
+        "name": kiosk.name,
+        "status": kiosk.status,
+        "plant_id": kiosk.plant_id,
+        "sound_muted": kiosk.sound_muted,
+    }
 
 
 def get_kiosk(session: Session, kiosk_id: uuid.UUID) -> KioskDevice:
@@ -80,6 +85,18 @@ def list_kiosks(
     return list(session.scalars(statement))
 
 
+def _check_name_is_free(
+    session: Session, plant_id: uuid.UUID, name: str, except_kiosk_id: uuid.UUID | None = None
+) -> None:
+    statement = select(KioskDevice.id).where(
+        KioskDevice.plant_id == plant_id, func.lower(KioskDevice.name) == name.lower()
+    )
+    if except_kiosk_id is not None:
+        statement = statement.where(KioskDevice.id != except_kiosk_id)  # renaming to its own name
+    if session.scalar(statement):
+        raise ApiError("KIOSK_NAME_EXISTS", "This plant already has a kiosk with this name.", 409)
+
+
 def create_kiosk(session: Session, *, actor: Actor, plant: Plant, name: str) -> IssuedCode:
     if not plant.is_active:
         raise ApiError("PLANT_INACTIVE", "This plant is switched off.", 422)
@@ -87,13 +104,7 @@ def create_kiosk(session: Session, *, actor: Actor, plant: Plant, name: str) -> 
         # Pairing needs a geofence to check the location against.
         raise ApiError("GEOFENCE_NOT_SET", "Draw this plant's geofence first.", 422)
     name = name.strip()
-    taken = session.scalar(
-        select(KioskDevice.id).where(
-            KioskDevice.plant_id == plant.id, func.lower(KioskDevice.name) == name.lower()
-        )
-    )
-    if taken:
-        raise ApiError("KIOSK_NAME_EXISTS", "This plant already has a kiosk with this name.", 409)
+    _check_name_is_free(session, plant.id, name)
 
     kiosk = KioskDevice(plant_id=plant.id, name=name)
     session.add(kiosk)
@@ -143,9 +154,23 @@ def current_pairing_code_issue(session: Session, kiosk: KioskDevice) -> KioskPai
     )
 
 
-def rename_kiosk(session: Session, *, actor: Actor, kiosk: KioskDevice, name: str) -> KioskDevice:
+def update_kiosk(
+    session: Session,
+    *,
+    actor: Actor,
+    kiosk: KioskDevice,
+    name: str | None = None,
+    sound_muted: bool | None = None,
+) -> KioskDevice:
+    """Rename the kiosk and/or switch its tones and voice off or on (F-1). The heartbeat tells
+    the kiosk within a minute; the switch never affects punching."""
     before = kiosk_snapshot(kiosk)
-    kiosk.name = name.strip()
+    if name is not None:
+        name = name.strip()
+        _check_name_is_free(session, kiosk.plant_id, name, except_kiosk_id=kiosk.id)
+        kiosk.name = name
+    if sound_muted is not None:
+        kiosk.sound_muted = sound_muted
     record_audit(
         session,
         actor=actor,

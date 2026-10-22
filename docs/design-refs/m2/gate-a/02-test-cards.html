@@ -1,0 +1,86 @@
+<!doctype html>
+<!--
+  Upasthiti – M2 design gate A – Screen 02: Test cards tab (/admin/qr-cards, tab "Test cards"). Spec M2 §4.6, F-27, §7 rule 1.
+  States (URL hash): (none) default · #new (New test card dialog) · #empty · #plant-head (a Plant Head who opens the link) ·
+  #corporate-head (same). Read-only roles do not see the tab at all (see notes.md).
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Test cards</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+</head>
+<body data-active="qr-cards">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="m2.js"></script>
+<script>
+  const TESTS = [
+    { serial: "T000007", label: "Gate test K134 – morning check", state: "active", by: "Asha Rao", on: "20/10/2026", used: "20/10/2026 07:12", kiosk: "K134 Main gate tablet", prints: 2 },
+    { serial: "T000006", label: "Gate test X280", state: "active", by: "Asha Rao", on: "12/10/2026", used: "19/10/2026 18:55", kiosk: "X280 Gate PC", prints: 1 },
+    { serial: "T000004", label: "TP1 side gate trial", state: "revoked", by: "Asha Rao", on: "29/09/2026", used: "02/10/2026 10:40", kiosk: "TP1 Side gate PC", prints: 1 },
+    { serial: "T000003", label: "Demo for the client visit", state: "active", by: "Asha Rao", on: "28/09/2026", used: null, kiosk: null, prints: 0 },
+  ];
+  function chip(state) {
+    return state === "active" ? '<span class="badge badge-success">' + D.icon("circle-check") + "Active</span>" : '<span class="badge badge-danger">' + D.icon("ban") + "Revoked</span>";
+  }
+  function render() {
+    const page = document.getElementById("page");
+    if (D.role !== "sa") {
+      page.innerHTML = D.pageHead({ title: "Test cards" }) + '<div class="card empty" style="margin-top:12px"><div class="empty-icon" style="color:var(--primary)">' + D.icon("lock") + "</div><h2>Only the Super Admin can open this page</h2><p>Test cards are printed and handed out by the Super Admin. You can see the real QR cards of " + (D.role === "ph" ? "your plant" : "all plants") + ' on the QR cards page. <span class="err-code code">FORBIDDEN</span></p><div class="flex justify-center gap-2" style="margin-top:20px"><a class="btn btn-primary btn-lg" href="01-qr-cards.html#' + (D.role === "ph" ? "plant-head" : "corporate-head") + '">' + D.icon("qr-code", 18) + "Go to QR cards</a></div></div>";
+      return;
+    }
+    const head = D.pageHead({ title: "QR cards", desc: "Issue, print and revoke the QR ID cards of temporary workers. A card works only at the person's own plant." });
+    const tabs = '<div class="tabs" role="tablist" aria-label="QR cards" style="margin:0 0 16px"><a class="tab" role="tab" href="01-qr-cards.html" aria-selected="false">' + D.icon("users") + 'Employees<span class="tab-count tnum">361</span></a><a class="tab" role="tab" href="02-test-cards.html" aria-selected="true">' + D.icon("flask-conical") + 'Test cards<span class="tab-count tnum">' + (D.has("empty") ? 0 : 4) + "</span></a></div>";
+    const intro = '<div class="alert alert-info" style="margin-bottom:16px" role="note">' + D.icon("info", 20) + '<div><b>A test card checks a gate kiosk, not a person.</b> A guard or Plant Head shows it to the camera every morning. The kiosk answers "Kiosk OK" and records no attendance. Print one for each gate.</div></div>';
+    const newBtn = '<button class="btn btn-primary btn-lg">' + D.icon("plus", 18) + "New test card</button>";
+    let inner;
+    if (D.has("empty")) {
+      inner = '<div class="empty" style="padding:56px 24px"><div class="empty-icon">' + D.icon("flask-conical") + '</div><h2>No test cards yet</h2><p>Make a test card, print it and give it to the guard of a gate. Scanning it shows "Kiosk OK" and records no attendance.</p><div class="flex justify-center gap-2" style="margin-top:22px">' + newBtn + "</div></div>";
+    } else {
+      const rows = TESTS.map(function (t) {
+        const dead = t.state === "revoked" ? ' disabled aria-disabled="true"' : "";
+        return '<tr><td><b class="code">' + t.serial + '</b></td><td style="max-width:260px"><b>' + t.label + "</b></td><td>" + chip(t.state) + '</td><td class="tnum">' + t.on + '<span style="display:block;font-size:12.5px;color:var(--muted-foreground)">by ' + t.by + "</span></td>" +
+          "<td>" + (t.used ? '<span class="tnum">' + t.used + '</span><span style="display:block;font-size:12.5px;color:var(--muted-foreground)">' + D.icon("tablet-smartphone", 13, "vertical-align:-2px;margin-right:3px") + t.kiosk + "</span>" : '<span class="badge badge-neutral" style="height:22px">' + D.icon("circle-dashed") + "Never used</span>") + "</td>" +
+          '<td class="tnum">' + (t.prints ? t.prints + (t.prints === 1 ? " time" : " times") : '<span class="muted">Not printed</span>') + "</td>" +
+          '<td><div class="flex gap-2 justify-end"><button class="btn btn-outline btn-sm"' + dead + ">" + D.icon("printer", 15) + 'Print</button><button class="btn btn-danger-outline btn-sm"' + dead + ">" + D.icon("ban", 15) + "Revoke</button></div></td></tr>";
+      }).join("");
+      inner = '<div style="overflow-x:auto"><table class="table qr"><thead><tr><th scope="col">Serial</th><th scope="col">Label</th><th scope="col">State</th><th scope="col">Made</th><th scope="col">Last used at</th><th scope="col">Printed</th><th scope="col" style="text-align:right">Actions</th></tr></thead><tbody>' + rows + '</tbody></table></div><div class="table-foot"><span class="tnum">Showing 1–4 of 4</span><span>Test cards never end by date. Revoke one when it is lost.</span></div>';
+    }
+    page.innerHTML = head + tabs + intro + '<div class="card anim-fade-up anim-delay-1" style="overflow:hidden"><div class="card-head"><h2 class="card-title">Test cards</h2>' + newBtn + "</div>" + inner + "</div>";
+  }
+  window.onMockState = function () {
+    D.patchShell();
+    render();
+    if (D.has("new")) {
+      D.mount(D.dialog({
+        icon: "flask-conical", title: "New test card", desc: "A test card has no employee and no plant. It only proves that a gate kiosk works.", width: 520,
+        body: '<div class="space-y-4"><div><label class="label" for="tl">Label<span class="req" aria-hidden="true">*</span><span class="sr-only"> (required)</span></label><input id="tl" class="input" value="Gate test X280 – evening" /><div class="field-hint">' + D.icon("info") + '<span>Say where it will be used, for example "Gate test K134". The label is printed on the card.</span></div></div>' +
+          '<div class="alert alert-warning" role="note">' + D.icon("triangle-alert", 20) + '<div><b>Printed as "TEST – NOT AN ID CARD".</b> It cannot be used to punch. The kiosk answers "Kiosk OK" and records no attendance.</div></div></div>',
+        foot: '<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">' + D.icon("check", 18) + "Make test card</button>",
+      }));
+    }
+    const titles = { new: "New test card dialog", empty: "no test cards yet", "plant-head": "Plant Head opens the link", "corporate-head": "Corporate Head opens the link" };
+    const key = Object.keys(titles).filter(D.has)[0];
+    M2.tagTitle(key ? titles[key] : "default");
+  };
+</script>
+</body>
+</html>

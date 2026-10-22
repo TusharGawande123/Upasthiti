@@ -104,6 +104,10 @@ jobs:
           ' >> "$GITHUB_STEP_SUMMARY"
       - name: Production build
         run: npm run build
+      - name: Bundle sizes and no kiosk code in the admin's first load
+        run: |
+          npm run size | tee -a "$GITHUB_STEP_SUMMARY"
+          test "${PIPESTATUS[0]}" -eq 0
 
   e2e:
     name: e2e
@@ -169,11 +173,16 @@ jobs:
         run: docker build -t upasthiti-backend:ci backend
       - name: Start it the way Render will (PORT set, production mode)
         run: |
+          # Two throw-away keys (32 random bytes, base64url), new on every run and never stored.
+          make_key() { head -c 32 /dev/urandom | base64 -w0 | tr '+/' '-_' | tr -d '='; }
           docker run -d --name backend -p 10000:10000 \
             -e PORT=10000 -e APP_ENV=production -e APP_VERSION="${GITHUB_SHA}" \
             -e DATABASE_URL=postgresql+psycopg://ci:ci@127.0.0.1:1/ci \
             -e APP_SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123 \
             -e APP_PUBLIC_ORIGIN=https://ci.example.invalid \
+            -e QR_SIGNING_KEY="$(make_key)" \
+            -e SNAPSHOT_ENCRYPTION_KEY="$(make_key)" \
+            -e STORAGE_BACKEND=local \
             upasthiti-backend:ci
       - name: Health endpoint answers
         run: |

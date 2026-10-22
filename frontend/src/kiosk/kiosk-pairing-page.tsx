@@ -1,4 +1,4 @@
-// The /kiosk screen until M2: pair this device to a plant gate. Designed for a phone, tablet or
+// The /kiosk page: pairs this device to a plant gate, then shows the attendance screen. Designed for a phone, tablet or
 // PC fixed at the gate: text is at least 24 px, tap targets are large, every status has an
 // icon AND words, and the screen never needs scrolling (NFR-06, design gate C).
 import {
@@ -7,7 +7,6 @@ import {
   CircleDashed,
   CircleX,
   Delete,
-  Info,
   Keyboard,
   Link2,
   Loader2,
@@ -20,85 +19,23 @@ import {
   RotateCw,
   SatelliteDish,
   ShieldAlert,
-  Smartphone,
   TimerOff,
   WifiOff,
   X,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { AttendanceScreen } from "./attendance/attendance-screen";
+import { Frame } from "./components/frame";
+import { KioskButton } from "./components/kiosk-button";
+import { ProblemScreen } from "./components/problem-screen";
+import { StatusChip } from "./components/status-chip";
 import { CODE_LENGTH, type PairingProblem, type PairingState, usePairing } from "./use-pairing";
 
-const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? "dev";
 // Only the mark drawn on the accuracy meter. The server setting (default 50 m, Super Admin can
 // change it) decides for real and says its limit when it refuses.
 const GOOD_ENOUGH_M = 50;
-
-// Big touch button used all over the kiosk.
-function KioskButton({
-  className,
-  variant = "primary",
-  ...props
-}: React.ComponentProps<"button"> & { variant?: "primary" | "key" }) {
-  return (
-    <button
-      type="button"
-      className={cn(
-        "flex min-h-[72px] cursor-pointer items-center justify-center gap-3 rounded-2xl text-[28px] font-bold shadow-[0_4px_0_0_rgba(15,23,42,0.18)] transition active:translate-y-[2px] active:shadow-none disabled:cursor-not-allowed disabled:bg-muted disabled:text-muted-foreground",
-        variant === "primary"
-          ? "bg-primary px-8 text-primary-foreground hover:bg-primary-hover"
-          : "border bg-card text-foreground hover:bg-muted",
-        className,
-      )}
-      {...props}
-    />
-  );
-}
-
-function StatusChip({ paired }: { paired: boolean }) {
-  const { t } = useTranslation();
-  return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-2 rounded-full border px-5 py-2 text-[24px] font-bold",
-        paired ? "border-success/30 bg-success-soft text-success" : "bg-muted text-foreground",
-      )}
-    >
-      {paired ? (
-        <Check className="size-6" aria-hidden />
-      ) : (
-        <CircleDashed className="size-6" aria-hidden />
-      )}
-      {t(paired ? "kiosk.chip.paired" : "kiosk.chip.notPaired")}
-    </span>
-  );
-}
-
-function Frame({ paired, children }: { paired: boolean; children: React.ReactNode }) {
-  const { t } = useTranslation();
-  return (
-    <div className="kiosk-theme flex min-h-screen flex-col bg-background">
-      {/* Safety-stripe: decoration only (yellow is never used for text). */}
-      <div
-        aria-hidden
-        className="h-3 shrink-0 bg-[repeating-linear-gradient(135deg,var(--signal)_0_18px,#0f172a_18px_36px)]"
-      />
-      <header className="flex items-center justify-between gap-4 border-b bg-card px-8 py-5">
-        <div>
-          <p className="text-[30px] leading-tight font-extrabold">{t("kiosk.brand")}</p>
-          <p className="text-[24px] text-muted-foreground">{t("kiosk.subtitle")}</p>
-        </div>
-        <StatusChip paired={paired} />
-      </header>
-      <main className="flex flex-1 flex-col justify-center px-8 py-6">{children}</main>
-      <footer className="flex items-center justify-between border-t bg-card px-8 py-4 text-[24px] text-muted-foreground">
-        <span>{t("kiosk.help")}</span>
-        <span className="tnum">{t("kiosk.version", { version: APP_VERSION })}</span>
-      </footer>
-    </div>
-  );
-}
 
 function DigitBoxes({ code, wrong }: { code: string; wrong: boolean }) {
   const { t } = useTranslation();
@@ -302,73 +239,6 @@ function BusyScreen({
   );
 }
 
-// Same clock on every kiosk: the server's time shown in IST, never the device's own setting.
-function ServerClock({ offsetMs }: { offsetMs: number }) {
-  const { t } = useTranslation();
-  const [now, setNow] = useState(() => new Date(Date.now() + offsetMs));
-  useEffect(() => {
-    const timer = setInterval(() => setNow(new Date(Date.now() + offsetMs)), 1000);
-    return () => clearInterval(timer);
-  }, [offsetMs]);
-
-  const time = new Intl.DateTimeFormat("en-IN", {
-    timeZone: "Asia/Kolkata",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-    hour12: false,
-  }).format(now);
-  const date = new Intl.DateTimeFormat("en-IN", {
-    timeZone: "Asia/Kolkata",
-    weekday: "long",
-    day: "2-digit",
-    month: "2-digit",
-    year: "numeric",
-  }).format(now);
-
-  return (
-    <div>
-      <p
-        role="timer"
-        aria-label={t("kiosk.paired.clockLabel")}
-        className="tnum text-[88px] leading-none font-extrabold"
-      >
-        {time}
-      </p>
-      <p className="mt-2 text-[24px] text-muted-foreground">
-        {t("kiosk.paired.clockCaption", { date })}
-      </p>
-    </div>
-  );
-}
-
-function PairedScreen({ state }: { state: Extract<PairingState, { phase: "paired" }> }) {
-  const { t } = useTranslation();
-  const { kiosk } = state;
-  return (
-    <div className="mx-auto flex w-full max-w-3xl flex-col items-center gap-6 text-center">
-      <span className="grid size-36 place-items-center rounded-full bg-success text-white">
-        <Check className="size-20" strokeWidth={4} aria-hidden />
-      </span>
-      <h1 className="text-[56px] leading-tight font-extrabold">{t("kiosk.paired.title")}</h1>
-      <p className="text-[30px] font-semibold">
-        {t("kiosk.paired.to", { code: kiosk.plantCode, name: kiosk.plantName })}
-      </p>
-      <span className="inline-flex items-center gap-2 rounded-full border bg-card px-5 py-2 text-[24px] font-semibold">
-        <Smartphone className="size-6" aria-hidden />
-        {kiosk.accuracyM === null
-          ? kiosk.kioskName
-          : t("kiosk.paired.nameAndAccuracy", { name: kiosk.kioskName, metres: kiosk.accuracyM })}
-      </span>
-      <ServerClock offsetMs={state.serverOffsetMs} />
-      <p className="flex max-w-xl items-start gap-3 rounded-2xl border bg-card p-4 text-left text-[24px]">
-        <Info className="mt-1 size-6 shrink-0" aria-hidden />
-        {t("kiosk.paired.later")}
-      </p>
-    </div>
-  );
-}
-
 const PROBLEM_ICONS: Record<PairingProblem, LucideIcon> = {
   "code-expired": TimerOff,
   locked: ShieldAlert,
@@ -392,7 +262,7 @@ const SERIOUS_PROBLEMS = new Set<PairingProblem>([
 // Problems that have no button (nothing to press on this device).
 const NO_ACTION = new Set<PairingProblem>(["unsupported"]);
 
-function ProblemScreen({
+function PairingProblemScreen({
   state,
   onAction,
 }: {
@@ -401,69 +271,73 @@ function ProblemScreen({
 }) {
   const { t } = useTranslation();
   const { problem } = state;
-  const Icon = PROBLEM_ICONS[problem];
-  const serious = SERIOUS_PROBLEMS.has(problem);
-  const steps = t(`kiosk.problem.${problem}.steps`, { returnObjects: true }) as string[];
   const startsOver = problem === "code-expired" || problem === "locked" || problem === "revoked";
 
   return (
-    <div
-      role="alert"
-      className="mx-auto flex w-full max-w-3xl flex-col items-center gap-5 text-center"
-    >
-      <span
-        className={cn(
-          "grid size-32 place-items-center rounded-full",
-          serious ? "bg-destructive-soft text-destructive" : "bg-warning-soft text-warning",
-        )}
-      >
-        <Icon className="size-16" aria-hidden />
-      </span>
-      <h1 className="text-[48px] leading-tight font-extrabold">
-        {t(`kiosk.problem.${problem}.title`)}
-      </h1>
-      <p className="text-[28px] leading-snug">{t(`kiosk.problem.${problem}.message`)}</p>
-      {problem === "gps-weak" && state.bestAccuracyM !== null ? (
-        <p className="tnum text-[28px] font-bold">
-          {t("kiosk.problem.gps-weak.best", { metres: state.bestAccuracyM })}
-        </p>
-      ) : null}
-      <ol className="w-full max-w-2xl space-y-3 text-left">
-        {steps.map((step, index) => (
-          <li
-            key={step}
-            className="flex items-center gap-4 rounded-2xl border bg-card p-4 text-[24px]"
-          >
-            <span className="grid size-10 shrink-0 place-items-center rounded-full bg-signal text-[24px] font-extrabold text-foreground">
-              {index + 1}
-            </span>
-            {step}
-          </li>
-        ))}
-      </ol>
-      {NO_ACTION.has(problem) ? null : (
-        <KioskButton className="w-full max-w-2xl" onClick={() => onAction(problem)}>
-          {startsOver ? (
-            <Keyboard className="size-8" aria-hidden />
-          ) : (
-            <RotateCw className="size-8" aria-hidden />
-          )}
-          {t(startsOver ? "kiosk.problem.newCode" : "kiosk.problem.tryAgain")}
-        </KioskButton>
-      )}
-      <p className="text-[24px] text-muted-foreground">
-        {t("kiosk.problem.forAdmin")} <b className="text-foreground">{state.code}</b>
-      </p>
-    </div>
+    <ProblemScreen
+      icon={PROBLEM_ICONS[problem]}
+      serious={SERIOUS_PROBLEMS.has(problem)}
+      title={t(`kiosk.problem.${problem}.title`)}
+      message={t(`kiosk.problem.${problem}.message`)}
+      steps={t(`kiosk.problem.${problem}.steps`, { returnObjects: true }) as string[]}
+      extra={
+        problem === "gps-weak" && state.bestAccuracyM !== null ? (
+          <p className="tnum text-[28px] font-bold">
+            {t("kiosk.problem.gps-weak.best", { metres: state.bestAccuracyM })}
+          </p>
+        ) : null
+      }
+      action={
+        NO_ACTION.has(problem)
+          ? undefined
+          : {
+              label: t(startsOver ? "kiosk.problem.newCode" : "kiosk.problem.tryAgain"),
+              icon: startsOver ? Keyboard : RotateCw,
+              onClick: () => onAction(problem),
+            }
+      }
+      code={state.code}
+    />
+  );
+}
+
+function PairingStatusChip({ paired }: { paired: boolean }) {
+  const { t } = useTranslation();
+  return paired ? (
+    <StatusChip tone="success" icon={Check}>
+      {t("kiosk.chip.paired")}
+    </StatusChip>
+  ) : (
+    <StatusChip tone="neutral" icon={CircleDashed}>
+      {t("kiosk.chip.notPaired")}
+    </StatusChip>
   );
 }
 
 export function KioskPairingPage() {
+  const { t } = useTranslation();
   const pairing = usePairing();
   const { state } = pairing;
 
+  // Once paired, the kiosk goes straight to scanning (zero taps, spec M2 §4.1).
+  if (state.phase === "paired") {
+    return (
+      <AttendanceScreen
+        kiosk={state.kiosk}
+        initialMe={state.me}
+        initialOffsetMs={state.serverOffsetMs}
+        onRevoked={pairing.markRevoked}
+        onUnpaired={pairing.startOver}
+      />
+    );
+  }
+
   return (
-    <Frame paired={state.phase === "paired"}>
+    <Frame
+      title={t("kiosk.brand")}
+      subtitle={t("kiosk.subtitle")}
+      aside={<PairingStatusChip paired={false} />}
+    >
       {state.phase === "starting" ? (
         <Loader2 className="mx-auto size-16 animate-spin text-primary" aria-hidden />
       ) : null}
@@ -482,9 +356,8 @@ export function KioskPairingPage() {
         <BusyScreen phase="locating" accuracyM={state.accuracyM} />
       ) : null}
       {state.phase === "checking" ? <BusyScreen phase="checking" accuracyM={null} /> : null}
-      {state.phase === "paired" ? <PairedScreen state={state} /> : null}
       {state.phase === "problem" ? (
-        <ProblemScreen state={state} onAction={pairing.tryAgain} />
+        <PairingProblemScreen state={state} onAction={pairing.tryAgain} />
       ) : null}
     </Frame>
   );

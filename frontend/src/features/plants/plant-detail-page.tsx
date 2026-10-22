@@ -15,6 +15,7 @@ import { useMe } from "@/features/auth/use-auth";
 import { PlantKiosksTab } from "@/features/kiosks/plant-kiosks-tab";
 import { cn } from "@/lib/utils";
 import { EditPlantDialog } from "./add-plant-dialog";
+import { GatePosterButton } from "./gate-poster-button";
 import { GeofenceTab } from "./geofence-tab";
 import { NamedItemsTab } from "./named-items-tab";
 import { PlantStatusDialog } from "./plant-status-dialog";
@@ -174,20 +175,23 @@ export function PlantDetailPage() {
             ) : null}
           </div>
         </div>
-        {canEdit ? (
-          <div className="flex gap-2">
-            <Button variant="outline" onClick={() => setEditing(true)}>
-              <Pencil aria-hidden />
-              {t("plants.editDetails")}
-            </Button>
-            <Button
-              variant={data.is_active ? "danger" : "outline"}
-              onClick={() => setChangingStatus(true)}
-            >
-              {data.is_active ? t("plants.deactivate") : t("plants.reactivate")}
-            </Button>
-          </div>
-        ) : null}
+        <div className="flex flex-wrap gap-2">
+          {canKioskManage ? <GatePosterButton plantId={plantId} plantCode={data.code} /> : null}
+          {canEdit ? (
+            <>
+              <Button variant="outline" onClick={() => setEditing(true)}>
+                <Pencil aria-hidden />
+                {t("plants.editDetails")}
+              </Button>
+              <Button
+                variant={data.is_active ? "danger" : "outline"}
+                onClick={() => setChangingStatus(true)}
+              >
+                {data.is_active ? t("plants.deactivate") : t("plants.reactivate")}
+              </Button>
+            </>
+          ) : null}
+        </div>
       </div>
 
       {!canEdit ? <Alert tone="info">{t("plants.readOnly")}</Alert> : null}

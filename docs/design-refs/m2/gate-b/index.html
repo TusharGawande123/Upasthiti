@@ -1,0 +1,37 @@
+<!doctype html>
+<!--
+  Upasthiti - M2 design gate B: index of all kiosk mockups and their states (URL hash).
+  Open with a browser (needs internet for Inter and Lucide) or run "python -m http.server 8766" in this folder.
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti M2 gate B index</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    body { padding: 40px 24px 80px; overflow: auto; }
+    .wrap { max-width: 1040px; margin: 0 auto; }
+    h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 6px; }
+    .lead { color: var(--muted-foreground); margin: 0 0 28px; max-width: 72ch; font-size: 15px; }
+    section { margin-bottom: 20px; } section > .card { padding: 18px 22px; }
+    h2 { font-size: 17px; margin: 0 0 2px; } .meta { color: var(--muted-foreground); font-size: 13px; margin: 0 0 12px; }
+    .states { display: flex; flex-wrap: wrap; gap: 8px; }
+    .states a { display: inline-flex; align-items: center; height: 34px; padding: 0 12px; border-radius: 999px; text-decoration: none; border: 1px solid var(--border-strong); background: var(--surface); color: var(--foreground); font-weight: 600; font-size: 13px; }
+    .states a:hover { background: var(--primary-soft); border-color: #b9c6ef; }
+    code { font-feature-settings: "zero", "cv05", "cv08"; background: var(--muted); padding: 1px 6px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>M2 design gate B: the gate kiosk</h1>
+  <p class="lead">Four kiosk files for spec <code>docs/specs/M2-qr-attendance.md</code> section 4.1 to 4.5. Same look as the approved M1 pairing screens and gate A ("Steel &amp; Signal", Inter, yellow only as the scan language). Primary size 1280 x 800; the scanning screen and one result are also drawn at 1366 x 768 and 390 x 844 (see <code>screenshots/</code>, names end in -1366x768 or -390x844). Add <code>?shot</code> to a URL to hide the state tag. Read <code>notes.md</code> for decisions, contrast table and open questions.</p>
+  <section><div class="card"><h2>01 Scanning (idle)</h2><p class="meta">01-scanning.html - Spec 4.1, 4.2, 7 rule 9 (F-25, F-31)</p><div class="states"><a href="01-scanning.html#default">3 notices, 1 Important</a><a href="01-scanning.html#no-notices">0 notices</a><a href="01-scanning.html#one-notice">1 notice</a><a href="01-scanning.html#important-first">2 Important first, long text wraps</a><a href="01-scanning.html#rotating">more than 3: rotation indicator</a><a href="01-scanning.html#long-notice">2 long notices, Marathi text</a><a href="01-scanning.html#low-light">low-light hint</a><a href="01-scanning.html#sound-banner">sound banner</a><a href="01-scanning.html#camera-fallback">Start camera button + banner</a><a href="01-scanning.html#not-upasthiti">not an Upasthiti card (3 s)</a><a href="01-scanning.html#no-internet">connection chip: No internet</a><a href="01-scanning.html#busiest">worst case: everything at once</a></div></div></section>
+  <section><div class="card"><h2>02 Card read and checking</h2><p class="meta">02-card-read.html - Spec 4.3</p><div class="states"><a href="02-card-read.html#card-read">Card read. Look at the camera</a><a href="02-card-read.html#checking">Checking...</a><a href="02-card-read.html#server-waking">after 5 s: server is starting</a></div></div></section>
+  <section><div class="card"><h2>03 Result screens</h2><p class="meta">03-results.html - Spec 4.4, 9 (reason codes, rule 10)</p><div class="states"><a href="03-results.html#in">Accepted IN</a><a href="03-results.html#out">Accepted OUT</a><a href="03-results.html#already-in">Already IN (cool-down)</a><a href="03-results.html#already-in-soon">Already IN, OUT allowed later</a><a href="03-results.html#already-out">Already OUT</a><a href="03-results.html#rejected-qr-revoked">QR_REVOKED</a><a href="03-results.html#rejected-qr-expired">QR_EXPIRED</a><a href="03-results.html#rejected-qr-not-yet-valid">QR_NOT_YET_VALID</a><a href="03-results.html#rejected-wrong-plant">WRONG_PLANT</a><a href="03-results.html#rejected-employee-not-qr">EMPLOYEE_NOT_QR</a><a href="03-results.html#rejected-qr-signature-invalid">QR_SIGNATURE_INVALID</a><a href="03-results.html#rejected-qr-format-invalid">QR_FORMAT_INVALID</a><a href="03-results.html#rejected-snapshot-missing">SNAPSHOT_MISSING</a><a href="03-results.html#rejected-employee-inactive">EMPLOYEE_INACTIVE</a><a href="03-results.html#rejected-qr-signing-not-configured">QR_SIGNING_NOT_CONFIGURED (extra)</a><a href="03-results.html#rejected-payload-too-large">PAYLOAD_TOO_LARGE (extra)</a><a href="03-results.html#self-test">Self-test KIOSK OK</a><a href="03-results.html#in-long-name">IN, 54-character name</a><a href="03-results.html#in-devanagari-name">IN, Marathi name</a><a href="03-results.html#in-devanagari-long-name">IN, long Marathi name</a></div></div></section>
+  <section><div class="card"><h2>04 Problem screens</h2><p class="meta">04-problems.html - Spec 4.1, 4.5</p><div class="states"><a href="04-problems.html#network-offline">NETWORK_OFFLINE</a><a href="04-problems.html#internal-error">INTERNAL_ERROR</a><a href="04-problems.html#too-many-requests">TOO_MANY_REQUESTS</a><a href="04-problems.html#camera-blocked">CAMERA_BLOCKED</a><a href="04-problems.html#camera-not-found">CAMERA_NOT_FOUND</a><a href="04-problems.html#browser-not-supported">BROWSER_NOT_SUPPORTED</a><a href="04-problems.html#m1-screens">M1 revoked + not paired (reference)</a></div></div></section>
+</div>
+</body>
+</html>

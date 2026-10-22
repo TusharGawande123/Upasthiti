@@ -1,0 +1,45 @@
+<!doctype html>
+<!--
+  Upasthiti – M2 design gate A – Screen 03: the QR card panel on the employee detail page (/admin/employees/:id). Spec M2 §4.7.
+  States (URL hash): #active (default) · #none · #face-employee · #face-switched · #reprint · #revoked · #expired ·
+  #history (earlier cards expanded) · #read-only (Corporate Head) · #read-only+ph (Plant Head, own plant).
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Employee QR card</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+</head>
+<body data-active="employees">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="m2.js"></script>
+<script>
+  window.onMockState = function () {
+    D.patchShell();
+    const names = ["active", "none", "face-employee", "face-switched", "reprint", "revoked", "expired", "history", "read-only"];
+    const state = names.filter(D.has)[0] || "active";
+    M2.renderEmployee(state);
+    const labels = { active: "active card", none: "QR employee without a card", "face-employee": "punches by face", "face-switched": "switched to face, old card still active", reprint: "reprint needed after a transfer", revoked: "revoked card", expired: "expired card", history: "card history open", "read-only": "read-only" };
+    M2.tagTitle(labels[state]);
+  };
+</script>
+</body>
+</html>

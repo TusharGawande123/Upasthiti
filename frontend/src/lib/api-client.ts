@@ -53,14 +53,19 @@ export function setNotAuthenticatedHandler(handler: (() => void) | null) {
   onNotAuthenticated = handler;
 }
 
-async function request<T>(path: string, { method, body, headers }: RequestOptions): Promise<T> {
+// Sends the request and turns every failure into an ApiError. Returns the answer untouched.
+async function send(
+  path: string,
+  { method, body, headers }: RequestOptions,
+  accept = "application/json",
+): Promise<Response> {
   const isUpload = body instanceof FormData;
   let response: Response;
   try {
     response = await fetch(`${API_PREFIX}${path}`, {
       method,
       headers: {
-        Accept: "application/json",
+        Accept: accept,
         ...headers,
         // A file upload (FormData) sets its own content type with the boundary.
         ...(body === undefined || isUpload ? {} : { "Content-Type": "application/json" }),
@@ -78,6 +83,11 @@ async function request<T>(path: string, { method, body, headers }: RequestOption
     }
     throw error;
   }
+  return response;
+}
+
+async function request<T>(path: string, options: RequestOptions): Promise<T> {
+  const response = await send(path, options);
   if (response.status === 204) {
     return undefined as T;
   }
@@ -102,3 +112,15 @@ export const apiUpload = <T>(path: string, file: File) => {
 // For callers that need their own headers (the signed kiosk requests).
 export const apiSend = <T>(options: RequestOptions & { path: string }) =>
   request<T>(options.path, options);
+
+/**
+ * Downloads a file (a PDF by default; pass `accept` for a photo or a spreadsheet). Errors come
+ * back as the usual ApiError.
+ */
+export async function apiBlob(
+  path: string,
+  options: { method: "GET" | "POST"; body?: unknown; accept?: string },
+): Promise<Blob> {
+  const response = await send(path, options, options.accept ?? "application/pdf");
+  return await response.blob();
+}

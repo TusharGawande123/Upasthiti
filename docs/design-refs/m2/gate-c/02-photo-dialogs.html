@@ -1,0 +1,140 @@
+<!doctype html>
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti Punch photo</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com/3.4.16"></script>
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="shell.css" />
+  <link rel="stylesheet" href="bc.css" />
+  <link rel="stylesheet" href="d.css" />
+  <link rel="stylesheet" href="m2.css" />
+  <link rel="stylesheet" href="c.css" />
+</head>
+<!--
+  Upasthiti – M2 design gate C – Screen 02: photo dialog and Compare (Super Admin only), over the punch log.
+  Spec M2 §4.10 (View photo, Compare F-29), §5.3 (/snapshot, /compare), §8 (every view audited), §9 (SNAPSHOT_PURGED,
+  SNAPSHOT_NOT_AVAILABLE, STORAGE_UNAVAILABLE, compare none).
+  States (URL hash): #view (default) · #view-dark · #view-loading · #purged (410) · #not-available (404) ·
+  #storage-unavailable (503) · #compare · #compare-none.  The photos are neutral placeholders, never real people.
+  MOCKUP ONLY – static HTML, fake data.
+-->
+<body data-active="punches">
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<script src="shell.js"></script>
+<script src="d.js"></script>
+<script src="d-extra.js"></script>
+<script src="c.js"></script>
+<script src="punches.js"></script>
+<script>
+  // The punch that was opened: Sunil More, 10:04:38, K134 main gate (see the punch log)
+  const kv = function (k, v) { return '<div class="kv" style="grid-template-columns:110px minmax(0,1fr);padding:9px 0;border-bottom:1px dashed var(--border)"><dt>' + k + "</dt><dd>" + v + "</dd></div>"; };
+
+  function facts(o) {
+    o = o || {};
+    return '<dl style="margin:0">' +
+      kv("Time", '<span class="tnum">' + (o.time || "20/10/2026 10:04:38") + "</span> IST") +
+      kv("Kiosk", "<b>" + (o.kiosk || "K134 main gate") + '</b> <span class="muted code">· ' + (o.plant || "K134") + "</span>") +
+      kv("Employee", "<b>" + (o.name || "Sunil More") + '</b> <span class="muted code">· ' + (o.code || "T-2041") + "</span>") +
+      kv("Result", '<span class="flex gap-2 items-center flex-wrap">' + C.result(o.dec || "accepted") + C.direction(o.dir === undefined ? "in" : o.dir) + "</span>") +
+      kv("Photo", o.photoLine || 'Stored · deleted automatically on <span class="tnum">19/12/2026</span>') +
+      "</dl>";
+  }
+  const auditNote = '<div class="audit-note" role="note" style="margin-top:16px">' + D.icon("eye") + "<span>Viewing is recorded in the audit log.</span></div>";
+  const purpose = '<p class="muted" style="font-size:12.5px;margin:10px 0 0">Use this photo only to check card sharing. It is never used for face recognition and is not in any export.</p>';
+
+  function viewDialog(photoHtml, o) {
+    o = o || {};
+    return D.dialog({
+      icon: "image", title: o.title || "Photo of the punch at 10:04:38", width: 900,
+      desc: o.desc || "Sunil More · T-2041 · Tuesday 20/10/2026",
+      body: '<div class="pv-grid"><div>' + photoHtml + "</div><div>" + facts(o.facts) + (o.extra || "") + (o.noAudit ? "" : auditNote) + purpose + "</div></div>",
+      foot: o.foot || ('<button class="btn btn-outline" style="margin-right:auto">' + D.icon("columns-2", 16) + "Compare with earlier punches</button>" +
+        '<button class="btn btn-ghost" aria-label="Older punch">' + D.icon("chevron-left", 16) + 'Older</button><button class="btn btn-ghost" aria-label="Newer punch">Newer' + D.icon("chevron-right", 16) + "</button>" +
+        '<button class="btn btn-primary">Close</button>'),
+    });
+  }
+
+  function gone(icon, title, text, code, action) {
+    return '<div class="photo-gone" role="alert"><span class="gi">' + D.icon(icon) + "</span><b>" + title + "</b><p>" + text + '</p><span class="code muted" style="font-size:12px">' + code + "</span>" + (action || "") + "</div>";
+  }
+
+  function compareDialog(none) {
+    const current = '<div class="cmp-current"><div class="cmp-label">' + D.icon("crosshair") + "This punch</div>" + C.photo({ v: 0 }) +
+      '<div class="cmp-item"><div class="meta-line"><b class="tnum">20/10/2026 10:04:38</b> · K134 main gate<br/>Accepted IN</div></div></div>';
+    const earlierData = [
+      ["19/10/2026 19:02:11", "K134 main gate", "Accepted OUT", 1],
+      ["19/10/2026 07:01:40", "K134 main gate", "Accepted IN", 2],
+      ["17/10/2026 18:58:03", "TP1 gate", "Rejected · Card of another plant", 3],
+    ];
+    const earlier = none
+      ? '<div class="cmp-none" role="status">' + D.icon("images") + "<b>No earlier photos of this card.</b>Photos are kept 60 days, so this may be the first punch with this card, or the older photos were already deleted.</div>"
+      : '<div class="cmp-earlier">' + earlierData.map(function (e) {
+          return '<div class="cmp-item">' + C.photo({ v: e[3], alt: "Earlier punch photo, " + e[0] + " (placeholder)" }) + '<div class="meta-line"><b class="tnum">' + e[0] + "</b><br/>" + e[1] + "<br/>" + e[2] + "</div></div>";
+        }).join("") + "</div>";
+    return D.dialog({
+      icon: "columns-2", width: 1180,
+      title: "Compare photos: Sunil More, T-2041",
+      desc: none ? "This punch. The card has no earlier stored photos." : "This punch next to the last 3 stored photos of the same card, newest first. Look for a different person using the same card.",
+      body: '<div class="cmp-grid">' + current + '<div><div class="cmp-label">' + D.icon("history") + "Earlier punches of card C000123" + (none ? "" : " (3)") + "</div>" + earlier +
+        '<div class="audit-note" role="note" style="margin-top:16px">' + D.icon("eye") + "<span>" + (none ? "1 photo shown. Each photo shown is recorded in the audit log." : "4 photos shown. Each photo shown is recorded in the audit log.") + "</span></div></div></div>",
+      foot: '<button class="btn btn-ghost" style="margin-right:auto">' + D.icon("arrow-left", 16) + "Back to this photo</button>" +
+        '<a class="btn btn-outline" href="../gate-a/03-employee-card-panel.html#active">' + D.icon("id-card", 16) + "Open employee</a><button class=\"btn btn-primary\">Close</button>",
+    });
+  }
+
+  window.onMockState = function () {
+    C.patchShell();
+    C.renderPunchLog({ past: D.has("purged") });
+    let html, title;
+    if (D.has("view-dark")) {
+      html = viewDialog(C.photo({ dark: true, v: 0, alt: "Dark punch photo (placeholder)" }), {
+        title: "Photo of the punch at 09:55:10", desc: "Asha Kale · T-2060 · Tuesday 20/10/2026",
+        facts: { time: "20/10/2026 09:55:10", name: "Asha Kale", code: "T-2060" },
+        extra: '<div class="alert alert-warning" role="note" style="margin-top:14px">' + D.icon("moon") + "<div><b>Dark photo.</b> The picture is darker than the limit set in Settings. Ask the plant to switch on the gate light at K134. The punch itself was decided as normal.</div></div>",
+      });
+      title = "view: dark photo";
+    } else if (D.has("view-loading")) {
+      html = viewDialog('<div class="skeleton" style="aspect-ratio:4/3;border-radius:12px" aria-hidden="true"></div><div class="photo-cap" role="status">' + D.spinner + "Loading the photo…</div>", {});
+      title = "view: loading";
+    } else if (D.has("purged")) {
+      html = viewDialog(gone("image-off", "This photo was deleted on 13/10/2026 (kept 60 days).", "Photos are deleted automatically after the retention period in Settings. The punch itself stays in the log.", "SNAPSHOT_PURGED"), {
+        title: "Photo of the punch at 07:04:15", desc: "Sunil More · T-2041 · Friday 14/08/2026", noAudit: true,
+        facts: { time: "14/08/2026 07:04:15", photoLine: 'Deleted on <span class="tnum">13/10/2026</span>' },
+        foot: '<button class="btn btn-primary">Close</button>',
+      });
+      title = "purged (410)";
+    } else if (D.has("not-available")) {
+      html = viewDialog(gone("image-off", "No photo is available for this punch.", "The photo could not be opened. The punch itself is saved and was decided as normal.", "SNAPSHOT_NOT_AVAILABLE"), {
+        noAudit: true, facts: { photoLine: "Not available" }, foot: '<button class="btn btn-primary">Close</button>',
+      });
+      title = "not available (404)";
+    } else if (D.has("storage-unavailable")) {
+      html = viewDialog(gone("cloud-off", "Photos cannot be loaded right now. Try again later.", "The photo store is not reachable. Nothing is lost: the photo stays stored until 19/12/2026.", "STORAGE_UNAVAILABLE",
+        '<button class="btn btn-outline btn-sm" style="margin-top:4px">' + D.icon("rotate-cw", 15) + "Try again</button>"), {
+        noAudit: true, foot: '<button class="btn btn-primary">Close</button>',
+      });
+      title = "storage unavailable (503)";
+    } else if (D.has("compare")) {
+      html = compareDialog(false); title = "compare with 3 earlier photos";
+    } else if (D.has("compare-none")) {
+      html = compareDialog(true); title = "compare: no earlier photos";
+    } else {
+      html = viewDialog(C.photo({ v: 0 }), {}); title = "view photo";
+    }
+    D.mount(html);
+    C.tag(title);
+    if (window.lucide) window.lucide.createIcons();
+  };
+</script>
+</body>
+</html>

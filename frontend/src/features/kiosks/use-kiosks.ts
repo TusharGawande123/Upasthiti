@@ -17,6 +17,9 @@ export type Kiosk = {
   app_version: string | null;
   revoked_at: string | null;
   revoke_reason: string | null;
+  // M2: tones and voice switched off at this gate (F-1); the last test card scan (F-27).
+  sound_muted: boolean;
+  last_self_test_at: string | null;
 };
 
 // Shown to the admin once: only a keyed hash of the code is stored on the server.
@@ -66,6 +69,16 @@ export function useRenameKiosk() {
   return useMutation({
     mutationFn: ({ id, name }: { id: string; name: string }) =>
       apiPatch<Kiosk>(`/kiosks/${id}`, { name }),
+    onSuccess: refresh,
+  });
+}
+
+/** Switches the tones and the spoken line off or on at one gate. */
+export function useSetKioskSound() {
+  const refresh = useRefreshKiosks();
+  return useMutation({
+    mutationFn: ({ id, sound_muted }: { id: string; sound_muted: boolean }) =>
+      apiPatch<Kiosk>(`/kiosks/${id}`, { sound_muted }),
     onSuccess: refresh,
   });
 }
