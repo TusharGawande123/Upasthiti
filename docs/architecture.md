@@ -248,7 +248,7 @@ upasthiti/
   .env.example
 ```
 
-## 9. Notes for M4 (from the M2 review, decision 0011)
+## 9. Notes for M4 (from the M2 review, decision 0012)
 - Add an anti-proxy rule that flags the same QR card used at two kiosks within N minutes: a card
   can be cloned by photographing it, and in M2 the stored photo and its admin review are the only
   defence.
