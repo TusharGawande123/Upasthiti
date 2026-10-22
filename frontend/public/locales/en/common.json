@@ -826,7 +826,18 @@
       "history": "Versions",
       "noHistory": "No versions yet.",
       "current": "Current",
-      "preview": "Preview"
+      "preview": "Preview",
+      "layerMap": "Map",
+      "layerSatellite": "Satellite",
+      "locate": "Show my location",
+      "locateStop": "Stop showing my location",
+      "locating": "Finding your location…",
+      "locateFailed": "Could not find your location. Switch location on in the phone or browser and allow it for this site.",
+      "youAreHere": "You are here (about {{metres}} m)",
+      "toolPolygon": "Draw the boundary as a polygon",
+      "toolCircle": "Draw the boundary as a circle",
+      "toolEdit": "Edit the boundary",
+      "toolRemove": "Remove the boundary"
     },
     "summary": {
       "active": "Active plants",
