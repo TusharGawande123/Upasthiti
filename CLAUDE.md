@@ -88,7 +88,8 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - Kiosk: MediaPipe Face Landmarker (liveness UX only), barcode-detector
   (QR scan), WebCrypto P-256 device key, vite-plugin-pwa + Workbox + Dexie
   (offline queue).
-- Maps: Leaflet 1.9 + Leaflet-Geoman free + Turf (area, kinks, buffer) + OpenStreetMap tiles.
+- Maps: Leaflet 1.9 + Leaflet-Geoman free + Turf (area, kinks, buffer) + OpenStreetMap tiles;
+  satellite view from Esri World Imagery (free to view, credit shown; decision 0014).
 - Also used since M1: cmdk (Ctrl+K palette), Sonner (toasts), Radix (dialogs, tabs, menus),
   Dexie (kiosk device storage), fake-indexeddb (tests), openpyxl + XlsxWriter (Excel),
   Faker (fake data), APScheduler (daily job). All free licences.

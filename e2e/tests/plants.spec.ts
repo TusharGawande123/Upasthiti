@@ -1,7 +1,8 @@
 // Slice B in a real browser: the client's plants, readiness, shifts, the geofence map and the
 // setup wizard. Spec AC-6, AC-7, AC-11, AC-31, AC-38.
 import { expect, type Page, test } from "@playwright/test";
-import { expectNoSeriousAccessibilityIssues, logIn, SUPER_ADMIN_LOGIN } from "./helpers";
+import { FRONTEND_URL } from "../backend-env";
+import { expectNoSeriousAccessibilityIssues, INSIDE, logIn, SUPER_ADMIN_LOGIN } from "./helpers";
 
 // The tests share one database and the first one adds the plants, so they run in order.
 test.describe.configure({ mode: "serial" });
@@ -100,4 +101,39 @@ test("the geofence tab shows a map with the OpenStreetMap credit and draws a pol
   await page.getByRole("button", { name: "Save new version" }).click();
   await expect(page.getByText("v1")).toBeVisible();
   await expect(page.getByText("Version 1 · current")).toBeVisible();
+});
+
+test("the geofence map shows where the admin stands and has a satellite view", async ({
+  browser,
+}) => {
+  // A browser that allows location, with a fake GPS position.
+  const context = await browser.newContext({
+    baseURL: FRONTEND_URL,
+    geolocation: INSIDE,
+    permissions: ["geolocation"],
+    locale: "en-IN",
+  });
+  const page = await context.newPage();
+  try {
+    await logIn(page, SUPER_ADMIN_LOGIN);
+    await ensurePlantK134(page);
+    await page
+      .getByRole("link", { name: /K-134|K134/ })
+      .first()
+      .click();
+    await page.getByRole("tab", { name: "Geofence" }).click();
+    await expect(
+      page.getByRole("application", { name: "Map of the plant geofence" }),
+    ).toBeVisible();
+
+    await page.getByRole("button", { name: "Show my location" }).click();
+    await expect(page.getByText(/^You are here \(about \d+ m\)$/)).toBeVisible();
+    await expect(page.getByRole("button", { name: "Stop showing my location" })).toBeVisible();
+
+    await page.getByRole("radio", { name: "Satellite" }).click();
+    await expect(page.getByText(/Esri/)).toBeVisible();
+    await expectNoSeriousAccessibilityIssues(page);
+  } finally {
+    await context.close();
+  }
 });
