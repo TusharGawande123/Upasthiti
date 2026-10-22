@@ -200,7 +200,7 @@ describe("punch log: the chips and filters", () => {
     });
   });
 
-  it("searches by code or name after a short wait, and filters by kiosk", async () => {
+  it("searches by code or name after a short wait, and filters by device", async () => {
     const calls = mockApi(answers());
     const user = userEvent.setup();
     renderRoute("/admin/punches");
@@ -209,7 +209,7 @@ describe("punch log: the chips and filters", () => {
     await user.type(screen.getByLabelText("Search by employee code or name"), "kale");
     await waitFor(() => expect(lastQuery(calls, "/punches").get("q")).toBe("kale"));
 
-    await user.selectOptions(screen.getByLabelText("Kiosk"), "K134 main gate");
+    await user.selectOptions(screen.getByLabelText("Device"), "K134 main gate");
     await waitFor(() => expect(lastQuery(calls, "/punches").get("kiosk_id")).toBe("k-1"));
   });
 

@@ -5,7 +5,7 @@
   },
   "kiosk": {
     "brand": "Upasthiti",
-    "subtitle": "Gate kiosk · Sheet Shapers",
+    "subtitle": "Gate attendance · Sheet Shapers",
     "help": "Need help? Ask the plant office.",
     "version": "Upasthiti v{{version}}",
     "chip": {
@@ -14,7 +14,7 @@
     },
     "pairing": {
       "title": "Pair this device",
-      "instruction": "Type the 6-digit code from the admin screen: Kiosks › Add kiosk.",
+      "instruction": "Type the 6-digit code from the admin screen: Attendance devices › Add device.",
       "codeLabel": "Pairing code",
       "filledFromLink": "Code filled in from the link.",
       "wrongCode": "This code is not right. Type it again.",
@@ -93,7 +93,7 @@
         "message": "Open this page in the latest Chrome or Edge.",
         "steps": [
           "Open Chrome or Edge on this device (update it if it asks).",
-          "Open the kiosk address again.",
+          "Open the attendance page again.",
           "Use the site address that starts with https."
         ]
       },
@@ -101,7 +101,7 @@
         "title": "Switched off",
         "message": "This device has been switched off by the admin.",
         "steps": [
-          "To use it again, the admin adds it as a new kiosk.",
+          "To use it again, the admin adds it as a new attendance device.",
           "Then type the new code on this device."
         ]
       },
@@ -120,44 +120,44 @@
       "QR_REVOKED": {
         "title": "NOT ACCEPTED",
         "message": "This card is blocked.",
-        "next": "Please see the plant office.",
-        "voice": "Card blocked. Please see the plant office."
+        "next": "Please visit the plant office.",
+        "voice": "Card blocked. Please visit the plant office."
       },
       "QR_EXPIRED": {
         "title": "NOT ACCEPTED",
         "message": "This card has expired.",
-        "next": "Please see the plant office.",
-        "voice": "Card expired. Please see the plant office."
+        "next": "Please visit the plant office.",
+        "voice": "Card expired. Please visit the plant office."
       },
       "QR_NOT_YET_VALID": {
         "title": "NOT ACCEPTED",
         "message": "This card is not active yet.",
-        "next": "Please see the plant office.",
-        "voice": "Card not active yet. Please see the plant office."
+        "next": "Please visit the plant office.",
+        "voice": "Card not active yet. Please visit the plant office."
       },
       "WRONG_PLANT": {
         "title": "NOT ACCEPTED",
         "message": "This card is for another plant.",
-        "next": "Please see the plant office.",
-        "voice": "Card for another plant. Please see the plant office."
+        "next": "Please visit the plant office.",
+        "voice": "Card for another plant. Please visit the plant office."
       },
       "EMPLOYEE_NOT_QR": {
         "title": "NOT ACCEPTED",
         "message": "This card cannot be used for punching.",
-        "next": "Please see the plant office.",
-        "voice": "Card cannot be used. Please see the plant office."
+        "next": "Please visit the plant office.",
+        "voice": "Card cannot be used. Please visit the plant office."
       },
       "EMPLOYEE_INACTIVE": {
         "title": "NOT ACCEPTED",
         "message": "This card cannot be used.",
-        "next": "Please see the plant office.",
-        "voice": "Card cannot be used. Please see the plant office."
+        "next": "Please visit the plant office.",
+        "voice": "Card cannot be used. Please visit the plant office."
       },
       "QR_SIGNATURE_INVALID": {
         "title": "NOT ACCEPTED",
         "message": "This card is not valid.",
-        "next": "Please see the plant office.",
-        "voice": "Card not valid. Please see the plant office."
+        "next": "Please visit the plant office.",
+        "voice": "Card not valid. Please visit the plant office."
       },
       "QR_FORMAT_INVALID": {
         "title": "TRY AGAIN",
@@ -179,9 +179,9 @@
       },
       "QR_SIGNING_NOT_CONFIGURED": {
         "title": "NOT ACCEPTED",
-        "message": "This kiosk cannot read cards yet.",
-        "next": "Please see the plant office.",
-        "voice": "Cards cannot be read yet. Please see the plant office."
+        "message": "This attendance device cannot read cards yet.",
+        "next": "Please visit the plant office.",
+        "voice": "Cards cannot be read yet. Please visit the plant office."
       },
       "COOLDOWN_ACTIVE": {
         "title": "ALREADY PUNCHED",
@@ -210,7 +210,7 @@
       "INTERNAL_ERROR": {
         "title": "ERROR",
         "message": "Something went wrong.",
-        "next": "Try again. If it repeats, see the plant office.",
+        "next": "Try again. If it repeats, please visit the plant office.",
         "voice": "Something went wrong. Please try again."
       },
       "TOO_MANY_REQUESTS": {
@@ -242,7 +242,7 @@
       "BROWSER_NOT_SUPPORTED": {
         "title": "This browser cannot read cards",
         "message": "Open this page in Google Chrome or Microsoft Edge.",
-        "steps": ["Install or update Chrome or Edge.", "Open the kiosk address again."]
+        "steps": ["Install or update Chrome or Edge.", "Open the attendance page again."]
       }
     },
     "attendance": {
@@ -265,14 +265,23 @@
       "important": "Important",
       "notices": "Notices",
       "noticePage": "{{current}} of {{total}}",
-      "tryAgain": "Try again"
+      "tryAgain": "Try again",
+      "chipPhotoTaken": "Photo taken",
+      "cardReadShort": "Card read",
+      "getReadyTitle": "Card read. Get ready for your photo.",
+      "getReadyText": "Look at the camera and make sure your face is clearly visible. You can switch the camera below if you need to.",
+      "photoIn": "Photo in {{count}} s",
+      "imReady": "I'm ready: take my photo",
+      "cancelPhoto": "Cancel",
+      "useBackCamera": "Use the back camera",
+      "useFrontCamera": "Use the front camera"
     },
     "result": {
       "in": "IN",
       "out": "OUT",
       "alreadyIn": "ALREADY IN",
       "alreadyOut": "ALREADY OUT",
-      "kioskOk": "KIOSK OK",
+      "kioskOk": "DEVICE OK",
       "welcome": "Welcome,",
       "goodbye": "Goodbye,",
       "codeLine": "Employee code {{code}}",
@@ -293,7 +302,8 @@
       "out": "Checked out.",
       "alreadyIn": "Already checked in.",
       "alreadyOut": "Already checked out.",
-      "selfTest": "Kiosk test passed."
+      "selfTest": "Device test passed.",
+      "getReady": "Card read. Get ready for your photo."
     },
     "soundBanner": "Tap once to turn on sound and full screen. Tap again after every update."
   },
@@ -372,7 +382,7 @@
     "SETTING_NOT_EDITABLE_YET": "This setting is used from a later milestone.",
     "PLANT_CODE_EXISTS": "This plant code is already used.",
     "PLANT_CODE_INVALID": "Use 2–10 capital letters or digits.",
-    "PLANT_HAS_ACTIVE_KIOSKS": "Revoke the plant's active kiosks first.",
+    "PLANT_HAS_ACTIVE_KIOSKS": "Revoke the plant's active attendance devices first.",
     "PLANT_INACTIVE": "This plant is switched off.",
     "PLANT_POSITION_INVALID": "The plant position is not valid.",
     "DEPARTMENT_EXISTS": "This department already exists in the plant.",
@@ -386,9 +396,9 @@
     "GEOFENCE_TOO_SMALL": "The shape is too small (at least 100 m², or a 20 m circle).",
     "GEOFENCE_TOO_LARGE": "The shape is too large (at most 2 km², or a 1,000 m circle).",
     "GEOFENCE_NOT_SET": "This plant has no geofence yet.",
-    "KIOSK_NAME_EXISTS": "This plant already has a kiosk with this name.",
-    "KIOSK_REVOKED": "This kiosk was switched off.",
-    "KIOSK_ALREADY_PAIRED": "This kiosk is already paired.",
+    "KIOSK_NAME_EXISTS": "This plant already has an attendance device with this name.",
+    "KIOSK_REVOKED": "This attendance device was switched off.",
+    "KIOSK_ALREADY_PAIRED": "This attendance device is already paired.",
     "PAIRING_CODE_INVALID": "This code is not right.",
     "PAIRING_CODE_EXPIRED": "This code has expired. Make a new code.",
     "PAIRING_LOCKED": "Too many tries with this code. Make a new code.",
@@ -448,7 +458,7 @@
     "audit": "Audit log",
     "plants": "Plants",
     "setup": "Setup wizard",
-    "kiosks": "Kiosks",
+    "kiosks": "Attendance devices",
     "employees": "Employees",
     "import": "Import",
     "contractors": "Contractors",
@@ -467,7 +477,7 @@
   },
   "login": {
     "headline": "Every punch, checked at the gate.",
-    "subheadline": "Attendance for Sheet Shapers, with a kiosk at every plant gate.",
+    "subheadline": "Attendance for Sheet Shapers, with an attendance device at every plant gate.",
     "footer": "Upasthiti – Smart Attendance",
     "title": "Log in",
     "subtitle": "Use the username or email the Super Admin gave you.",
@@ -498,7 +508,7 @@
   "dashboard": {
     "welcome": "Welcome, {{name}}",
     "placeholderTitle": "Live headcount comes in M5",
-    "placeholderText": "Setup, people and kiosk screens arrive in the next updates.",
+    "placeholderText": "Setup, people and attendance device screens arrive in the next updates.",
     "cardsEndingSoon": {
       "title": "Cards ending soon",
       "text_one": "{{count}} QR card ends in the next {{days}} days. Extend it or let it end.",
@@ -575,7 +585,7 @@
     "reasonTitle": "Why are you changing these settings?",
     "groups": {
       "kiosk": {
-        "title": "Kiosk and location",
+        "title": "Attendance device and location",
         "description": "How a gate device proves it is at the plant."
       },
       "security": {
@@ -603,8 +613,8 @@
         "description": "ID cards of temporary workers."
       },
       "kiosk_screen": {
-        "title": "Kiosk sound and screen",
-        "description": "What every gate kiosk plays and how long it shows a result."
+        "title": "Device sound and screen",
+        "description": "What every gate attendance device plays and how long it shows a result."
       }
     },
     "items": {
@@ -618,7 +628,7 @@
       },
       "pairing_code_minutes": {
         "label": "Pairing code life",
-        "help": "How long a kiosk pairing code works."
+        "help": "How long an attendance device pairing code works."
       },
       "session_idle_minutes": {
         "label": "Log out after being idle",
@@ -682,7 +692,7 @@
       },
       "kiosk_voice_enabled": {
         "label": "Voice",
-        "help": "The kiosk says “Checked in”, “Checked out” or the reason, in English. The name is never spoken."
+        "help": "The attendance device says “Checked in”, “Checked out” or the reason, in English. The name is never spoken."
       },
       "kiosk_sound_enabled": {
         "label": "Sounds",
@@ -690,11 +700,15 @@
       },
       "kiosk_result_seconds": {
         "label": "Result screen time",
-        "help": "How long an accepted result stays on the kiosk screen before it is ready for the next person."
+        "help": "How long an accepted result stays on the attendance device screen before it is ready for the next person."
       },
       "kiosk_reject_seconds": {
         "label": "Rejected screen time",
         "help": "Rejections stay longer, so the worker can read what to do next."
+      },
+      "kiosk_photo_ready_seconds": {
+        "label": "Time to get ready for the photo",
+        "help": "After a card is read, the worker gets this long to look at the camera (and switch the camera) before the photo is taken. Tapping \"I'm ready\" takes it sooner."
       }
     },
     "units": {
@@ -746,7 +760,7 @@
     },
     "actors": {
       "user": "User",
-      "kiosk": "Kiosk",
+      "kiosk": "Attendance device",
       "system": "System"
     }
   },
@@ -761,7 +775,7 @@
   },
   "plants": {
     "title": "Plants",
-    "subtitle": "Each plant has its own geofence, shifts, categories and gate kiosk. Open a plant to set it up.",
+    "subtitle": "Each plant has its own geofence, shifts, categories and gate attendance device. Open a plant to set it up.",
     "add": "Add a plant",
     "backToList": "Back to plants",
     "editDetails": "Edit details",
@@ -815,14 +829,14 @@
       },
       "saveTitle": "Save as a new version",
       "margin": "Margin",
-      "marginHint": "0–{{max}} m. A kiosk this far outside the line still counts as inside. Keep it small.",
+      "marginHint": "0–{{max}} m. A attendance device this far outside the line still counts as inside. Keep it small.",
       "marginRange": "Use 0–{{max}} metres.",
       "metres": "metres",
       "reason": "Reason (optional, saved in the audit log)",
       "notSaved": "Not saved",
       "discard": "Discard",
       "saveVersion": "Save new version",
-      "saveNote": "Saving never changes an old version. Kiosks always use the current one.",
+      "saveNote": "Saving never changes an old version. Attendance devices always use the current one.",
       "history": "Versions",
       "noHistory": "No versions yet.",
       "current": "Current",
@@ -832,7 +846,7 @@
       "active": "Active plants",
       "ofTotal": "{{count}} of {{total}}",
       "geofence": "Have a geofence",
-      "kiosks": "Active kiosks",
+      "kiosks": "Active devices",
       "employees": "Active employees"
     },
     "columns": {
@@ -840,7 +854,7 @@
       "name": "Name",
       "status": "Status",
       "geofence": "Geofence",
-      "kiosks": "Kiosks",
+      "kiosks": "Devices",
       "employees": "Employees"
     },
     "empty": {
@@ -868,7 +882,7 @@
       "departments": "Departments",
       "shifts": "Shifts",
       "categories": "Categories",
-      "kiosks": "Kiosks"
+      "kiosks": "Devices"
     },
     "readiness": {
       "title": "Ready for attendance?",
@@ -885,7 +899,7 @@
         "geofence": "Geofence",
         "shifts": "Shifts",
         "categories": "Employee categories",
-        "kiosk": "Kiosk at the gate",
+        "kiosk": "Attendance device at the gate",
         "employees": "Employees"
       },
       "geofenceOk": "A geofence is set.",
@@ -894,9 +908,9 @@
       "shiftsCount_other": "{{count}} active shifts",
       "categoriesCount_one": "{{count}} active category",
       "categoriesCount_other": "{{count}} active categories",
-      "kioskCount_one": "{{count}} active kiosk",
-      "kioskCount_other": "{{count}} active kiosks",
-      "kioskNo": "No active kiosk. Pair a phone, tablet or PC at the gate.",
+      "kioskCount_one": "{{count}} active device",
+      "kioskCount_other": "{{count}} active devices",
+      "kioskNo": "No active attendance device. Pair a phone, tablet or PC at the gate.",
       "employeesCount_one": "{{count}} active employee",
       "employeesCount_other": "{{count}} active employees"
     },
@@ -961,14 +975,14 @@
       },
       "geofence": {
         "title": "Draw each plant's geofence",
-        "text": "The boundary of the plant on a map. Kiosks must be inside it."
+        "text": "The boundary of the plant on a map. Attendance devices must be inside it."
       },
       "shifts_and_categories": {
         "title": "Check shifts and categories",
         "text": "Every plant starts with a General shift and four categories. Add more if needed."
       },
       "kiosk": {
-        "title": "Pair a gate kiosk",
+        "title": "Pair a gate attendance device",
         "text": "Pair a phone, tablet or PC at the gate of the plant."
       },
       "employees": {
@@ -978,7 +992,7 @@
     }
   },
   "kiosks": {
-    "title": "Kiosks",
+    "title": "Attendance devices",
     "subtitle": "The phones, tablets and PCs at the plant gates. To pair, a device must be at the plant with location switched on.",
     "never": "Never",
     "newCode": "New code",
@@ -987,7 +1001,7 @@
       "anyStatus": "Any status"
     },
     "columns": {
-      "kiosk": "Kiosk",
+      "kiosk": "Device",
       "plant": "Plant",
       "status": "Status",
       "accuracy": "Location at pairing",
@@ -1001,16 +1015,16 @@
       "revoked": "Revoked"
     },
     "empty": {
-      "title": "No kiosks yet",
-      "text": "Add a kiosk for a plant gate. The plant needs a geofence first."
+      "title": "No attendance devices yet",
+      "text": "Add an attendance device for a plant gate. The plant needs a geofence first."
     },
     "add": {
-      "button": "Add kiosk",
-      "title": "Add a kiosk",
+      "button": "Add device",
+      "title": "Add an attendance device",
       "description": "Name the device and choose the plant whose gate it will stand at.",
       "choosePlant": "Choose a plant",
       "noGeofenceOption": "no geofence yet",
-      "name": "Kiosk name",
+      "name": "Device name",
       "nameHint": "For example: Main gate tablet.",
       "submit": "Make pairing code",
       "drawGeofence": "Draw the geofence"
@@ -1028,10 +1042,10 @@
       "waitingText": "Checking every 3 seconds. The device must be at the {{plant}} gate with location switched on.",
       "makeNew": "Make a new code",
       "paired": "{{name}} is paired",
-      "pairedText": "The kiosk is active. You can close this window."
+      "pairedText": "The attendance device is active. You can close this window."
     },
     "rename": {
-      "title": "Rename kiosk",
+      "title": "Rename device",
       "for": "Rename {{name}}"
     },
     "revoke": {
@@ -1039,9 +1053,9 @@
       "title": "Revoke {{name}}?"
     },
     "plantTab": {
-      "description": "Kiosks at this plant's gate.",
-      "all": "All kiosks",
-      "empty": "No kiosk at this plant yet."
+      "description": "Attendance devices at this plant's gate.",
+      "all": "All devices",
+      "empty": "No attendance device at this plant yet."
     },
     "sound": {
       "on": "On",
@@ -1059,7 +1073,7 @@
   },
   "palette": {
     "title": "Search",
-    "description": "Search employees, plants, kiosks and pages.",
+    "description": "Search employees, plants, attendance devices and pages.",
     "placeholder": "Search employees, plants, pages…",
     "open": "Open search",
     "typeMore": "Type at least {{count}} characters to search people.",
@@ -1068,7 +1082,7 @@
     "noResult": "Nothing found for “{{text}}”.",
     "employees": "Employees",
     "plants": "Plants",
-    "kiosks": "Kiosks",
+    "kiosks": "Attendance devices",
     "pages": "Pages",
     "hintMove": "move",
     "hintOpen": "open",
@@ -1551,8 +1565,8 @@
       "faceNote": "This employee punches by face, so no QR card is needed. A QR card is only for employees who punch by QR card.",
       "leftNote": "This employee has left, so no card can be issued.",
       "faceSwitched": {
-        "title": "Revoke this card: the kiosk rejects it now.",
-        "text": "{{name}} now punches by face. The card is not revoked automatically. Until you revoke it, the kiosk rejects it."
+        "title": "Revoke this card: the attendance device rejects it now.",
+        "text": "{{name}} now punches by face. The card is not revoked automatically. Until you revoke it, the attendance device rejects it."
       },
       "reprint": {
         "title": "Reprint advised.",
@@ -1701,13 +1715,13 @@
     "test": {
       "new": "New test card",
       "newTitle": "New test card",
-      "newText": "A test card is scanned at a gate kiosk to check that it works. It belongs to nobody and never makes attendance.",
+      "newText": "A test card is scanned at a gate attendance device to check that it works. It belongs to nobody and never makes attendance.",
       "label": "Label",
       "labelHint": "Say where it is used, for example “Gate test K134”.",
       "labelPlaceholder": "Gate test K134",
       "create": "Create test card",
       "created": "Test card {{serial}} created.",
-      "explain": "A guard scans a test card at the gate kiosk each morning. The kiosk shows “Kiosk OK” and nothing is recorded as attendance.",
+      "explain": "A guard scans a test card at the gate attendance device each morning. The device shows “Device OK” and nothing is recorded as attendance.",
       "columns": {
         "serial": "Card",
         "label": "Label",
@@ -1716,7 +1730,7 @@
       },
       "never": "Never",
       "print": "Print",
-      "empty": "No test cards yet. Create one to check a gate kiosk.",
+      "empty": "No test cards yet. Create one to check a gate attendance device.",
       "revokeTitle": "Revoke test card {{serial}}"
     },
     "afterImport": {
@@ -1760,7 +1774,7 @@
   },
   "punches": {
     "title": "Punch log",
-    "description": "Every card punch at the gate kiosks, accepted or rejected. Times in IST.",
+    "description": "Every card punch at the gate attendance devices, accepted or rejected. Times in IST.",
     "descriptionOwnPlant": "Every card punch at your plant's gate, accepted or rejected. Times in IST.",
     "readOnlyPlantHead": "Read-only, your plant only. Only the Super Admin can open punch photos; here you see whether a photo was saved.",
     "readOnlyCorporateHead": "Read-only. Only the Super Admin can open punch photos; here you see whether a photo was saved.",
@@ -1796,8 +1810,8 @@
       "searchPlaceholder": "Code or name",
       "result": "Result",
       "anyResult": "Result: any",
-      "kiosk": "Kiosk",
-      "anyKiosk": "Kiosk: any",
+      "kiosk": "Device",
+      "anyKiosk": "Device: any",
       "reason": "Reason",
       "anyReason": "Reason: any"
     },
@@ -1807,7 +1821,7 @@
       "direction": "Direction",
       "result": "Result",
       "reason": "Reason",
-      "kiosk": "Kiosk",
+      "kiosk": "Device",
       "photo": "Photo",
       "actions": "Actions"
     },
@@ -1858,7 +1872,7 @@
   },
   "notices": {
     "title": "Gate notices",
-    "description": "Short messages shown on the gate kiosk screen. Workers see them while they punch.",
+    "description": "Short messages shown on the gate attendance device screen. Workers see them while they punch.",
     "new": "New notice",
     "edit": "Edit",
     "endNow": "End now",
@@ -1918,7 +1932,7 @@
       "preview": "How it looks at the gate",
       "previewEmpty": "Your notice appears here as you type.",
       "previewNote": "Live preview of the notices panel of the gate screen ({{where}}).",
-      "within": "Kiosks show it within 2 minutes after saving.",
+      "within": "Attendance devices show it within 2 minutes after saving.",
       "save": "Save notice"
     },
     "error": {

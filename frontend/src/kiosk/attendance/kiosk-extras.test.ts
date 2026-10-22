@@ -192,9 +192,9 @@ describe("what each screen plays and says", () => {
       tone: "reject",
       voiceKey: "kiosk.punch.NETWORK_OFFLINE.voice",
     });
-    expect(feedbackFor({ name: "card-read", payload: "UPS1.x" })).toEqual({
+    expect(feedbackFor({ name: "get-ready", payload: "UPS1.x" })).toEqual({
       tone: "tick",
-      voiceKey: null,
+      voiceKey: "kiosk.voice.getReady",
     });
     expect(feedbackFor({ name: "scanning", notACard: false })).toBeNull();
   });

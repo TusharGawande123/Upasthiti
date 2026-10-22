@@ -72,7 +72,7 @@ test("a worker punches IN, then sees ALREADY IN, and a revoked card is NOT ACCEP
   }
 });
 
-test("a TEST card shows KIOSK OK and records no attendance", async ({ page }) => {
+test("a TEST card shows DEVICE OK and records no attendance", async ({ page }) => {
   test.setTimeout(120_000);
   const api = await setUpPlants(page);
   const testCard = await api.post<{ serial: string }>("/qr-test-cards", { label: "Gate check" });
@@ -80,7 +80,7 @@ test("a TEST card shows KIOSK OK and records no attendance", async ({ page }) =>
 
   const { device, close } = await openKioskWithCard(testCard.serial, code);
   try {
-    await expect(device.getByText("KIOSK OK", { exact: true })).toBeVisible(NEXT_SCAN);
+    await expect(device.getByText("DEVICE OK", { exact: true })).toBeVisible(NEXT_SCAN);
     await expect(device.getByText("No attendance was recorded.")).toBeVisible();
   } finally {
     await close();
@@ -98,6 +98,45 @@ test("a card used at another plant's gate is NOT ACCEPTED, without the name", as
     await expect(device.getByText("This card is for another plant.")).toBeVisible(NEXT_SCAN);
     await expect(device.getByText("WRONG_PLANT")).toBeVisible();
     await expect(device.getByText("Ravi Shinde")).toBeHidden();
+  } finally {
+    await close();
+  }
+});
+
+test("after the card is read the worker gets time, can cancel, and the photo waits for I'm ready", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const api = await setUpPlants(page);
+  const card = await makeWorkerWithCard(api, gatePlant, "PG-301", "Meena Joshi");
+  const code = await makeKioskCode(api, gatePlant, "Ready gate");
+
+  // This device does NOT tap "I'm ready" by itself.
+  const { device, close } = await openKioskWithCard(
+    card.serial,
+    code,
+    { width: 1280, height: 800 },
+    { tapReady: false },
+  );
+  try {
+    await expect(
+      device.getByRole("heading", { name: "Card read. Get ready for your photo." }),
+    ).toBeVisible(NEXT_SCAN);
+    await expect(device.getByText(/^Photo in \d+ s$/)).toBeVisible();
+    // Nothing is decided while the person is getting ready.
+    await expect(device.getByText("Meena Joshi")).toBeHidden();
+
+    // Cancel: back to scanning, no punch.
+    await device.getByRole("button", { name: "Cancel" }).click();
+    await expect(device.getByText("Show your ID card to the camera")).toBeVisible();
+
+    // The clip shows the card again: this time the worker taps "I'm ready".
+    await expect(
+      device.getByRole("heading", { name: "Card read. Get ready for your photo." }),
+    ).toBeVisible(NEXT_SCAN);
+    await device.getByRole("button", { name: /I'm ready/ }).click();
+    await expect(device.getByText("IN", { exact: true })).toBeVisible();
+    await expect(device.getByText("Meena Joshi")).toBeVisible();
   } finally {
     await close();
   }

@@ -17,13 +17,19 @@ const fakes = vi.hoisted(() => ({
   qrText: null as string | null,
   /** How the fake camera starts: "ok", "needs-tap", or a problem code. */
   camera: "ok" as string,
+  /** How many cameras the fake device has (the switch button needs two). */
+  cameraCount: 1,
+  /** Which camera ("user" or "environment") every camera start asked for. */
+  started: [] as string[],
 }));
 
 vi.mock("./camera", async (importOriginal) => {
   const real = await importOriginal<typeof import("./camera")>();
   return {
     ...real,
-    startCamera: async (video: HTMLVideoElement) => {
+    countCameras: async () => fakes.cameraCount,
+    startCamera: async (video: HTMLVideoElement, facing = "user") => {
+      fakes.started.push(facing);
       Object.defineProperty(video, "readyState", { value: 4, configurable: true });
       if (fakes.camera === "needs-tap") throw new real.CameraError("NEEDS_TAP");
       if (fakes.camera !== "ok") throw new real.CameraError(fakes.camera as "CAMERA_BLOCKED");
@@ -65,6 +71,7 @@ function me(changes: Record<string, unknown> = {}) {
       sound_enabled: true,
       result_seconds: 1,
       reject_seconds: 1,
+      photo_ready_seconds: 20,
       snapshot_retention_days: 60,
       dark_threshold: 40,
     },
@@ -102,22 +109,34 @@ async function openPairedKiosk() {
     },
     counter: 0,
   });
-  renderRoute("/kiosk");
+  renderRoute("/attendance");
   await screen.findByText("Sheet Shapers · K134");
 }
 
-/** Holds a card up to the camera until the kiosk reads it, then takes it away. */
-async function showCard(text = CARD) {
+/** Holds a card up until the kiosk reads it and asks the person to get ready; then takes it away. */
+async function showCardUntilReady(text = CARD) {
   fakes.qrText = text;
-  // The words show twice while the card is read: on the camera strip and as the heading.
-  await screen.findAllByText("Card read. Look at the camera", {}, { timeout: 3000 });
+  await screen.findByRole(
+    "heading",
+    { name: "Card read. Get ready for your photo." },
+    { timeout: 3000 },
+  );
   fakes.qrText = null;
+}
+
+/** The whole card punch up to the photo: show the card, then tap "I'm ready". */
+async function showCard(text = CARD) {
+  await showCardUntilReady(text);
+  await userEvent.click(await screen.findByRole("button", { name: /I'm ready/ }));
 }
 
 beforeEach(async () => {
   await forgetDevice();
   fakes.qrText = null;
   fakes.camera = "ok";
+  fakes.cameraCount = 1;
+  fakes.started = [];
+  localStorage.clear();
   vi.stubGlobal("navigator", { ...navigator, geolocation: {} });
 });
 
@@ -200,7 +219,7 @@ describe("kiosk attendance screen", () => {
 
     expect(await screen.findByText("NOT ACCEPTED")).toBeInTheDocument();
     expect(screen.getByText("This card is blocked.")).toBeInTheDocument();
-    expect(screen.getByText("Please see the plant office.")).toBeInTheDocument();
+    expect(screen.getByText("Please visit the plant office.")).toBeInTheDocument();
     expect(screen.getByText("QR_REVOKED")).toBeInTheDocument();
     expect(screen.getByRole("alert")).toBeInTheDocument();
     expect(screen.queryByText("Sunil More")).not.toBeInTheDocument();
@@ -236,7 +255,7 @@ describe("kiosk attendance screen", () => {
     expect(screen.queryByText("OUT_TOO_SOON")).not.toBeInTheDocument();
   });
 
-  it("shows KIOSK OK for a test card and says no attendance was recorded", async () => {
+  it("shows DEVICE OK for a test card and says no attendance was recorded", async () => {
     mockApi({
       "GET /kiosk/me": { body: me() },
       "POST /punch/kiosk": {
@@ -247,7 +266,7 @@ describe("kiosk attendance screen", () => {
 
     await showCard("UPS1.A.T000009.SIGNATURE");
 
-    expect(await screen.findByText("KIOSK OK")).toBeInTheDocument();
+    expect(await screen.findByText("DEVICE OK")).toBeInTheDocument();
     expect(screen.getByText("No attendance was recorded.")).toBeInTheDocument();
     expect(
       screen.getByText("Camera ✓ · Server ✓ · Clock ✓ (server time 07:02:00)"),
@@ -284,6 +303,9 @@ describe("kiosk attendance screen", () => {
     await openPairedKiosk();
 
     fakes.qrText = CARD; // and it stays there
+    await userEvent.click(
+      await screen.findByRole("button", { name: /I'm ready/ }, { timeout: 3000 }),
+    );
     await screen.findByText("IN", {}, { timeout: 3000 });
     await waitForElementToBeRemoved(() => screen.queryByText("Sunil More"), { timeout: 3000 });
     await act(() => new Promise((resolve) => setTimeout(resolve, 800)));
@@ -352,7 +374,9 @@ describe("kiosk camera problems", () => {
     await openPairedKiosk();
     const user = userEvent.setup();
 
-    await user.click(await screen.findByRole("button", { name: "Start camera" }));
+    const startButton = await screen.findByRole("button", { name: "Start camera" });
+    fakes.camera = "ok"; // after the tap the browser lets the picture play
+    await user.click(startButton);
 
     await waitFor(() =>
       expect(screen.queryByRole("button", { name: "Start camera" })).not.toBeInTheDocument(),
@@ -444,5 +468,107 @@ describe("kiosk sound, voice and the one-tap banner", () => {
         name: "Tap once to turn on sound and full screen. Tap again after every update.",
       }),
     ).not.toBeInTheDocument();
+  });
+});
+
+describe("getting ready for the photo", () => {
+  it("waits for the person: nothing is sent until they tap I'm ready", async () => {
+    const calls = mockApi({
+      "GET /kiosk/me": { body: me() },
+      "POST /punch/kiosk": { body: answer() },
+    });
+    await openPairedKiosk();
+
+    await showCardUntilReady();
+
+    expect(screen.getByText(/^Photo in \d+ s$/)).toBeInTheDocument();
+    expect(calls.some((call) => call.path === "/punch/kiosk")).toBe(false);
+    await userEvent.click(screen.getByRole("button", { name: /I'm ready/ }));
+    expect(await screen.findByText("IN")).toBeInTheDocument();
+    expect(calls.filter((call) => call.path === "/punch/kiosk")).toHaveLength(1);
+  });
+
+  it("goes back to scanning without a punch when the person cancels", async () => {
+    const calls = mockApi({
+      "GET /kiosk/me": { body: me() },
+      "POST /punch/kiosk": { body: answer() },
+    });
+    await openPairedKiosk();
+    await showCardUntilReady();
+
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(await screen.findByText("Show your ID card to the camera")).toBeInTheDocument();
+    expect(calls.some((call) => call.path === "/punch/kiosk")).toBe(false);
+  });
+
+  it("takes the photo by itself when the time is over", async () => {
+    // The gate setting says 2 seconds, so the test does not wait 20.
+    const short = me().kiosk_settings as Record<string, unknown>;
+    const calls = mockApi({
+      "GET /kiosk/me": { body: me({ kiosk_settings: { ...short, photo_ready_seconds: 2 } }) },
+      "POST /punch/kiosk": { body: answer() },
+    });
+    await openPairedKiosk();
+    await showCardUntilReady();
+    expect(calls.some((call) => call.path === "/punch/kiosk")).toBe(false);
+
+    expect(await screen.findByText("IN", {}, { timeout: 5000 })).toBeInTheDocument();
+    expect(calls.filter((call) => call.path === "/punch/kiosk")).toHaveLength(1);
+  });
+});
+
+describe("switching between the front and the back camera", () => {
+  it("shows no switch button on a device with one camera", async () => {
+    mockApi({ "GET /kiosk/me": { body: me() } });
+    await openPairedKiosk();
+
+    await screen.findByText("Show your ID card to the camera");
+
+    expect(screen.queryByRole("button", { name: "Use the back camera" })).not.toBeInTheDocument();
+  });
+
+  it("lets the person pick the camera that reads cards, and remembers it", async () => {
+    fakes.cameraCount = 2;
+    mockApi({ "GET /kiosk/me": { body: me() } });
+    await openPairedKiosk();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Use the back camera" }));
+
+    await waitFor(() => expect(fakes.started.at(-1)).toBe("environment"));
+    expect(localStorage.getItem("upasthiti.camera.scan")).toBe("environment");
+    expect(localStorage.getItem("upasthiti.camera.photo")).toBeNull();
+    expect(await screen.findByRole("button", { name: "Use the front camera" })).toBeInTheDocument();
+  });
+
+  it("uses a separate camera for the photo, and goes back to the card camera after it", async () => {
+    fakes.cameraCount = 2;
+    mockApi({
+      "GET /kiosk/me": { body: me() },
+      "POST /punch/kiosk": { body: answer() },
+    });
+    await openPairedKiosk();
+    await showCardUntilReady();
+
+    await userEvent.click(await screen.findByRole("button", { name: "Use the back camera" }));
+
+    await waitFor(() => expect(fakes.started.at(-1)).toBe("environment"));
+    expect(localStorage.getItem("upasthiti.camera.photo")).toBe("environment");
+    expect(localStorage.getItem("upasthiti.camera.scan")).toBeNull();
+    await userEvent.click(await screen.findByRole("button", { name: /I'm ready/ }));
+    await screen.findByText("IN");
+    // After the punch the card camera (front, the default) is used again.
+    await waitFor(() => expect(fakes.started.at(-1)).toBe("user"));
+  });
+
+  it("starts with the cameras the device remembers", async () => {
+    fakes.cameraCount = 2;
+    localStorage.setItem("upasthiti.camera.scan", "environment");
+    mockApi({ "GET /kiosk/me": { body: me() } });
+
+    await openPairedKiosk();
+    await screen.findByText("Show your ID card to the camera");
+
+    expect(fakes.started[0]).toBe("environment");
   });
 });

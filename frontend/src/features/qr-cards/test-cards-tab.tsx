@@ -1,5 +1,5 @@
 // The "Test cards" tab (F-27, spec §4.6): cards a guard scans at a gate kiosk to check that it
-// works ("Kiosk OK"). A test card belongs to nobody and never makes attendance. Super Admin only:
+// works ("Device OK"). A test card belongs to nobody and never makes attendance. Super Admin only:
 // other roles never see this tab.
 import { Loader2, Plus, Printer } from "lucide-react";
 import { useState } from "react";

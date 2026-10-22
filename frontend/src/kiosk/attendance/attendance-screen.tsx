@@ -107,6 +107,8 @@ export function AttendanceScreen({
           videoRef={attendance.videoRef}
           notices={heartbeat.notices}
           lowLight={attendance.lowLight}
+          camera={attendance.camera}
+          getReady={attendance.getReady}
           onStartCamera={attendance.startCameraAfterTap}
         />
       </div>

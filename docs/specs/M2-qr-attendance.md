@@ -69,8 +69,8 @@ snapshot).
      on sound and full screen" is optional; punches work without it;
    - QR reading with the `barcode-detector` package (the browser's own detector when present,
      otherwise its WebAssembly fallback, served from our own site);
-   - a 320 px wide JPEG snapshot (about 12–15 KB) taken about 0.7 s after the card is read,
-     while the screen says "Look at the camera";
+   - a 320 px wide JPEG snapshot (about 12–15 KB) taken when the worker taps "I'm ready"
+     (or when the get-ready time of 20 s, a setting, is over), after the card is read;
    - a signed `POST /api/v1/punch/kiosk` (M1 device signature headers);
    - the kiosk keeps the M1 heartbeat `GET /kiosk/me` every 60 seconds (notices, kiosk
      settings, revocation);
@@ -268,9 +268,14 @@ messages, all text from the translation file.
   newer build exists, it reloads itself the next time it is idle for 30 s (never during a
   punch).
 
-### 4.3 Kiosk: "look at the camera" and checking
-- When a card is read: a short tick tone (if sound is on), the frame turns blue, text "Card
-  read. Look at the camera" for about 0.7 s, then the snapshot is taken and sent.
+### 4.3 Kiosk: "get ready for your photo" and checking
+- When a card is read (changed after the first live demo, decision 0013): a short tick tone and
+  the spoken line (if sound is on), the frame turns blue, and the screen says "Card read. Get
+  ready for your photo." with a countdown (20 s, the setting `kiosk_photo_ready_seconds`, 5 to
+  60), the button "I'm ready: take my photo", a "Cancel" button and, on a device with two
+  cameras, a button to switch the camera. The snapshot is taken and sent when the worker taps
+  "I'm ready" or when the time is over; "Cancel" sends nothing. The photo camera (default front)
+  and the card camera (default front) are chosen separately and remembered on the device.
 - Checking: spinner + "Checking…". After 5 s without an answer: "The server is starting.
   Please wait…" (Render may be waking up, up to about 60 s). After 60 s or a network error:
   the connection error screen (§4.5).
@@ -647,7 +652,7 @@ own migrations.
      for the Super Admin only.
 
 4. **Snapshot rules.**
-   - Taken by the kiosk about 0.7 s after the card is read, from the same camera, 320 px
+   - Taken by the kiosk when the worker is ready (see §4.3), from the photo camera, 320 px
      wide (4:3 or the camera's ratio), JPEG; the kiosk lowers quality step by step until the
      file is ≤ 15 KB (minimum quality 0.4).
    - Server checks: present (`SNAPSHOT_MISSING`), decodes as a JPEG with width 160–640 and

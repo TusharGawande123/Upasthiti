@@ -127,7 +127,7 @@ describe("plant detail", () => {
     expect(await screen.findByText("Ready for attendance?")).toBeInTheDocument();
     expect(screen.getByText("Not ready · 2 left")).toBeInTheDocument();
     expect(
-      screen.getByText("No active kiosk. Pair a phone, tablet or PC at the gate."),
+      screen.getByText("No active attendance device. Pair a phone, tablet or PC at the gate."),
     ).toBeInTheDocument();
     expect(screen.getAllByText("Done").length).toBe(3);
     expect(screen.getByText("Missing")).toBeInTheDocument();

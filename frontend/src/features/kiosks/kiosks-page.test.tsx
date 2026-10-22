@@ -101,7 +101,7 @@ describe("kiosks list", () => {
 
     renderRoute("/admin/kiosks");
 
-    expect(await screen.findByText("No kiosks yet")).toBeInTheDocument();
+    expect(await screen.findByText("No attendance devices yet")).toBeInTheDocument();
   });
 
   it("lets a Corporate Head view but not change kiosks", async () => {
@@ -114,7 +114,7 @@ describe("kiosks list", () => {
     renderRoute("/admin/kiosks");
 
     await screen.findByText("Main gate phone");
-    expect(screen.queryByRole("button", { name: "Add kiosk" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Add device" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Revoke" })).not.toBeInTheDocument();
   });
 
@@ -170,9 +170,9 @@ describe("add kiosk", () => {
   async function addKiosk() {
     const user = userEvent.setup();
     renderRoute("/admin/kiosks");
-    await user.click(await screen.findByRole("button", { name: "Add kiosk" }));
+    await user.click(await screen.findByRole("button", { name: "Add device" }));
     const dialog = await screen.findByRole("dialog");
-    await user.type(within(dialog).getByLabelText("Kiosk name"), "Main gate tablet");
+    await user.type(within(dialog).getByLabelText("Device name"), "Main gate tablet");
     await user.click(within(dialog).getByRole("button", { name: "Make pairing code" }));
   }
 
@@ -210,9 +210,9 @@ describe("add kiosk", () => {
     const user = userEvent.setup();
 
     renderRoute("/admin/kiosks");
-    await user.click(await screen.findByRole("button", { name: "Add kiosk" }));
+    await user.click(await screen.findByRole("button", { name: "Add device" }));
     const dialog = await screen.findByRole("dialog");
-    await user.type(within(dialog).getByLabelText("Kiosk name"), "Gate");
+    await user.type(within(dialog).getByLabelText("Device name"), "Gate");
     await user.click(within(dialog).getByRole("button", { name: "Make pairing code" }));
 
     expect(await within(dialog).findByText(/This plant has no geofence yet/)).toBeInTheDocument();

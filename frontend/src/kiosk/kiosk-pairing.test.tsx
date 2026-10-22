@@ -49,6 +49,7 @@ const ME = {
     voice_enabled: true,
     sound_enabled: true,
     result_seconds: 4,
+    photo_ready_seconds: 20,
     reject_seconds: 6,
     snapshot_retention_days: 60,
     dark_threshold: 40,
@@ -67,7 +68,7 @@ async function typeCode(code: string) {
 
 beforeEach(async () => {
   await forgetDevice();
-  window.history.replaceState(null, "", "/kiosk");
+  window.history.replaceState(null, "", "/attendance");
 });
 
 afterEach(() => {
@@ -82,7 +83,7 @@ describe("kiosk pairing", () => {
       "GET /kiosk/me": { body: ME },
     });
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
     await screen.findByRole("heading", { name: "Pair this device" });
     expect(screen.getByRole("button", { name: "Type all 6 digits" })).toBeDisabled();
     const user = await typeCode("482913");
@@ -108,7 +109,7 @@ describe("kiosk pairing", () => {
     useFakeLocation();
     mockApi({ "POST /kiosk/register": apiError(400, "PAIRING_CODE_INVALID") });
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
     await screen.findByRole("heading", { name: "Pair this device" });
     const user = await typeCode("111111");
     await user.click(screen.getByRole("button", { name: "Pair this device" }));
@@ -121,7 +122,7 @@ describe("kiosk pairing", () => {
     useFakeLocation({ denied: true });
     const calls = mockApi({});
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
     await screen.findByRole("heading", { name: "Pair this device" });
     const user = await typeCode("482913");
     await user.click(screen.getByRole("button", { name: "Pair this device" }));
@@ -140,7 +141,7 @@ describe("kiosk pairing", () => {
     useFakeLocation();
     mockApi({ "POST /kiosk/register": apiError(422, code) });
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
     await screen.findByRole("heading", { name: "Pair this device" });
     const user = await typeCode("482913");
     await user.click(screen.getByRole("button", { name: "Pair this device" }));
@@ -160,7 +161,7 @@ describe("kiosk pairing", () => {
       "GET /kiosk/me": { body: ME },
     });
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
     await screen.findByRole("heading", { name: "Pair this device" });
     const user = await typeCode("482913");
     await user.click(screen.getByRole("button", { name: "Pair this device" }));
@@ -173,9 +174,9 @@ describe("kiosk pairing", () => {
   it("fills the code from the QR link and removes it from the address", async () => {
     useFakeLocation();
     mockApi({});
-    window.history.replaceState(null, "", "/kiosk?code=482913");
+    window.history.replaceState(null, "", "/attendance?code=482913");
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
 
     expect(await screen.findByText("Code filled in from the link.")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Pair this device" })).toBeEnabled();
@@ -190,7 +191,7 @@ describe("kiosk pairing", () => {
     delete (withoutGeolocation as { geolocation?: unknown }).geolocation;
     vi.stubGlobal("navigator", withoutGeolocation);
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
 
     expect(
       await screen.findByRole("heading", { name: "Browser not supported" }),
@@ -222,7 +223,7 @@ describe("a device that is already paired", () => {
     await storePairedDevice();
     mockApi({ "GET /kiosk/me": { body: ME } });
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
 
     expect(await screen.findByText(PLANT_TITLE)).toBeInTheDocument();
     expect(screen.getByText("Show your ID card to the camera")).toBeInTheDocument();
@@ -234,7 +235,7 @@ describe("a device that is already paired", () => {
     await storePairedDevice();
     mockApi({ "GET /kiosk/me": apiError(403, "DEVICE_REVOKED") });
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
     const user = userEvent.setup();
 
     expect(await screen.findByRole("heading", { name: "Switched off" })).toBeInTheDocument();
@@ -248,7 +249,7 @@ describe("a device that is already paired", () => {
     await storePairedDevice();
     mockApi({ "GET /kiosk/me": apiError(401, "DEVICE_SIGNATURE_INVALID") });
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
 
     expect(await screen.findByRole("heading", { name: "Pair this device" })).toBeInTheDocument();
     expect(await loadDevice()).toBeUndefined();

@@ -120,7 +120,7 @@ def pairing_qr(
 
     origin = get_settings().allowed_origin
     buffer = io.BytesIO()
-    segno.make(f"{origin}/kiosk?code={code}", error="m").save(
+    segno.make(f"{origin}/attendance?code={code}", error="m").save(
         buffer, kind="svg", scale=8, border=2, xmldecl=False
     )
     return Response(
@@ -229,6 +229,7 @@ def _screen_settings(session: Session, kiosk: KioskDevice) -> KioskScreenSetting
         sound_enabled=get_setting(session, "kiosk_sound_enabled") == "on" and not quiet,
         result_seconds=get_int_setting(session, "kiosk_result_seconds"),
         reject_seconds=get_int_setting(session, "kiosk_reject_seconds"),
+        photo_ready_seconds=get_int_setting(session, "kiosk_photo_ready_seconds"),
         snapshot_retention_days=get_int_setting(session, "snapshot_retention_days"),
         dark_threshold=get_int_setting(session, "snapshot_dark_threshold"),
     )

@@ -164,7 +164,7 @@ describe("settings: M2 cards", () => {
 
     renderRoute("/admin/settings");
 
-    expect(await screen.findByText("Kiosk sound and screen")).toBeInTheDocument();
+    expect(await screen.findByText("Device sound and screen")).toBeInTheDocument();
     expect(screen.getByText("ID cards of temporary workers.")).toBeInTheDocument();
     expect(screen.getByLabelText("Default card validity")).toHaveValue("2");
     expect(screen.getByLabelText("Result screen time")).not.toHaveAttribute("readonly");

@@ -41,12 +41,23 @@ describe("routes", () => {
     expect(router.state.location.pathname).toBe("/admin/new-password");
   });
 
-  it("shows the kiosk pairing screen at /kiosk without a login", async () => {
+  it("sends the old /kiosk address on to /attendance and keeps the pairing code", async () => {
+    vi.stubGlobal("navigator", { ...navigator, geolocation: {} });
+    mockApi({});
+
+    const router = renderRoute("/kiosk?code=482913");
+
+    expect(await screen.findByRole("heading", { name: "Pair this device" })).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe("/attendance");
+    expect(router.state.location.search).toBe("?code=482913");
+  });
+
+  it("shows the attendance device pairing screen at /attendance without a login", async () => {
     // A browser with location; the device is not paired yet.
     vi.stubGlobal("navigator", { ...navigator, geolocation: {} });
     mockApi({});
 
-    renderRoute("/kiosk");
+    renderRoute("/attendance");
 
     expect(await screen.findByRole("heading", { name: "Pair this device" })).toBeInTheDocument();
   });

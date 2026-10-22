@@ -33,6 +33,7 @@ M2_SETTINGS = {
     "kiosk_sound_enabled": "on",
     "kiosk_result_seconds": 4,
     "kiosk_reject_seconds": 6,
+    "kiosk_photo_ready_seconds": 20,
 }
 
 
@@ -92,6 +93,7 @@ def test_settings_of_later_milestones_stay_locked(boss: TestClient) -> None:
         ("qr_card_expiring_soon_days", 1, 60),
         ("kiosk_result_seconds", 2, 10),
         ("kiosk_reject_seconds", 3, 15),
+        ("kiosk_photo_ready_seconds", 5, 60),
     ],
 )
 def test_each_number_accepts_its_edges_and_refuses_values_just_outside(
@@ -326,6 +328,7 @@ def test_the_heartbeat_keeps_the_old_fields_and_adds_settings(
         "sound_enabled": True,
         "result_seconds": 4,
         "reject_seconds": 6,
+        "photo_ready_seconds": 20,
         "snapshot_retention_days": 60,
         "dark_threshold": 40,
     }

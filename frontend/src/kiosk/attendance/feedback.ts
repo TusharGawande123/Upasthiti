@@ -33,7 +33,7 @@ function rejectLine(code: string): string {
 export type Feedback = { tone: Tone; voiceKey: string | null };
 
 export function feedbackFor(screen: AttendanceScreen): Feedback | null {
-  if (screen.name === "card-read") return { tone: "tick", voiceKey: null };
+  if (screen.name === "get-ready") return { tone: "tick", voiceKey: "kiosk.voice.getReady" };
   if (screen.name === "failed") return { tone: "reject", voiceKey: rejectLine(screen.code) };
   if (screen.name !== "result") return null;
   const { answer } = screen;

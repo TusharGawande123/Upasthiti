@@ -1,11 +1,17 @@
-// All page addresses of the website. One app, two areas: /admin (dashboard) and /kiosk (gate).
+// All page addresses of the website. One app, two areas: /admin (dashboard) and /attendance (gate).
 //
 // Every page is loaded only when it is first opened ("lazy"), so the gate kiosk never downloads
 // the admin screens, and the admin never downloads the kiosk's camera and QR decoder (S-28).
-import { createBrowserRouter, Navigate, type RouteObject } from "react-router";
+import { createBrowserRouter, Navigate, type RouteObject, useLocation } from "react-router";
 import { NotFoundPage } from "./not-found-page";
 
 type LazyRoute = NonNullable<RouteObject["lazy"]>;
+
+// The gate page was first at /kiosk: old printed QR codes and saved links keep working.
+function OldGateAddress() {
+  const { search } = useLocation();
+  return <Navigate to={{ pathname: "/attendance", search }} replace />;
+}
 
 function BlankWhileLoading() {
   return null;
@@ -200,12 +206,13 @@ export const routes: RouteObject[] = [
         ],
       },
       {
-        path: "/kiosk",
+        path: "/attendance",
         lazy: page(
           () => import("../kiosk/kiosk-pairing-page"),
           (m) => m.KioskPairingPage,
         ),
       },
+      { path: "/kiosk", element: <OldGateAddress /> },
       { path: "*", element: <NotFoundPage /> },
     ],
   },
