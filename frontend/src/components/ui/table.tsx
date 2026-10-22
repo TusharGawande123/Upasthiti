@@ -2,10 +2,16 @@
 import type * as React from "react";
 import { cn } from "@/lib/utils";
 
+// On a phone the table keeps a readable width and scrolls sideways inside its card, instead of
+// squeezing every column until the names break into five lines.
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
-    <div className="overflow-x-auto">
-      <table className={cn("w-full caption-bottom text-[13.5px]", className)} {...props} />
+    // `relative` keeps hidden screen-reader labels (position: absolute) inside the scrolling box.
+    <div className="relative overflow-x-auto">
+      <table
+        className={cn("w-full min-w-[40rem] caption-bottom text-[13.5px]", className)}
+        {...props}
+      />
     </div>
   );
 }

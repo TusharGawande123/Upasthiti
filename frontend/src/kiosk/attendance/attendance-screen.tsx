@@ -93,7 +93,7 @@ export function AttendanceScreen({
       title={title}
       subtitle={kiosk.kioskName}
       aside={
-        <div className="flex items-center gap-5">
+        <div className="flex w-full flex-wrap items-center justify-between gap-x-5 gap-y-3 sm:w-auto sm:justify-end">
           {sound.bannerVisible ? <SoundBanner onTap={sound.onBannerTap} /> : null}
           <ConnectionChip online={heartbeat.online} />
           <TopClock offsetMs={heartbeat.serverOffsetMs} />

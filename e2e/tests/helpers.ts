@@ -146,7 +146,11 @@ export async function makeKioskCode(api: Api, plant: TestPlant, name: string): P
  * card, then 20 s of grey, repeating), pairs it as a kiosk with the code, and returns the page
  * on the attendance screen. Call `close()` at the end of the test (it also deletes the clip).
  */
-export async function openKioskWithCard(serial: string, pairingCode: string) {
+export async function openKioskWithCard(
+  serial: string,
+  pairingCode: string,
+  viewport: { width: number; height: number } = { width: 1280, height: 800 },
+) {
   mkdirSync(TMP_FOLDER, { recursive: true });
   const clip = `${TMP_FOLDER}/card-${serial}-${Date.now()}.y4m`;
   execFileSync("uv", ["run", "python", "-m", "app.scripts.e2e_card_video", serial, clip], {
@@ -168,7 +172,7 @@ export async function openKioskWithCard(serial: string, pairingCode: string) {
     permissions: ["geolocation", "camera"],
     locale: "en-IN",
     timezoneId: "Asia/Kolkata",
-    viewport: { width: 1280, height: 800 },
+    viewport,
   });
   const device = await context.newPage();
   await device.goto(`/kiosk?code=${pairingCode}`);

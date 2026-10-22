@@ -23,7 +23,7 @@ export function TopClock({ offsetMs }: { offsetMs: number }) {
   const now = useServerNow(offsetMs);
   return (
     <p className="text-right" role="timer" aria-label={t("kiosk.paired.clockLabel")}>
-      <span className="tnum block text-[44px] leading-none font-extrabold tracking-tight">
+      <span className="tnum block text-[36px] leading-none font-extrabold tracking-tight sm:text-[44px]">
         {formatIstTime(now)}
       </span>
       <span className="block text-[24px] font-semibold text-muted-foreground">

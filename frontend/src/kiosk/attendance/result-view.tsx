@@ -78,7 +78,7 @@ function Countdown({ seconds, ink }: { seconds: number; ink: boolean }) {
     return () => clearInterval(timer);
   }, [seconds]);
   return (
-    <div className="space-y-2 px-14 pb-6">
+    <div className="space-y-2 px-4 pb-6 sm:px-14">
       <p
         className={cn(
           "flex items-center gap-3 text-[24px] font-bold",
@@ -114,9 +114,10 @@ function BigIcon({ icon: Icon, shape, look }: { icon: LucideIcon; shape: Shape; 
   return (
     <span
       className={cn(
-        "grid size-[200px] place-items-center bg-white",
-        shape === "circle" && "rounded-full ring-8 ring-black/25",
-        shape === "square" && "rounded-[36px] border-8 border-foreground",
+        "grid size-[132px] place-items-center bg-white sm:size-[200px]",
+        shape === "circle" && "rounded-full ring-4 ring-black/25 sm:ring-8",
+        shape === "square" &&
+          "rounded-[28px] border-[6px] border-foreground sm:rounded-[36px] sm:border-8",
         colour,
       )}
       style={
@@ -128,7 +129,7 @@ function BigIcon({ icon: Icon, shape, look }: { icon: LucideIcon; shape: Shape; 
           : undefined
       }
     >
-      <Icon className="size-[100px]" strokeWidth={2.5} aria-hidden />
+      <Icon className="size-[72px] sm:size-[100px]" strokeWidth={2.5} aria-hidden />
     </span>
   );
 }
@@ -261,11 +262,19 @@ export function ResultView({
 
   return (
     <div
-      className={cn("kiosk-theme fixed inset-0 z-20 flex flex-col", flood.background)}
+      className={cn(
+        "kiosk-theme fixed inset-0 z-20 flex flex-col overflow-y-auto",
+        flood.background,
+      )}
       role={isRejection ? "alert" : "status"}
       aria-live={isRejection ? "assertive" : "polite"}
     >
-      <header className={cn("flex items-center justify-between gap-4 px-8 py-4", flood.band)}>
+      <header
+        className={cn(
+          "flex flex-wrap items-center justify-between gap-4 px-4 py-4 sm:px-8",
+          flood.band,
+        )}
+      >
         <div className="text-white">
           <p className="text-[30px] leading-tight font-extrabold">{title}</p>
           <p className="text-[24px]">{subtitle}</p>
@@ -279,38 +288,44 @@ export function ResultView({
           {t(online ? "kiosk.attendance.online" : "kiosk.attendance.offline")}
         </span>
       </header>
-      <main className="flex flex-1 flex-col items-center justify-center gap-8 px-14 py-6 lg:flex-row lg:items-center">
-        <div className="flex shrink-0 flex-col items-center gap-6">
+      <main className="flex flex-1 flex-col items-center justify-center gap-4 px-4 py-4 sm:gap-8 sm:px-14 sm:py-6 lg:flex-row lg:items-center">
+        <div className="flex shrink-0 flex-col items-center gap-4 sm:gap-6">
           <BigIcon icon={shown.icon} shape={shown.shape} look={shown.look} />
-          <div className="rounded-2xl border-4 border-black/30 bg-white px-6 py-3 text-center">
+          <div className="rounded-2xl border-4 border-black/30 bg-white px-4 py-2 text-center sm:px-6 sm:py-3">
             <p className="text-[24px] font-semibold text-muted-foreground">
               {t("kiosk.result.serverTime")}
             </p>
-            <p className="tnum text-[88px] leading-none font-extrabold text-foreground">
+            <p className="tnum text-[40px] leading-none font-extrabold text-foreground sm:text-[88px]">
               {shown.time}
             </p>
           </div>
         </div>
-        <div className={cn("min-w-0 flex-1 space-y-4", textColour)}>
-          <p className="text-[120px] leading-[0.95] font-black tracking-tight break-words">
+        <div className={cn("min-w-0 flex-1 space-y-2 sm:space-y-4", textColour)}>
+          <p className="text-[56px] leading-[0.95] font-black tracking-tight break-words sm:text-[96px] lg:text-[120px]">
             {shown.word}
           </p>
-          {shown.lead ? <p className="text-[40px] leading-tight font-bold">{shown.lead}</p> : null}
+          {shown.lead ? (
+            <p className="text-[28px] leading-tight font-bold sm:text-[40px]">{shown.lead}</p>
+          ) : null}
           {shown.name ? (
             <p
               className={cn(
                 "leading-tight font-extrabold break-words",
-                shown.name.length > 28 ? "text-[64px]" : "text-[96px]",
+                shown.name.length > 28
+                  ? "text-[32px] sm:text-[48px] lg:text-[64px]"
+                  : "text-[44px] sm:text-[72px] lg:text-[96px]",
               )}
             >
               {shown.name}
             </p>
           ) : null}
           {shown.card ? (
-            <div className="flex items-start gap-4 rounded-2xl border-4 border-black/25 bg-white px-6 py-4 text-foreground">
+            <div className="flex items-start gap-3 rounded-2xl border-4 border-black/25 bg-white px-4 py-3 text-foreground sm:gap-4 sm:px-6 sm:py-4">
               <shown.card.icon className="mt-1 size-9 shrink-0" aria-hidden />
               <div>
-                <p className="text-[32px] leading-snug font-bold">{shown.card.main}</p>
+                <p className="text-[26px] leading-snug font-bold sm:text-[32px]">
+                  {shown.card.main}
+                </p>
                 {shown.card.sub ? (
                   <p className="text-[24px] text-muted-foreground">{shown.card.sub}</p>
                 ) : null}
