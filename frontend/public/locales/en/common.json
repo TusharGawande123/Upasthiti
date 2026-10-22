@@ -440,6 +440,7 @@
   },
   "nav": {
     "label": "Main menu",
+    "open": "Open the menu",
     "dashboard": "Dashboard",
     "users": "Users",
     "settings": "Settings",

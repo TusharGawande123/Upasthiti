@@ -136,6 +136,9 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   anon). Supabase exposes `public` tables over its own API otherwise; our backend uses the owner
   role, which ignores RLS. A trigger function needs `SET search_path = ''`. Tests fail when
   one is missing (decision 0007).
+- Every screen must fit a 360 px phone and a 768 px tablet without the page scrolling sideways
+  (a table may scroll inside its own card), and every page must be reachable from the phone
+  menu. `e2e/tests/responsive.spec.ts` checks it: add new pages to its list.
 - NEVER start building a milestone before its spec and plan are approved.
 - NEVER build the legally risky future-scope items (section 1): automatic
   PF/ESIC/PT/TDS calculation, statutory reports, challans, Form 16, tax filing.

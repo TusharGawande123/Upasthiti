@@ -25,13 +25,17 @@ export function UserMenu({ user }: { user: Me }) {
 
   return (
     <DropdownMenu.Root>
-      <DropdownMenu.Trigger className="flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-muted">
+      <DropdownMenu.Trigger className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 hover:bg-muted">
         <span className="grid size-8 place-items-center rounded-full bg-primary-soft text-xs font-bold text-primary-soft-foreground">
           {initialsOf(user.name)}
         </span>
-        <span className="hidden text-left sm:block">
-          <span className="block text-[13.5px] leading-tight font-semibold">{user.name}</span>
-          <span className="block text-xs text-muted-foreground">{t(`roles.${user.role}`)}</span>
+        <span className="hidden max-w-40 text-left sm:block">
+          <span className="block truncate text-[13.5px] leading-tight font-semibold">
+            {user.name}
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {t(`roles.${user.role}`)}
+          </span>
         </span>
       </DropdownMenu.Trigger>
       <DropdownMenu.Portal>

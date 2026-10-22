@@ -78,7 +78,7 @@ export function PlantFilterSelect() {
   }
 
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <Building2
         className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground"
         aria-hidden
@@ -87,7 +87,7 @@ export function PlantFilterSelect() {
         aria-label={t("plantFilter.label")}
         value={plantId}
         onChange={(event) => setPlantId(event.target.value)}
-        className="h-10 w-auto min-w-44 pl-9 text-sm font-semibold"
+        className="h-10 w-auto min-w-0 max-w-full pl-9 text-sm font-semibold sm:min-w-44"
       >
         <option value="">{t("plantFilter.all")}</option>
         {items.map((plant) => (

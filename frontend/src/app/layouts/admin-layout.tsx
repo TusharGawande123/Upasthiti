@@ -9,7 +9,6 @@ import {
   IdCard,
   LayoutDashboard,
   ListChecks,
-  type LucideIcon,
   Megaphone,
   Printer,
   QrCode,
@@ -23,25 +22,16 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { NavLink, Outlet } from "react-router";
+import { Outlet } from "react-router";
 import { usePendingCount } from "@/features/approvals/use-approvals";
 import { BrandMark } from "@/features/auth/brand-mark";
 import { type Me, type Role, useMe } from "@/features/auth/use-auth";
 import { useExpiringCount } from "@/features/qr-cards/use-qr-cards";
 import { CommandPalette, type PaletteCommand } from "@/features/search/command-palette";
-import { cn } from "@/lib/utils";
+import { MobileMenu } from "./mobile-menu";
+import { type NavItem, NavLinks } from "./nav-links";
 import { PlantFilterProvider, PlantFilterSelect } from "./plant-filter";
 import { UserMenu } from "./user-menu";
-
-type NavItem = {
-  to: string;
-  labelKey: string;
-  icon: LucideIcon;
-  roles: Role[];
-  end?: boolean;
-  // A small number next to the label (the approvals waiting for the Super Admin).
-  badge?: "pendingApprovals" | "expiringCards";
-};
 
 const ALL_ROLES: Role[] = ["super_admin", "corporate_head", "plant_head"];
 
@@ -154,55 +144,20 @@ function AdminShell({ user }: { user: Me }) {
           aria-label={t("nav.label")}
           className="flex-1 space-y-1 overflow-y-auto px-2 py-2 xl:px-3"
         >
-          {items.map((item) => {
-            const { to, labelKey, icon: Icon, end } = item;
-            const count = badgeFor(item);
-            return (
-              <NavLink
-                key={to}
-                to={to}
-                end={end}
-                title={t(labelKey)}
-                className={({ isActive }) =>
-                  cn(
-                    "relative flex h-10 items-center gap-3 rounded-md px-3 text-sm font-medium text-muted-foreground hover:bg-muted",
-                    isActive && "bg-primary-soft font-bold text-primary-soft-foreground",
-                  )
-                }
-              >
-                {({ isActive }) => (
-                  <>
-                    {isActive ? (
-                      <span className="absolute top-2 bottom-2 left-0 w-1 rounded-full bg-signal" />
-                    ) : null}
-                    <Icon className="size-[18px] shrink-0" aria-hidden />
-                    <span className="hidden xl:inline">{t(labelKey)}</span>
-                    {count > 0 ? (
-                      <span className="tnum ml-auto hidden rounded-full bg-primary px-2 text-xs font-bold text-primary-foreground xl:inline">
-                        {count}
-                        <span className="sr-only">
-                          {" "}
-                          {t(item.badge === "expiringCards" ? "nav.endingSoon" : "nav.waiting")}
-                        </span>
-                      </span>
-                    ) : null}
-                  </>
-                )}
-              </NavLink>
-            );
-          })}
+          <NavLinks items={items} badgeFor={badgeFor} />
         </nav>
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-3 border-b bg-card/90 px-5 backdrop-blur lg:px-8">
-          <div className="lg:hidden">
+        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-card/90 px-3 backdrop-blur sm:gap-3 sm:px-5 lg:px-8">
+          <MobileMenu items={items} badgeFor={badgeFor} />
+          <div className="hidden sm:block lg:hidden">
             <BrandMark />
           </div>
           <button
             type="button"
             onClick={() => setPaletteOpen(true)}
-            className="hidden h-10 w-full max-w-sm cursor-pointer items-center gap-2 rounded-md border border-border-strong bg-card px-3 text-left text-sm text-muted-foreground shadow-xs hover:bg-muted md:flex"
+            className="hidden h-10 w-full min-w-0 max-w-sm cursor-pointer items-center gap-2 rounded-md border border-border-strong bg-card px-3 text-left text-sm text-muted-foreground shadow-xs hover:bg-muted md:flex"
           >
             <Search className="size-4" aria-hidden />
             <span className="flex-1 truncate">{t("palette.placeholder")}</span>
@@ -212,16 +167,16 @@ function AdminShell({ user }: { user: Me }) {
             type="button"
             aria-label={t("palette.open")}
             onClick={() => setPaletteOpen(true)}
-            className="grid size-10 cursor-pointer place-items-center rounded-md border md:hidden"
+            className="grid size-11 shrink-0 cursor-pointer place-items-center rounded-md border md:hidden"
           >
             <Search className="size-4" aria-hidden />
           </button>
           <PlantFilterSelect />
-          <div className="ml-auto">
+          <div className="ml-auto shrink-0">
             <UserMenu user={user} />
           </div>
         </header>
-        <main className="flex-1 p-5 lg:p-8">
+        <main className="min-w-0 flex-1 p-4 sm:p-5 lg:p-8">
           <Outlet />
         </main>
       </div>

@@ -26,14 +26,14 @@ export function Frame({
         aria-hidden
         className="h-3 shrink-0 bg-[repeating-linear-gradient(135deg,var(--signal)_0_18px,#0f172a_18px_36px)]"
       />
-      <header className="flex items-center justify-between gap-4 border-b bg-card px-8 py-5">
+      <header className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-b bg-card px-4 py-4 sm:px-8 sm:py-5">
         <div>
           <p className="text-[30px] leading-tight font-extrabold">{title}</p>
           <p className="text-[24px] text-muted-foreground">{subtitle}</p>
         </div>
         {aside}
       </header>
-      <main className="flex flex-1 flex-col justify-center px-8 py-6">{children}</main>
+      <main className="flex flex-1 flex-col justify-center px-4 py-6 sm:px-8">{children}</main>
       {footer ?? <DefaultFooter />}
     </div>
   );
@@ -42,7 +42,7 @@ export function Frame({
 function DefaultFooter() {
   const { t } = useTranslation();
   return (
-    <footer className="flex items-center justify-between border-t bg-card px-8 py-4 text-[24px] text-muted-foreground">
+    <footer className="flex flex-wrap items-center justify-between gap-x-4 border-t bg-card px-4 py-4 text-[24px] text-muted-foreground sm:px-8">
       <span>{t("kiosk.help")}</span>
       <span className="tnum">{t("kiosk.version", { version: APP_VERSION })}</span>
     </footer>

@@ -40,7 +40,7 @@ const GOOD_ENOUGH_M = 50;
 function DigitBoxes({ code, wrong }: { code: string; wrong: boolean }) {
   const { t } = useTranslation();
   return (
-    <fieldset className="m-0 flex items-center justify-center gap-3 border-0 p-0 sm:gap-4">
+    <fieldset className="m-0 flex w-full items-center justify-center gap-2 border-0 p-0 sm:gap-4">
       <legend className="sr-only">{t("kiosk.pairing.codeLabel")}</legend>
       {Array.from({ length: CODE_LENGTH }, (_, index) => {
         const digit = code[index];
@@ -50,8 +50,9 @@ function DigitBoxes({ code, wrong }: { code: string; wrong: boolean }) {
             // biome-ignore lint/suspicious/noArrayIndexKey: six fixed boxes
             key={index}
             className={cn(
-              "grid h-[104px] w-[78px] place-items-center rounded-2xl border-2 bg-card text-[64px] leading-none font-bold tabular-nums shadow-sm",
-              index === 2 && "mr-5",
+              // The boxes shrink to fit a narrow phone (about 50 px each at 360 px) and stop growing at 78 px.
+              "grid h-[84px] max-w-[78px] min-w-0 flex-1 place-items-center rounded-2xl border-2 bg-card text-[44px] leading-none font-bold tabular-nums shadow-sm sm:h-[104px] sm:text-[64px]",
+              index === 2 && "mr-3 sm:mr-5",
               isNext && "border-signal ring-4 ring-signal/40",
               wrong && "border-destructive",
             )}
@@ -136,10 +137,12 @@ function EnterScreen({
     <div className="mx-auto grid w-full max-w-5xl gap-8 lg:grid-cols-2 lg:items-center">
       <div className="space-y-6">
         <div>
-          <h1 className="text-[56px] leading-tight font-extrabold tracking-tight">
+          <h1 className="text-[40px] leading-tight font-extrabold tracking-tight sm:text-[56px]">
             {t("kiosk.pairing.title")}
           </h1>
-          <p className="mt-2 text-[28px] text-foreground/80">{t("kiosk.pairing.instruction")}</p>
+          <p className="mt-2 text-[24px] text-foreground/80 sm:text-[28px]">
+            {t("kiosk.pairing.instruction")}
+          </p>
           {fromLink ? (
             <p className="mt-3 flex items-center gap-2 text-[24px] font-semibold text-success">
               <Check className="size-6" aria-hidden />
