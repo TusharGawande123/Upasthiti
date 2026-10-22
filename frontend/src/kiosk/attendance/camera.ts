@@ -3,6 +3,13 @@
 
 export type CameraProblem = "CAMERA_BLOCKED" | "CAMERA_NOT_FOUND";
 
+/** "user" is the front (selfie) camera, "environment" is the back camera of a phone or tablet. */
+export type Facing = "user" | "environment";
+
+export function otherFacing(facing: Facing): Facing {
+  return facing === "user" ? "environment" : "user";
+}
+
 export class CameraError extends Error {
   constructor(readonly problem: CameraProblem | "NEEDS_TAP") {
     super(problem);
@@ -25,14 +32,17 @@ function problemFor(error: unknown): CameraProblem {
  * - CAMERA_BLOCKED / CAMERA_NOT_FOUND: the screen explains how to fix it;
  * - NEEDS_TAP: the browser wants one tap before the picture can play ("Start camera" button).
  */
-export async function startCamera(video: HTMLVideoElement): Promise<MediaStream> {
+export async function startCamera(
+  video: HTMLVideoElement,
+  facing: Facing = "user",
+): Promise<MediaStream> {
   if (!navigator.mediaDevices?.getUserMedia) throw new CameraError("CAMERA_NOT_FOUND");
   let stream: MediaStream;
   try {
     stream = await navigator.mediaDevices.getUserMedia({
       audio: false,
-      // The front camera faces the worker on a phone or tablet; a PC has only one camera.
-      video: { facingMode: "user", width: { ideal: 1280 }, height: { ideal: 720 } },
+      // "ideal", not "exact": a PC has one camera, and it is used whatever the choice says.
+      video: { facingMode: { ideal: facing }, width: { ideal: 1280 }, height: { ideal: 720 } },
     });
   } catch (error) {
     throw new CameraError(problemFor(error));
@@ -56,4 +66,14 @@ export async function playAfterTap(video: HTMLVideoElement): Promise<void> {
 
 export function stopCamera(stream: MediaStream | null): void {
   for (const track of stream?.getTracks() ?? []) track.stop();
+}
+
+/** How many cameras this device has. Only known after the camera was allowed once. */
+export async function countCameras(): Promise<number> {
+  try {
+    const devices = await navigator.mediaDevices.enumerateDevices();
+    return devices.filter((device) => device.kind === "videoinput").length;
+  } catch {
+    return 1;
+  }
 }

@@ -157,7 +157,7 @@ describe("plant details", () => {
     await user.click(within(dialog).getByRole("button", { name: "Switch off" }));
 
     expect(
-      await within(dialog).findByText(/Revoke the plant's active kiosks first/),
+      await within(dialog).findByText(/Revoke the plant's active attendance devices first/),
     ).toBeInTheDocument();
     expect(body(calls, "POST", "/plants/p-1/deactivate")).toEqual({ reason: "Plant closed" });
   });

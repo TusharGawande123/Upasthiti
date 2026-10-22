@@ -56,6 +56,8 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     ),
     SettingDefinition("kiosk_result_seconds", "kiosk_screen", 4, "s", 2, 2, 10),
     SettingDefinition("kiosk_reject_seconds", "kiosk_screen", 6, "s", 2, 3, 15),
+    # After a card is read the person gets this long to look at the camera before the photo.
+    SettingDefinition("kiosk_photo_ready_seconds", "kiosk_screen", 20, "s", 2, 5, 60),
     # The face values are chosen in M3 from the accuracy tests, so they have no default yet.
     SettingDefinition("face_match_threshold", "face", None, "", 3, 0, 1, is_whole_number=False),
     SettingDefinition("face_match_margin", "face", None, "", 3, 0, 1, is_whole_number=False),

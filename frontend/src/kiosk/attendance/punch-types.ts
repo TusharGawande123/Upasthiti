@@ -29,6 +29,8 @@ export type KioskScreenSettings = {
   sound_enabled: boolean;
   result_seconds: number;
   reject_seconds: number;
+  /** Time to get ready after the card is read, before the photo is taken. */
+  photo_ready_seconds: number;
   snapshot_retention_days: number;
   dark_threshold: number;
 };
@@ -50,6 +52,7 @@ export const DEFAULT_SCREEN_SETTINGS: KioskScreenSettings = {
   sound_enabled: true,
   result_seconds: 4,
   reject_seconds: 6,
+  photo_ready_seconds: 20,
   snapshot_retention_days: 60,
   dark_threshold: 40,
 };

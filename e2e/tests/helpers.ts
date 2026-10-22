@@ -150,6 +150,9 @@ export async function openKioskWithCard(
   serial: string,
   pairingCode: string,
   viewport: { width: number; height: number } = { width: 1280, height: 800 },
+  // By default the "device" taps "I'm ready" as soon as that button shows, like a worker would;
+  // a test of the get-ready screen itself passes `tapReady: false`.
+  options: { tapReady?: boolean } = {},
 ) {
   mkdirSync(TMP_FOLDER, { recursive: true });
   const clip = `${TMP_FOLDER}/card-${serial}-${Date.now()}.y4m`;
@@ -175,7 +178,12 @@ export async function openKioskWithCard(
     viewport,
   });
   const device = await context.newPage();
-  await device.goto(`/kiosk?code=${pairingCode}`);
+  if (options.tapReady !== false) {
+    await device.addLocatorHandler(device.getByRole("button", { name: /I'm ready/ }), (button) =>
+      button.click(),
+    );
+  }
+  await device.goto(`/attendance?code=${pairingCode}`);
   await device.getByRole("button", { name: "Pair this device" }).click();
   const close = async () => {
     await browser.close();

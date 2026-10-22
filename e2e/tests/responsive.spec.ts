@@ -108,7 +108,7 @@ test("the kiosk pairing screen fits a phone held upright, even a small one", asy
       locale: "en-IN",
     });
     const device = await context.newPage();
-    await device.goto("/kiosk", { waitUntil: "networkidle" });
+    await device.goto("/attendance", { waitUntil: "networkidle" });
     await expect(device.getByRole("heading", { name: "Pair this device" })).toBeVisible();
     await expectNoSidewaysScroll(device, `kiosk pairing ${size.width}px`);
 

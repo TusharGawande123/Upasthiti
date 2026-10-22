@@ -212,7 +212,7 @@ test("the kiosks and settings pages with the M2 additions have no serious access
 }) => {
   await openAsSuperAdmin(page);
 
-  await page.getByRole("link", { name: "Kiosks" }).click();
+  await page.getByRole("link", { name: "Attendance devices" }).click();
   await expect(page.getByRole("switch", { name: "Sound at Admin test gate" })).toBeVisible();
   await expectNoSeriousAccessibilityIssues(page);
 
@@ -224,7 +224,7 @@ test("the kiosks and settings pages with the M2 additions have no serious access
   await expect(page.getByRole("switch", { name: "Sound at Admin test gate" })).not.toBeChecked();
 
   await page.getByRole("link", { name: "Settings" }).click();
-  await expect(page.getByText("Kiosk sound and screen")).toBeVisible();
+  await expect(page.getByText("Device sound and screen")).toBeVisible();
   await expect(page.getByLabel("Default card validity")).toHaveValue("2");
   await expectNoSeriousAccessibilityIssues(page);
 });

@@ -1,7 +1,9 @@
 // Which screen the kiosk shows, as a small state machine (spec M2 §4.1 to §4.5).
 //
-//   starting -> scanning -> card-read (0.7 s) -> checking -> result -> scanning
-//                  ^                                 \-> failed (no internet...) -> scanning
+//   starting -> scanning -> get-ready -> checking -> result -> scanning
+//   (get-ready: the card is read and the worker gets time to look at the camera; "I am ready"
+//    or the end of the time takes the photo, "Cancel" goes back to scanning)
+//   checking or get-ready -> failed (no internet...) -> scanning
 //   starting -> needs-tap ("Start camera") / camera-problem (blocked, not found)
 //
 // Only one punch at a time: a card is accepted only on the scanning screen. Every other
@@ -14,7 +16,7 @@ export type AttendanceScreen =
   | { name: "needs-tap" }
   | { name: "camera-problem"; code: CameraProblem | "BROWSER_NOT_SUPPORTED" }
   | { name: "scanning"; notACard: boolean }
-  | { name: "card-read"; payload: string }
+  | { name: "get-ready"; payload: string }
   | { name: "checking"; slow: boolean }
   | { name: "result"; answer: PunchAnswer }
   | { name: "failed"; code: string };
@@ -27,6 +29,7 @@ export type AttendanceEvent =
   | { type: "not-a-card-over" }
   | { type: "card-read"; payload: string }
   | { type: "photo-taken" }
+  | { type: "photo-cancelled" }
   | { type: "slow" }
   | { type: "answered"; answer: PunchAnswer }
   | { type: "failed"; code: string }
@@ -49,15 +52,17 @@ export function nextScreen(screen: AttendanceScreen, event: AttendanceEvent): At
     case "not-a-card-over":
       return screen.name === "scanning" ? { name: "scanning", notACard: false } : screen;
     case "card-read":
-      return screen.name === "scanning" ? { name: "card-read", payload: event.payload } : screen;
+      return screen.name === "scanning" ? { name: "get-ready", payload: event.payload } : screen;
     case "photo-taken":
-      return screen.name === "card-read" ? { name: "checking", slow: false } : screen;
+      return screen.name === "get-ready" ? { name: "checking", slow: false } : screen;
+    case "photo-cancelled":
+      return screen.name === "get-ready" ? { name: "scanning", notACard: false } : screen;
     case "slow":
       return screen.name === "checking" ? { name: "checking", slow: true } : screen;
     case "answered":
       return screen.name === "checking" ? { name: "result", answer: event.answer } : screen;
     case "failed":
-      return screen.name === "checking" || screen.name === "card-read"
+      return screen.name === "checking" || screen.name === "get-ready"
         ? { name: "failed", code: event.code }
         : screen;
     case "screen-over":

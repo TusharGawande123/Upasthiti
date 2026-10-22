@@ -30,11 +30,11 @@ function answer(changes: Partial<PunchAnswer> = {}): PunchAnswer {
 const SETTINGS = { result_seconds: 4, reject_seconds: 6 };
 
 describe("screen state machine", () => {
-  it("goes through one punch: scanning, card read, checking, result, scanning", () => {
+  it("goes through one punch: scanning, get ready, checking, result, scanning", () => {
     let screen = nextScreen({ name: "starting" }, { type: "camera-ready" });
     expect(screen).toEqual({ name: "scanning", notACard: false });
     screen = nextScreen(screen, { type: "card-read", payload: "UPS1.A.C000001.X" });
-    expect(screen).toEqual({ name: "card-read", payload: "UPS1.A.C000001.X" });
+    expect(screen).toEqual({ name: "get-ready", payload: "UPS1.A.C000001.X" });
     screen = nextScreen(screen, { type: "photo-taken" });
     expect(screen).toEqual({ name: "checking", slow: false });
     screen = nextScreen(screen, { type: "slow" });
@@ -43,6 +43,21 @@ describe("screen state machine", () => {
     expect(screen.name).toBe("result");
     screen = nextScreen(screen, { type: "screen-over" });
     expect(screen).toEqual({ name: "scanning", notACard: false });
+  });
+
+  it("goes back to scanning when the person cancels the photo", () => {
+    const ready = nextScreen(
+      { name: "scanning", notACard: false },
+      { type: "card-read", payload: "UPS1.A.C000001.X" },
+    );
+
+    expect(nextScreen(ready, { type: "photo-cancelled" })).toEqual({
+      name: "scanning",
+      notACard: false,
+    });
+    // A cancel that arrives at any other time changes nothing.
+    const checking = { name: "checking", slow: false } as const;
+    expect(nextScreen(checking, { type: "photo-cancelled" })).toBe(checking);
   });
 
   it("reads only one card at a time", () => {

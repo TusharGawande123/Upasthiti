@@ -29,7 +29,7 @@ test("the home address opens the login screen when nobody is logged in", async (
 });
 
 test("kiosk pairing screen renders", async ({ page }) => {
-  await page.goto("/kiosk");
+  await page.goto("/attendance");
 
   await expect(page.getByRole("heading", { name: "Pair this device" })).toBeVisible();
 });

@@ -94,6 +94,7 @@ class KioskScreenSettings(BaseModel):
     sound_enabled: bool
     result_seconds: int
     reject_seconds: int
+    photo_ready_seconds: int  # time to get ready after the card is read, before the photo
     snapshot_retention_days: int  # shown in the privacy line on the idle screen
     dark_threshold: int  # below this brightness the low-light hint appears
 

@@ -37,11 +37,11 @@ async function drawGeofenceAroundMapCentre(page: Page) {
 }
 
 async function addKiosk(page: Page, name: string): Promise<string> {
-  await page.getByRole("link", { name: "Kiosks" }).click();
-  await page.getByRole("button", { name: "Add kiosk" }).click();
+  await page.getByRole("link", { name: "Attendance devices" }).click();
+  await page.getByRole("button", { name: "Add device" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Plant").selectOption({ label: "KT1 · Kiosk Test Plant" });
-  await dialog.getByLabel("Kiosk name").fill(name);
+  await dialog.getByLabel("Device name").fill(name);
   await dialog.getByRole("button", { name: "Make pairing code" }).click();
   return readPairingCode(page);
 }
@@ -67,7 +67,7 @@ test("Super Admin makes a plant with a geofence, then a kiosk pairs inside it", 
   await expectNoSeriousAccessibilityIssues(page);
 
   const { context, device } = await openKioskDevice(browser, { geolocation: INSIDE });
-  await device.goto(`/kiosk?code=${code}`);
+  await device.goto(`/attendance?code=${code}`);
   await expect(device.getByText("Code filled in from the link.")).toBeVisible();
   await expectNoSeriousAccessibilityIssues(device);
   await device.getByRole("button", { name: "Pair this device" }).click();
@@ -93,14 +93,14 @@ test("a device outside the geofence or without location permission is refused wi
   const firstCode = await addKiosk(page, "Far away phone");
 
   const far = await openKioskDevice(browser, { geolocation: FAR_AWAY });
-  await far.device.goto(`/kiosk?code=${firstCode}`);
+  await far.device.goto(`/attendance?code=${firstCode}`);
   await far.device.getByRole("button", { name: "Pair this device" }).click();
   await expect(far.device.getByRole("heading", { name: "Not at the plant" })).toBeVisible();
   await expect(far.device.getByText("OUTSIDE_GEOFENCE")).toBeVisible();
   await far.context.close();
 
   const noPermission = await openKioskDevice(browser, { allowLocation: false });
-  await noPermission.device.goto(`/kiosk?code=${firstCode}`);
+  await noPermission.device.goto(`/attendance?code=${firstCode}`);
   await noPermission.device.getByRole("button", { name: "Pair this device" }).click();
   await expect(noPermission.device.getByRole("heading", { name: "Location is off" })).toBeVisible();
   await noPermission.context.close();
@@ -113,7 +113,7 @@ test("a Super Admin revokes a kiosk and the device shows 'Switched off'", async 
   await logIn(page, SUPER_ADMIN_LOGIN);
   const code = await addKiosk(page, "Gate to revoke");
   const { context, device } = await openKioskDevice(browser, { geolocation: INSIDE });
-  await device.goto(`/kiosk?code=${code}`);
+  await device.goto(`/attendance?code=${code}`);
   await device.getByRole("button", { name: "Pair this device" }).click();
   await expect(device.getByText("Kiosk Test Plant · KT1")).toBeVisible();
 

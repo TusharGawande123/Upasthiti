@@ -112,7 +112,7 @@ describe("a working card", () => {
     renderRoute("/admin/employees/e-1");
 
     expect(
-      await screen.findByText("Revoke this card: the kiosk rejects it now."),
+      await screen.findByText("Revoke this card: the attendance device rejects it now."),
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Revoke card" })).toBeInTheDocument();
     // a card for a face employee cannot be replaced by a new one

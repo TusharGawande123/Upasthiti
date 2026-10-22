@@ -1,18 +1,27 @@
 // The attendance screen's brain (spec M2 §4.1 to §4.5): starts the camera by itself (zero taps),
-// looks for a card about 6 times a second, takes the photo 0.7 s after a card is read, sends the
-// punch and shows the answer for a few seconds before scanning again.
+// looks for a card about 6 times a second, and after a card is read gives the person time to get
+// ready (look at the camera, switch the camera if needed) before the photo is taken. Then it sends
+// the punch and shows the answer for a few seconds before scanning again.
 // The screens only show `screen` and call the actions; all timing lives here.
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import { INITIAL_SCREEN, nextScreen, secondsOnScreen } from "./attendance-machine";
 import { LowLightWatcher, measureVideoBrightness } from "./brightness";
-import { CameraError, playAfterTap, startCamera, stopCamera } from "./camera";
+import {
+  CameraError,
+  countCameras,
+  type Facing,
+  otherFacing,
+  playAfterTap,
+  startCamera,
+  stopCamera,
+} from "./camera";
+import { loadFacing, saveFacing } from "./camera-preference";
 import { sendPunch } from "./punch-client";
 import type { KioskScreenSettings } from "./punch-types";
 import { createQrDetector, isUpasthitiCard, type QrDetector, SameCardFilter } from "./qr-reader";
 import { takeSnapshot } from "./snapshot";
 
 const SCAN_EVERY_MS = 150;
-const LOOK_AT_CAMERA_MS = 700;
 const NOT_A_CARD_MS = 3_000;
 const BRIGHTNESS_EVERY_MS = 1_000;
 
@@ -32,7 +41,18 @@ export function useAttendance({
 }) {
   const [screen, dispatch] = useReducer(nextScreen, INITIAL_SCREEN);
   const [lowLight, setLowLight] = useState(false);
+  // The camera used to read cards and the camera used for the photo are chosen separately.
+  const [scanFacing, setScanFacing] = useState<Facing>(() => loadFacing("scan"));
+  const [photoFacing, setPhotoFacing] = useState<Facing>(() => loadFacing("photo"));
+  const [cameraCount, setCameraCount] = useState(1);
+  const [cameraReady, setCameraReady] = useState(false);
+  // Time to look at the camera, adjust and switch the camera if needed (a setting, default 20 s).
+  const totalSeconds = settings.photo_ready_seconds;
+  const [secondsLeft, setSecondsLeft] = useState(totalSeconds);
   const videoRef = useRef<HTMLVideoElement>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const activeFacing = useRef<Facing>(scanFacing);
+  const sending = useRef(false);
   const detectorRef = useRef<QrDetector | null>(null);
   const sameCard = useRef(new SameCardFilter());
   // Kept in a ref: a new function from the parent must never restart a punch in progress.
@@ -43,7 +63,6 @@ export function useAttendance({
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
-    let stream: MediaStream | null = null;
     let cancelled = false;
     createQrDetector()
       .then((detector) => {
@@ -55,16 +74,21 @@ export function useAttendance({
       .catch(() => {
         if (!cancelled) dispatch({ type: "camera-failed", code: "BROWSER_NOT_SUPPORTED" });
       });
-    startCamera(video)
+    startCamera(video, activeFacing.current)
       .then((started) => {
-        stream = started;
-        if (cancelled) stopCamera(started);
-        else dispatch({ type: "camera-ready" });
+        if (cancelled) {
+          stopCamera(started);
+          return;
+        }
+        streamRef.current = started;
+        setCameraReady(true);
+        countCameras().then(setCameraCount);
+        dispatch({ type: "camera-ready" });
       })
       .catch((error: unknown) => {
         if (cancelled) return;
         if (error instanceof CameraError && error.problem === "NEEDS_TAP") {
-          stream = video.srcObject as MediaStream | null;
+          streamRef.current = video.srcObject as MediaStream | null;
           dispatch({ type: "camera-needs-tap" });
         } else if (error instanceof CameraError && error.problem !== "NEEDS_TAP") {
           handlers.current.onProblem("camera_error", error.problem);
@@ -76,9 +100,48 @@ export function useAttendance({
       });
     return () => {
       cancelled = true;
-      stopCamera(stream);
+      stopCamera(streamRef.current);
+      streamRef.current = null;
     };
   }, []);
+
+  // 1b. Use the camera the screen needs: the "photo" camera while the person gets ready for the
+  // photo, the "scan" camera otherwise. Nothing happens when both are the same camera.
+  const cameraStarted =
+    screen.name !== "starting" && screen.name !== "needs-tap" && screen.name !== "camera-problem";
+  const wantedFacing = screen.name === "get-ready" ? photoFacing : scanFacing;
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !cameraStarted) return;
+    if (streamRef.current && activeFacing.current === wantedFacing) return;
+    let cancelled = false;
+    setCameraReady(false);
+    // Some phones cannot open the second camera while the first is still running.
+    stopCamera(streamRef.current);
+    streamRef.current = null;
+    startCamera(video, wantedFacing)
+      .then((started) => {
+        if (cancelled) {
+          stopCamera(started);
+          return;
+        }
+        streamRef.current = started;
+        activeFacing.current = wantedFacing;
+        setCameraReady(true);
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
+        const code = error instanceof CameraError ? error.problem : "CAMERA_NOT_FOUND";
+        handlers.current.onProblem("camera_error", String(code));
+        dispatch({
+          type: "camera-failed",
+          code: code === "NEEDS_TAP" ? "CAMERA_NOT_FOUND" : code,
+        });
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [cameraStarted, wantedFacing]);
 
   // 2. While scanning: look for a card about 6 times a second.
   const scanning = screen.name === "scanning";
@@ -116,16 +179,23 @@ export function useAttendance({
     return () => clearTimeout(timer);
   }, [showingNotACard]);
 
-  // 3. Card read: give the person 0.7 s to look at the camera, take the photo, send the punch.
-  const payload = screen.name === "card-read" ? screen.payload : null;
+  // 3. Card read: the person gets GET_READY_SECONDS to look at the camera. The photo is taken (and
+  // the punch sent) when they tap "I am ready" or when the time is over; "Cancel" stops the punch.
+  const payload = screen.name === "get-ready" ? screen.payload : null;
   useEffect(() => {
     if (payload === null) return;
-    let cancelled = false;
-    const timer = setTimeout(async () => {
+    setSecondsLeft(totalSeconds);
+    const timer = setInterval(() => setSecondsLeft((left) => left - 1), 1000);
+    return () => clearInterval(timer);
+  }, [payload, totalSeconds]);
+
+  const takePhotoNow = useCallback(async () => {
+    if (payload === null || !cameraReady || sending.current) return;
+    sending.current = true;
+    try {
       const video = videoRef.current;
       // Without a photo the server answers SNAPSHOT_MISSING, which is the honest result.
       const snapshotBase64 = video ? await takeSnapshot(video).catch(() => "") : "";
-      if (cancelled) return;
       dispatch({ type: "photo-taken" });
       const outcome = await sendPunch(
         { qrPayload: payload, snapshotBase64 },
@@ -142,12 +212,36 @@ export function useAttendance({
       else if (outcome.code === "DEVICE_SIGNATURE_INVALID") onUnpaired();
       onOnline(outcome.code !== "NETWORK_OFFLINE");
       dispatch({ type: "failed", code: outcome.code });
-    }, LOOK_AT_CAMERA_MS);
-    return () => {
-      cancelled = true;
-      clearTimeout(timer);
-    };
+    } finally {
+      sending.current = false;
+    }
+  }, [payload, cameraReady]);
+
+  const cancelPhoto = useCallback(() => {
+    if (payload === null || sending.current) return;
+    // The card may still be held up: ignore it for a few seconds so it is not read again at once.
+    sameCard.current.remember(payload, Date.now());
+    dispatch({ type: "photo-cancelled" });
   }, [payload]);
+
+  // Time over: take the photo if the camera is ready, otherwise cancel (no photo, no punch).
+  useEffect(() => {
+    if (payload === null || secondsLeft > 0) return;
+    if (cameraReady) void takePhotoNow();
+    else cancelPhoto();
+  }, [payload, secondsLeft, cameraReady, takePhotoNow, cancelPhoto]);
+
+  const switchCamera = useCallback(() => {
+    if (screen.name === "get-ready") {
+      const next = otherFacing(photoFacing);
+      setPhotoFacing(next);
+      saveFacing("photo", next);
+    } else {
+      const next = otherFacing(scanFacing);
+      setScanFacing(next);
+      saveFacing("scan", next);
+    }
+  }, [screen.name, photoFacing, scanFacing]);
 
   // 4. A result or failure stays a few seconds, then the kiosk scans again.
   const holdSeconds = secondsOnScreen(screen, settings);
@@ -176,6 +270,8 @@ export function useAttendance({
     if (!video) return;
     try {
       await playAfterTap(video);
+      setCameraReady(true);
+      countCameras().then(setCameraCount);
       dispatch({ type: "camera-ready" });
     } catch {
       dispatch({ type: "camera-failed", code: "CAMERA_NOT_FOUND" });
@@ -185,5 +281,27 @@ export function useAttendance({
   // After allowing the camera in the browser, a fresh start is the reliable way to use it.
   const retryCamera = useCallback(() => window.location.reload(), []);
 
-  return { screen, videoRef, lowLight, holdSeconds, startCameraAfterTap, retryCamera };
+  return {
+    screen,
+    videoRef,
+    lowLight,
+    holdSeconds,
+    startCameraAfterTap,
+    retryCamera,
+    // For the "get ready" screen.
+    getReady: {
+      secondsLeft: Math.max(0, secondsLeft),
+      totalSeconds,
+      cameraReady,
+      takePhotoNow,
+      cancelPhoto,
+    },
+    // The camera button is shown only on a device that has more than one camera.
+    camera: {
+      canSwitch: cameraCount > 1,
+      facing: wantedFacing,
+      ready: cameraReady,
+      switchCamera,
+    },
+  };
 }

@@ -23,7 +23,7 @@ gate (from M2). Pairing needs
 1. Use **Chrome or Edge** (the latest version). The page needs a secure (https) address.
 2. Switch **Location** on in the phone or Windows settings. On a PC, Wi-Fi must be switched
    on too (it does not have to be connected to a network); that is how a PC finds its place.
-3. Open the website address and add `/kiosk`, **or scan the QR code** from the admin screen:
+3. Open the website address and add `/attendance`, **or scan the QR code** from the admin screen:
    the code is then filled in for you.
 4. Press **Allow** when the browser asks for the location.
 5. Keep the device **at the gate** until it says **Paired**. Pairing takes up to 20 seconds
@@ -66,7 +66,9 @@ After pairing, the kiosk shows the camera picture, the server time and **Show yo
 the camera**. Nobody has to tap anything: scanning starts by itself.
 
 1. The worker holds the card in front of the camera (10–30 cm).
-2. **Card read. Look at the camera**: the kiosk takes one small photo of the worker. It stops
+2. **Card read. Get ready for your photo**: the worker looks at the camera and taps **I'm ready**
+   (or waits 20 seconds). If needed, the worker can switch between the front and the back camera
+   with the camera button, or tap **Cancel**. The device then takes one small photo. It stops
    card sharing; the photo is encrypted and deleted after the retention period (60 days by
    default, a setting).
 3. The answer comes from the server: **IN** (green) or **OUT** (blue) with the name, or a
@@ -86,8 +88,8 @@ and allows sound without a tap. Right-click the desktop › New › Shortcut, an
 these targets (with your site address):
 
 ```text
-"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk https://<site>/kiosk --autoplay-policy=no-user-gesture-required
-"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --kiosk https://<site>/kiosk --edge-kiosk-type=fullscreen --autoplay-policy=no-user-gesture-required
+"C:\Program Files\Google\Chrome\Application\chrome.exe" --kiosk https://<site>/attendance --autoplay-policy=no-user-gesture-required
+"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --kiosk https://<site>/attendance --edge-kiosk-type=fullscreen --autoplay-policy=no-user-gesture-required
 ```
 
 Put the shortcut in the Startup folder (Win + R › `shell:startup`) so the kiosk opens after a
