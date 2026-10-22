@@ -99,8 +99,11 @@ def record_kiosk_punch(
         return _record_self_test(session, kiosk, context, client, now)
 
     if context.card is not None and context.card.kind == CardKind.TEST.value:
-        # A refused test card (revoked) is not a worker's punch: no row, no photo (F-27).
-        return refused_test_card_answer(kiosk.name, decision.reason_codes[0], now)
+        # A refused test card (revoked, expired, bad photo) is not a worker's punch: no punch
+        # row, no photo (F-27). One audit row keeps a trace of the refusal.
+        return _record_refused_test_card(
+            session, kiosk, context, client, now, decision.reason_codes[0]
+        )
 
     punch = _build_punch(kiosk, request, client, context, decision, now)
     snapshot = _store_snapshot(session, punch, context, decision, now, storage)
@@ -181,6 +184,30 @@ def _record_self_test(
     )
     session.commit()
     return self_test_answer(kiosk.name, now)
+
+
+def _record_refused_test_card(
+    session: Session,
+    kiosk: KioskDevice,
+    context: PunchContext,
+    client: ClientInfo,
+    now: datetime,
+    reason_code: str,
+) -> KioskPunchResponse:
+    record_audit(
+        session,
+        actor=Actor(actor_type="kiosk", actor_id=kiosk.id, ip=client.ip),
+        action="kiosk.test_card_refused",
+        entity_type="kiosk",
+        entity_id=kiosk.id,
+        after={
+            "card_serial": context.card.card_serial if context.card else None,
+            "reason": reason_code,
+        },
+        plant_id=kiosk.plant_id,
+    )
+    session.commit()
+    return refused_test_card_answer(kiosk.name, reason_code, now)
 
 
 def _build_punch(

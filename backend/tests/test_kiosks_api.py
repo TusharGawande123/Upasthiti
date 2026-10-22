@@ -1,5 +1,6 @@
 """Kiosk creation, pairing, signed requests and revoking (spec AC-13 to AC-17, AC-39)."""
 
+import logging
 import math
 import uuid
 
@@ -312,3 +313,76 @@ def test_renaming_a_kiosk_to_a_name_already_used_at_the_plant_is_a_clear_conflic
     assert clash.status_code == 409
     assert clash.json()["error"]["code"] == "KIOSK_NAME_EXISTS"
     assert same_name_again.status_code == 200  # keeping its own name is fine
+
+
+# --- Failed device logins leave a trace -------------------------------------------------------
+
+
+def paired_device(boss: TestClient, plant: dict, name: str = "Gate 1") -> Device:
+    created = new_kiosk(boss, plant, name)
+    device = Device()
+    device.kiosk_id = created["kiosk"]["id"]
+    register(boss, created["pairing_code"], device, at(50, 50))
+    return device
+
+
+def refusal_lines(caplog: pytest.LogCaptureFixture) -> list[dict]:
+    return [
+        record.fields  # type: ignore[attr-defined]
+        for record in caplog.records
+        if record.getMessage() == "kiosk auth refused"
+    ]
+
+
+def test_a_wrong_signature_and_an_unknown_kiosk_are_logged_without_secrets(
+    boss: TestClient, plant: dict, caplog: pytest.LogCaptureFixture
+) -> None:
+    device = paired_device(boss, plant)
+    stranger = Device()
+    stranger.kiosk_id = device.kiosk_id
+    forged = stranger.headers("GET", ME)
+    unknown = Device()
+    unknown.kiosk_id = str(uuid.uuid4())
+
+    with caplog.at_level(logging.WARNING):
+        boss.get(ME, headers=forged)
+        boss.get(ME, headers=unknown.headers("GET", ME))
+        boss.get(ME)
+
+    lines = refusal_lines(caplog)
+    assert [line["reason"] for line in lines] == [
+        "DEVICE_SIGNATURE_INVALID",
+        "DEVICE_UNKNOWN",
+        "DEVICE_HEADERS_INVALID",
+    ]
+    assert lines[0]["kiosk_id"] == device.kiosk_id
+    assert lines[2]["kiosk_id"] is None
+    assert all("client_ip" in line for line in lines)
+    for secret in (forged["X-Kiosk-Signature"], forged["X-Kiosk-Nonce"]):
+        assert secret not in caplog.text
+
+
+def test_a_revoked_device_and_a_replayed_request_are_logged_and_audited(
+    boss: TestClient, plant: dict, db_session: Session, caplog: pytest.LogCaptureFixture
+) -> None:
+    replaying = paired_device(boss, plant)
+    revoked = paired_device(boss, plant, "Gate 2")
+    first = replaying.headers("GET", ME, counter=10)
+    replay = replaying.headers("GET", ME, counter=10)
+    boss.post(f"{KIOSKS}/{revoked.kiosk_id}/revoke", json={"reason": "Tablet lost"})
+    revoked_headers = revoked.headers("GET", ME)
+
+    with caplog.at_level(logging.WARNING):
+        boss.get(ME, headers=first)
+        boss.get(ME, headers=replay)
+        boss.get(ME, headers=revoked_headers)
+
+    assert [line["reason"] for line in refusal_lines(caplog)] == ["NONCE_REUSED", "DEVICE_REVOKED"]
+    for secret in (replay["X-Kiosk-Signature"], replay["X-Kiosk-Nonce"]):
+        assert secret not in caplog.text
+    rows = list(db_session.scalars(select(AuditLog).where(AuditLog.action == "kiosk.auth_refused")))
+    assert {(row.actor_type, str(row.actor_id), (row.after or {})["reason"]) for row in rows} == {
+        ("kiosk", replaying.kiosk_id, "NONCE_REUSED"),
+        ("kiosk", revoked.kiosk_id, "DEVICE_REVOKED"),
+    }
+    assert len(rows) == 2

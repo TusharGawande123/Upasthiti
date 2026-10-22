@@ -247,3 +247,10 @@ upasthiti/
   .github/workflows/     ci.yml, keepalive.yml
   .env.example
 ```
+
+## 9. Notes for M4 (from the M2 review, decision 0012)
+- Add an anti-proxy rule that flags the same QR card used at two kiosks within N minutes: a card
+  can be cloned by photographing it, and in M2 the stored photo and its admin review are the only
+  defence.
+- Gate devices must run in locked full-screen kiosk mode (setup guide): anyone with devtools on
+  the gate PC can sign punch requests.

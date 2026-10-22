@@ -433,12 +433,16 @@ describe("kiosk sound, voice and the one-tap banner", () => {
     const user = userEvent.setup();
 
     await user.click(
-      screen.getByRole("button", { name: "Tap once to turn on sound and full screen" }),
+      screen.getByRole("button", {
+        name: "Tap once to turn on sound and full screen. Tap again after every update.",
+      }),
     );
 
     expect(requestFullscreen).toHaveBeenCalled();
     expect(
-      screen.queryByRole("button", { name: "Tap once to turn on sound and full screen" }),
+      screen.queryByRole("button", {
+        name: "Tap once to turn on sound and full screen. Tap again after every update.",
+      }),
     ).not.toBeInTheDocument();
   });
 });

@@ -216,6 +216,25 @@ describe("screen-awake lock", () => {
     expect(request).toHaveBeenCalledWith("screen");
   });
 
+  it("is tried on load without a tap, stays quiet when refused and retries when visible", async () => {
+    const request = vi
+      .fn()
+      .mockRejectedValueOnce(new Error("Needs a user gesture"))
+      .mockResolvedValue({ released: false });
+    vi.stubGlobal("navigator", { ...navigator, wakeLock: { request } });
+    const failures: string[] = [];
+    const keeper = new WakeLockKeeper((reason) => failures.push(reason));
+
+    expect(await keeper.tryWithoutTap()).toBe(false);
+    expect(failures).toEqual([]);
+
+    document.dispatchEvent(new Event("visibilitychange"));
+    await Promise.resolve();
+
+    // Keepers of earlier tests also listen on the document, so "at least" is the honest check.
+    expect(request.mock.calls.length).toBeGreaterThanOrEqual(2);
+  });
+
   it("reports a refusal once and keeps working", async () => {
     vi.stubGlobal("navigator", {
       ...navigator,

@@ -650,15 +650,22 @@ def test_a_photo_between_40_and_64_kb_is_a_normal_rejection(
 
 
 def test_the_61st_punch_in_a_minute_is_refused(
-    db_client: TestClient, device: Device, kiosk: KioskDevice, worker: Worker
+    db_client: TestClient,
+    device: Device,
+    kiosk: KioskDevice,
+    worker: Worker,
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
     for _ in range(60):
         punch_limiter.record(str(kiosk.id))
 
-    response = send(db_client, device, worker.qr_text)
+    with caplog.at_level(logging.WARNING):
+        response = send(db_client, device, worker.qr_text)
 
     assert response.status_code == 429
     assert response.json()["error"]["code"] == "TOO_MANY_REQUESTS"
+    (line,) = [r.fields for r in caplog.records if r.getMessage() == "kiosk punch refused"]  # type: ignore[attr-defined]
+    assert line == {"kiosk_id": str(kiosk.id), "reason": "TOO_MANY_REQUESTS"}
 
 
 @pytest.mark.parametrize(
@@ -672,11 +679,16 @@ def test_a_malformed_request_is_a_validation_error_and_writes_no_punch(
     kiosk: KioskDevice,
     worker: Worker,
     change: dict[str, Any],
+    caplog: pytest.LogCaptureFixture,
 ) -> None:
-    response = send(db_client, device, worker.qr_text, **change)
+    with caplog.at_level(logging.WARNING):
+        response = send(db_client, device, worker.qr_text, **change)
 
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "VALIDATION_FAILED"
+    (line,) = [r.fields for r in caplog.records if r.getMessage() == "kiosk punch refused"]  # type: ignore[attr-defined]
+    assert line["kiosk_id"] == str(kiosk.id) and line["reason"] == "VALIDATION_FAILED"
+    assert worker.qr_text not in caplog.text
     assert punch_rows(db_session) == []
 
 
@@ -749,6 +761,58 @@ def test_a_revoked_test_card_is_refused_and_leaves_no_punch_and_no_photo(
     assert answer["decision"] == "rejected" and answer["reason_code"] == "QR_REVOKED"
     assert answer["punch_id"] is None and answer["employee"] is None
     assert punch_rows(db_session) == [] and snapshot_rows(db_session) == []
+
+
+def refused_test_card_rows(session: Session) -> list[AuditLog]:
+    return list(
+        session.scalars(select(AuditLog).where(AuditLog.action == "kiosk.test_card_refused"))
+    )
+
+
+@pytest.mark.parametrize("snapshot", [None, "not-a-photo"])
+def test_a_test_card_with_no_usable_photo_makes_no_punch_row_and_one_audit_row(
+    boss: TestClient,
+    db_client: TestClient,
+    db_session: Session,
+    device: Device,
+    kiosk: KioskDevice,
+    snapshot: str | None,
+) -> None:
+    card = boss.post("/api/v1/qr-test-cards", json={"label": "Gate test"}).json()
+
+    answer = send(
+        db_client, device, build_payload(get_settings(), card["serial"]), snapshot=snapshot
+    ).json()
+
+    assert answer["decision"] == "rejected"
+    assert answer["reason_code"] in ("SNAPSHOT_MISSING", "SNAPSHOT_INVALID")
+    assert punch_rows(db_session) == [] and snapshot_rows(db_session) == []
+    (entry,) = refused_test_card_rows(db_session)
+    assert entry.actor_type == "kiosk" and entry.actor_id == kiosk.id
+    assert (entry.after or {})["reason"] == answer["reason_code"]
+
+
+def test_a_revoked_test_card_leaves_one_audit_row(
+    boss: TestClient, db_client: TestClient, db_session: Session, device: Device, kiosk: KioskDevice
+) -> None:
+    card = boss.post("/api/v1/qr-test-cards", json={"label": "Gate test"}).json()
+    boss.post(f"/api/v1/qr-test-cards/{card['id']}/revoke", json={"reason": "Not needed"})
+
+    send(db_client, device, build_payload(get_settings(), card["serial"]))
+
+    assert punch_rows(db_session) == []
+    (entry,) = refused_test_card_rows(db_session)
+    assert entry.after == {"card_serial": card["serial"], "reason": "QR_REVOKED"}
+
+
+def test_a_worker_card_with_no_photo_is_still_stored_as_a_rejected_punch(
+    db_client: TestClient, db_session: Session, device: Device, kiosk: KioskDevice, worker: Worker
+) -> None:
+    send(db_client, device, worker.qr_text, snapshot=None)
+
+    (punch,) = punch_rows(db_session)
+    assert punch.reason_codes == ["SNAPSHOT_MISSING"] and punch.employee_id is None
+    assert refused_test_card_rows(db_session) == []
 
 
 def test_a_missing_storage_setting_never_stops_the_gate(

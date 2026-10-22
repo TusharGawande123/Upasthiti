@@ -4,6 +4,7 @@
 // on purpose, in its own commit, when the app really needs to grow.
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import {
   checkBudgets,
   firstLoadClosure,
@@ -12,9 +13,11 @@ import {
   readText,
 } from "./bundle-check.mjs";
 
-const DIST = new URL("../dist/", import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, "$1");
+const DIST = fileURLToPath(new URL("../dist/", import.meta.url));
 const ASSETS = join(DIST, "assets");
-const budgets = JSON.parse(readText(new URL("../size-budgets.json", import.meta.url)));
+const budgets = JSON.parse(
+  readText(fileURLToPath(new URL("../size-budgets.json", import.meta.url))),
+);
 
 const files = readdirSync(ASSETS).map((name) => ({
   name,
