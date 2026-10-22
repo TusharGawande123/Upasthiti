@@ -90,7 +90,7 @@
       : '<span class="muted">—</span>';
     return '<tr class="' + (checked ? "is-selected" : "") + (o.selectable ? "" : " is-read-only") + '">' + cb +
       '<td><div class="emp-name"><span class="avatar" style="width:34px;height:34px">' + D.initials(r.name) + '</span><span style="min-width:0"><b class="trunc" style="max-width:130px"><a href="03-employee-card-panel.html#active" style="color:inherit;text-decoration:none">' + r.name + '</a></b><small class="code" style="display:block;font-size:12.5px;color:var(--muted-foreground)">' + r.code + "</small></span></div></td>" +
-      "<td>" + D.typeBadge(r.type).replace("Temporary", "Temporary") + M2.methodLine(r) + "</td>" +
+      "<td>" + D.typeBadge(r.type) + M2.methodLine(r) + "</td>" +
       '<td><b class="code">' + r.plant + "</b></td>" +
       '<td>' + (r.contractor ? '<span class="trunc" style="max-width:96px" title="' + r.contractor + '">' + r.contractor + "</span>" : '<span class="muted">—</span>') + "</td>" +
       "<td>" + (r.serial ? '<b class="code">' + r.serial + "</b>" : '<span class="muted">—</span>') + "</td>" +

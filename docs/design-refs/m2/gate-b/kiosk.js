@@ -267,7 +267,7 @@
     const states = GROUPS[group];
     const keys = Object.keys(states);
     const state = location.hash.replace("#", "").split("+")[0] || keys[0];
-    const make = states[state] || states[keys[0]];
+    const make = Object.hasOwn(states, state) ? states[state] : states[keys[0]];
     let html = make();
     // scan / read states live inside the standard frame; results already are a full frame
     if (group === "scan" || group === "read") html = shell(html, { online: state !== "no-internet", banner: /banner|fallback|busiest/.test(state) });
