@@ -203,6 +203,32 @@ def test_a_new_card_revokes_the_old_one_in_the_same_step(
     assert len(audit_rows(db_session, "qr_card.revoke")) == 1
 
 
+def test_a_card_that_starts_later_is_refused_while_the_old_card_works(
+    boss: TestClient, worker: dict
+) -> None:
+    old = issue(boss, worker)["card"]
+    later = iso(today_ist() + timedelta(days=10))
+
+    response = boss.post(f"{EMPLOYEES}/{worker['id']}/qr-cards", json={"valid_from": later})
+
+    assert response.status_code == 409
+    assert response.json()["error"]["code"] == "QR_START_LATER_WITH_ACTIVE_CARD"
+    history = boss.get(f"{EMPLOYEES}/{worker['id']}/qr-cards").json()["cards"]
+    assert [(card["id"], card["state"]) for card in history] == [(old["id"], "active")]
+
+
+def test_a_card_that_starts_later_is_allowed_after_the_old_one_is_revoked(
+    boss: TestClient, worker: dict
+) -> None:
+    old = issue(boss, worker)["card"]
+    boss.post(f"/api/v1/qr-cards/{old['id']}/revoke", json={"kind": "lost", "reason": "Lost"})
+    later = iso(today_ist() + timedelta(days=10))
+
+    card = issue(boss, worker, valid_from=later)["card"]
+
+    assert card["state"] == "not_yet_valid"
+
+
 def test_the_database_itself_allows_only_one_working_card(
     boss: TestClient, worker: dict, db_session: Session
 ) -> None:

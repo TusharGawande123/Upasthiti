@@ -6,6 +6,7 @@ The punch rows and the photo rows themselves are never deleted.
 """
 
 import logging
+import uuid
 from datetime import datetime, timedelta
 
 from sqlalchemy import func, select, update
@@ -47,10 +48,14 @@ def purge_expired_snapshots(
     Only the file and the state change: the punch and the snapshot row stay for the records.
     A photo marked `upload_failed` is deleted too: the upload may have timed out after the
     storage had already saved the file, and deleting a file that is not there is not an error.
-    Safe to repeat. A batch whose delete fails is left for the next run and stops this run
-    (the same rows would fail again straight away). Returns how many photos were purged.
+    Safe to repeat. If a batch delete fails, the photos of that batch are deleted one by one,
+    so a single bad key cannot block the others; a photo that still fails is skipped (and left
+    for the next run). A row is marked `purged` only after its file is really deleted.
+    The run stops early only when a whole batch failed (the storage is probably down).
+    Returns how many photos were purged.
     """
     purged = 0
+    skipped_ids: set[uuid.UUID] = set()
     while True:
         due = list(
             session.scalars(
@@ -58,6 +63,7 @@ def purge_expired_snapshots(
                 .where(
                     PunchSnapshot.state.in_(KEPT_STATES),
                     PunchSnapshot.expires_at < now,
+                    PunchSnapshot.id.not_in(skipped_ids),
                 )
                 .order_by(PunchSnapshot.expires_at, PunchSnapshot.id)
                 .limit(batch_size)
@@ -65,13 +71,35 @@ def purge_expired_snapshots(
         )
         if not due:
             return purged
-        try:
-            storage.delete([row.storage_key for row in due])
-        except StorageError:
-            logger.error("Snapshot purge stopped: a batch could not be deleted")
-            return purged
-        for row in due:
+        deleted = _delete_files(storage, due, skipped_ids)
+        for row in deleted:
             row.state = SnapshotState.PURGED.value
             row.purged_at = now
         session.commit()  # after each batch, so a crash loses at most one batch of work
-        purged += len(due)
+        purged += len(deleted)
+        if not deleted:
+            logger.error("Snapshot purge stopped: no file of a whole batch could be deleted")
+            return purged
+
+
+def _delete_files(
+    storage: Storage, rows: list[PunchSnapshot], skipped_ids: set[uuid.UUID]
+) -> list[PunchSnapshot]:
+    """The rows whose file is gone. Tries the whole batch first, then key by key."""
+    try:
+        storage.delete([row.storage_key for row in rows])
+        return rows
+    except StorageError, ValueError:
+        logger.warning("Snapshot batch delete failed, trying one photo at a time")
+    deleted: list[PunchSnapshot] = []
+    for row in rows:
+        try:
+            storage.delete([row.storage_key])
+            deleted.append(row)
+        except StorageError, ValueError:
+            # The punch id is enough to find the photo; the key itself is never logged.
+            logger.error(
+                "Snapshot could not be deleted", extra={"fields": {"punch_id": str(row.punch_id)}}
+            )
+            skipped_ids.add(row.id)
+    return deleted

@@ -614,7 +614,9 @@ own migrations.
      3 years after it; default `valid_from` + `qr_card_default_validity_months` (2) − 1 day.
    - One active card per employee (database rule). Issuing while a non-revoked card exists
      revokes it in the same transaction (`revoke_kind = replaced`, reason
-     "Replaced by C000456").
+     "Replaced by C000456"). **Only when the new card starts today:** a new card that starts
+     later is refused with `QR_START_LATER_WITH_ACTIVE_CARD` (409) while the old card is not
+     revoked, so the worker is never left without a working card (review follow-up).
    - Card validity is by IST calendar day: valid from 00:00 IST of `valid_from` to 23:59:59
      IST of `valid_until`.
    - States (computed, never stored): `revoked` (revoked_at set) → `not_yet_valid` →
@@ -982,6 +984,7 @@ rejections (decision 0006). Keys: `kiosk.punch.<CODE>.*`; admin keys `errors.<CO
 | `QR_SIGNING_KEY` missing (development) | issue / print / QR punch refused | `QR_SIGNING_NOT_CONFIGURED` | "Cards are not set up on the server. Tell the admin." `kiosk.punch.QR_SIGNING_NOT_CONFIGURED` |
 | Issue a card to an employee whose punch method is face | refused | `EMPLOYEE_NOT_QR` | "This employee punches by face. Change the punch method to QR first." `errors.EMPLOYEE_NOT_QR` |
 | Issue a card to a left employee | refused | `EMPLOYEE_LEFT` | M1 `errors.EMPLOYEE_LEFT` |
+| New card starts after today while the employee has a non-revoked card | refused | `QR_START_LATER_WITH_ACTIVE_CARD` | "This employee already has a card. Start the new card today, or revoke the old card first." `errors.QR_START_LATER_WITH_ACTIVE_CARD` |
 | End date before start, or > 3 years | refused | `QR_VALIDITY_INVALID` | "Choose an end date on or after the start date, within 3 years." `errors.QR_VALIDITY_INVALID` |
 | Revoke / print / change a revoked card | refused | `QR_CARD_REVOKED` | "This card is already revoked. Issue a new card." `errors.QR_CARD_REVOKED` |
 | Plant Head or Corporate Head tries to issue, revoke, extend or print | refused | `FORBIDDEN` | M1 `common.readOnly` |

@@ -295,7 +295,7 @@
       "alreadyOut": "Already checked out.",
       "selfTest": "Kiosk test passed."
     },
-    "soundBanner": "Tap once to turn on sound and full screen"
+    "soundBanner": "Tap once to turn on sound and full screen. Tap again after every update."
   },
   "health": {
     "checking": "Checking server…",
@@ -428,6 +428,7 @@
     "QR_CARD_REVOKED": "A revoked card cannot be printed or changed. Issue a new card.",
     "QR_CARD_NOT_FOUND": "This card was not found.",
     "QR_VALIDITY_INVALID": "Choose an end date on or after the start date, within 3 years.",
+    "QR_START_LATER_WITH_ACTIVE_CARD": "This employee already has a card. Start the new card today, or revoke the old card first.",
     "PRINT_TOO_LARGE": "At most 200 cards can be printed at a time.",
     "EMPLOYEE_NOT_QR": "This employee punches by face and cannot have a card.",
     "QR_SIGNING_NOT_CONFIGURED": "Cards are not set up on the server yet. Ask the project lead.",

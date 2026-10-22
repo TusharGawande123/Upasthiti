@@ -189,7 +189,55 @@ def test_a_failed_delete_leaves_the_rows_for_the_next_run(
     db_session.refresh(photo)
     assert photo.state == "stored" and file_exists(storage, photo)
     assert "Snapshot purge stopped" in caplog.text
+    assert "Snapshot could not be deleted" in caplog.text
     # The next run, with working storage, finishes the job.
+    assert purge_expired_snapshots(db_session, storage, utc_now()) == 1
+
+
+class OneBadKeyStorage:
+    """A storage that refuses any batch holding the bad key, and the bad key alone."""
+
+    def __init__(self, real: LocalStorage, bad_key: str, error: Exception) -> None:
+        self.real, self.bad_key, self.error = real, bad_key, error
+
+    def save(self, key: str, data: bytes) -> None:
+        self.real.save(key, data)
+
+    def read(self, key: str) -> bytes:
+        return self.real.read(key)
+
+    def delete(self, keys: list[str]) -> None:
+        if self.bad_key in keys:
+            raise self.error
+        self.real.delete(keys)
+
+
+@pytest.mark.parametrize("error", [StorageError("refused"), ValueError("key not allowed")])
+def test_one_failing_key_in_the_first_batch_does_not_stop_the_other_photos(
+    db_session: Session,
+    kiosk: KioskDevice,
+    storage: LocalStorage,
+    caplog: pytest.LogCaptureFixture,
+    error: Exception,
+) -> None:
+    photos = [
+        add_photo(db_session, kiosk, storage, expires_in=timedelta(days=-day)) for day in (5, 4, 3)
+    ]
+    bad = photos[0]  # the oldest, so it sits in the first batch of two
+    flaky = OneBadKeyStorage(storage, bad.storage_key, error)
+
+    purged = purge_expired_snapshots(db_session, flaky, utc_now(), batch_size=2)
+
+    assert purged == 2
+    for photo in photos:
+        db_session.refresh(photo)
+    assert bad.state == "stored" and file_exists(storage, bad)  # never purged before deleted
+    assert [photo.state for photo in photos[1:]] == ["purged", "purged"]
+    assert not any(file_exists(storage, photo) for photo in photos[1:])
+    logged = [r.fields for r in caplog.records if hasattr(r, "fields")]  # type: ignore[attr-defined]
+    assert logged == [{"punch_id": str(bad.punch_id)}]
+    assert bad.storage_key not in caplog.text and bad.storage_key not in str(logged)
+    # Once the key works again, the next run takes the skipped photo too.
     assert purge_expired_snapshots(db_session, storage, utc_now()) == 1
 
 

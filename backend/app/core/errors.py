@@ -66,7 +66,24 @@ async def handle_validation_error(request: Request, error: RequestValidationErro
         }
         for problem in error.errors()
     ]
+    if request.url.path.endswith("/punch/kiosk"):
+        _log_invalid_kiosk_punch(request, fields)
     return error_response(422, "VALIDATION_FAILED", "The request is not valid.", {"fields": fields})
+
+
+def _log_invalid_kiosk_punch(request: Request, fields: list[dict[str, str]]) -> None:
+    """A malformed punch body means a kiosk app bug: leave a line the admin can find. Only the
+    kiosk id (a header we trust no further than a log) and the field names are written."""
+    logger.warning(
+        "kiosk punch refused",
+        extra={
+            "fields": {
+                "kiosk_id": request.headers.get("x-kiosk-id"),
+                "reason": "VALIDATION_FAILED",
+                "invalid_fields": [field["field"] for field in fields],
+            }
+        },
+    )
 
 
 async def handle_http_error(request: Request, error: StarletteHTTPException) -> JSONResponse:

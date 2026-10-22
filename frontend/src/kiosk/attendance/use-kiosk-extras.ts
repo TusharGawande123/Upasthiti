@@ -59,8 +59,11 @@ export function useSoundAndBanner(
   const [bannerVisible, setBannerVisible] = useState(true);
 
   // Kiosk-mode browsers may allow sound without a tap (setup guide): try once at the start.
+  // The screen wake lock is tried too: after a self-update reload nobody has tapped, and the
+  // browser may still allow it. Full screen and sound need the tap (the banner stays).
   useEffect(() => {
     void tones.current?.unlock();
+    void wakeLock.current?.tryWithoutTap();
   }, []);
 
   const onBannerTap = useCallback(async () => {

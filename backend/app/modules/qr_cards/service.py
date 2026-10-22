@@ -79,6 +79,14 @@ def issue_card(
 
     serial = _next_serial(session, "C")
     replaced = queries.active_card_of(session, employee.id)
+    if replaced is not None and start > today:
+        # Replacing now would leave the worker without a working card until the new one starts.
+        raise ApiError(
+            "QR_START_LATER_WITH_ACTIVE_CARD",
+            "This employee already has a card. Start the new card today, "
+            "or revoke the old card first.",
+            409,
+        )
     if replaced is not None:
         # The old card must be revoked first: the database allows one working card only.
         _revoke(

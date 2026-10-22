@@ -6,6 +6,7 @@ normal 200 answer; only a broken or untrusted request is an error.
 """
 
 import ipaddress
+import logging
 
 from fastapi import APIRouter, Depends, Request
 from sqlalchemy.orm import Session
@@ -19,6 +20,7 @@ from app.modules.punches import service
 from app.modules.punches.schemas import KioskPunchRequest, KioskPunchResponse
 
 router = APIRouter(tags=["punches"])
+logger = logging.getLogger(__name__)
 
 
 # The 64 KB body limit is enforced earlier, by BodyLimitMiddleware (app/core/body_limit.py):
@@ -31,6 +33,10 @@ def punch_at_kiosk(
     session: Session = Depends(get_session),
 ) -> KioskPunchResponse:
     if not punch_limiter.allow(str(kiosk.id)):
+        logger.warning(
+            "kiosk punch refused",
+            extra={"fields": {"kiosk_id": str(kiosk.id), "reason": "TOO_MANY_REQUESTS"}},
+        )
         raise ApiError("TOO_MANY_REQUESTS", "Too many punches. Wait a moment.", 429)
     client = service.ClientInfo(ip=_ip_or_none(getattr(request.state, "client_ip", None)))
     return service.record_kiosk_punch(session, kiosk, body, client)
