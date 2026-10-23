@@ -1,0 +1,17 @@
+**Face attendance – your consent**
+
+Sheet Shapers, {{company_address}}, uses Upasthiti to record attendance at the plant gate. If you agree, you can punch IN and OUT by showing your face to the gate attendance device.
+
+**What we keep.** During enrolment the camera takes 8 pictures of your face. The system turns them into a face template: a list of numbers that describes your face. The pictures are deleted at once. Only the template is kept, and it is encrypted. When you punch, the device takes a few pictures; the server compares them with your template and then deletes them. If a punch fails, or you have to type your employee code, one small photo is kept for {{retention_days}} days so the office can check what happened.
+
+**Why.** Only to record your attendance and to stop anyone else from marking attendance for you. Your face data is not used for anything else, is not shared, and is never sent to any AI company. The pictures are checked in memory on our hosting provider's server in Singapore; the encrypted template is stored in Mumbai.
+
+**Who can see it.** No person can see your template. Only the Super Admin can see the small photos of failed punches, and every view is recorded.
+
+**How long.** Until you leave the company or withdraw your consent. Your template is then deleted at once.
+
+**Your choice.** You do not have to agree. If you do not agree, you will get a QR ID card to punch with instead. Saying no, or withdrawing later, will not affect your job, pay, shift or treatment in any way. You can withdraw your consent at any time by telling the plant office; that is enough. Your template is then deleted and you get a QR card.
+
+**Your rights.** You can ask what data we keep about you, ask to correct or delete it, and raise a complaint. Your attendance records (punch times) are kept as labour law requires, even after your face data is deleted. Grievance officer and contact: {{privacy_contact}}. We reply within 30 days. If you are not satisfied with the answer, you can complain to the Data Protection Board of India.
+
+I have read this text, or it was explained to me, and I agree to face attendance.

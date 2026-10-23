@@ -48,6 +48,12 @@ class Capability(enum.Enum):
     # Create, edit, end. Plant Head: own plant only, never the all-plants notices.
     MANAGE_NOTICES = "manage_notices"
     DOWNLOAD_GATE_POSTER = "download_gate_poster"  # the A4 poster next to the kiosk (F-34)
+    # Face (M3): who is enrolled (yes/no, date, by whom), the progress card, the list filter.
+    VIEW_FACE_ENROLMENT = "view_face_enrolment"
+    # Consent, withdrawal, enrolment, duplicate override, deleting face data. Super Admin only.
+    MANAGE_FACE_ENROLMENT = "manage_face_enrolment"
+    # Match scores, the typed code and the claimed employee in the punch detail. Super Admin only.
+    VIEW_FACE_SCORES = "view_face_scores"
 
 
 SUPER_ADMIN = Role.SUPER_ADMIN
@@ -121,6 +127,13 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
     Capability.MANAGE_NOTICES: {SUPER_ADMIN: Access.ALL, PLANT_HEAD: Access.OWN_PLANT},
     # Not a credential (no personal data), so a Plant Head may print it for their own plant.
     Capability.DOWNLOAD_GATE_POSTER: {SUPER_ADMIN: Access.ALL, PLANT_HEAD: Access.OWN_PLANT},
+    Capability.VIEW_FACE_ENROLMENT: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,
+    },
+    Capability.MANAGE_FACE_ENROLMENT: {SUPER_ADMIN: Access.ALL},
+    Capability.VIEW_FACE_SCORES: {SUPER_ADMIN: Access.ALL},
 }
 
 

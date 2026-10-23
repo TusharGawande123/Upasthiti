@@ -385,10 +385,10 @@ Notes:
 | Method | Path | Role / identity | Request | Response | Error codes |
 |---|---|---|---|---|---|
 | GET | /api/v1/employees/{id}/face | Super Admin, Corporate Head (all), Plant Head (own plant) — read | – | `200 { punch_method, face_state: "not_enrolled"\|"enrolled"\|"old_model"\|"withdrawn"\|"not_face_method", consent: { choice: "agreed"\|"declined", text_version, language, explained_language?, given_at, recorded_by: { id, name }, withdrawn_at?, withdrawn_by?, withdraw_reason? } \| null, template: { enrolled_at, enrolled_by: { id, name }, model_id, shot_count, duplicate_override: bool } \| null, reenrol_suggested: bool, reenrol_reason: "code_entries"\|"falling_scores"\|null, history: [ { kind, at, by } ] }` (never ciphertext, embedding or scores of other people) | `EMPLOYEE_NOT_FOUND` |
-| POST | /api/v1/employees/{id}/face/consent | Super Admin | `{ text_version, language: "en", choice: "agreed"\|"declined", explained_language? ("mr"\|"hi"\|"other") }` | `201 { consent, punch_method }` (declined → `punch_method: "qr"`) | `EMPLOYEE_LEFT`, `CONSENT_TEXT_UNKNOWN`, `CONSENT_ALREADY_GIVEN` (an active agreed consent exists), `PRIVACY_CONTACT_MISSING`, `FORBIDDEN` |
+| POST | /api/v1/employees/{id}/face/consent | Super Admin | `{ text_version, language: "en"\|"mr"\|"hi", choice: "agreed"\|"declined", explained_language? ("mr"\|"hi"\|"other") }` | `201 { consent, punch_method }` (declined → `punch_method: "qr"`) | `EMPLOYEE_LEFT`, `CONSENT_TEXT_UNKNOWN`, `CONSENT_ALREADY_GIVEN` (an active agreed consent exists), `PRIVACY_CONTACT_MISSING`, `COMPANY_ADDRESS_MISSING`, `FORBIDDEN` |
 | POST | /api/v1/employees/{id}/face/consent/withdraw | Super Admin | `{ reason? (up to 300 chars; optional, the screen pre-fills "Employee asked") }` | `200 { consent, punch_method: "qr", template_deleted: bool }` | `CONSENT_NOT_ACTIVE`, `FORBIDDEN` |
 | POST | /api/v1/employees/{id}/face/template/delete | Super Admin | `{ reason (3–300 chars) }` | `200 { template_deleted: true }` (consent and punch method unchanged; the employee is then "Not enrolled") | `FACE_NOT_ENROLLED`, `FORBIDDEN` |
-| GET | /api/v1/face/consent-texts/{version} | any admin | `?language=en` | `200 { version, language, text (with the privacy contact filled in), text_sha256 }` | `CONSENT_TEXT_UNKNOWN` |
+| GET | /api/v1/face/consent-texts/{version} | any admin | `?language=en\|mr\|hi` | `200 { version, language, text (with the privacy contact, company address and retention days filled in), text_sha256 }` | `CONSENT_TEXT_UNKNOWN`, `PRIVACY_CONTACT_MISSING`, `COMPANY_ADDRESS_MISSING` |
 
 ### 5.4 Admin: enrolment session
 | Method | Path | Role / identity | Request | Response | Error codes |
@@ -753,7 +753,7 @@ fit next to the 0.55 GB of QR photos.
     - Gate-only codes (never from the server): `FACE_GUIDE_TIMEOUT`, `CAMERA_BLOCKED`,
       `CAMERA_NOT_FOUND`, `NETWORK_OFFLINE`, `SERVER_WAKING` (M2).
     - Admin codes: `CONSENT_REQUIRED`, `CONSENT_ALREADY_GIVEN`, `CONSENT_NOT_ACTIVE`,
-      `CONSENT_TEXT_UNKNOWN`, `PRIVACY_CONTACT_MISSING`, `EMPLOYEE_NOT_FACE`, `FACE_NOT_ENROLLED`,
+      `CONSENT_TEXT_UNKNOWN`, `PRIVACY_CONTACT_MISSING`, `COMPANY_ADDRESS_MISSING`, `EMPLOYEE_NOT_FACE`, `FACE_NOT_ENROLLED`,
       `ENROLMENT_SESSION_NOT_FOUND`, `ENROLMENT_SESSION_EXPIRED`, `ENROLMENT_SESSION_CLOSED`,
       `ENROLMENT_INCOMPLETE`, `FACE_DUPLICATE_FOUND`, `SETTING_INVALID`; shot reasons `ENROL_IMAGE_INVALID`,
       `ENROL_NO_FACE`, `ENROL_MULTIPLE_FACES`, `ENROL_FACE_TOO_SMALL`, `ENROL_BLURRY`,
@@ -982,6 +982,7 @@ Gate messages show title + message + next step and "For the admin: CODE" on reje
 | Withdraw when no active consent | refused | `CONSENT_NOT_ACTIVE` | "There is no active consent to withdraw." `errors.CONSENT_NOT_ACTIVE` |
 | Unknown consent version | refused | `CONSENT_TEXT_UNKNOWN` | "This consent text does not exist. Reload the page." `errors.CONSENT_TEXT_UNKNOWN` |
 | Privacy contact not set | consent refused | `PRIVACY_CONTACT_MISSING` | "Set the privacy contact in Settings first." `errors.PRIVACY_CONTACT_MISSING` |
+| Company address not set | consent refused | `COMPANY_ADDRESS_MISSING` | "Set the company address in Settings first." `errors.COMPANY_ADDRESS_MISSING` |
 | Delete face data when none | refused | `FACE_NOT_ENROLLED` | "This employee has no face data." `errors.FACE_NOT_ENROLLED` |
 | Shot without a face / two faces / too far | shot refused, retake | `ENROL_NO_FACE` / `ENROL_MULTIPLE_FACES` / `ENROL_FACE_TOO_SMALL` | "No face found." / "Only the employee should be in the picture." / "Come closer to the camera." `errors.ENROL_*` |
 | Blurry / dark / bright shot | retake | `ENROL_BLURRY` / `ENROL_TOO_DARK` / `ENROL_TOO_BRIGHT` | "The picture is blurry. Hold still." / "Too dark. Face the light." / "Too bright. Move away from the window." |
