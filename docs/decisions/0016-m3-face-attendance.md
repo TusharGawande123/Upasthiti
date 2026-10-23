@@ -53,3 +53,15 @@ Details: [docs/specs/M3-face-attendance.md](../specs/M3-face-attendance.md).
 Approved for M3: duplicate face check at enrolment, enrolment progress, F-30 face-in-photo check on QR
 photos, re-enrol hint, 512 MB memory test in CI, face model state on the health check (+ warm-up), face
 accuracy report tool. Not chosen (Later): DPDP consent register export.
+
+## Slice 1 result (2026-10-24): the face model is `buffalo_s`
+Measured in Docker with Render's limits and on a temporary Render Free service (numbers:
+[docs/reports/M3-face-accuracy.md](../reports/M3-face-accuracy.md) §1). Rule of item 1 applied:
+17. **`buffalo_l` is not used.** Its decision takes p95 8.2 s on Render (target < 2 s) and its process
+    peak is 454 MB (target ≤ 450 MB). **`buffalo_s` FP32 with detector input 640 and 3 frames** takes
+    p95 1.0–1.2 s and peaks at 127–197 MB, so it is the model for M3 (`FACE_MODEL_PACK` default
+    `buffalo_s`, detector 640; 320 stays a fallback if the gate is too slow).
+18. **INT8 (S-33) is not used:** it makes `buffalo_s` slower, and `buffalo_l` INT8 is still above 2 s.
+19. **Still open:** `buffalo_s` must meet NFR-05 (FAR < 0.1%, FRR < 3%) in the accuracy run of slice D.
+    If it does not, stop and ask the lead (Plan B host, item 1).
+20. **Python stays 3.14:** onnxruntime, opencv-python-headless and numpy have 3.14 wheels (item 15 not needed).

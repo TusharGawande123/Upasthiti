@@ -330,8 +330,17 @@ Manual before the PR: enrolment on a laptop webcam and a phone; gate at night li
 safety glasses; spoof attempts (AC-17); voice and tones on the face results; keyboard-only wizard.
 
 ## Status
-- Done: spec approved and committed (cac490b); plan approved and committed (this file).
-- Next: step 0, then slice 1 (wheel check, model download, engine, benchmark).
-- Test results: none yet.
-- Open questions: none blocking. For the client before the first real enrolment: grievance
-  officer, consent-record years, processor agreements, Marathi / Hindi text check (decision 0017).
+- Done (2026-10-24): spec + plan approved. Slice 1 finished: dependencies (Python 3.14 wheels ok),
+  model download with sha256 (`scripts/models.json`), INT8 script, multi-stage Dockerfile, face engine
+  (`app/face/`: detector, alignment, embedder, anti-spoof, quality, matcher, engine, fake engine),
+  benchmark script, real-model tests. Measured in Docker and on a temporary Render service (deleted by
+  the lead): **go for `buffalo_s`** (p95 1.0–1.2 s, 127–197 MB); `buffalo_l` no-go (8.2 s, 454 MB).
+  Numbers: `docs/reports/M3-face-accuracy.md` §1; decision 0016 items 17–20.
+- Next: waiting for the lead's "go", then Slice A (step 8: config, vector crypto, `make_face_key`,
+  settings; default `FACE_MODEL_PACK=buffalo_s`, detector 640).
+- Test results: backend 768 passed (coverage 92%, floor 75%); face unit tests 48 + real-model tests 12.
+- Open questions: none blocking. Reminders: `buffalo_s` accuracy (NFR-05) is measured in slice D; the
+  head-turn sign (+ = the person's own left) must be confirmed with real team frames in slice D; the
+  CelebA-Spoof anti-spoof candidate has no stable ONNX link yet (look in slice D). For the client before
+  the first real enrolment: grievance officer, consent-record years, processor agreements, Marathi /
+  Hindi text check (decision 0017).
