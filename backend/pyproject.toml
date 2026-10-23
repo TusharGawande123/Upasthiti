@@ -72,6 +72,9 @@ venv = ".venv"
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--cov=app --cov-report=term-missing --cov-fail-under=75"
+markers = [
+    "face_models: needs the downloaded face model files (skipped without them)",
+]
 
 [tool.coverage.run]
 branch = true

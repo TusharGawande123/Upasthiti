@@ -42,6 +42,16 @@
       "files": {
         "MiniFASNetV1SE.onnx": "ebab7f90c7833fbccd46d3a555410e78d969db5438e169b6524be444862b3676"
       }
+    },
+    {
+      "name": "sample_faces",
+      "url": "https://raw.githubusercontent.com/deepinsight/insightface/master/python-package/insightface/data/images/t1.jpg",
+      "sha256": "47f682e945b659f93a9e490b9c9c4a2a864abe64dace9e1a2893845ddfd69489",
+      "licence": "Sample picture of the InsightFace repository (used only for warm-up checks, the memory test and real-model tests; no employee)",
+      "folder": "testdata",
+      "files": {
+        "t1.jpg": "47f682e945b659f93a9e490b9c9c4a2a864abe64dace9e1a2893845ddfd69489"
+      }
     }
   ]
 }

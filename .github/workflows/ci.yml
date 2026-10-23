@@ -52,6 +52,15 @@ jobs:
         run: uv run ruff format --check .
       - name: Type check (pyright)
         run: uv run pyright
+      # The real-model tests (marker face_models) need the small pack; the files are cached by
+      # the sha256 list, so they are downloaded again only when models.json changes.
+      - name: Cache the face models
+        uses: actions/cache@v4
+        with:
+          path: backend/models
+          key: face-models-${{ hashFiles('backend/scripts/models.json') }}
+      - name: Download the face models (sha256 checked)
+        run: uv run python scripts/download_models.py --dest models --only buffalo_s,minifasnet_v2,minifasnet_v1se,sample_faces
       - name: Tests with coverage (on a real Postgres test database)
         env:
           # The tests create this database themselves and wipe it on every run.
