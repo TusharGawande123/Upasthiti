@@ -15,11 +15,14 @@ from app.core.time import utc_now
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees.models import Employee
 from app.modules.face.models import (
+    ConsentChoice,
     EnrolmentState,
+    FaceConsent,
     FaceEnrolmentSession,
     FaceEnrolmentShot,
     FaceTemplate,
     TemplateDeleteKind,
+    WithdrawKind,
 )
 
 
@@ -88,3 +91,20 @@ def cancel_open_session(session: Session, employee: Employee, *, actor: Actor) -
         plant_id=employee.plant_id,
     )
     return True
+
+
+def close_consent_of_leaver(session: Session, employee: Employee) -> None:
+    """Marking someone as left closes their consent (by the system: no user, spec §7 rule 3).
+    Coming back later brings neither consent nor template back: both are done again."""
+    consent = session.scalar(
+        select(FaceConsent).where(
+            FaceConsent.employee_id == employee.id,
+            FaceConsent.choice == ConsentChoice.AGREED.value,
+            FaceConsent.withdrawn_at.is_(None),
+        )
+    )
+    if consent is None:
+        return
+    consent.withdrawn_at = utc_now()
+    consent.withdraw_kind = WithdrawKind.LEFT.value
+    session.flush()

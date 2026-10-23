@@ -29,6 +29,7 @@ def upgrade() -> None:
         sa.Column("finished_template_id", sa.Uuid(), nullable=True),
         sa.Column("accepted_shots", sa.SmallInteger(), nullable=False),
         sa.Column("refused_shots", sa.SmallInteger(), nullable=False),
+        sa.Column("straight_nose_ratio", sa.Float(), nullable=True),
         sa.Column("id", sa.Uuid(), nullable=False),
         sa.Column(
             "created_at",

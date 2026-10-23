@@ -32,6 +32,13 @@ from app.modules.employees.rules import (
     clean_code,
     field_error,
 )
+from app.modules.face.gallery_cache import invalidate_plant_gallery
+from app.modules.face.models import TemplateDeleteKind
+from app.modules.face.template_service import (
+    cancel_open_session,
+    close_consent_of_leaver,
+    delete_active_template,
+)
 from app.modules.qr_cards.service import revoke_card_of_leaver
 
 MAX_LEFT_DAYS_AHEAD = 30
@@ -158,6 +165,7 @@ def update_employee(
     before = snapshot(session, employee)
     current = values_of(session, employee)
     new_values = check_values(session, current.with_changes(changes))
+    leaves_face = current.punch_method == "face" and new_values.punch_method != "face"
 
     for field_name in (
         "full_name",
@@ -175,6 +183,18 @@ def update_employee(
         _move_to_shift(session, employee, new_values.shift_id, shift_from or today_ist())
     session.flush()
     _audit(session, context, employee, "employee.update", before=before, reason=reason)
+    if leaves_face:
+        # Face -> QR by an edit or an approved request: the template is deleted at once; the
+        # consent stays recorded (decision 0016 item 13). Switching back means enrolling again.
+        cancel_open_session(session, employee, actor=context.actor)
+        delete_active_template(
+            session,
+            employee,
+            kind=TemplateDeleteKind.METHOD_CHANGED,
+            actor=context.actor,
+            reason=reason,
+        )
+        invalidate_plant_gallery(employee.plant_id)
     return employee
 
 
@@ -224,6 +244,8 @@ def transfer_employee(
         )
     )
     _move_to_shift(session, employee, shift_id, effective_from)
+    # Consent and template stay; the employee moves to the new plant's gallery (spec §7 rule 3).
+    invalidate_plant_gallery(employee.plant_id, to_plant_id)
     if effective_from <= today_ist():
         employee.plant_id, employee.category_id, employee.department_id = (
             to_plant_id,
@@ -256,6 +278,7 @@ def apply_due_transfers(session: Session, today: date) -> int:
         )
     ).all()
     for history_row, employee in due_rows:
+        invalidate_plant_gallery(employee.plant_id, history_row.plant_id)
         employee.plant_id = history_row.plant_id
         employee.category_id = history_row.category_id
         employee.department_id = history_row.department_id
@@ -280,8 +303,14 @@ def mark_left(
     _fail_pending_requests(session, employee.id)
     session.flush()
     _audit(session, context, employee, "employee.mark_left", before=before, reason=reason)
-    # FR-10: the working QR card stops in the same transaction (face templates follow in M3).
+    # FR-10: the working QR card and the face data stop in the same transaction (AC-19).
     revoke_card_of_leaver(session, context.actor, employee)
+    cancel_open_session(session, employee, actor=context.actor)
+    delete_active_template(
+        session, employee, kind=TemplateDeleteKind.LEFT, actor=context.actor, reason=reason
+    )
+    close_consent_of_leaver(session, employee)
+    invalidate_plant_gallery(employee.plant_id)
     return employee
 
 

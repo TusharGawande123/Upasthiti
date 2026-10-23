@@ -5,6 +5,7 @@ picture say what the "camera saw" (grey survives JPEG compression well):
   square 1 (x 0-15):  which person (1-15; 0 = no face in the picture)
   square 2 (x 16-31): head turn in degrees (grey 128 = straight, +2 per degree to the left)
   square 3 (x 32-47): a problem to pretend (see Problem)
+  square 4 (x 48-63): chin up or down in degrees (grey 150 = straight, +2 per degree up)
 `make_fake_frame` paints such a picture. Every person gets a fixed random embedding, so the
 matcher, the rules and the code path behave as with real faces.
 """
@@ -20,6 +21,7 @@ from app.face.embedder import EMBEDDING_SIZE, normalise
 from app.face.quality import NOSE_DEPTH_RATIO, FaceQuality
 
 SQUARE = 16
+BACKGROUND = 150  # so a picture without square 4 reads as "chin straight"
 NORMAL_FACE_PX = 240
 SMALL_FACE_PX = 60
 
@@ -52,10 +54,17 @@ def make_fake_frame(
     problem: Problem = Problem.NONE,
     width: int = 640,
     height: int = 480,
+    pitch_degrees: float = 0.0,
 ) -> bytes:
-    """A JPEG test picture that the fake engine reads as `person` with this head turn."""
-    picture = np.full((height, width, 3), 150, dtype=np.uint8)
-    for index, grey in enumerate((16 * person + 8, 128 + 2 * yaw_degrees, 16 * problem + 8)):
+    """A JPEG test picture that the fake engine reads as `person` with this head pose."""
+    picture = np.full((height, width, 3), BACKGROUND, dtype=np.uint8)
+    marks = (
+        16 * person + 8,
+        128 + 2 * yaw_degrees,
+        16 * problem + 8,
+        BACKGROUND + 2 * pitch_degrees,
+    )
+    for index, grey in enumerate(marks):
         picture[:SQUARE, index * SQUARE : (index + 1) * SQUARE] = int(round(grey))
     ok, encoded = cv2.imencode(".jpg", picture, [cv2.IMWRITE_JPEG_QUALITY, 90])
     if not ok:
@@ -75,15 +84,23 @@ def read_marks(picture: np.ndarray) -> tuple[int, float, Problem]:
     return person, yaw, problem
 
 
-def fake_keypoints(centre_x: float, centre_y: float, face_px: float, yaw: float) -> np.ndarray:
-    """Keypoints that quality.estimate_yaw reads back as `yaw` degrees."""
+def read_pitch(picture: np.ndarray) -> float:
+    return (_read_square(picture, 3) - BACKGROUND) / 2
+
+
+def fake_keypoints(
+    centre_x: float, centre_y: float, face_px: float, yaw: float, pitch: float = 0.0
+) -> np.ndarray:
+    """Keypoints that quality.estimate_yaw reads back as `yaw` degrees; a lifted chin
+    (pitch > 0) moves the nose up towards the eyes."""
     eye_distance = face_px * 0.4
     nose_x = centre_x + eye_distance * NOSE_DEPTH_RATIO * math.tan(math.radians(yaw))
+    nose_y = centre_y + face_px * 0.05 - face_px * pitch / 200
     return np.array(
         [
             [centre_x - eye_distance / 2, centre_y - face_px * 0.15],
             [centre_x + eye_distance / 2, centre_y - face_px * 0.15],
-            [nose_x, centre_y + face_px * 0.05],
+            [nose_x, nose_y],
             [centre_x - eye_distance * 0.4, centre_y + face_px * 0.25],
             [centre_x + eye_distance * 0.4, centre_y + face_px * 0.25],
         ],
@@ -91,12 +108,14 @@ def fake_keypoints(centre_x: float, centre_y: float, face_px: float, yaw: float)
     )
 
 
-def _face_at(centre_x: float, centre_y: float, face_px: float, yaw: float) -> DetectedFace:
+def _face_at(
+    centre_x: float, centre_y: float, face_px: float, yaw: float, pitch: float
+) -> DetectedFace:
     half = face_px / 2
     return DetectedFace(
         box=(centre_x - half, centre_y - half, centre_x + half, centre_y + half),
         score=0.9,
-        keypoints=fake_keypoints(centre_x, centre_y, face_px, yaw),
+        keypoints=fake_keypoints(centre_x, centre_y, face_px, yaw, pitch),
     )
 
 
@@ -110,18 +129,19 @@ class FakeFaceModels:
         if person <= 0:
             return []
         height, width = picture.shape[:2]
+        pitch = read_pitch(picture)
         face_px = SMALL_FACE_PX if problem is Problem.SMALL_FACE else NORMAL_FACE_PX
         if problem is Problem.TWO_FACES:
             return [
-                _face_at(width * 0.3, height / 2, face_px, yaw),
-                _face_at(width * 0.7, height / 2, face_px, yaw),
+                _face_at(width * 0.3, height / 2, face_px, yaw, pitch),
+                _face_at(width * 0.7, height / 2, face_px, yaw, pitch),
             ]
-        return [_face_at(width / 2, height / 2, face_px, yaw)]
+        return [_face_at(width / 2, height / 2, face_px, yaw, pitch)]
 
     def align(self, picture: np.ndarray, face: DetectedFace) -> np.ndarray:
         # The "aligned face" carries the marks, so embed() knows whose face it is.
         aligned = np.zeros((112, 112, 3), dtype=np.uint8)
-        aligned[:SQUARE, : 3 * SQUARE] = picture[:SQUARE, : 3 * SQUARE]
+        aligned[:SQUARE, : 4 * SQUARE] = picture[:SQUARE, : 4 * SQUARE]
         return aligned
 
     def embed(self, aligned_face: np.ndarray) -> np.ndarray:

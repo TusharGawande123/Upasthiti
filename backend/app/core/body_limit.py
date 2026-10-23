@@ -16,12 +16,17 @@ IMPORT_BODY_LIMIT = 3 * 1024 * 1024  # the Excel import allows 2 MB, plus the fo
 DEFAULT_BODY_LIMIT = 1024 * 1024  # every other JSON request
 
 _KIOSK_PATHS = ("/api/v1/punch/", "/api/v1/kiosk/")
+# One enrolment shot is a 150 KB JPEG as base64 inside JSON (spec M3 §5.4).
+ENROLMENT_SHOT_LIMIT = 256 * 1024
+_ENROLMENT_SESSIONS_PATH = "/api/v1/face/enrolment-sessions/"
 _IMPORT_PATH_SUFFIX = "/employees/import"
 
 
 def body_limit_for(path: str) -> int:
     if path.startswith(_KIOSK_PATHS):
         return KIOSK_BODY_LIMIT
+    if path.startswith(_ENROLMENT_SESSIONS_PATH) and path.endswith("/shots"):
+        return ENROLMENT_SHOT_LIMIT
     if path.startswith("/api/") and _IMPORT_PATH_SUFFIX in path:
         return IMPORT_BODY_LIMIT
     return DEFAULT_BODY_LIMIT

@@ -79,6 +79,9 @@ def list_employees(
     shift_id: uuid.UUID | None = None,
     contractor_id: uuid.UUID | None = None,
     q: str | None = Query(default=None, max_length=100),
+    face_state: str | None = Query(
+        default=None, pattern="^(enrolled|not_enrolled|reenrol_suggested|old_model)$"
+    ),
     params: PageParams = Depends(page_params),
     current_user: CurrentUser = Depends(viewer),
     session: Session = Depends(get_session),
@@ -92,6 +95,7 @@ def list_employees(
         shift_id=shift_id,
         contractor_id=contractor_id,
         search=q,
+        face_state=face_state,
     )
     employees, total = queries.list_employees(
         session, params, filters, only_plant_ids=_scope(current_user)

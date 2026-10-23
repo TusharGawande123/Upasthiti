@@ -22,6 +22,7 @@ from app.modules.auth.router import router as auth_router
 from app.modules.contractors.router import router as contractors_router
 from app.modules.employees.router import router as employees_router
 from app.modules.employees.search_router import router as search_router
+from app.modules.face.engine_provider import get_face_engine
 from app.modules.face.router import router as face_router
 from app.modules.health.router import router as health_router
 from app.modules.kiosks.router import router as kiosks_router
@@ -39,7 +40,11 @@ API_PREFIX = "/api/v1"
 
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-    """Start the daily job with the server (not in tests or for other app envs)."""
+    """Start loading the face models, and the scheduled jobs (not in tests).
+
+    The models load in the background: the health check and card punches answer at once
+    (spec M3 S-31)."""
+    get_face_engine().start_loading()
     if not get_settings().run_scheduler:
         yield
         return

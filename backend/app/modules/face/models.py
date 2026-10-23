@@ -13,6 +13,7 @@ from datetime import datetime
 from sqlalchemy import (
     CheckConstraint,
     DateTime,
+    Float,
     ForeignKey,
     Index,
     LargeBinary,
@@ -215,6 +216,9 @@ class FaceEnrolmentSession(IdMixin, TimestampMixin, Base):
     finished_template_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("face_templates.id"))
     accepted_shots: Mapped[int] = mapped_column(SmallInteger, default=0)
     refused_shots: Mapped[int] = mapped_column(SmallInteger, default=0)
+    # Where the nose sat between eyes and mouth in the accepted straight shot: the "chin up"
+    # and "chin down" shots are checked against it (one number, not face data).
+    straight_nose_ratio: Mapped[float | None] = mapped_column(Float)
 
 
 class FaceEnrolmentShot(IdMixin, TimestampMixin, Base):

@@ -81,3 +81,5 @@ failed_pairing_limiter = RateLimiter(max_attempts=30, window_seconds=TEN_MINUTES
 # per kiosk. The key is the kiosk id, which is known only after the signature was checked.
 punch_limiter = RateLimiter(max_attempts=60, window_seconds=60)
 report_limiter = RateLimiter(max_attempts=20, window_seconds=60 * 60)
+# Face enrolment (M3, spec §5.4): at most 60 shots a minute per Super Admin.
+enrolment_shot_limiter = RateLimiter(max_attempts=60, window_seconds=60)

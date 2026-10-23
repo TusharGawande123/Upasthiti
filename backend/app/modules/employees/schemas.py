@@ -33,6 +33,8 @@ class EmployeeResponse(BaseModel):
     left_on: date | None
     left_reason: str | None
     has_pending_change: bool
+    # M3: enrolled / not_enrolled / old_model (face employees), withdrawn / not_face_method (QR).
+    face_state: str = "not_face_method"
 
 
 class ShiftHistoryItem(BaseModel):
