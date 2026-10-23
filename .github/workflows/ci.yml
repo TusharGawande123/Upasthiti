@@ -169,8 +169,8 @@ jobs:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Build the backend image
-        run: docker build -t upasthiti-backend:ci backend
+      - name: Build the backend image (face models are downloaded and sha256 checked here)
+        run: docker build --build-arg MAKE_INT8_MODELS=false -t upasthiti-backend:ci backend
       - name: Start it the way Render will (PORT set, production mode)
         run: |
           # Two throw-away keys (32 random bytes, base64url), new on every run and never stored.
@@ -220,6 +220,10 @@ jobs:
         run: npm ci
       # The gitleaks hook only looks at staged files, which CI does not have; the next step
       # scans the full history instead.
+      - name: No face model file is tracked by git (public repo, spec AC-2)
+        run: |
+          tracked="$(git ls-files '*.onnx' '*.task' '*.tflite' '*.pt' '*.pth')"
+          if [ -n "$tracked" ]; then echo "Model files must be downloaded, not committed:"; echo "$tracked"; exit 1; fi
       - name: Run every pre-commit hook on all files
         env:
           SKIP: gitleaks

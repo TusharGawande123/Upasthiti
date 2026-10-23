@@ -41,3 +41,9 @@ backend/.storage/
 .storage/
 # Load test data: fake keys and private kiosk keys of a throwaway database, never commit
 backend/loadtest/.data/
+
+# Face models and test data are downloaded, never committed (M3, public repo)
+backend/models/
+models/
+*.onnx
+*.task
