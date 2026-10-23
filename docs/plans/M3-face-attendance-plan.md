@@ -330,17 +330,27 @@ Manual before the PR: enrolment on a laptop webcam and a phone; gate at night li
 safety glasses; spoof attempts (AC-17); voice and tones on the face results; keyboard-only wizard.
 
 ## Status
-- Done (2026-10-24): spec + plan approved. Slice 1 finished: dependencies (Python 3.14 wheels ok),
-  model download with sha256 (`scripts/models.json`), INT8 script, multi-stage Dockerfile, face engine
-  (`app/face/`: detector, alignment, embedder, anti-spoof, quality, matcher, engine, fake engine),
-  benchmark script, real-model tests. Measured in Docker and on a temporary Render service (deleted by
-  the lead): **go for `buffalo_s`** (p95 1.0–1.2 s, 127–197 MB); `buffalo_l` no-go (8.2 s, 454 MB).
-  Numbers: `docs/reports/M3-face-accuracy.md` §1; decision 0016 items 17–20.
-- Next: waiting for the lead's "go", then Slice A (step 8: config, vector crypto, `make_face_key`,
-  settings; default `FACE_MODEL_PACK=buffalo_s`, detector 640).
-- Test results: backend 768 passed (coverage 92%, floor 75%); face unit tests 48 + real-model tests 12.
-- Open questions: none blocking. Reminders: `buffalo_s` accuracy (NFR-05) is measured in slice D; the
-  head-turn sign (+ = the person's own left) must be confirmed with real team frames in slice D; the
-  CelebA-Spoof anti-spoof candidate has no stable ONNX link yet (look in slice D). For the client before
-  the first real enrolment: grievance officer, consent-record years, processor agreements, Marathi /
-  Hindi text check (decision 0017).
+- Done (2026-10-24):
+  - Slice 1: go for `buffalo_s` (p95 1.0-1.2 s, 127-197 MB on Render); `buffalo_l` no-go; INT8 not
+    used; Python stays 3.14 (decision 0016 items 17-20, `docs/reports/M3-face-accuracy.md` section 1).
+  - Slice A backend (steps 8-13): face key + config, sealed vectors, 20 face/privacy settings,
+    migrations 0011-0012, consent texts en/mr/hi (hash-pinned), consent give/decline/withdraw,
+    enrolment (8 checked shots, duplicate check F-39, finish, cancel), face panel, employees list
+    face state + filter, progress (F-40), deletion on leave / method change, transfer cache
+    clear, 5-minute face cleanup job.
+  - Slice B backend (steps 17-20): migration 0013, the six face rules + FACE_RULES, challenge,
+    face punch, employee-code path (1:1, 2 tries, >= 300 ms on failure), photos of failed and
+    code-path punches, plant gallery cache with stamp, heartbeat and health face blocks, body
+    limits (384 KB face, 2 KB code, 64 KB card), rate limits (30 challenges, 10 code tries).
+  - Slice C backend (steps 24-25): punch log face filters, summary counts, Super Admin face
+    detail, code-path photo, F-30 face-in-photo check (background), F-41 re-enrol hint.
+  - Spec change: new error code `COMPANY_ADDRESS_MISSING` (consent needs the company address).
+- Next: design gates B, A and C (HTML mockups for the lead), then the frontend steps 15, 22 and
+  27, the e2e specs (16, 23, 27), then slice D (accuracy run, CI memory test S-30, coverage 80,
+  docs).
+- Test results: backend 946 passed, coverage 91% (floor 75%).
+- Open questions: none blocking. Reminders: `buffalo_s` accuracy (NFR-05) is measured in slice D;
+  the head-turn sign (+ = the person's own left) must be confirmed with real team frames in slice
+  D; the CelebA-Spoof candidate has no stable ONNX link yet; `FACE_TEMPLATE_KEY` must be set on
+  Render before the merge (step 32). For the client before the first real enrolment: grievance
+  officer, consent-record years, processor agreements, Marathi / Hindi text check (decision 0017).
