@@ -13,7 +13,7 @@ from app.core.pagination import PageParams, fetch_page
 from app.modules.audit.models import AuditLog
 from app.modules.employees.models import Employee, EmployeePlantHistory, ShiftAssignment
 from app.modules.face.engine_provider import running_model_id
-from app.modules.face.state import face_state_condition
+from app.modules.face.state import face_state_condition, reenrol_suggested_ids
 from app.modules.qr_cards.models import CardKind, QrCredential
 from app.modules.users.models import User
 
@@ -67,7 +67,10 @@ def list_employees(
         )
     if filters.search:
         statement = statement.where(_matches(filters.search))
-    if filters.face_state:
+    if filters.face_state == "reenrol_suggested":  # F-41: worked out in Python, not SQL
+        suggested = reenrol_suggested_ids(session, running_model_id(), only_plant_ids)
+        statement = statement.where(Employee.id.in_(suggested))
+    elif filters.face_state:
         statement = statement.where(face_state_condition(filters.face_state, running_model_id()))
     return fetch_page(session, statement, params)
 

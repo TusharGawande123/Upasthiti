@@ -130,6 +130,26 @@ class PunchLogSnapshot(BaseModel):
     is_dark: bool | None = None  # Super Admin only (F-31)
     expires_at: datetime | None = None
     purged_at: datetime | None = None
+    face_found: bool | None = None  # F-30, Super Admin only: was a face seen on the card photo
+
+
+class PunchFaceEmployee(BaseModel):
+    id: uuid.UUID
+    code: str
+    name: str
+
+
+class PunchFaceDetail(BaseModel):
+    """Super Admin only (spec M3 §5.5): what the face check measured. Never shown to the gate."""
+
+    match_score: float | None
+    second_best_score: float | None
+    antispoof_score: float | None
+    yaw_degrees: float | None
+    challenge: str | None
+    model_id: str | None
+    match_mode: str | None
+    claimed_employee: PunchFaceEmployee | None  # whose code was typed (code path)
 
 
 class PunchLogItem(BaseModel):
@@ -146,6 +166,8 @@ class PunchLogItem(BaseModel):
     decision: str
     reason_codes: list[str]
     snapshot: PunchLogSnapshot
+    match_mode: str | None = None  # M3: one_to_many (by face) or code (by typed code)
+    follows_punch_id: uuid.UUID | None = None  # a code-path answer points to "asked for code"
 
 
 class PunchLocation(BaseModel):
@@ -158,6 +180,7 @@ class PunchDetail(PunchLogItem):
     app_version: str | None
     device_time: datetime | None  # what the kiosk's clock said: never used for a decision
     location: PunchLocation | None
+    face: PunchFaceDetail | None = None  # Super Admin only
 
 
 class PunchSummaryResponse(BaseModel):
@@ -166,6 +189,11 @@ class PunchSummaryResponse(BaseModel):
     rejected: int
     dark_photos: int | None  # Super Admin only
     rejected_by_reason: dict[str, int]
+    # M3: face punches of the day.
+    face_accepted: int = 0
+    code_accepted: int = 0
+    asked_for_code: int = 0
+    no_face_photos: int | None = None  # Super Admin only (F-30)
 
 
 class PunchCompareResponse(BaseModel):

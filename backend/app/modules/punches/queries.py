@@ -8,13 +8,20 @@ import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
-from sqlalchemy import Select, func, or_, select
+from sqlalchemy import Select, exists, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
 from app.core.time import IST
 from app.modules.employees.models import Employee
-from app.modules.punches.models import Direction, Punch, PunchDecision, PunchSnapshot, SnapshotState
+from app.modules.punches.models import (
+    Direction,
+    MatchMode,
+    Punch,
+    PunchDecision,
+    PunchSnapshot,
+    SnapshotState,
+)
 
 COMPARE_HOW_MANY = 3
 
@@ -29,6 +36,11 @@ class PunchFilters:
     reason_code: str | None = None
     dark_only: bool = False
     search: str | None = None
+    # M3 (spec §5.5)
+    method: str | None = None
+    match_mode: str | None = None
+    asked_for_code: bool = False
+    no_face_photo: bool = False  # Super Admin only (F-30)
 
 
 def day_bounds(day: date) -> tuple[datetime, datetime]:
@@ -65,6 +77,16 @@ def punches_statement(
         )
     if filters.reason_code:
         statement = statement.where(Punch.reason_codes.contains([filters.reason_code]))
+    if filters.method:
+        statement = statement.where(Punch.method == filters.method)
+    if filters.match_mode:
+        statement = statement.where(Punch.match_mode == filters.match_mode)
+    if filters.asked_for_code:
+        statement = statement.where(Punch.decision == PunchDecision.NEEDS_CODE.value)
+    if filters.no_face_photo:
+        statement = statement.where(
+            exists().where(PunchSnapshot.punch_id == Punch.id, PunchSnapshot.face_found.is_(False))
+        )
     if filters.dark_only:
         statement = statement.join(PunchSnapshot, PunchSnapshot.punch_id == Punch.id).where(
             PunchSnapshot.is_dark.is_(True)
@@ -90,6 +112,10 @@ class DaySummary:
     rejected: int
     dark_photos: int
     rejected_by_reason: dict[str, int]
+    face_accepted: int
+    code_accepted: int
+    asked_for_code: int
+    no_face_photos: int
 
 
 def day_summary(session: Session, statement: Select[Punch]) -> DaySummary:
@@ -101,11 +127,15 @@ def day_summary(session: Session, statement: Select[Punch]) -> DaySummary:
     ).all()
     by_kind = {(decision, direction): number for decision, direction, number in counts}
     accepted = PunchDecision.ACCEPTED.value
-    rejected = sum(n for (decision, _), n in by_kind.items() if decision != accepted)
+    needs_code = PunchDecision.NEEDS_CODE.value
+    # "Asked for code" is not a rejection: the person may still be accepted by the code.
+    rejected = sum(
+        n for (decision, _), n in by_kind.items() if decision not in (accepted, needs_code)
+    )
     # The first reason of each rejection, worked out once, then counted per reason.
     first_reasons = (
         select(matching.c.reason_codes[1].label("reason"))
-        .where(matching.c.decision != accepted)
+        .where(matching.c.decision.not_in([accepted, needs_code]))
         .subquery()
     )
     reasons = session.execute(
@@ -116,7 +146,25 @@ def day_summary(session: Session, statement: Select[Punch]) -> DaySummary:
         .select_from(PunchSnapshot)
         .where(PunchSnapshot.punch_id.in_(select(matching.c.id)), PunchSnapshot.is_dark.is_(True))
     )
+    face_counts = dict(
+        session.execute(
+            select(matching.c.match_mode, func.count())
+            .where(matching.c.decision == accepted, matching.c.match_mode.is_not(None))
+            .group_by(matching.c.match_mode)
+        ).all()
+    )
+    no_face = session.scalar(
+        select(func.count())
+        .select_from(PunchSnapshot)
+        .where(
+            PunchSnapshot.punch_id.in_(select(matching.c.id)), PunchSnapshot.face_found.is_(False)
+        )
+    )
     return DaySummary(
+        face_accepted=face_counts.get(MatchMode.ONE_TO_MANY.value, 0),
+        code_accepted=face_counts.get(MatchMode.CODE.value, 0),
+        asked_for_code=sum(n for (decision, _), n in by_kind.items() if decision == needs_code),
+        no_face_photos=no_face or 0,
         accepted_in=by_kind.get((accepted, Direction.IN.value), 0),
         accepted_out=by_kind.get((accepted, Direction.OUT.value), 0),
         rejected=rejected,
@@ -151,4 +199,11 @@ def earlier_photos_of_card(session: Session, punch: Punch) -> list[Punch]:
             .order_by(Punch.server_received_at.desc())
             .limit(COMPARE_HOW_MANY)
         )
+    )
+
+
+def has_snapshot(session: Session, punch_id: uuid.UUID) -> bool:
+    return (
+        session.scalar(select(PunchSnapshot.id).where(PunchSnapshot.punch_id == punch_id))
+        is not None
     )

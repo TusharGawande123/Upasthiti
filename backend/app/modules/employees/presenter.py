@@ -16,7 +16,7 @@ from app.modules.employees.schemas import (
     ShiftHistoryItem,
 )
 from app.modules.face.engine_provider import running_model_id
-from app.modules.face.state import face_states
+from app.modules.face.state import list_face_states
 from app.modules.org.models import Department, EmployeeCategory, Plant, Shift
 
 
@@ -65,7 +65,7 @@ def employee_responses(session: Session, employees: list[Employee]) -> list[Empl
         Contractor.name,
     )
 
-    states = face_states(session, employees, running_model_id())
+    states = list_face_states(session, employees, running_model_id())
 
     return [
         EmployeeResponse(

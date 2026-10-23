@@ -232,6 +232,7 @@ def test_a_row_names_the_person_kiosk_plant_result_and_photo_state(
         "is_dark": None,
         "expires_at": None,
         "purged_at": None,
+        "face_found": None,  # M3 F-30: no photo, so nothing to check
     }
 
 
@@ -327,6 +328,11 @@ def test_the_day_summary_counts_results_and_reasons(
         "rejected": 3,
         "dark_photos": 1,
         "rejected_by_reason": {"QR_REVOKED": 1, "WRONG_PLANT": 1, "QR_SIGNATURE_INVALID": 1},
+        # M3: face punches and the face-in-photo marks of card photos.
+        "face_accepted": 0,
+        "code_accepted": 0,
+        "asked_for_code": 0,
+        "no_face_photos": 0,
     }
     everywhere = boss.get(f"{PUNCHES}/summary").json()
     assert everywhere["accepted_in"] == 2

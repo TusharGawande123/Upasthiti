@@ -3,6 +3,7 @@
 import base64
 import os
 from collections.abc import Callable, Iterator
+from contextlib import nullcontext
 
 import pytest
 from fastapi import FastAPI
@@ -54,6 +55,7 @@ from app.modules.auth.rate_limit import (  # noqa: E402
 )
 from app.modules.face.engine_provider import get_face_engine  # noqa: E402
 from app.modules.face.gallery_cache import clear_all_galleries  # noqa: E402
+from app.modules.punches.photo_check import get_task_sessions  # noqa: E402
 from tests.database import create_fresh_test_database, read_test_database_url  # noqa: E402
 
 
@@ -149,6 +151,8 @@ def db_app(
 ) -> FastAPI:
     app = build_app()
     app.dependency_overrides[get_face_engine] = lambda: face_engine
+    # Background tasks (F-30) use the test's session, so they see its uncommitted data.
+    app.dependency_overrides[get_task_sessions] = lambda: lambda: nullcontext(db_session)
 
     # Like get_session: a failed request undoes what it had not committed.
     def test_session() -> Iterator[Session]:

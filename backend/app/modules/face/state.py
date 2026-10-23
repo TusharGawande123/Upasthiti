@@ -9,14 +9,18 @@ Face state:
 
 import uuid
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
+from statistics import median
 
 from sqlalchemy import ColumnElement, and_, exists, func, select
 from sqlalchemy.orm import Session
 
+from app.core.time import utc_now
 from app.modules.employees.models import Employee, EmployeeStatus, PunchMethod
 from app.modules.face.models import ConsentChoice, FaceConsent, FaceTemplate, WithdrawKind
 from app.modules.org.models import Plant
+from app.modules.punches.models import MatchMode, Punch, PunchDecision
+from app.modules.settings.service import get_float_setting, get_int_setting
 
 FACE_STATES = ("enrolled", "not_enrolled", "old_model", "withdrawn", "not_face_method")
 
@@ -57,6 +61,18 @@ def face_states(session: Session, employees: list[Employee], model_id: str) -> d
     }
 
 
+def list_face_states(
+    session: Session, employees: list[Employee], model_id: str
+) -> dict[uuid.UUID, str]:
+    """For the employees list: like face_states, but an enrolled person the camera struggles
+    with shows "reenrol_suggested" (F-41)."""
+    states = face_states(session, employees, model_id)
+    enrolled = [employee_id for employee_id, state in states.items() if state == "enrolled"]
+    for employee_id in reenrol_hints(session, enrolled, model_id, utc_now()):
+        states[employee_id] = "reenrol_suggested"
+    return states
+
+
 def _latest_consent_time(employee_column):  # noqa: ANN001, ANN202 (an SQL expression)
     newer = FaceConsent.__table__.alias("newer")
     return (
@@ -93,8 +109,7 @@ def face_state_condition(state: str, model_id: str) -> ColumnElement[bool]:
         return and_(is_face, has_other_model)
     if state == "not_enrolled":  # also those with an old-model template: they must re-enrol
         return and_(is_face, ~has_template_of_model)
-    # "reenrol_suggested" (F-41) is computed in a later step; until then nobody matches.
-    return Employee.id.is_(None)
+    raise ValueError(f"unknown face state filter: {state}")
 
 
 def latest_consent(session: Session, employee_id: uuid.UUID) -> FaceConsent | None:
@@ -204,3 +219,92 @@ def plant_has_enrolled_faces(session: Session, plant_id: uuid.UUID, model_id: st
         )
         is not None
     )
+
+
+# --- F-41: "Re-enrol suggested" ----------------------------------------------------------------
+
+HINT_DAYS = 30
+RECENT_SCORES = 10
+MIN_SCORES_FOR_HINT = 5  # fewer accepted punches say too little about the scores
+
+
+@dataclass(frozen=True)
+class ReenrolHint:
+    reason: str  # "code_entries" or "falling_scores"
+
+
+def reenrol_hints(
+    session: Session, employee_ids: list[uuid.UUID], model_id: str, now: datetime
+) -> dict[uuid.UUID, ReenrolHint]:
+    """Who the camera struggles with, from their punches since their current template (spec
+    section 7 rule 15). Only a hint: nothing is blocked. A new enrolment starts the count again."""
+    if not employee_ids:
+        return {}
+    templates = dict(
+        session.execute(
+            select(FaceTemplate.employee_id, FaceTemplate.enrolled_at).where(
+                FaceTemplate.employee_id.in_(employee_ids),
+                FaceTemplate.deleted_at.is_(None),
+                FaceTemplate.model_id == model_id,
+            )
+        ).all()
+    )
+    if not templates:
+        return {}
+    since = now - timedelta(days=HINT_DAYS)
+    code_limit = get_int_setting(session, "face_reenrol_code_count")
+    score_floor = get_float_setting(session, "face_match_threshold") + get_float_setting(
+        session, "face_reenrol_score_margin"
+    )
+    hints: dict[uuid.UUID, ReenrolHint] = {}
+    for employee_id, enrolled_at in templates.items():
+        start = max(since, enrolled_at)
+        code_entries = session.scalar(
+            select(func.count(Punch.id)).where(
+                Punch.claimed_employee_id == employee_id,
+                Punch.match_mode == MatchMode.CODE.value,
+                Punch.decision == PunchDecision.ACCEPTED.value,
+                Punch.server_received_at >= start,
+            )
+        )
+        if (code_entries or 0) >= code_limit:
+            hints[employee_id] = ReenrolHint("code_entries")
+            continue
+        scores = [
+            float(score)
+            for score in session.scalars(
+                select(Punch.match_score)
+                .where(
+                    Punch.employee_id == employee_id,
+                    Punch.match_mode == MatchMode.ONE_TO_MANY.value,
+                    Punch.decision == PunchDecision.ACCEPTED.value,
+                    Punch.match_score.is_not(None),
+                    Punch.server_received_at >= start,
+                )
+                .order_by(Punch.server_received_at.desc())
+                .limit(RECENT_SCORES)
+            )
+            if score is not None
+        ]
+        if len(scores) >= MIN_SCORES_FOR_HINT and median(scores) < score_floor:
+            hints[employee_id] = ReenrolHint("falling_scores")
+    return hints
+
+
+def reenrol_suggested_ids(
+    session: Session, model_id: str, only_plant_ids: frozenset[uuid.UUID] | None
+) -> set[uuid.UUID]:
+    statement = (
+        select(Employee.id)
+        .join(FaceTemplate, FaceTemplate.employee_id == Employee.id)
+        .where(
+            FaceTemplate.deleted_at.is_(None),
+            FaceTemplate.model_id == model_id,
+            Employee.status == EmployeeStatus.ACTIVE.value,
+            Employee.punch_method == PunchMethod.FACE.value,
+        )
+    )
+    if only_plant_ids is not None:
+        statement = statement.where(Employee.plant_id.in_(only_plant_ids))
+    ids = list(session.scalars(statement))
+    return set(reenrol_hints(session, ids, model_id, utc_now()))

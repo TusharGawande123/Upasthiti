@@ -3,6 +3,7 @@
 import uuid
 
 from fastapi import APIRouter, Depends, Query, Response
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.db import get_session
@@ -41,7 +42,7 @@ from app.modules.face.schemas import (
     WithdrawConsentRequest,
     WithdrawConsentResponse,
 )
-from app.modules.face.state import enrolment_progress
+from app.modules.face.state import enrolment_progress, reenrol_suggested_ids
 
 router = APIRouter(tags=["face"])
 viewer = require(Capability.VIEW_FACE_ENROLMENT)
@@ -243,4 +244,9 @@ def read_enrolment_progress(
     session: Session = Depends(get_session),
 ) -> EnrolmentProgressResponse:
     scope = plant_filter(current_user, Capability.VIEW_FACE_ENROLMENT)
-    return progress_response(enrolment_progress(session, running_model_id(), scope))
+    model_id = running_model_id()
+    suggested = reenrol_suggested_ids(session, model_id, scope)
+    per_plant: dict[uuid.UUID, int] = {}
+    for plant_id in session.scalars(select(Employee.plant_id).where(Employee.id.in_(suggested))):
+        per_plant[plant_id] = per_plant.get(plant_id, 0) + 1
+    return progress_response(enrolment_progress(session, model_id, scope), per_plant)

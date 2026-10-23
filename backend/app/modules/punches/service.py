@@ -12,6 +12,7 @@ import base64
 import binascii
 import logging
 import uuid
+from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -75,7 +76,9 @@ def record_kiosk_punch(
     request: KioskPunchRequest,
     client: ClientInfo,
     storage: Storage | None = None,
+    after_photo: Callable[[uuid.UUID, bytes], None] | None = None,
 ) -> KioskPunchResponse:
+    """`after_photo` gets the stored photo after the commit (M3 F-30: a face-in-photo check)."""
     limits = load_limits(session)
 
     already_stored = find_punch(session, kiosk, request.client_punch_id)
@@ -127,6 +130,8 @@ def record_kiosk_punch(
         session.rollback()
         delete_file_quietly(snapshot, storage)
         raise
+    if after_photo is not None and snapshot is not None and context.snapshot is not None:
+        after_photo(snapshot.id, context.snapshot.jpeg)
     return punch_answer(session, punch, kiosk.name, limits)
 
 

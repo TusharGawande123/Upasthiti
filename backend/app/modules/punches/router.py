@@ -7,8 +7,9 @@ as a normal 200 answer; only a broken or untrusted request is an error.
 
 import ipaddress
 import logging
+import uuid
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, Request
 from sqlalchemy.orm import Session
 
 from app.core.body_limit import KIOSK_BODY_LIMIT
@@ -25,6 +26,7 @@ from app.modules.face.engine_provider import get_face_engine
 from app.modules.kiosks.dependencies import require_kiosk
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches import face_service, service
+from app.modules.punches.photo_check import SessionMaker, check_face_in_photo, get_task_sessions
 from app.modules.punches.schemas import (
     ChallengeRequest,
     ChallengeResponse,
@@ -44,9 +46,11 @@ logger = logging.getLogger(__name__)
 def punch_at_kiosk(
     body: KioskPunchRequest,
     request: Request,
+    background: BackgroundTasks,
     kiosk: KioskDevice = Depends(require_kiosk),
     session: Session = Depends(get_session),
     engine: FaceEngine = Depends(get_face_engine),
+    task_sessions: SessionMaker = Depends(get_task_sessions),
 ) -> KioskPunchResponse:
     _limit(punch_limiter, kiosk, "Too many punches. Wait a moment.")
     client = service.ClientInfo(ip=_ip_or_none(getattr(request.state, "client_ip", None)))
@@ -54,7 +58,14 @@ def punch_at_kiosk(
         # A card punch is a small JSON with one 15 KB photo; the M2 limit stays (spec M3 §5.2).
         if int(request.headers.get("content-length") or 0) > KIOSK_BODY_LIMIT:
             raise ApiError("PAYLOAD_TOO_LARGE", "The request is too large.", 413)
-        return service.record_kiosk_punch(session, kiosk, body, client)
+
+        def check_photo_later(snapshot_id: uuid.UUID, jpeg: bytes) -> None:
+            # F-30, after the answer is sent: never slows the gate or changes the decision.
+            background.add_task(check_face_in_photo, snapshot_id, jpeg, engine, task_sessions)
+
+        return service.record_kiosk_punch(
+            session, kiosk, body, client, after_photo=check_photo_later
+        )
     return face_service.record_face_punch(session, kiosk, body, client, engine)
 
 
