@@ -22,6 +22,7 @@ from app.modules.auth.passwords import (
     hash_password,
 )
 from app.modules.auth.service import end_all_sessions
+from app.modules.settings.models import SettingValue
 from app.modules.users.models import Role, User
 from app.modules.users.plant_access import load_plant_ids, set_user_plant
 
@@ -254,6 +255,7 @@ def create_first_super_admin(
     )
     session.add(user)
     session.flush()
+    _fill_privacy_contact(session, user)
     record_audit(
         session,
         actor=Actor("system", None),
@@ -264,6 +266,14 @@ def create_first_super_admin(
     )
     session.commit()
     return user
+
+
+def _fill_privacy_contact(session: Session, user: User) -> None:
+    """The privacy contact named in the face consent text is the Super Admin by default (spec M3
+    section 14). The Super Admin can change it in Settings; an existing value is kept."""
+    if session.get(SettingValue, "privacy_contact") is None:
+        contact = f"{user.name}, {user.email}" if user.email else user.name
+        session.add(SettingValue(key="privacy_contact", value=contact[:200], updated_by=user.id))
 
 
 def _clean_username(username: str) -> str:
