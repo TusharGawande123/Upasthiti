@@ -11,6 +11,9 @@
   Final-year engineering sponsored project, team of 4, lead: Tushar Gawande.
 - Problem: employees mark proxy attendance from outside the premises; temporary
   hourly workers change often, so face enrolment is impractical for them.
+- Words: in code, database and API the gate device is a "kiosk". On every screen, text, error and
+  document that PEOPLE read it is an "attendance device" (menu: "Attendance devices"; gate
+  screen: "Gate attendance"): workers and the client do not know the word kiosk (decision 0013).
 - Solution: ONE website; the gate KIOSK is the main attendance channel.
   - Kiosk: a tablet/phone/laptop with camera fixed at each plant gate, running
     our kiosk screen in full-screen. All employees punch here (check-in/out).
@@ -46,7 +49,7 @@
 ## 2. Architecture & Project Structure
 - Approved 2026-10-11; full detail in docs/architecture.md (flows, table
   dictionary) and docs/SRS.md (requirements FR-xx / NFR-xx).
-- Monorepo: frontend/ (Vite + React SPA: /kiosk and /admin), backend/ (one
+- Monorepo: frontend/ (Vite + React SPA: /attendance for the gate, /admin), backend/ (one
   FastAPI app split into modules), e2e/ (Playwright), deploy/ (render.yaml,
   backend Dockerfile used by Render), .github/workflows/.
 - Backend layout: app/core (config, db, security, crypto, time, storage),
@@ -140,6 +143,10 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - Every screen must fit a 360 px phone and a 768 px tablet without the page scrolling sideways
   (a table may scroll inside its own card), and every page must be reachable from the phone
   menu. `e2e/tests/responsive.spec.ts` checks it: add new pages to its list.
+- Texts people read say "attendance device", never "kiosk" (section 1). Rejection texts ask
+  politely: "Please visit the plant office."
+- The only tool that may delete attendance rows is `app.scripts.remove_demo_plant` (decision 0015):
+  demo plants only (code starts with DEMO), shows first, needs --confirm, never touches the audit log.
 - NEVER start building a milestone before its spec and plan are approved.
 - NEVER build the legally risky future-scope items (section 1): automatic
   PF/ESIC/PT/TDS calculation, statutory reports, challans, Form 16, tax filing.
@@ -195,13 +202,20 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
       (spec docs/specs/M1-foundation.md, decisions 0005, 0006 and 0007; merged, PR #4).
       Still open: real-device check of kiosk pairing (phone, laptop, gate PC) and the real
       geofence of each plant (to be drawn on site).
-- [x] M2 QR attendance end-to-end at the kiosk (with snapshot): QR cards (issue, revoke,
-      print CR80 / A4, test cards), kiosk punch with the first anti-proxy rules, encrypted
-      snapshots (purged after the retention setting), punch log, gate notices, gate poster
-      (spec docs/specs/M2-qr-attendance.md, decisions 0008, 0009, 0010). Before it goes live:
-      Supabase bucket + Render keys (deploy/README.md §8). First demo and the live load
-      test follow the merge.
-- [ ] M3 Face enrolment + face/liveness attendance at the kiosk
+- [x] M2 QR attendance end-to-end at the kiosk (with snapshot): LIVE since 2026-10-22 (PR #14,
+      follow-ups #16). QR cards (issue, revoke, print CR80 / A4, test cards), kiosk punch with the
+      first anti-proxy rules, encrypted snapshots (purged after the retention setting), punch log,
+      gate notices, gate poster (spec docs/specs/M2-qr-attendance.md, decisions 0008 to 0012).
+      After the first live demo (2026-10-22): phone and tablet layout (0011), time to get ready
+      for the photo + front/back camera + plain words + /attendance (0013), "Show my location" and
+      satellite view on the geofence map (0014), demo removal tool (0015).
+      Still open: the live load test (outside working hours) and the real-device check of
+      the gate phone (rear camera for cards, front camera for the photo).
+- [ ] M3 Face enrolment + face/liveness attendance at the kiosk (next; start with the spec,
+      docs/specs/M3-face-attendance.md. Slice 1 = a small proof that the face models fit and run in
+      Render Free's 512 MB. Decide in the spec: model and liveness method, consent text, who enrols
+      a face, an employee with both card and face, retention. Face templates are stored encrypted,
+      never raw photos; nothing goes to an outside AI service.)
 - [ ] M4 Anti-proxy engine + kiosk geofence + offline kiosk sync
 - [ ] M4b Optional phone punching (admin-controlled per employee) + temp workers'
       phone scan of the gate QR
@@ -232,6 +246,9 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   and deletes the branch on GitHub himself. When he says "merged", Claude switches to
   `main`, pulls (`git pull --ff-only`), prunes (`git fetch --prune`) and deletes the
   local branch.
+- Handoff (two people may continue one milestone branch, one at a time): commit and push after
+  every slice, keep a "Status" section at the bottom of the plan (done, next, test results, open
+  questions), write each decision into docs/decisions/ at once, and `git pull` before starting.
 - The repo is public: never commit secrets, real employee data, face images or models.
   GitHub secret scanning + push protection, gitleaks and a 1 MB file limit guard this.
 - When unsure, ask. Ask the lead every question in chat, not only in a file. Record
@@ -261,6 +278,10 @@ The skeleton exists since M0; the README.md has the full first-time setup.
     plants for local testing; refuses in production. Added in M1.
   - `uv run python -m app.scripts.make_qr_key` and `make_snapshot_key`: print a new key line
     for `.env` (QR_SIGNING_KEY, SNAPSHOT_ENCRYPTION_KEY). Added in M2.
+  - `uv run python -m app.scripts.remove_demo_plant --plant-code DEMO --include-test-cards`
+    (add `--confirm` to delete): removes a demo plant and its data from the live database; run
+    from the laptop with the production values set for that one command (decision 0015). Added
+    after the first live demo.
   - `uv run python loadtest/prepare_data.py`, then Locust: load test of the kiosk punch
     (backend/loadtest/README.md). Added in M2.
   - `uv run python scripts/download_models.py`: download the face models (sha256 checked);
@@ -273,7 +294,7 @@ The skeleton exists since M0; the README.md has the full first-time setup.
     `public/locales/en/common.json`, and every server error code has an `errors.<CODE>` text.
   - `npm run size` (after the build): bundle budgets; the admin's first load has no kiosk code.
 - End-to-end (from e2e/): `npx playwright test` (starts backend + frontend itself; add
-  `--headed` to watch the browser). It needs the local Postgres (`docker compose up -d`),
+  `--headed` to watch the browser; `tests/responsive.spec.ts` checks phone and tablet sizes). It needs the local Postgres (`docker compose up -d`),
   uses its own database `upasthiti_e2e` (wiped each run) and runs tests one after another.
   Do not run it at the same time as `npm test` or `pytest` (they share the machine and the DB).
 - Every git hook on every file: `pre-commit run --all-files`.
@@ -309,6 +330,10 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   the client's own server only if the free tiers cannot handle the data. If the
   face model does not fit, Plan B includes a smaller model (only if it meets
   NFR-05). Camera needs HTTPS. The client should own these accounts at handover.
+- Gate page: /attendance (the old /kiosk still redirects). After a card is read the worker gets
+  `kiosk_photo_ready_seconds` (default 20 s, a setting) to look at the camera and tap "I'm ready";
+  "Cancel" sends nothing. On a device with two cameras a button switches the camera; the camera
+  for reading cards and the camera for the photo are remembered separately (default front).
 - Gate devices are phones and PCs. Every kiosk must give an accurate location inside the
   geofence (pairing, and every punch from M4): location switched on, phone or PC. No
   approval route, no network check, no extra hardware (decision 0005).
