@@ -64,9 +64,26 @@ class Settings(BaseSettings):
     supabase_service_key: SecretStr | None = None
     snapshot_bucket: str = "punch-snapshots"
 
+    # --- M3: face recognition (spec §7 rules 9 and 10, §8.2) ---
+    # Encrypts the face templates. Separate from the snapshot key (decision 0016). Required in
+    # production; in development the face endpoints then answer FACE_NOT_CONFIGURED.
+    face_template_key: SecretStr | None = None
+    # Which model pack runs: buffalo_s was chosen in slice 1 (decision 0016, item 17). Changing
+    # it later means every employee must be enrolled again.
+    face_model_pack: Literal["buffalo_s", "buffalo_l", "buffalo_s_int8", "buffalo_l_int8"] = (
+        "buffalo_s"
+    )
+    # Size of the picture the face detector looks at; 320 is faster, 640 sees smaller faces.
+    face_detector_input: Literal[320, 480, 640] = 640
+    # Where scripts/download_models.py put the model files (the Docker image sets /app/models).
+    face_models_dir: Path = Path(__file__).resolve().parents[2] / "models"
+    # "fake" swaps the models for painted test pictures; it is honoured ONLY when APP_ENV=test.
+    face_engine: Literal["real", "fake"] = "real"
+
     @field_validator(
         "qr_signing_key",
         "snapshot_encryption_key",
+        "face_template_key",
         "storage_backend",
         "supabase_url",
         "supabase_service_key",
@@ -79,7 +96,7 @@ class Settings(BaseSettings):
             return None
         return value
 
-    @field_validator("qr_signing_key", "snapshot_encryption_key")
+    @field_validator("qr_signing_key", "snapshot_encryption_key", "face_template_key")
     @classmethod
     def key_must_be_32_bytes(cls, key: SecretStr | None) -> SecretStr | None:
         if key is not None:
@@ -114,6 +131,7 @@ class Settings(BaseSettings):
         required: list[tuple[str, object]] = [
             ("qr_signing_key", self.qr_signing_key),
             ("snapshot_encryption_key", self.snapshot_encryption_key),
+            ("face_template_key", self.face_template_key),
             ("storage_backend", self.storage_backend),
         ]
         if self.storage_backend == "supabase":
@@ -131,6 +149,11 @@ class Settings(BaseSettings):
     def effective_storage_backend(self) -> Literal["local", "supabase"]:
         """The storage to use: the chosen one, or "local" outside production."""
         return self.storage_backend or "local"
+
+    @property
+    def effective_face_engine(self) -> Literal["real", "fake"]:
+        """The fake engine only exists for tests: any other APP_ENV always runs the real one."""
+        return self.face_engine if self.app_env == "test" else "real"
 
     @property
     def is_production(self) -> bool:

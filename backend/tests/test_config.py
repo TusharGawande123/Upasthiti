@@ -138,6 +138,7 @@ def test_production_refuses_the_example_secret_key(monkeypatch: pytest.MonkeyPat
 # scanner would rightly flag it).
 PRODUCTION_KEY = generate_key_text()
 SECOND_KEY = generate_key_text()
+FACE_KEY = generate_key_text()
 SERVICE_KEY_VALUE = "service-key-value-that-must-never-be-printed"
 
 
@@ -155,6 +156,7 @@ def production_environment(monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> p
         "APP_PUBLIC_ORIGIN": "https://example.invalid",
         "QR_SIGNING_KEY": PRODUCTION_KEY,
         "SNAPSHOT_ENCRYPTION_KEY": SECOND_KEY,
+        "FACE_TEMPLATE_KEY": FACE_KEY,
         "STORAGE_BACKEND": "supabase",
         "SUPABASE_URL": "https://project.supabase.invalid",
         "SUPABASE_SERVICE_KEY": SERVICE_KEY_VALUE,
@@ -179,6 +181,7 @@ def test_a_complete_production_environment_loads(
     [
         "QR_SIGNING_KEY",
         "SNAPSHOT_ENCRYPTION_KEY",
+        "FACE_TEMPLATE_KEY",
         "STORAGE_BACKEND",
         "SUPABASE_URL",
         "SUPABASE_SERVICE_KEY",
@@ -194,7 +197,7 @@ def test_production_stops_when_a_card_or_storage_setting_is_missing(
 
     message = str(stopped.value)
     assert f"Missing required setting: {missing}" in message
-    for secret in (PRODUCTION_KEY, SECOND_KEY, SERVICE_KEY_VALUE):
+    for secret in (PRODUCTION_KEY, SECOND_KEY, FACE_KEY, SERVICE_KEY_VALUE):
         assert secret not in message
 
 
@@ -218,7 +221,9 @@ def test_local_storage_needs_no_supabase_settings_in_production(
     assert load_settings_or_exit().effective_storage_backend == "local"
 
 
-@pytest.mark.parametrize("variable", ["QR_SIGNING_KEY", "SNAPSHOT_ENCRYPTION_KEY"])
+@pytest.mark.parametrize(
+    "variable", ["QR_SIGNING_KEY", "SNAPSHOT_ENCRYPTION_KEY", "FACE_TEMPLATE_KEY"]
+)
 def test_a_key_that_is_not_32_bytes_is_named_but_not_printed(
     production_environment: pytest.MonkeyPatch, variable: str
 ) -> None:
@@ -254,7 +259,12 @@ def test_an_unknown_storage_backend_is_refused(
 
 
 def test_development_needs_none_of_the_card_settings(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name in ("QR_SIGNING_KEY", "SNAPSHOT_ENCRYPTION_KEY", "STORAGE_BACKEND"):
+    for name in (
+        "QR_SIGNING_KEY",
+        "SNAPSHOT_ENCRYPTION_KEY",
+        "FACE_TEMPLATE_KEY",
+        "STORAGE_BACKEND",
+    ):
         monkeypatch.delenv(name, raising=False)
 
     settings = Settings(
@@ -273,5 +283,62 @@ def test_secret_keys_are_hidden_when_the_settings_are_printed(
 ) -> None:
     text = repr(load_settings_or_exit())
 
-    for secret in (PRODUCTION_KEY, SECOND_KEY, SERVICE_KEY_VALUE):
+    for secret in (PRODUCTION_KEY, SECOND_KEY, FACE_KEY, SERVICE_KEY_VALUE):
         assert secret not in text
+
+
+# --- M3: face settings ---------------------------------------------------------------------
+
+
+def test_face_defaults_and_the_chosen_model(monkeypatch: pytest.MonkeyPatch) -> None:
+    for name in ("FACE_TEMPLATE_KEY", "FACE_MODEL_PACK", "FACE_DETECTOR_INPUT", "FACE_ENGINE"):
+        monkeypatch.delenv(name, raising=False)
+
+    settings = Settings(
+        database_url="postgresql://u:p@host/db",
+        app_env="development",
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+    )
+
+    assert settings.face_template_key is None  # development: face endpoints say FACE_NOT_CONFIGURED
+    assert settings.face_model_pack == "buffalo_s"  # decision 0016, item 17
+    assert settings.face_detector_input == 640
+    assert settings.face_models_dir.name == "models"
+
+
+@pytest.mark.parametrize(("app_env", "expected"), [("test", "fake"), ("development", "real")])
+def test_the_fake_face_engine_is_honoured_only_in_the_test_environment(
+    monkeypatch: pytest.MonkeyPatch, app_env: str, expected: str
+) -> None:
+    settings = Settings(
+        database_url="postgresql://u:p@host/db",
+        app_secret_key="test-secret-key-for-pytest-only-0123456789",
+        app_env=app_env,  # pyright: ignore[reportArgumentType]
+        face_engine="fake",
+        _env_file=None,  # pyright: ignore[reportCallIssue]
+    )
+
+    assert settings.effective_face_engine == expected
+
+
+def test_production_never_runs_the_fake_face_engine(
+    production_environment: pytest.MonkeyPatch,
+) -> None:
+    production_environment.setenv("FACE_ENGINE", "fake")
+
+    assert load_settings_or_exit().effective_face_engine == "real"
+
+
+@pytest.mark.parametrize(
+    ("variable", "value"),
+    [("FACE_MODEL_PACK", "antelopev2"), ("FACE_DETECTOR_INPUT", "100")],
+)
+def test_an_unknown_face_model_or_detector_size_is_refused(
+    production_environment: pytest.MonkeyPatch, variable: str, value: str
+) -> None:
+    production_environment.setenv(variable, value)
+
+    with pytest.raises(SystemExit) as stopped:
+        load_settings_or_exit()
+
+    assert f"Invalid value for setting: {variable}" in str(stopped.value)

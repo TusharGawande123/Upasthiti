@@ -74,7 +74,7 @@ def test_the_eleven_m2_settings_are_editable_with_their_defaults(boss: TestClien
 def test_settings_of_later_milestones_stay_locked(boss: TestClient) -> None:
     settings = listed(boss)
 
-    for key in ("face_match_threshold", "face_match_margin", "impossible_travel_kmh"):
+    for key in ("impossible_travel_kmh", "salary_day_basis"):
         assert settings[key]["editable"] is False
     assert change(boss, impossible_travel_kmh=80).json()["error"]["code"] == (
         "SETTING_NOT_EDITABLE_YET"

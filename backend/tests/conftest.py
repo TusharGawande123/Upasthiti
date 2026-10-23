@@ -29,6 +29,9 @@ os.environ["QR_SIGNING_KEY"] = (
 os.environ["SNAPSHOT_ENCRYPTION_KEY"] = (
     base64.urlsafe_b64encode(b"test-snapshot-key-for-pytest-000").decode().rstrip("=")
 )
+os.environ["FACE_TEMPLATE_KEY"] = (
+    base64.urlsafe_b64encode(b"test-face-template-key-pytest-00").decode().rstrip("=")
+)
 os.environ["STORAGE_BACKEND"] = "local"
 
 from app.core.config import get_settings  # noqa: E402
