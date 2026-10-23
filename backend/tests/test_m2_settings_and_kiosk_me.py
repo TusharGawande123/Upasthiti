@@ -331,6 +331,15 @@ def test_the_heartbeat_keeps_the_old_fields_and_adds_settings(
         "photo_ready_seconds": 20,
         "snapshot_retention_days": 60,
         "dark_threshold": 40,
+        # M3: the gate shows "Punch with face" only when someone here is enrolled.
+        "face": {
+            "available": True,
+            "state": "ready",
+            "enabled_for_plant": False,
+            "challenge_seconds": 10,
+            "code_entry_seconds": 90,
+            "min_yaw_degrees": 18,
+        },
     }
 
 

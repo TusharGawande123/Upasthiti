@@ -43,6 +43,8 @@ from app.face.engine import FaceEngine  # noqa: E402
 from app.face.fake_engine import FakeFaceModels  # noqa: E402
 from app.main import create_app  # noqa: E402
 from app.modules.auth.rate_limit import (  # noqa: E402
+    challenge_limiter,
+    code_try_limiter,
     enrolment_shot_limiter,
     failed_pairing_limiter,
     login_limiter,
@@ -175,4 +177,6 @@ def fresh_rate_limits() -> Iterator[None]:
     punch_limiter.reset()
     report_limiter.reset()
     enrolment_shot_limiter.reset()
+    challenge_limiter.reset()
+    code_try_limiter.reset()
     yield

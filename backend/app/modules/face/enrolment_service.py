@@ -29,14 +29,19 @@ from app.core.crypto import (
 )
 from app.core.errors import ApiError
 from app.core.time import utc_now
-from app.face.engine import FaceEngine, FaceServiceBusyError, FaceServiceUnavailableError
+from app.face.engine import FaceEngine
 from app.face.enrolment_checks import ShotLimits, ShotResult, check_shot
 from app.face.matcher import cosine, mean_template
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees.models import Employee, EmployeeStatus, PunchMethod
 from app.modules.face.cleanup import expire_old_sessions
 from app.modules.face.consent_service import active_consent
-from app.modules.face.engine_provider import face_key, ready_engine, ready_model_id
+from app.modules.face.engine_provider import (
+    face_key,
+    ready_engine,
+    ready_model_id,
+    run_face_job,
+)
 from app.modules.face.gallery_cache import invalidate_plant_gallery
 from app.modules.face.models import (
     ENROLMENT_POSES,
@@ -162,7 +167,7 @@ def add_shot(
             else None
         )
         limits = _shot_limits(session)
-        result = _run(
+        result = run_face_job(
             engine,
             lambda models: check_shot(
                 models,
@@ -210,25 +215,6 @@ def _shot_limits(session: Session) -> ShotLimits:
         brightness_min=float(get_int_setting(session, "face_brightness_min")),
         antispoof_threshold=get_float_setting(session, "face_antispoof_threshold"),
         consistency_threshold=get_float_setting(session, "face_consistency_threshold"),
-    )
-
-
-def _run(engine: FaceEngine, job):  # noqa: ANN001, ANN202 (any engine job and its answer)
-    try:
-        return engine.run(job)
-    except FaceServiceBusyError:
-        raise ApiError(
-            "FACE_SERVICE_BUSY", "Many face checks are running. Try again in a moment.", 503
-        ) from None
-    except FaceServiceUnavailableError:
-        raise ready_engine_error() from None
-
-
-def ready_engine_error() -> ApiError:
-    return ApiError(
-        "FACE_SERVICE_UNAVAILABLE",
-        "Face checks are not available right now. Try again in a minute.",
-        503,
     )
 
 

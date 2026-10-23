@@ -156,7 +156,8 @@ def test_the_kiosks_location_and_address_are_stored_as_sent(
         "UPDATE punches SET direction = 'out'",
         "UPDATE punches SET decision = 'rejected'",
         "DELETE FROM punches",
-        "TRUNCATE punches, punch_snapshots",
+        # The face tables that point to punches are named too, so the trigger is what refuses.
+        "TRUNCATE punches, punch_snapshots, face_pending_matches",
     ],
 )
 def test_the_database_refuses_to_change_or_delete_a_punch(
@@ -219,7 +220,7 @@ def test_two_kiosks_may_use_the_same_scan_id(
             {"decision": "rejected", "direction": None, "reason_codes": []},
             "ck_punches_reason_codes_match_decision",
         ),
-        ({"method": "face"}, "ck_punches_method_known"),
+        ({"method": "nfc"}, "ck_punches_method_known"),
         ({"decision": "banana", "reason_codes": ["X"]}, "ck_punches_decision_known"),
         ({"direction": "up"}, "ck_punches_direction_known"),
         ({"lat": 91}, "ck_punches_location_in_range"),

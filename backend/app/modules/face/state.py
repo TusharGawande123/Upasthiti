@@ -188,3 +188,19 @@ def enrolment_progress(
         PlantProgress(plant_id, code, name, int(total), int(done), int(old))
         for plant_id, code, name, total, done, old in session.execute(statement).all()
     ]
+
+
+def plant_has_enrolled_faces(session: Session, plant_id: uuid.UUID, model_id: str) -> bool:
+    """The gate shows "Punch with face" only when someone there can use it (spec §4.1)."""
+    return (
+        session.scalar(
+            select(Employee.id)
+            .where(
+                Employee.plant_id == plant_id,
+                Employee.status == EmployeeStatus.ACTIVE.value,
+                face_state_condition("enrolled", model_id),
+            )
+            .limit(1)
+        )
+        is not None
+    )

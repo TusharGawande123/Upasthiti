@@ -83,3 +83,6 @@ punch_limiter = RateLimiter(max_attempts=60, window_seconds=60)
 report_limiter = RateLimiter(max_attempts=20, window_seconds=60 * 60)
 # Face enrolment (M3, spec §5.4): at most 60 shots a minute per Super Admin.
 enrolment_shot_limiter = RateLimiter(max_attempts=60, window_seconds=60)
+# Face punches (M3, spec §7 rule 7): 30 challenges and 10 code tries a minute per kiosk.
+challenge_limiter = RateLimiter(max_attempts=30, window_seconds=60)
+code_try_limiter = RateLimiter(max_attempts=10, window_seconds=60)

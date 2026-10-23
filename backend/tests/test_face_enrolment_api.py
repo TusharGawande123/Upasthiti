@@ -21,7 +21,7 @@ from app.core.crypto import (
 )
 from app.core.time import today_ist, utc_now
 from app.face.engine import FaceEngine
-from app.face.fake_engine import Problem, fake_embedding, make_fake_frame
+from app.face.fake_engine import Problem, fake_embedding
 from app.face.matcher import cosine
 from app.modules.audit.models import AuditLog
 from app.modules.employees.models import Employee
@@ -34,91 +34,21 @@ from app.modules.face.models import (
     FaceEnrolmentShot,
     FaceTemplate,
 )
-from app.modules.settings.models import SettingValue
 from app.modules.users.models import Role, User
 from app.modules.users.plant_access import set_user_plant
-from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body
-
-POSE_FRAMES = {  # pose -> (yaw, pitch) of the painted picture
-    "straight": (0, 0),
-    "left": (20, 0),
-    "right": (-20, 0),
-    "up": (0, 20),
-    "down": (0, -20),
-    "closer": (0, 0),
-    "farther": (0, 0),
-    "work_wear": (0, 0),
-}
-AGREE = {"text_version": "face-consent-v1", "language": "en", "choice": "agreed"}
+from tests.face_helpers import POSE_FRAMES, enrol, new_employee, set_privacy, shot, start
+from tests.people_helpers import PlantIds, client_for, create_plant
 
 
 @pytest.fixture
 def boss(db_app: FastAPI, db_session: Session) -> TestClient:
-    db_session.merge(SettingValue(key="privacy_contact", value="Tushar Gawande, t@example.invalid"))
-    db_session.merge(SettingValue(key="company_address", value="Plot 1, MIDC Waluj"))
-    db_session.commit()
+    set_privacy(db_session)
     return client_for(db_app, db_session, Role.SUPER_ADMIN, "boss")
 
 
 @pytest.fixture
 def k134(boss: TestClient, db_session: Session) -> PlantIds:
     return create_plant(boss, db_session, "K134")
-
-
-def new_employee(
-    boss: TestClient, plant: PlantIds, code: str = "1043", consent: bool = True
-) -> str:
-    response = boss.post(
-        "/api/v1/employees", json=permanent_body(plant, code=code, name=f"Worker {code}")
-    )
-    assert response.status_code == 201, response.text
-    employee_id = response.json()["id"]
-    if consent:
-        assert (
-            boss.post(f"/api/v1/employees/{employee_id}/face/consent", json=AGREE).status_code
-            == 201
-        )
-    return employee_id
-
-
-def start(boss: TestClient, employee_id: str) -> str:
-    response = boss.post(f"/api/v1/employees/{employee_id}/face/enrolment-sessions")
-    assert response.status_code == 201, response.text
-    return response.json()["session_id"]
-
-
-def shot(
-    boss: TestClient,
-    session_id: str,
-    pose: str,
-    person: int,
-    problem: Problem = Problem.NONE,
-    yaw: float | None = None,
-    pitch: float | None = None,
-    width: int = 640,
-    height: int = 480,
-):
-    default_yaw, default_pitch = POSE_FRAMES[pose]
-    jpeg = make_fake_frame(
-        person,
-        yaw_degrees=default_yaw if yaw is None else yaw,
-        problem=problem,
-        pitch_degrees=default_pitch if pitch is None else pitch,
-        width=width,
-        height=height,
-    )
-    return boss.post(
-        f"/api/v1/face/enrolment-sessions/{session_id}/shots",
-        json={"pose": pose, "image_jpeg": base64.b64encode(jpeg).decode()},
-    )
-
-
-def enrol(boss: TestClient, employee_id: str, person: int, **finish: str):
-    session_id = start(boss, employee_id)
-    for pose in POSE_FRAMES:
-        answer = shot(boss, session_id, pose, person)
-        assert answer.json()["accepted"] is True, (pose, answer.json())
-    return boss.post(f"/api/v1/face/enrolment-sessions/{session_id}/finish", json=finish)
 
 
 def face_key() -> bytes:
@@ -411,8 +341,8 @@ def test_the_cleanup_job_expires_old_sessions(
     row.expires_at = utc_now() - timedelta(minutes=5)
     db_session.commit()
 
-    assert run_face_cleanup(db_session) == {"enrolment_sessions_expired": 1}
-    assert run_face_cleanup(db_session) == {"enrolment_sessions_expired": 0}  # safe to repeat
+    assert run_face_cleanup(db_session)["enrolment_sessions_expired"] == 1
+    assert run_face_cleanup(db_session)["enrolment_sessions_expired"] == 0  # safe to repeat
     assert db_session.scalars(select(FaceEnrolmentShot)).all() == []
 
 

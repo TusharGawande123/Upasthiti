@@ -11,12 +11,22 @@ from sqlalchemy.orm import Session
 
 from app.antiproxy.context import PunchLimits
 from app.modules.employees.models import Employee
-from app.modules.punches.models import Direction, Punch, PunchDecision
+from app.modules.punches.models import Direction, Punch, PunchDecision, PunchMethod
 from app.modules.punches.schemas import KioskPunchResponse, PunchDetails, PunchEmployee
 
 # Two rejections are not really "no": the person IS checked in, they only scanned too soon.
 # They carry the name and the time of the earlier punch, and keep no new photo.
 ALREADY_PUNCHED_CODES = ("COOLDOWN_ACTIVE", "OUT_TOO_SOON")
+# Face rejections where a new try can help: the gate offers "Try again" (spec M3 §4.6).
+FACE_RETRY_CODES = (
+    "NO_FACE",
+    "MULTIPLE_FACES",
+    "FACE_TOO_SMALL",
+    "FACE_QUALITY_LOW",
+    "LIVENESS_FAILED",
+    "CHALLENGE_EXPIRED",
+    "FACE_INCONSISTENT",
+)
 
 
 def punch_answer(
@@ -24,6 +34,7 @@ def punch_answer(
 ) -> KioskPunchResponse:
     reason_code = punch.reason_codes[0] if punch.reason_codes else None
     accepted = punch.decision == PunchDecision.ACCEPTED.value
+    needs_code = punch.decision == PunchDecision.NEEDS_CODE.value
     already_punched = reason_code in ALREADY_PUNCHED_CODES
 
     details = PunchDetails(kiosk_name=kiosk_name)
@@ -38,10 +49,12 @@ def punch_answer(
             )
     if already_punched and punch.employee_id is not None:
         details = _earlier_punch_details(session, punch, kiosk_name, limits)
+    if punch.method == PunchMethod.FACE.value and not accepted:
+        details.retry_allowed = reason_code in FACE_RETRY_CODES
 
     return KioskPunchResponse(
         punch_id=punch.id,
-        decision="accepted" if accepted else "rejected",
+        decision="accepted" if accepted else ("needs_code" if needs_code else "rejected"),
         direction=punch.direction if accepted else None,  # type: ignore[arg-type]
         employee=employee,
         server_time=punch.server_received_at,
@@ -115,6 +128,9 @@ def _earlier_punch_details(
 def _message_key(punch: Punch, reason_code: str | None) -> str:
     if reason_code is None:
         return f"kiosk.punch.accepted.{punch.direction}"
+    if reason_code == "WRONG_PLANT" and punch.method == PunchMethod.FACE.value:
+        # The card text speaks of "this card"; a face punch gets its own words.
+        return "kiosk.punch.WRONG_PLANT_FACE"
     return f"kiosk.punch.{reason_code}"
 
 

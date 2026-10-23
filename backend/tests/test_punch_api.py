@@ -508,14 +508,14 @@ def test_when_another_request_wins_the_race_its_answer_is_returned(
     )
     db_session.add(winner)
     db_session.commit()
-    real_find = punch_service._find_punch
+    real_find = punch_service.find_punch
     calls: list[int] = []
 
     def blind_the_first_time(session: Session, kiosk_row: KioskDevice, client_id: uuid.UUID):
         calls.append(1)
         return None if len(calls) == 1 else real_find(session, kiosk_row, client_id)
 
-    monkeypatch.setattr(punch_service, "_find_punch", blind_the_first_time)
+    monkeypatch.setattr(punch_service, "find_punch", blind_the_first_time)
 
     response = send(db_client, device, worker.qr_text, client_punch_id=punch_id)
 

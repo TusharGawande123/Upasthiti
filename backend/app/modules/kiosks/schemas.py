@@ -87,6 +87,17 @@ class KioskNoticeItem(BaseModel):
     ends_at: datetime
 
 
+class KioskFaceSettings(BaseModel):
+    """Whether the gate shows "Punch with face", and its timings (spec M3 §5.2)."""
+
+    available: bool  # the engine is ready and the key is set
+    state: Literal["ready", "loading", "off"]
+    enabled_for_plant: bool  # at least one enrolled face employee at this plant
+    challenge_seconds: int
+    code_entry_seconds: int
+    min_yaw_degrees: int
+
+
 class KioskScreenSettings(BaseModel):
     """What the kiosk screen needs from the server settings (spec §5.2)."""
 
@@ -97,6 +108,7 @@ class KioskScreenSettings(BaseModel):
     photo_ready_seconds: int  # time to get ready after the card is read, before the photo
     snapshot_retention_days: int  # shown in the privacy line on the idle screen
     dark_threshold: int  # below this brightness the low-light hint appears
+    face: KioskFaceSettings | None = None  # M3
 
 
 class KioskMeResponse(BaseModel):

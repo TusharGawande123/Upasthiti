@@ -10,7 +10,7 @@ from functools import lru_cache
 from app.core.config import Settings, get_settings
 from app.core.crypto import decode_key
 from app.core.errors import ApiError
-from app.face.engine import FaceEngine
+from app.face.engine import FaceEngine, FaceServiceBusyError, FaceServiceUnavailableError
 from app.face.fake_engine import FakeFaceModels
 from app.face.models import OnnxFaceModels, RuntimeOptions, model_id_of, pack_files
 
@@ -69,3 +69,25 @@ def ready_model_id(engine: FaceEngine) -> str:
     if model_id is None:  # ready_engine has refused this already; kept for the type checker
         raise ApiError("FACE_SERVICE_UNAVAILABLE", "Face checks are not available.", 503)
     return model_id
+
+
+def run_face_job(engine: FaceEngine, job):  # noqa: ANN001, ANN201 (any job and its answer)
+    """Run a job on the single face worker; busy or not loaded becomes the API error."""
+    try:
+        return engine.run(job)
+    except FaceServiceBusyError:
+        raise ApiError(
+            "FACE_SERVICE_BUSY", "Many people are punching. Please try again in a moment.", 503
+        ) from None
+    except FaceServiceUnavailableError:
+        raise ApiError(
+            "FACE_SERVICE_UNAVAILABLE",
+            "Face checks are not available right now. Try again in a minute.",
+            503,
+        ) from None
+
+
+def engine_state(engine: FaceEngine) -> str:
+    """ready / loading / off (a failed load is "off" for the gate)."""
+    state = engine.state.value
+    return state if state in ("ready", "loading") else "off"

@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 
 from app.modules.kiosks.schemas import LocationReport
 
@@ -12,16 +12,47 @@ from app.modules.kiosks.schemas import LocationReport
 MAX_BODY_BYTES = 64 * 1024
 
 
+class FaceFrameIn(BaseModel):
+    role: Literal["frontal", "turn"]
+    # base64 JPEG (640 × 480 at most, 70 KB decoded at most; checked by the face_frames rule)
+    jpeg: str = Field(min_length=1, max_length=100_000)
+
+
 class KioskPunchRequest(BaseModel):
     client_punch_id: uuid.UUID  # made by the kiosk for each scan; a retry reuses it
-    method: Literal["qr"]  # M3 adds "face"
-    qr_payload: str = Field(max_length=200)
+    method: Literal["qr", "face"]
+    qr_payload: str | None = Field(default=None, max_length=200)  # card punches
+    # Face punches (M3, spec §5.2): the challenge the server gave, and 2-4 frames.
+    challenge_nonce: str | None = Field(default=None, max_length=64)
+    frames: list[FaceFrameIn] | None = Field(default=None, max_length=4)
     # The photo as base64 text. The size limit of the photo itself is checked by the snapshot
     # rule (SNAPSHOT_INVALID); this cap only stops absurd requests early.
-    snapshot_jpeg: str | None = Field(default=None, max_length=MAX_BODY_BYTES)
+    # The route refuses a card punch body over MAX_BODY_BYTES with PAYLOAD_TOO_LARGE first.
+    snapshot_jpeg: str | None = Field(default=None, max_length=6 * MAX_BODY_BYTES)
     device_time: datetime | None = None  # what the kiosk's clock says: informational only
     location: LocationReport | None = None  # stored, not checked until M4
     app_version: str | None = Field(default=None, max_length=40)
+
+    @model_validator(mode="after")
+    def check_method_fields(self) -> KioskPunchRequest:
+        # The error names the field only, never what was sent (M2 handler).
+        if self.method == "qr":
+            if self.qr_payload is None:  # an empty text is a scan to refuse, not a bad request
+                raise ValueError("qr_payload is required for a card punch")
+            return self
+        frames = self.frames or []
+        roles = [frame.role for frame in frames]
+        if not self.challenge_nonce:
+            raise ValueError("challenge_nonce is required for a face punch")
+        if not 2 <= len(frames) <= 4 or roles[0] != "frontal" or "turn" not in roles:
+            raise ValueError("frames: 2-4 frames, the first frontal and at least one turn")
+        return self
+
+
+class CodeEntry(BaseModel):
+    token: str  # single use per try; only its hash is stored
+    expires_at: datetime
+    tries_left: int
 
 
 class PunchEmployee(BaseModel):
@@ -36,11 +67,12 @@ class PunchDetails(BaseModel):
     last_direction: Literal["in", "out"] | None = None
     last_punch_at: datetime | None = None
     out_allowed_from: datetime | None = None
+    retry_allowed: bool | None = None  # face rejections where trying again can help
 
 
 class KioskPunchResponse(BaseModel):
     punch_id: uuid.UUID | None  # none for a self test: nothing is recorded
-    decision: Literal["accepted", "rejected", "self_test"]
+    decision: Literal["accepted", "rejected", "self_test", "needs_code"]
     direction: Literal["in", "out"] | None
     employee: PunchEmployee | None
     server_time: datetime
@@ -48,6 +80,34 @@ class KioskPunchResponse(BaseModel):
     message_key: str
     voice_key: str
     details: PunchDetails
+    code_entry: CodeEntry | None = None  # only with decision "needs_code"
+
+
+class ChallengeRequest(BaseModel):
+    app_version: str | None = Field(default=None, max_length=40)
+
+
+class CaptureRules(BaseModel):
+    min_frames: int
+    max_frames: int
+    max_width: int
+    max_height: int
+    max_frame_bytes: int
+    min_yaw_degrees: int
+
+
+class ChallengeResponse(BaseModel):
+    challenge_nonce: str
+    challenge: Literal["turn_left", "turn_right", "left_then_right", "right_then_left"]
+    expires_at: datetime
+    server_time: datetime
+    capture: CaptureRules
+
+
+class CodeTryRequest(BaseModel):
+    client_punch_id: uuid.UUID  # new for each try
+    code_entry_token: str = Field(min_length=10, max_length=64)
+    employee_code: str = Field(min_length=1, max_length=12)
 
 
 # --- The admin punch log (spec M2 §5.3) ---------------------------------------------------------

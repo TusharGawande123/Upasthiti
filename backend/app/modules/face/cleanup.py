@@ -6,13 +6,14 @@ the scheduler is switched off. The job logs only counts, never what was deleted.
 """
 
 import uuid
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.orm import Session
 
 from app.core.time import utc_now
 from app.modules.face.models import EnrolmentState, FaceEnrolmentSession, FaceEnrolmentShot
+from app.modules.punches.models import FacePendingMatch, PunchChallenge
 
 
 def expire_old_sessions(
@@ -38,6 +39,15 @@ def expire_old_sessions(
 
 
 def run_face_cleanup(session: Session) -> dict[str, int]:
-    counts = {"enrolment_sessions_expired": expire_old_sessions(session, utc_now())}
+    now = utc_now()
+    pending = session.execute(delete(FacePendingMatch).where(FacePendingMatch.expires_at < now))
+    challenges = session.execute(
+        delete(PunchChallenge).where(PunchChallenge.issued_at < now - timedelta(days=1))
+    )
+    counts = {
+        "enrolment_sessions_expired": expire_old_sessions(session, now),
+        "pending_matches_deleted": pending.rowcount,  # type: ignore[attr-defined]
+        "challenges_deleted": challenges.rowcount,  # type: ignore[attr-defined]
+    }
     session.commit()
     return counts

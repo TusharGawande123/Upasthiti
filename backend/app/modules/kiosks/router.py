@@ -18,15 +18,19 @@ from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import ApiError
 from app.core.time import utc_now
+from app.face.engine import FaceEngine
 from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
 from app.modules.auth.rate_limit import report_limiter
 from app.modules.auth.scope import ensure_plant_in_scope, plant_filter
+from app.modules.face.engine_provider import engine_state, get_face_engine, running_model_id
+from app.modules.face.state import plant_has_enrolled_faces
 from app.modules.kiosks import service
 from app.modules.kiosks.dependencies import require_kiosk
 from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.schemas import (
     CreateKioskRequest,
+    KioskFaceSettings,
     KioskMeResponse,
     KioskNoticeItem,
     KioskReportRequest,
@@ -198,6 +202,7 @@ def register_kiosk(
 def kiosk_me(
     kiosk: KioskDevice = Depends(require_kiosk),
     session: Session = Depends(get_session),
+    engine: FaceEngine = Depends(get_face_engine),
 ) -> KioskMeResponse:
     """The kiosk's heartbeat (every 60 s): who it is, plus the notices and settings it shows."""
     plant = get_plant(session, kiosk.plant_id)
@@ -217,11 +222,13 @@ def kiosk_me(
             )
             for notice in visible_notices(session, kiosk.plant_id, now)
         ],
-        kiosk_settings=_screen_settings(session, kiosk),
+        kiosk_settings=_screen_settings(session, kiosk, engine),
     )
 
 
-def _screen_settings(session: Session, kiosk: KioskDevice) -> KioskScreenSettings:
+def _screen_settings(
+    session: Session, kiosk: KioskDevice, engine: FaceEngine
+) -> KioskScreenSettings:
     # A kiosk switched to "sound off" at its own gate silences tones and voice together.
     quiet = kiosk.sound_muted
     return KioskScreenSettings(
@@ -232,6 +239,14 @@ def _screen_settings(session: Session, kiosk: KioskDevice) -> KioskScreenSetting
         photo_ready_seconds=get_int_setting(session, "kiosk_photo_ready_seconds"),
         snapshot_retention_days=get_int_setting(session, "snapshot_retention_days"),
         dark_threshold=get_int_setting(session, "snapshot_dark_threshold"),
+        face=KioskFaceSettings(
+            available=engine.model_id is not None and get_settings().face_template_key is not None,
+            state=engine_state(engine),  # type: ignore[arg-type]
+            enabled_for_plant=plant_has_enrolled_faces(session, kiosk.plant_id, running_model_id()),
+            challenge_seconds=get_int_setting(session, "face_challenge_seconds"),
+            code_entry_seconds=get_int_setting(session, "face_code_entry_seconds"),
+            min_yaw_degrees=get_int_setting(session, "face_min_yaw_degrees"),
+        ),
     )
 
 

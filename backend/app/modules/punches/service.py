@@ -78,12 +78,12 @@ def record_kiosk_punch(
 ) -> KioskPunchResponse:
     limits = load_limits(session)
 
-    already_stored = _find_punch(session, kiosk, request.client_punch_id)
+    already_stored = find_punch(session, kiosk, request.client_punch_id)
     if already_stored is not None:
         return punch_answer(session, already_stored, kiosk.name, limits)
 
     now = utc_now()
-    _lock_employee_of_card(session, request.qr_payload)
+    _lock_employee_of_card(session, request.qr_payload or "")
     context = PunchContext(
         session=session,
         app_settings=get_settings(),
@@ -116,8 +116,8 @@ def record_kiosk_punch(
     except IntegrityError:
         # Another request with the same id won the race: undo and give its answer.
         session.rollback()
-        _delete_file_quietly(snapshot, storage)
-        winner = _find_punch(session, kiosk, request.client_punch_id)
+        delete_file_quietly(snapshot, storage)
+        winner = find_punch(session, kiosk, request.client_punch_id)
         if winner is None:
             raise
         return punch_answer(session, winner, kiosk.name, limits)
@@ -125,12 +125,12 @@ def record_kiosk_punch(
         # Any other failure must not leave an encrypted photo behind that no row points to:
         # the purge job works from the rows, so such a file would never be deleted.
         session.rollback()
-        _delete_file_quietly(snapshot, storage)
+        delete_file_quietly(snapshot, storage)
         raise
     return punch_answer(session, punch, kiosk.name, limits)
 
 
-def _find_punch(session: Session, kiosk: KioskDevice, client_punch_id: uuid.UUID) -> Punch | None:
+def find_punch(session: Session, kiosk: KioskDevice, client_punch_id: uuid.UUID) -> Punch | None:
     return session.scalar(
         select(Punch).where(Punch.kiosk_id == kiosk.id, Punch.client_punch_id == client_punch_id)
     )
@@ -260,7 +260,7 @@ def _store_snapshot(
 
     retention_days = get_int_setting(session, "snapshot_retention_days")
     key = f"snapshots/{now:%Y/%m/%d}/{punch.id}.bin"
-    stored_size = _upload(punch, checked, key, get_settings(), storage)
+    stored_size = upload_snapshot(punch, checked, key, get_settings(), storage)
     return PunchSnapshot(
         punch_id=punch.id,
         storage_key=key,
@@ -275,7 +275,7 @@ def _store_snapshot(
     )
 
 
-def _upload(
+def upload_snapshot(
     punch: Punch, checked: CheckedSnapshot, key: str, settings: Settings, storage: Storage | None
 ) -> int | None:
     """The size of the stored file, or None when it could not be stored."""
@@ -297,7 +297,7 @@ def _upload(
     return len(encrypted)
 
 
-def _delete_file_quietly(snapshot: PunchSnapshot | None, storage: Storage | None) -> None:
+def delete_file_quietly(snapshot: PunchSnapshot | None, storage: Storage | None) -> None:
     if snapshot is None or snapshot.state != SnapshotState.STORED.value:
         return
     try:
