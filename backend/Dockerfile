@@ -18,7 +18,7 @@ RUN uv sync --locked --no-dev --no-install-project \
 COPY scripts/models.json scripts/download_models.py scripts/quantise_models.py scripts/
 
 # Which downloads to bake in (names from scripts/models.json) and whether to make INT8 copies.
-ARG FACE_MODEL_DOWNLOADS=buffalo_l,buffalo_s,minifasnet_v2,minifasnet_v1se
+ARG FACE_MODEL_DOWNLOADS=buffalo_l,buffalo_s,minifasnet_v2,minifasnet_v1se,sample_faces
 ARG MAKE_INT8_MODELS=true
 RUN /opt/models-venv/bin/python scripts/download_models.py --dest /models \
         --only "$FACE_MODEL_DOWNLOADS" \
