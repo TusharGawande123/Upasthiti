@@ -374,16 +374,32 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
   (the raw keys made the Settings page too wide on a phone), `E2E_PAIRING_LIMIT` (test server only,
   production stays 10 per 10 minutes), the sideways-scroll check no longer fails on a headed
   browser's scrollbar.
-- Next: design gate C (step 26), then step 27 (it also adds the Privacy settings card: `company_address`
-  and `privacy_contact` have no Settings screen yet); then slice D (steps 28 to 31, 33).
+- Done (session 2): **design gate C (step 26)** approved (decision 0020, `docs/design-refs/m3/gate-c/`) and
+  **step 27** built: backend `report_value` + `is_text` on settings, `followed_by_punch_id` on the punch
+  log, `face_state` in quick search, public `GET /privacy-notice`, the gate poster with the face punch
+  (`poster_pdf.py`, new `head-turn.svg`); frontend: Settings with five face sub-groups, report values,
+  "Use" button, lowered-threshold warning, floor rule and the Privacy card (text settings); public
+  `/privacy` page; dashboard card "Face enrolment"; Ctrl+K "Enrol face…", "Employees not enrolled",
+  "Re-enrol suggested" (`?face=enrol` and `?face_state=` deep links); punch log with Method column,
+  merged "Result and reason", "Asked for code" and "No face in photo" chips, Method filter, Details side
+  sheet (scores only for the Super Admin); `punchReasons` texts for the face codes. e2e
+  `admin-face.spec.ts` (6 tests) and `/privacy` in `responsive.spec.ts`.
+- Next: slice D: step 28 (accuracy tool; the real-face runs are Tushar's), 29 (CI memory check), 30
+  (coverage floor 75 to 80), 31 (docs), 33 (reviews). Then Tushar: step 32 (FACE_TEMPLATE_KEY on Render),
+  CLAUDE.md approval, the PR.
+- Notes for slice D and for Tushar: `report_value` of each setting (`settings/definitions.py`) is empty
+  until the accuracy report fills it. The plan's "Gate C" settings screen shows "No report yet" until
+  then. The Settings page, the punch log and the dashboard card have no real-people check yet.
+  `qr-cards-bulk.test.tsx` "refuses more than 200 cards" failed once under load in a full run and
+  passed alone (a timing flake, not related to M3).
 - Reminders for slice D (real people, Tushar): the head-turn timing in `face-sequence.ts` uses a rough
   0.0175 turn per degree (MediaPipe to degrees) and the turn sign must be checked with real frames;
   nobody has tried the gate or the wizard with a real webcam or a phone yet (hints, 1-second hold,
   sunlight reading of the code pad). For the CLAUDE.md update: new variable `E2E_PAIRING_LIMIT`
   (honoured only when `APP_ENV=test`), new dependency `@fontsource/jetbrains-mono` (OFL, code pad).
-- Test results (2026-10-24, after step 23): backend 938 passed, 7 skipped (coverage 90.2%); frontend
-  478 passed, lint + typecheck + i18n:check + build size budgets green; e2e (headed): 50 tests, the
-  full suite passed in two parts after the pairing limit and scrollbar fixes (kiosk-face-punch 8/8).
+- Test results (2026-10-24, after step 27): backend 942 passed, 7 skipped (coverage 90.3%); frontend
+  499 passed, lint + typecheck + i18n:check + build size budgets green; e2e (headed): the whole suite,
+  57 tests, passed in one run (10 minutes).
 - Open questions: none blocking. Reminders: `buffalo_s` accuracy (NFR-05) is measured in slice D;
   the head-turn sign (+ = the person's own left) must be confirmed with real team frames in slice
   D; the CelebA-Spoof candidate has no stable ONNX link yet; `FACE_TEMPLATE_KEY` must be set on

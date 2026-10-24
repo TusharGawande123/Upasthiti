@@ -158,3 +158,22 @@ test("the kiosk scanning and result screens fit a phone held upright", async ({ 
     await close();
   }
 });
+
+test("the public privacy notice fits a small phone, a phone and a tablet, without a login", async ({
+  browser,
+}) => {
+  for (const size of [SMALL_PHONE, PHONE, TABLET]) {
+    const context = await browser.newContext({
+      baseURL: FRONTEND_URL,
+      viewport: size,
+      locale: "en-IN",
+    });
+    const reader = await context.newPage();
+    await reader.goto("/privacy", { waitUntil: "networkidle" });
+    await expect(
+      reader.getByRole("heading", { name: "Face and photo attendance at Sheet Shapers" }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(reader, `privacy notice ${size.width}px`);
+    await context.close();
+  }
+});

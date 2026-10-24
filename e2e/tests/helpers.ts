@@ -373,7 +373,10 @@ export async function enrolFaceThroughApi(
     );
     expect(shot.accepted, `the ${pose} shot of person ${person}`).toBe(true);
   }
-  await api.post(`/face/enrolment-sessions/${session.session_id}/finish`, {});
+  // The same made-up face is enrolled again in other specs: the duplicate check would stop it.
+  await api.post(`/face/enrolment-sessions/${session.session_id}/finish`, {
+    duplicate_override_reason: "End-to-end test: the same made-up face is used in several specs",
+  });
 }
 
 /**
