@@ -19,10 +19,28 @@ Everything here is fake and local. The data lives in a throwaway database `upast
 |---|---|
 | `prepare_data.py` | Makes and fills the throwaway database; writes `.data/server.env` (fake keys for the container) and `.data/fixture.json` (kiosk keys and card texts) |
 | `locustfile.py` | The Locust test: one `KioskUser` per gate, signed punches, a heartbeat every 30 punches |
+| `locustfile_face.py` | The face punch test (M3): one gate, a challenge and a face punch every 2 s |
 | `.data/` | Generated files and results (git-ignored) |
 
 Locust (MIT) is in its own dependency group `loadtest`: it is **not** installed in CI or in the Docker
 image (`uv sync --group loadtest` installs it).
+
+## Face punch (M3, spec AC-1)
+
+The data comes from the CI memory check (`app/scripts/face_memory_check.py`): one gate device and
+one face employee per face of the public InsightFace sample picture. Run its `prepare` step inside
+the image (it needs the models) against a throw-away `upasthiti_memcheck` database, start the
+container with `--cpus=0.1 --memory=512m`, `APP_PUBLIC_ORIGIN` equal to the Locust `--host` and the
+same `FACE_TEMPLATE_KEY`, then:
+
+```powershell
+$env:LOADTEST_FACE_FIXTURE = "loadtest/.data/face-fixture.json"
+uv run --group loadtest locust -f loadtest/locustfile_face.py --headless -u 1 -r 1 -t 5m `
+  --host http://localhost:8001 --csv loadtest/.data/face
+```
+
+Look at "POST /punch/kiosk (face)": its 95th percentile must stay under 2 s. Most answers are
+"already punched in" (the same few faces again), which still runs the whole face chain.
 
 ## How to run it on your laptop
 
