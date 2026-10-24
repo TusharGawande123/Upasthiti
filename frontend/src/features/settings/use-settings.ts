@@ -15,6 +15,10 @@ export type Setting = {
   minimum: number | null;
   maximum: number | null;
   allowed_values: SettingValue[] | null;
+  /** A text setting (company address, privacy contact): minimum and maximum are its length. */
+  is_text?: boolean;
+  /** The value the accuracy report suggests (M3); null until slice D writes the report. */
+  report_value?: number | null;
 };
 
 const SETTINGS_KEY = ["settings"];

@@ -149,7 +149,8 @@ export function ConsentDialog({ employee, onAgreed, onClose }: Props) {
               <span>{describeError(text.error, t)}</span>
               {settingsMissing ? (
                 <Link
-                  to="/admin/settings"
+                  to="/admin/settings#privacy"
+                  state={{ fromConsent: { name: employee.name, path: window.location.pathname } }}
                   className="ml-auto inline-flex items-center gap-1.5 font-semibold underline"
                 >
                   <Settings className="size-4" aria-hidden />
@@ -161,6 +162,17 @@ export function ConsentDialog({ employee, onAgreed, onClose }: Props) {
             <ConsentTextView text={text.data.text} />
           )}
         </section>
+
+        <p className="mt-2 text-sm">
+          <a
+            href="/privacy"
+            target="_blank"
+            rel="noreferrer"
+            className="font-semibold text-primary underline"
+          >
+            {t("face.consent.privacyLink")}
+          </a>
+        </p>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           <label className="flex cursor-pointer items-center gap-2">

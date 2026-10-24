@@ -1,7 +1,7 @@
 // Two small dialogs: ask for a reason (every user change is audited), and show a temporary
 // password exactly once with a copy button.
 import { Check, Copy, Loader2, TriangleAlert } from "lucide-react";
-import { useState } from "react";
+import { type ReactNode, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,8 @@ type ReasonDialogProps = {
   confirmLabel: string;
   isPending: boolean;
   error?: string;
+  /** Something to read before giving the reason, for example the list of changes. */
+  details?: ReactNode;
   onConfirm: (reason: string) => void;
 };
 
@@ -34,6 +36,7 @@ export function ReasonDialog({
   confirmLabel,
   isPending,
   error,
+  details,
   onConfirm,
 }: ReasonDialogProps) {
   const { t } = useTranslation();
@@ -52,6 +55,7 @@ export function ReasonDialog({
         <DialogTitle>{title}</DialogTitle>
         <DialogDescription>{t("common.reasonExplain")}</DialogDescription>
         <div className="mt-4 space-y-4">
+          {details}
           {error ? (
             <Alert tone="danger">
               <span>{error}</span>

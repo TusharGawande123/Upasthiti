@@ -659,7 +659,8 @@
     "show": "Show",
     "hide": "Hide",
     "submit": "Log in",
-    "forgot": "Forgot your password? Ask the Super Admin to reset it."
+    "forgot": "Forgot your password? Ask the Super Admin to reset it.",
+    "privacyLink": "Privacy notice"
   },
   "newPassword": {
     "title": "Set a new password",
@@ -788,6 +789,10 @@
       "kiosk_screen": {
         "title": "Device sound and screen",
         "description": "What every gate attendance device plays and how long it shows a result."
+      },
+      "privacy": {
+        "title": "Privacy",
+        "description": "Printed in the face consent text and on the public privacy notice page."
       }
     },
     "items": {
@@ -946,6 +951,14 @@
       "face_reenrol_score_margin": {
         "label": "Re-enrol hint: falling score",
         "help": "Suggest enrolling a face again when recent match scores fall this far below the older ones."
+      },
+      "company_address": {
+        "label": "Company address",
+        "help": "The registered address of Sheet Shapers. The consent text and the privacy notice name it."
+      },
+      "privacy_contact": {
+        "label": "Privacy contact (grievance officer)",
+        "help": "Who employees contact about their data: name, role and how to reach them (phone or email)."
       }
     },
     "units": {
@@ -969,7 +982,50 @@
     "retentionWarning": {
       "title": "Lowering to {{days}} days also shortens the photos already stored.",
       "text": "Photos older than {{days}} days are deleted tonight at 00:05 IST and cannot be brought back. The gate posters say “kept for {{current}} days”: download and print them again after saving."
-    }
+    },
+    "subgroups": {
+      "matching": "Matching",
+      "liveness": "Liveness and anti-spoof",
+      "quality": "Picture quality",
+      "code": "Code entry and timing",
+      "hints": "Hints"
+    },
+    "settingsCount_one": "{{count}} setting",
+    "settingsCount_other": "{{count}} settings",
+    "changesCount_one": "{{count}} changed",
+    "changesCount_other": "{{count}} changed",
+    "reportValue": "Report value: {{value}}",
+    "noReport": "No report yet",
+    "useReport": "Use {{value}}",
+    "reportStrip": {
+      "none": "No accuracy report yet. These are starting values; the accuracy report of the team test replaces them.",
+      "found": "The report values come from the accuracy report. \"Use\" copies one into the field; you still save it with a reason."
+    },
+    "lowerThreshold": {
+      "title": "A lower threshold lets more strangers through.",
+      "text": "Change only after reading the accuracy report."
+    },
+    "floorError": "The code-entry floor must be lower than the match threshold.",
+    "changedBadge": "Changed",
+    "textLength": "A text of {{min}} to {{max}} characters",
+    "counter": "{{count}} / {{max}} · at least {{min}}",
+    "faceNote": "Changes apply to the next punch at every plant. A face setting never changes punches already decided.",
+    "privacy": {
+      "notSet": "Not set",
+      "setFirst": "Set this before the first enrolment:",
+      "setFirstWhy": "the consent text names it. Until it is set, the consent dialog cannot be opened.",
+      "previewTitle": "How the consent text will read",
+      "previewStart": "Sheet Shapers, ",
+      "previewMiddle": ", uses Upasthiti to record attendance at the plant gate. … Grievance officer and contact: ",
+      "previewEnd": ". We reply within 30 days.",
+      "addressMissing": "[company address not set]",
+      "contactMissing": "[privacy contact not set]",
+      "footer": "Employees read the full notice at"
+    },
+    "fromConsent": "You came from the consent dialog of {{name}}. Set the company address and the privacy contact, save, then go back.",
+    "backTo": "Back to {{name}}",
+    "textChanged": "(text changed)",
+    "changedTo": "changed to"
   },
   "audit": {
     "title": "Audit log",
@@ -2273,7 +2329,8 @@
       "openSettings": "Open Settings",
       "declinedTitle": "QR card chosen",
       "declinedText": "{{name}} chose a QR card. Their punch method is now QR card. Issue a card so they can punch at the gate.",
-      "loading": "Loading the consent text…"
+      "loading": "Loading the consent text…",
+      "privacyLink": "Read the full privacy notice"
     },
     "pose": {
       "straight": "Look straight at the camera",
@@ -2340,5 +2397,92 @@
         "confirm": "Enrol anyway"
       }
     }
+  },
+  "privacy": {
+    "topbar": "Upasthiti · Sheet Shapers · Smart Attendance",
+    "back": "Back",
+    "eyebrow": "Privacy notice",
+    "title": "Face and photo attendance at Sheet Shapers",
+    "lead": "How the gate attendance devices use your face and photos, why, for how long, and what you can do. In plain words.",
+    "version": "Version {{version}}",
+    "company": "Sheet Shapers, {{address}}",
+    "short": {
+      "title": "In short",
+      "purpose": {
+        "title": "Only for attendance",
+        "text": "Never shared, never sent to an AI company."
+      },
+      "template": {
+        "title": "Numbers, not pictures",
+        "text": "We keep an encrypted face template, not your photos."
+      },
+      "choice": {
+        "title": "Your choice",
+        "text": "Say no and punch with a QR card. Nothing else changes."
+      },
+      "questions": {
+        "title": "Questions?",
+        "text": "Ask the plant office, or the contact below."
+      }
+    },
+    "onThisPage": "On this page",
+    "collect": {
+      "title": "What we collect",
+      "faceLead": "If you punch with your face:",
+      "template": "A face template. At enrolment the camera takes 5 pictures of your face. The system turns them into a list of numbers that describes your face. The pictures are deleted at once. Only the template is kept, and it is encrypted.",
+      "pictures": "Pictures at each face punch. The device takes a few pictures. The server compares them with your template and then deletes them.",
+      "photo": "One small photo when a face punch fails or you type your employee code, so the plant office can check what happened.",
+      "cardLead": "If you punch with a QR card: one photo at each card punch, checked automatically to see that a face is present.",
+      "everyone": "For everyone: your name, employee code, plant, and the time and device of each punch."
+    },
+    "why": {
+      "title": "Why",
+      "text": "Only to record your attendance and to stop anyone else from marking attendance for you.",
+      "more": "Your face data is not used for anything else, is not shared, and is never sent to any AI company. Card photos are checked automatically only to see that a face is present."
+    },
+    "keep": {
+      "title": "How long we keep it",
+      "template": "Face template",
+      "templateWhen": "Until you leave or withdraw your consent",
+      "pictures": "Pictures taken at a face punch",
+      "picturesWhen": "Deleted after the check",
+      "failedPhoto": "Photo of a failed punch, or when you type your code",
+      "cardPhoto": "Photo of a card punch",
+      "days": "{{count}} days",
+      "punches": "Punch times (attendance records)",
+      "punchesWhen": "As labour law requires",
+      "consent": "Your consent record (proof of consent)",
+      "consentWhen": "With your employee record",
+      "after": "When you leave the company or withdraw your consent, your template is deleted at once."
+    },
+    "where": {
+      "title": "Where it is processed",
+      "text": "The pictures are checked in memory on our hosting provider's server in Singapore. The encrypted template and the photos are stored in Mumbai. The storage provider does not have the key to open them."
+    },
+    "see": {
+      "title": "Who can see it",
+      "text": "No person can see your template. Only the Super Admin can see the small photos of failed punches, and every view is recorded. The Plant Head and the Corporate Head see only whether, when and how you punched."
+    },
+    "choice": {
+      "title": "Your choice, and how to withdraw",
+      "text": "You do not have to agree to face attendance. If you do not agree, you get a QR ID card to punch with instead. Saying no, or withdrawing later, will not affect your job, pay, shift or treatment in any way.",
+      "withdraw": "To withdraw, tell the plant office. That is enough. Your template is then deleted and you get a QR card."
+    },
+    "rights": {
+      "title": "Your rights",
+      "text": "You can ask what data we keep about you, ask to correct or delete it, and raise a complaint. Your attendance records (punch times) are kept as labour law requires, even after your face data is deleted.",
+      "reply": "We reply within 30 days. If you are not satisfied with the answer, you can complain to the Data Protection Board of India."
+    },
+    "contact": {
+      "title": "Who to contact",
+      "grievance": "Grievance officer and contact",
+      "missing": "The contact is being set up. Until then, ask at your plant office.",
+      "orOffice": "Or ask at your plant office."
+    },
+    "print": "Print this page",
+    "adminLogin": "Admin login",
+    "loading": "Loading the notice…",
+    "error": "The notice could not be loaded. Please try again, or ask at your plant office.",
+    "footer": "Upasthiti · Sheet Shapers · Smart Attendance"
   }
 }

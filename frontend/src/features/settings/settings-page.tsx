@@ -1,18 +1,35 @@
-// Settings screen (spec §4.15): every rule value with its default and range, in groups.
+// Settings screen (spec §4.15, M3 §4.12): every rule value with its default and range, in groups.
 // Only the Super Admin can change values; settings used from a later milestone are locked.
-import { Loader2, Lock, RotateCcw, TriangleAlert } from "lucide-react";
-import { useState } from "react";
+// The face settings are shown in five sub-groups with the accuracy report's value beside each
+// threshold, and the privacy texts (company address, privacy contact) have their own card
+// (design gate C, decision 0020).
+import {
+  ChevronDown,
+  Gauge,
+  Image,
+  Info,
+  Keyboard,
+  Lightbulb,
+  Loader2,
+  ScanFace,
+  ShieldCheck,
+  TriangleAlert,
+  UserRound,
+} from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { Link, useLocation } from "react-router";
 import { toast } from "sonner";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { describeError } from "@/features/auth/error-message";
 import { useMe } from "@/features/auth/use-auth";
 import { ReasonDialog } from "@/features/users/user-dialogs";
+import { cn } from "@/lib/utils";
+import { FACE_SUBGROUPS, type FaceSubgroupId, floorIsAboveThreshold } from "./face-settings";
+import { isValid, SettingRow, sameValue } from "./setting-row";
 import { type Setting, type SettingValue, useSaveSettings, useSettings } from "./use-settings";
 
 // The order of the cards on the screen.
@@ -24,147 +41,258 @@ const GROUP_ORDER = [
   "cards",
   "kiosk_screen",
   "face",
+  "privacy",
   "salary",
 ];
 
-function sameValue(a: SettingValue, b: SettingValue) {
-  return String(a) === String(b);
+const SUBGROUP_ICONS = {
+  matching: Gauge,
+  liveness: ShieldCheck,
+  quality: Image,
+  code: Keyboard,
+  hints: Lightbulb,
+} as const;
+
+type RowProps = {
+  drafts: Record<string, string>;
+  canEdit: boolean;
+  onChange: (key: string, value: string) => void;
+};
+
+function draftOf(setting: Setting, drafts: Record<string, string>) {
+  return drafts[setting.key] ?? String(setting.value ?? "");
 }
 
-/** Whether a typed or chosen value is acceptable (the server checks it again). */
-function isValid(setting: Setting, raw: string): boolean {
-  // A setting with a fixed list of choices (on / off, 26 / 30 / actual) takes one of them.
-  if (setting.allowed_values) return setting.allowed_values.some((value) => String(value) === raw);
-  const value = Number(raw);
+function isChanged(setting: Setting, drafts: Record<string, string>) {
   return (
-    raw !== "" &&
-    !Number.isNaN(value) &&
-    (setting.minimum === null || value >= setting.minimum) &&
-    (setting.maximum === null || value <= setting.maximum)
+    setting.editable &&
+    drafts[setting.key] !== undefined &&
+    !sameValue(drafts[setting.key] ?? null, setting.value)
   );
 }
 
-function SettingRow({
-  setting,
-  draft,
+function Rows({
+  settings,
+  all,
+  drafts,
   canEdit,
   onChange,
-}: {
-  setting: Setting;
-  draft: string;
-  canEdit: boolean;
-  onChange: (value: string) => void;
-}) {
-  const { t } = useTranslation();
-  // The server sends the unit as a short code ("min", "m"); the words come from our texts.
-  const unitLabel = (unit: string | null) =>
-    unit ? t(`settings.units.${unit}`, { defaultValue: unit }) : "";
-  const locked = !setting.editable || !canEdit;
-  const hasChoices = setting.allowed_values !== null && setting.editable;
-  const hasRange = setting.minimum !== null && setting.maximum !== null;
-  // Lowering the retention also shortens photos that are already stored (spec M2 §7 rule 4).
-  const lowersRetention =
-    setting.key === "snapshot_retention_days" &&
-    !locked &&
-    isValid(setting, draft) &&
-    Number(draft) < Number(setting.value);
-  const numeric = Number(draft);
-  const outOfRange =
-    !locked &&
-    hasRange &&
-    draft !== "" &&
-    (Number.isNaN(numeric) ||
-      numeric < (setting.minimum as number) ||
-      numeric > (setting.maximum as number));
-
+}: RowProps & { settings: Setting[]; all: Setting[] }) {
+  const matchThreshold = all.find((setting) => setting.key === "face_match_threshold");
   return (
-    <div className="grid gap-2 border-b py-4 last:border-0 sm:grid-cols-[1fr_220px] sm:items-start">
-      <div>
-        <label htmlFor={setting.key} className="text-sm font-semibold">
-          {t(`settings.items.${setting.key}.label`)}
-        </label>
-        <p className="text-[13px] text-muted-foreground">
-          {t(`settings.items.${setting.key}.help`)}
-        </p>
-        <p className="mt-1 text-xs text-subtle-foreground">
-          {t("settings.defaultIs", {
-            value:
-              setting.default === null
-                ? t("settings.setLater")
-                : `${setting.default} ${unitLabel(setting.unit)}`,
-          })}
-          {hasRange
-            ? ` · ${t("settings.range", { min: setting.minimum, max: setting.maximum })}`
-            : ""}
-        </p>
-        {!setting.editable ? (
-          <p className="mt-1 flex items-center gap-1 text-xs font-semibold text-warning">
-            <Lock className="size-3" aria-hidden />
-            {t("settings.usedFrom", { milestone: setting.used_from })}
-          </p>
+    <>
+      {settings.map((setting) => (
+        <SettingRow
+          key={setting.key}
+          setting={setting}
+          draft={draftOf(setting, drafts)}
+          changed={isChanged(setting, drafts)}
+          canEdit={canEdit}
+          floorError={
+            setting.key === "face_code_offer_floor" &&
+            matchThreshold !== undefined &&
+            floorIsAboveThreshold(draftOf(setting, drafts), draftOf(matchThreshold, drafts))
+          }
+          onChange={(value) => onChange(setting.key, value)}
+        />
+      ))}
+    </>
+  );
+}
+
+// One of the five face sub-groups. On a phone it folds up (Matching is open, the others are
+// closed, one with a change opens itself); from 768 px every sub-group is open, because looking
+// down a list is faster than clicking.
+function FaceSubgroup({
+  id,
+  settings,
+  all,
+  drafts,
+  canEdit,
+  onChange,
+}: RowProps & { id: FaceSubgroupId; settings: Setting[]; all: Setting[] }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(id === "matching");
+  const changes = settings.filter((setting) => isChanged(setting, drafts)).length;
+  const shown = open || changes > 0;
+  const Icon = SUBGROUP_ICONS[id];
+  return (
+    <section className="border-t first:border-t-0">
+      <button
+        type="button"
+        aria-expanded={shown}
+        onClick={() => setOpen(!shown)}
+        className="flex min-h-[52px] w-full items-center gap-3 px-1 py-2 text-left md:pointer-events-none"
+      >
+        <Icon className="size-5 shrink-0 text-primary" aria-hidden />
+        <span className="flex-1">
+          <span className="block text-sm font-bold">{t(`settings.subgroups.${id}`)}</span>
+          <span className="block text-xs text-muted-foreground">
+            {t("settings.settingsCount", { count: settings.length })}
+          </span>
+        </span>
+        {changes > 0 ? (
+          <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary">
+            {t("settings.changesCount", { count: changes })}
+          </span>
         ) : null}
+        <ChevronDown
+          className={cn("size-5 shrink-0 transition md:hidden", shown && "rotate-180")}
+          aria-hidden
+        />
+      </button>
+      <div className={cn("pb-1", shown ? "block" : "hidden md:block")}>
+        <Rows settings={settings} all={all} drafts={drafts} canEdit={canEdit} onChange={onChange} />
       </div>
-      <div>
-        <div className="flex items-center gap-2">
-          {hasChoices ? (
-            <Select
-              id={setting.key}
-              value={draft}
-              disabled={locked}
-              onChange={(event) => onChange(event.target.value)}
-            >
-              {setting.allowed_values?.map((value) => (
-                <option key={String(value)} value={String(value)}>
-                  {t(`settings.choices.${value}`, { defaultValue: String(value) })}
-                </option>
-              ))}
-            </Select>
-          ) : (
-            <>
-              <Input
-                id={setting.key}
-                value={draft}
-                readOnly={locked}
-                inputMode="numeric"
-                aria-invalid={outOfRange}
-                className="tnum"
-                onChange={(event) => onChange(event.target.value)}
-              />
-              <span className="min-w-10 shrink-0 text-[13px] text-muted-foreground">
-                {unitLabel(setting.unit)}
-              </span>
-            </>
+    </section>
+  );
+}
+
+function FaceCard({ all, drafts, canEdit, onChange }: RowProps & { all: Setting[] }) {
+  const { t } = useTranslation();
+  const faceSettings = all.filter((setting) => setting.group === "face");
+  const hasReport = faceSettings.some((setting) => (setting.report_value ?? null) !== null);
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <ScanFace className="size-5 text-primary" aria-hidden />
+          {t("settings.groups.face.title")}
+        </CardTitle>
+        <CardDescription>{t("settings.groups.face.description")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <p
+          className={cn(
+            "mb-3 flex items-start gap-2 rounded-lg border px-3 py-2 text-[13px]",
+            hasReport ? "border-primary/30 bg-primary-soft" : "border-dashed text-muted-foreground",
           )}
-        </div>
-        {lowersRetention ? (
-          <div
-            role="alert"
-            className="mt-2 flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft p-2 text-[13px] text-warning"
+        >
+          <Info className="mt-0.5 size-4 shrink-0" aria-hidden />
+          {hasReport ? t("settings.reportStrip.found") : t("settings.reportStrip.none")}
+        </p>
+        {FACE_SUBGROUPS.map((subgroup) => {
+          const rows = subgroup.keys
+            .map((key) => faceSettings.find((setting) => setting.key === key))
+            .filter((setting): setting is Setting => setting !== undefined);
+          return (
+            <FaceSubgroup
+              key={subgroup.id}
+              id={subgroup.id}
+              settings={rows}
+              all={all}
+              drafts={drafts}
+              canEdit={canEdit}
+              onChange={onChange}
+            />
+          );
+        })}
+        <p className="mt-3 flex items-center gap-2 text-xs text-muted-foreground">
+          <Info className="size-4 shrink-0" aria-hidden />
+          {t("settings.faceNote")}
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// The two texts the consent text and the public privacy page print. The preview shows how the
+// consent sentence will read; an empty value shows in red so it is not forgotten.
+function PrivacyCard({
+  all,
+  drafts,
+  canEdit,
+  onChange,
+  highlight,
+}: RowProps & { all: Setting[]; highlight: boolean }) {
+  const { t } = useTranslation();
+  const rows = all.filter((setting) => setting.group === "privacy");
+  const address = rows.find((setting) => setting.key === "company_address");
+  const contact = rows.find((setting) => setting.key === "privacy_contact");
+  const addressText = address ? draftOf(address, drafts).trim() : "";
+  const contactText = contact ? draftOf(contact, drafts).trim() : "";
+  const missing = (text: string, key: string) => (
+    <mark
+      className={cn(
+        "rounded px-1",
+        text ? "bg-warning-soft" : "bg-destructive/10 text-destructive",
+      )}
+    >
+      {text || t(key)}
+    </mark>
+  );
+  return (
+    <Card id="privacy" className={cn(highlight && "ring-2 ring-primary")}>
+      <CardHeader>
+        <CardTitle className="flex items-center gap-2">
+          <UserRound className="size-5 text-primary" aria-hidden />
+          {t("settings.groups.privacy.title")}
+          {!addressText || !contactText ? (
+            <span className="rounded-full bg-warning-soft px-2 py-0.5 text-xs font-semibold text-warning">
+              {t("settings.privacy.notSet")}
+            </span>
+          ) : null}
+        </CardTitle>
+        <CardDescription>{t("settings.groups.privacy.description")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {!addressText || !contactText ? (
+          <p
+            role="note"
+            className="mb-3 flex items-start gap-2 rounded-lg border border-dashed border-warning bg-warning-soft px-3 py-2 text-[13px] text-warning"
           >
             <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
             <span>
-              <b>{t("settings.retentionWarning.title", { days: draft })}</b>{" "}
-              {t("settings.retentionWarning.text", { days: draft, current: setting.value })}
+              <b>{t("settings.privacy.setFirst")}</b> {t("settings.privacy.setFirstWhy")}
             </span>
-          </div>
-        ) : null}
-        {outOfRange ? (
-          <p className="mt-1 text-[13px] font-medium text-destructive">
-            {t("settings.outOfRange", { min: setting.minimum, max: setting.maximum })}
           </p>
         ) : null}
-        {!locked && setting.default !== null && !sameValue(draft, setting.default) ? (
-          <button
-            type="button"
-            onClick={() => onChange(String(setting.default))}
-            className="mt-1 inline-flex items-center gap-1 text-[13px] font-semibold text-primary"
-          >
-            <RotateCcw className="size-3" aria-hidden />
-            {t("settings.resetToDefault")}
-          </button>
-        ) : null}
-      </div>
-    </div>
+        <Rows settings={rows} all={all} drafts={drafts} canEdit={canEdit} onChange={onChange} />
+        <div className="mt-3 rounded-lg border bg-muted/40 p-3 text-[13px]">
+          <p className="mb-1 text-xs font-bold tracking-wide text-muted-foreground uppercase">
+            {t("settings.privacy.previewTitle")}
+          </p>
+          <p>
+            {t("settings.privacy.previewStart")}
+            {missing(addressText, "settings.privacy.addressMissing")}
+            {t("settings.privacy.previewMiddle")}
+            {missing(contactText, "settings.privacy.contactMissing")}
+            {t("settings.privacy.previewEnd")}
+          </p>
+        </div>
+        <p className="mt-3 flex flex-wrap items-center gap-x-2 text-xs text-muted-foreground">
+          <Info className="size-4 shrink-0" aria-hidden />
+          {t("settings.privacy.footer")}{" "}
+          <Link to="/privacy" className="font-semibold text-primary underline">
+            /privacy
+          </Link>
+        </p>
+      </CardContent>
+    </Card>
+  );
+}
+
+// The list of changes in the reason dialog: what each setting was and will be (small extra).
+function ChangesList({ changed, drafts }: { changed: Setting[]; drafts: Record<string, string> }) {
+  const { t } = useTranslation();
+  return (
+    <ul className="space-y-1 rounded-lg border bg-muted/40 p-3 text-[13px]">
+      {changed.map((setting) => (
+        <li key={setting.key} className="flex flex-wrap gap-x-2">
+          <span className="font-semibold">{t(`settings.items.${setting.key}.label`)}:</span>
+          <span className="text-muted-foreground">
+            {setting.is_text ? t("settings.textChanged") : String(setting.value)}
+          </span>
+          {setting.is_text ? null : (
+            <>
+              <span aria-hidden>→</span>
+              <span className="sr-only">{t("settings.changedTo")}</span>
+              <span className="tnum font-semibold">{drafts[setting.key]}</span>
+            </>
+          )}
+        </li>
+      ))}
+    </ul>
   );
 }
 
@@ -173,9 +301,20 @@ export function SettingsPage() {
   const me = useMe();
   const settings = useSettings();
   const save = useSaveSettings();
+  const location = useLocation();
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [askingReason, setAskingReason] = useState(false);
   const canEdit = me.data?.role === "super_admin";
+  const fromConsent = (location.state as { fromConsent?: { name: string; path: string } } | null)
+    ?.fromConsent;
+  const toPrivacy = location.hash === "#privacy";
+
+  // Coming from the consent dialog: bring the privacy card into view.
+  useEffect(() => {
+    if (toPrivacy && settings.isSuccess) {
+      document.getElementById("privacy")?.scrollIntoView({ block: "start" });
+    }
+  }, [toPrivacy, settings.isSuccess]);
 
   if (settings.isPending) {
     return (
@@ -194,23 +333,29 @@ export function SettingsPage() {
   }
 
   const all = settings.data.settings;
-  const draftOf = (setting: Setting) => drafts[setting.key] ?? String(setting.value ?? "");
-  const changed = all.filter(
-    (setting) =>
-      setting.editable &&
-      drafts[setting.key] !== undefined &&
-      !sameValue(drafts[setting.key] ?? null, setting.value),
-  );
-  const anyInvalid = changed.some((setting) => !isValid(setting, drafts[setting.key] ?? ""));
+  const changed = all.filter((setting) => isChanged(setting, drafts));
+  const matchThreshold = all.find((setting) => setting.key === "face_match_threshold");
+  const floor = all.find((setting) => setting.key === "face_code_offer_floor");
+  const floorWrong =
+    matchThreshold !== undefined &&
+    floor !== undefined &&
+    floorIsAboveThreshold(draftOf(floor, drafts), draftOf(matchThreshold, drafts));
+  const anyInvalid =
+    floorWrong || changed.some((setting) => !isValid(setting, drafts[setting.key] ?? ""));
+  const onChange = (key: string, value: string) =>
+    setDrafts((current) => ({ ...current, [key]: value }));
 
   const confirmSave = (reason: string) => {
     const values: Record<string, SettingValue> = {};
     for (const setting of changed) {
       const raw = drafts[setting.key] as string;
-      // A fixed choice keeps its own kind (the text "on", the number 26); others are numbers.
-      values[setting.key] = setting.allowed_values
-        ? (setting.allowed_values.find((value) => String(value) === raw) ?? raw)
-        : Number(raw);
+      // A fixed choice keeps its own kind (the text "on", the number 26); text stays text;
+      // the others are numbers.
+      values[setting.key] = setting.is_text
+        ? raw.trim()
+        : setting.allowed_values
+          ? (setting.allowed_values.find((value) => String(value) === raw) ?? raw)
+          : Number(raw);
     }
     save.mutate(
       { values, reason },
@@ -224,6 +369,7 @@ export function SettingsPage() {
     );
   };
 
+  const shared = { drafts, canEdit, onChange };
   return (
     <div className="mx-auto max-w-4xl space-y-5 pb-24">
       <div>
@@ -233,9 +379,22 @@ export function SettingsPage() {
         </p>
       </div>
 
+      {fromConsent ? (
+        <Alert tone="info" className="items-center">
+          <span>{t("settings.fromConsent", { name: fromConsent.name })}</span>
+          <Link to={fromConsent.path} className="ml-auto font-semibold underline">
+            {t("settings.backTo", { name: fromConsent.name })}
+          </Link>
+        </Alert>
+      ) : null}
+
       {GROUP_ORDER.map((group) => {
         const rows = all.filter((setting) => setting.group === group);
         if (rows.length === 0) return null;
+        if (group === "face") return <FaceCard key={group} all={all} {...shared} />;
+        if (group === "privacy") {
+          return <PrivacyCard key={group} all={all} highlight={toPrivacy} {...shared} />;
+        }
         return (
           <Card key={group}>
             <CardHeader>
@@ -243,17 +402,7 @@ export function SettingsPage() {
               <CardDescription>{t(`settings.groups.${group}.description`)}</CardDescription>
             </CardHeader>
             <CardContent>
-              {rows.map((setting) => (
-                <SettingRow
-                  key={setting.key}
-                  setting={setting}
-                  draft={draftOf(setting)}
-                  canEdit={canEdit}
-                  onChange={(value) =>
-                    setDrafts((current) => ({ ...current, [setting.key]: value }))
-                  }
-                />
-              ))}
+              <Rows settings={rows} all={all} {...shared} />
             </CardContent>
           </Card>
         );
@@ -284,6 +433,7 @@ export function SettingsPage() {
         confirmLabel={t("settings.save")}
         isPending={save.isPending}
         error={save.error ? describeError(save.error, t) : undefined}
+        details={<ChangesList changed={changed} drafts={drafts} />}
         onConfirm={confirmSave}
       />
       {save.isPending ? <Loader2 className="sr-only animate-spin" /> : null}
