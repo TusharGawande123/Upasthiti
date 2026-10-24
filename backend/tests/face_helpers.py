@@ -20,9 +20,6 @@ POSE_FRAMES = {  # enrolment pose -> (yaw, pitch) of the painted picture
     "right": (-20, 0),
     "up": (0, 20),
     "down": (0, -20),
-    "closer": (0, 0),
-    "farther": (0, 0),
-    "work_wear": (0, 0),
 }
 
 

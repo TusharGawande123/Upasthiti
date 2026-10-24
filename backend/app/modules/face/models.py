@@ -28,7 +28,7 @@ from sqlalchemy.orm import Mapped, mapped_column
 from app.core.db import Base
 from app.core.model_mixins import IdMixin, TimestampMixin
 
-ENROLMENT_POSES = ("straight", "left", "right", "up", "down", "closer", "farther", "work_wear")
+ENROLMENT_POSES = ("straight", "left", "right", "up", "down")
 REQUIRED_SHOTS = len(ENROLMENT_POSES)
 
 
@@ -126,7 +126,7 @@ class FaceTemplate(IdMixin, TimestampMixin, Base):
     __table_args__ = (
         CheckConstraint("key_id ~ '^[A-Z]$'", name="key_id_format"),
         CheckConstraint(
-            f"shot_count BETWEEN {REQUIRED_SHOTS} AND {REQUIRED_SHOTS + 2}",
+            f"shot_count BETWEEN {REQUIRED_SHOTS} AND 10",
             name="shot_count_range",
         ),
         # The face data and the "deleted" mark always go together: a row cannot be both.
@@ -210,7 +210,7 @@ class FaceEnrolmentSession(IdMixin, TimestampMixin, Base):
     consent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("face_consents.id"))
     started_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))  # started_at + 15 min
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))  # last shot + 1 hour idle
     model_id: Mapped[str] = mapped_column(String(60))
     state: Mapped[str] = mapped_column(String(10), default=EnrolmentState.OPEN.value)
     finished_template_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("face_templates.id"))

@@ -40,7 +40,7 @@
     ["Ganesh Shinde", "EMP-0118", "permanent", "K134", "Staff", "General", "reenrol"],
     ["Rekha Bhosale", "EMP-0204", "permanent", "PC1", "Worker", "General", "none"],
     ["Santosh Gaikwad", "T-2041", "temporary", "K134", "Helper", "General", "card"],
-    ["Mohan Deshmukh", "EMP-0077", "permanent", "TP1", "Operator", "General", "old"],
+    ["Mohan Deshmukh", "EMP-0077", "permanent", "TP1", "Operator", "General", "enrolled"],
     ["Priya Kulkarni", "EMP-0390", "permanent", "SPI", "Staff", "General", "enrolled"],
     ["Ramesh Patil", "EMP-0457", "permanent", "TP1", "Worker", "General", "enrolled"],
     ["Anil Pawar", "T-2058", "temporary", "X280", "Operator", "General", "card"],
@@ -54,11 +54,11 @@
   function toolbar(state) {
     const faceVal = state === "filtered" ? "Face: Re-enrol suggested" : "Face: any";
     const pop = state === "filter-open" ? `<div class="pop" role="listbox" aria-label="Face filter">
-      <div class="sel-on" role="option" aria-selected="true"><i data-lucide="check"></i>Any<span class="count">312</span></div>
-      <div role="option"><i data-lucide="scan-face"></i>Enrolled<span class="count">198</span></div>
-      <div role="option"><i data-lucide="circle-dashed"></i>Not enrolled<span class="count">64</span></div>
-      <div role="option"><i data-lucide="triangle-alert"></i>Re-enrol suggested<span class="count">9</span></div>
-      <div role="option"><i data-lucide="history"></i>Old model<span class="count">3</span></div></div>` : "";
+      <div class="sel-on" role="option" aria-selected="true"><i data-lucide="check"></i>Any</div>
+      <div role="option"><i data-lucide="scan-face"></i>Enrolled</div>
+      <div role="option"><i data-lucide="circle-dashed"></i>Not enrolled</div>
+      <div role="option"><i data-lucide="triangle-alert"></i>Re-enrol suggested</div>
+      <div role="option"><i data-lucide="history"></i>Old model</div></div>` : "";
     return `<div class="toolbar"><input class="input" type="search" placeholder="Search name or code" aria-label="Search name or code" />
       ${sel("Status", "Active")}${sel("Type", "Any type")}${sel("Contractor", "Any contractor")}
       <div style="position:relative">${sel("Face filter (new)", faceVal, state === "filtered" || state === "filter-open")}${pop}</div></div>`;

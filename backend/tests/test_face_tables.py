@@ -76,7 +76,7 @@ def make_template(
         "key_id": "A",
         "nonce": NONCE,
         "ciphertext": b"c" * 2064,
-        "shot_count": 8,
+        "shot_count": 5,
         "enrolled_by": admin_id,
         "enrolled_at": utc_now(),
     }
@@ -230,7 +230,7 @@ def test_deleting_a_template_must_remove_the_face_data(
     ("changes", "constraint"),
     [
         ({"key_id": "a"}, "ck_face_templates_key_id_format"),
-        ({"shot_count": 7}, "ck_face_templates_shot_count_range"),
+        ({"shot_count": 4}, "ck_face_templates_shot_count_range"),
         ({"shot_count": 11}, "ck_face_templates_shot_count_range"),
         ({"nonce": b"too short"}, "ck_face_templates_nonce_length"),
         ({"delete_kind": "left"}, "ck_face_templates_delete_pair"),
@@ -348,7 +348,7 @@ def test_a_session_has_one_shot_per_pose_and_only_known_poses(
         make_shot(db_session, row, "selfie")
     with refused("ck_face_enrolment_shots_nonce_length"), db_session.begin_nested():
         make_shot(db_session, row, "left", nonce=b"short")
-    assert len(ENROLMENT_POSES) == 8
+    assert len(ENROLMENT_POSES) == 5
 
 
 def test_deleting_a_session_removes_its_shots(

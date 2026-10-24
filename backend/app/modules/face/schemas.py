@@ -66,7 +66,7 @@ class StartEnrolmentResponse(BaseModel):
 
 
 class ShotRequest(BaseModel):
-    pose: Literal["straight", "left", "right", "up", "down", "closer", "farther", "work_wear"]
+    pose: Literal["straight", "left", "right", "up", "down"]
     # base64 JPEG; the decoded size (at most 150 KB) and the width are checked by the server.
     image_jpeg: str = Field(min_length=1, max_length=256 * 1024)
 

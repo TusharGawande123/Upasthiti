@@ -57,6 +57,21 @@ def face_key() -> bytes:
     return decode_key(key.get_secret_value())
 
 
+def test_a_shot_restarts_the_one_hour_idle_clock(
+    boss: TestClient, db_session: Session, k134: PlantIds
+) -> None:
+    session_id = start(boss, new_employee(boss, k134))
+    row = db_session.get(FaceEnrolmentSession, uuid.UUID(session_id))
+    assert row is not None
+    row.expires_at = utc_now() + timedelta(minutes=5)  # nearly idle for an hour
+    db_session.commit()
+
+    shot(boss, session_id, "straight", person=8)
+
+    db_session.refresh(row)
+    assert row.expires_at > utc_now() + timedelta(minutes=55)
+
+
 def head_of(db_app: FastAPI, db_session: Session, plant: PlantIds) -> TestClient:
     head = client_for(db_app, db_session, Role.PLANT_HEAD, "plant.head")
     user = db_session.scalars(select(User).where(User.username == "plant.head")).one()
@@ -68,7 +83,7 @@ def head_of(db_app: FastAPI, db_session: Session, plant: PlantIds) -> TestClient
 # --- A full enrolment (AC-6) -----------------------------------------------------------------
 
 
-def test_eight_good_shots_make_one_encrypted_template(
+def test_five_good_shots_make_one_encrypted_template(
     boss: TestClient, db_session: Session, k134: PlantIds
 ) -> None:
     employee_id = new_employee(boss, k134)
@@ -77,12 +92,12 @@ def test_eight_good_shots_make_one_encrypted_template(
     answers = [shot(boss, session_id, pose, person=3).json() for pose in POSE_FRAMES]
     finished = boss.post(f"/api/v1/face/enrolment-sessions/{session_id}/finish", json={})
 
-    assert [answer["accepted"] for answer in answers] == [True] * 8
-    assert [answer["shots_done"] for answer in answers] == list(range(1, 9))
+    assert [answer["accepted"] for answer in answers] == [True] * 5
+    assert [answer["shots_done"] for answer in answers] == list(range(1, 6))
     assert answers[0]["next_pose"] == "left" and answers[-1]["next_pose"] is None
     assert answers[0]["quality"]["face_px"] == 240
     assert finished.status_code == 201, finished.text
-    assert finished.json()["template"]["shot_count"] == 8
+    assert finished.json()["template"]["shot_count"] == 5
     assert finished.json()["replaced_previous"] is False
 
     template = db_session.scalars(select(FaceTemplate)).one()
@@ -273,9 +288,9 @@ def test_another_super_admin_cannot_use_my_session(
     assert response.json()["error"]["code"] == "ENROLMENT_SESSION_NOT_FOUND"
 
 
-def test_finish_needs_all_eight_shots(boss: TestClient, k134: PlantIds) -> None:
+def test_finish_needs_all_five_shots(boss: TestClient, k134: PlantIds) -> None:
     session_id = start(boss, new_employee(boss, k134))
-    for pose in list(POSE_FRAMES)[:7]:
+    for pose in list(POSE_FRAMES)[:4]:
         shot(boss, session_id, pose, person=8)
 
     response = boss.post(f"/api/v1/face/enrolment-sessions/{session_id}/finish", json={})

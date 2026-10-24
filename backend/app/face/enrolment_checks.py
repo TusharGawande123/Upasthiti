@@ -26,7 +26,7 @@ TURN_MIN_YAW = 8.0
 TURN_MAX_YAW = 30.0
 # "Chin up / down": the nose must move this share of the eye-to-mouth distance.
 PITCH_CHANGE = 0.06
-STRAIGHT_POSES = ("straight", "closer", "farther", "work_wear")
+STRAIGHT_POSES = ("straight",)
 SHOT_MIN_WIDTH, SHOT_MAX_WIDTH = 480, 1280
 SHOT_MIN_HEIGHT, SHOT_MAX_HEIGHT = 360, 1600
 

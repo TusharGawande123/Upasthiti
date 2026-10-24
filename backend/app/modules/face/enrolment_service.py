@@ -1,10 +1,11 @@
-"""Face enrolment by the Super Admin: a session, 8 checked shots, then one template (spec M3 §7
+"""Face enrolment by the Super Admin: a session, 5 checked shots, then one template (spec M3 §7
 rule 4, F-39, AC-6 to AC-8, AC-35).
 
-Each accepted shot keeps only its embedding, encrypted, for at most the session's 15 minutes;
-the picture is dropped as soon as the checks are done. Finishing averages the 8 embeddings into
-the template, checks that the face is not already enrolled under another employee, and stores
-the template encrypted with FACE_TEMPLATE_KEY. The shots are then deleted.
+Each accepted shot keeps only its embedding, encrypted, while the session is open (it closes
+after an hour without activity); the picture is dropped as soon as the checks are done.
+Finishing averages the 5 embeddings into the template, checks that the face is not already
+enrolled under another employee, and stores the template encrypted with FACE_TEMPLATE_KEY. The
+shots are then deleted.
 """
 
 import base64
@@ -61,7 +62,9 @@ from app.modules.settings.service import get_float_setting, get_int_setting
 
 logger = logging.getLogger(__name__)
 
-SESSION_MINUTES = 15
+# An open session closes after this long without a shot. The admin sees no countdown; this only
+# makes sure a forgotten, half-finished enrolment does not keep face data (decision 0018).
+SESSION_IDLE_MINUTES = 60
 MAX_SHOT_BYTES = 150 * 1024
 MAX_DUPLICATES_SHOWN = 3
 RE_ENROLLED_REASON = "Enrolled again"
@@ -117,7 +120,7 @@ def start_session(
         consent_id=consent.id,
         started_by=actor.actor_id,
         started_at=now,
-        expires_at=now + timedelta(minutes=SESSION_MINUTES),
+        expires_at=now + timedelta(minutes=SESSION_IDLE_MINUTES),
         model_id=model_id,
         state=EnrolmentState.OPEN.value,
         accepted_shots=0,
@@ -191,6 +194,8 @@ def add_shot(
         row.refused_shots += 1
         shots_done = len(shots)
         done_poses = set(shots)
+    # Every shot restarts the idle clock.
+    row.expires_at = utc_now() + timedelta(minutes=SESSION_IDLE_MINUTES)
     session.commit()
     next_pose = next((name for name in ENROLMENT_POSES if name not in done_poses), None)
     return ShotAnswer(result=result, shots_done=shots_done, next_pose=next_pose)
@@ -271,7 +276,7 @@ def finish(
     key = face_key()
     shots = _shots_by_pose(session, row.id)
     if set(shots) != set(ENROLMENT_POSES):
-        raise ApiError("ENROLMENT_INCOMPLETE", "All 8 shots are needed.", 409)
+        raise ApiError("ENROLMENT_INCOMPLETE", "All 5 shots are needed.", 409)
 
     template_vector = mean_template([_open_shot(shot, row.id, key) for shot in shots.values()])
     duplicates = find_duplicates(session, template_vector, row.model_id, employee.id, key)

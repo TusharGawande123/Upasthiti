@@ -150,3 +150,11 @@ oval colours on the camera (white dashed, green, red, yellow) are never the only
    showing any real person.
 8. **Dark mode** is not drawn (the design direction is light).
 9. The state "Enrolled" shows the model name `buffalo_l` as text; fine for an admin, but it could move to a "More" line if it looks technical.
+
+## Update after the lead's feedback (decision 0018)
+- Enrolment has **5 poses** (straight, left, right, up, down); no timer on screen; the helmet tip is gone.
+- **"Old model"** stays (badge, filter, panel state, re-enrol) for a future model change. It is computed by
+  the server from the model id stored with each template compared with the model now running
+  (`buffalo_s`), so it is empty today. The sample list rows therefore show no "Old model" row, and the
+  filter shows no counts. The `old-model` state of the face panel is a design of the state only: it
+  appears after a model change, never for a `buffalo_s` template.

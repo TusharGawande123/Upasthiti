@@ -345,10 +345,17 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
   - Slice C backend (steps 24-25): punch log face filters, summary counts, Super Admin face
     detail, code-path photo, F-30 face-in-photo check (background), F-41 re-enrol hint.
   - Spec change: new error code `COMPANY_ADDRESS_MISSING` (consent needs the company address).
-- Next: design gates B, A and C (HTML mockups for the lead), then the frontend steps 15, 22 and
-  27, the e2e specs (16, 23, 27), then slice D (accuracy run, CI memory test S-30, coverage 80,
-  docs).
-- Test results: backend 946 passed, coverage 91% (floor 75%).
+- Done (2026-10-24, session 2, Anuradha): design gate B mockups (`docs/design-refs/m3/gate-b/`,
+  waiting for the lead's final look) and decision 0018: **5 enrolment poses** (straight, left, right,
+  up, down), no timer on screen, session closes after **1 hour without activity** (every shot
+  restarts the clock), migration 0014, spec and tests updated. The "Old model" badge, filter and
+  panel state stay: the state is computed from the template's stored model id against the running
+  model (`buffalo_s`), so it is empty today.
+- Next: lead approves gate B screenshots, then frontend step 15 (use 5 poses, no timer; the
+  `expired` screen stays as the fallback), then design gates A and C, frontend steps 22 and 27, the
+  e2e specs (16, 23, 27), then slice D (accuracy run, CI memory test S-30, coverage 80, docs).
+- Test results: backend 935 passed, 7 skipped (full run before the last three test fixes; those
+  three files re-run green).
 - Open questions: none blocking. Reminders: `buffalo_s` accuracy (NFR-05) is measured in slice D;
   the head-turn sign (+ = the person's own left) must be confirmed with real team frames in slice
   D; the CelebA-Spoof candidate has no stable ONNX link yet; `FACE_TEMPLATE_KEY` must be set on
