@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import select
+from sqlalchemy import select, text
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
@@ -685,3 +685,49 @@ def test_frames_tokens_and_codes_never_reach_the_logs(
     assert sent["jpeg"][:40] not in text
     assert token not in text
     assert "SECRETCODE" not in text
+
+
+def test_nothing_secret_is_left_in_the_database_or_the_storage_folder(
+    db_client: TestClient,
+    db_session: Session,
+    device: Device,
+    kiosk: KioskDevice,
+    look_alikes: tuple[str, str],
+    snapshot_folder: Path,
+) -> None:
+    """AC-26 after a run of face punches: a rejected stranger (photo kept), a face that asks for
+    the code, and a wrong code. No whole frame, challenge nonce, code-entry token or typed code may
+    sit in any table or file; the stored photo is a small encrypted copy, never the frame."""
+    given = challenge(db_client, device)
+    stranger = [frame(9), frame(9, yaw=turn_yaw(given["challenge"]), role="turn"), frame(9)]
+    face_punch(db_client, device, 9, frames=stranger, nonce=given["challenge_nonce"])
+    unsure_given = challenge(db_client, device)
+    unsure = [frame(14), frame(14, yaw=turn_yaw(unsure_given["challenge"]), role="turn"), frame(14)]
+    answer = face_punch(db_client, device, 14, frames=unsure, nonce=unsure_given["challenge_nonce"])
+    token = answer.json()["code_entry"]["token"]
+    code_try(db_client, device, token, "SECRETCODE")
+
+    secrets_sent = {
+        "a frame": [item["jpeg"] for item in stranger + unsure],
+        "a challenge nonce": [given["challenge_nonce"], unsure_given["challenge_nonce"]],
+        "the code-entry token": [token],
+        "the typed code": ["SECRETCODE"],
+    }
+    dump = "\n".join(
+        row[0]
+        for table in db_session.execute(
+            text("SELECT tablename FROM pg_tables WHERE schemaname = 'public'")
+        ).scalars()
+        for row in db_session.execute(text(f'SELECT row_to_json(t)::text FROM "{table}" t'))  # noqa: S608 - table names come from the test database itself
+    )
+    for what, values in secrets_sent.items():
+        for value in values:
+            assert value not in dump, f"{what} is stored in the database"
+
+    files = [path for path in snapshot_folder.rglob("*") if path.is_file()]
+    assert files, "the rejected stranger should have left one encrypted photo"
+    for path in files:
+        content = path.read_bytes()
+        for item in stranger + unsure:
+            assert base64.b64decode(item["jpeg"]) not in content, "a raw frame is on disk"
+        assert b"SECRETCODE" not in content
