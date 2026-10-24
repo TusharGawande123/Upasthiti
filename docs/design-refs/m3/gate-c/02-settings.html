@@ -1,0 +1,177 @@
+<!doctype html>
+<!--
+  Upasthiti - M3 design gate C - Screen 2: Settings (/admin/settings), "Face recognition" card with five sub-groups and the
+  "Privacy" card with the two text settings (spec 4.12, 7 rule 13, 8.1, AC-30).
+  States (URL hash): default · no-report · threshold-lowered · floor-error · save-reason · privacy-empty · from-consent ·
+  privacy-editing · corporate-head · plant-head · loading.
+  Below 768 px the sub-groups are accordions: "Matching" open, the others closed (a group with a change opens itself).
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Settings";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = ROLE === "sa" ? { name: "Asha Rao", role: "Super Admin" } : ROLE === "ch" ? { name: "Meera Joshi", role: "Corporate Head" } : { name: "Prakash Kale", role: "Plant Head · K134", plant: "K134" };
+  const EDIT = ROLE === "sa";
+  const REPORT = S !== "no-report";
+  const ic = (n) => `<i data-lucide="${n}"></i>`;
+
+  /* key, label, help (texts already in common.json, word for word), value, default, min, max, unit, report value */
+  const GROUPS = [
+    ["Matching", "git-compare-arrows", [
+      ["face_match_threshold", "Face match threshold", "How similar a face must be to count as a match.", "0.45", "0.45", "0.20", "0.90", "", "0.46"],
+      ["face_match_margin", "Face match margin", "How much better the best match must be than the second best.", "0.08", "0.08", "0.00", "0.30", "", "0.08"],
+      ["face_code_offer_floor", "Ask-for-code floor", "Below this score the face is simply not recognised. Between this score and the match threshold the gate asks for the employee code.", "0.30", "0.30", "0.10", "0.80", "", "0.31"],
+      ["face_duplicate_threshold", "Duplicate face threshold", "At enrolment, a new face this alike to an enrolled face is held back as a possible duplicate.", "0.45", "0.45", "0.20", "0.90", "", "0.46"],
+    ]],
+    ["Liveness and anti-spoof", "shield-check", [
+      ["face_consistency_threshold", "Same-person check", "The pictures of one face punch must show faces at least this alike.", "0.40", "0.40", "0.10", "0.90", "", "0.40"],
+      ["face_antispoof_threshold", "Live-face check", "How sure the system must be that the face is real and not a photo or a screen. Higher is stricter.", "0.80", "0.80", "0.10", "0.99", "", "0.82"],
+      ["face_min_yaw_degrees", "Head turn needed", "How far the head must turn at the gate, in degrees.", "18", "18", "10", "40", "degrees", "18"],
+      ["face_frontal_max_yaw_degrees", "Straight face limit", "The first and the last picture must be at least this straight, in degrees.", "12", "12", "5", "25", "degrees", null],
+      ["face_challenge_steps", "Head turns at the gate", "1 = one turn. 2 = two turns in a row (for example left, then right): harder to fake, a little slower.", "1", "1", "1", "2", "turns", null],
+    ]],
+    ["Picture quality", "image", [
+      ["face_min_face_px", "Smallest face", "A smaller face (in pixels, counted at 640 pixels picture width) asks the person to come closer.", "80", "80", "40", "200", "px", null],
+      ["face_blur_min", "Sharpness needed", "Blurry pictures are refused. A higher number is stricter.", "40", "40", "5", "300", "", "40"],
+      ["face_brightness_min", "Brightness needed", "Darker pictures are refused (0 is black, 255 is white).", "50", "50", "20", "120", "of 255", null],
+    ]],
+    ["Code entry and timing", "keyboard", [
+      ["face_code_match_threshold", "Face threshold after a code", "When an employee types a code, the face must be at least this alike to the person with that code.", "0.42", "0.42", "0.20", "0.90", "", "0.43"],
+      ["face_challenge_seconds", "Time for the head turn", "How long the person has to turn the head after the device asks.", "10", "10", "5", "30", "seconds", null],
+      ["face_code_entry_seconds", "Time to type the code", "How long the employee code pad stays open.", "90", "90", "30", "180", "seconds", null],
+      ["face_code_max_tries", "Code tries", "How many times a wrong employee code can be typed before the punch is refused.", "2", "2", "1", "3", "tries", null],
+    ]],
+    ["Hints", "lightbulb", [
+      ["face_reenrol_code_count", "Re-enrol hint: codes typed", "Suggest enrolling a face again when this many code entries happen within 30 days.", "3", "3", "1", "20", "in 30 days", null],
+      ["face_reenrol_score_margin", "Re-enrol hint: falling score", "Suggest enrolling a face again when recent match scores fall this far below the older ones.", "0.05", "0.05", "0.00", "0.20", "", null],
+    ]],
+  ];
+  const DRAFT = {};
+  if (S === "threshold-lowered" || S === "save-reason") DRAFT.face_match_threshold = "0.40";
+  if (S === "floor-error") DRAFT.face_code_offer_floor = "0.50";
+
+  function row(r) {
+    const [key, label, help, value, def, min, max, unit, rep] = r;
+    const draft = DRAFT[key];
+    const changed = draft !== undefined;
+    const v = changed ? draft : value;
+    const lowered = changed && key.endsWith("threshold") && Number(draft) < Number(value);
+    const floorErr = S === "floor-error" && key === "face_code_offer_floor";
+    let repChip = "";
+    if (rep) repChip = REPORT ? `<span class="rv">${ic("file-check-2")}Report value: ${rep}${EDIT && rep !== v ? "" : ""}</span>` : `<span class="rv none">${ic("file-question")}No report yet</span>`;
+    const useBtn = EDIT && REPORT && rep && rep !== v ? `<button class="reset" style="margin-left:8px">${ic("arrow-down-to-line")}Use ${rep}</button>` : "";
+    return `<div class="srow ${changed ? "is-changed" : ""}"><div>
+        <label class="l" for="${key}">${label}${changed ? `<span class="badge badge-info chg">${ic("pencil")}Changed</span>` : ""}</label>
+        <p class="h">${help}</p><p class="d">Default: ${def}${unit ? " " + unit : ""} · allowed ${min}–${max}</p>
+        ${repChip}${useBtn}</div>
+      <div><div class="inrow"><input class="input" id="${key}" value="${v}" ${EDIT ? "" : "readonly"} inputmode="decimal" ${floorErr ? 'aria-invalid="true" aria-describedby="err-' + key + '"' : ""} /><span class="unit">${unit}</span></div>
+        ${floorErr ? `<p class="errline" id="err-${key}">${ic("circle-alert")}The code-entry floor must be lower than the match threshold.</p>` : ""}
+        ${changed && EDIT ? `<button class="reset">${ic("rotate-ccw")}Reset to default</button>` : ""}</div>
+      ${lowered ? `<div class="warnbox" role="alert">${ic("triangle-alert")}<span><b>A lower threshold lets more strangers through.</b> Change only after reading the accuracy report.</span></div>` : ""}</div>`;
+  }
+
+  function faceCard() {
+    const narrow = window.innerWidth < 768;
+    const strip = REPORT
+      ? `<div class="report-strip">${ic("file-check-2")}<span><b>Accuracy report of 30/10/2026</b> (model buffalo_s, team test faces only). Its suggested value stands beside each limit. <a class="link" href="#">Read the report</a></span></div>`
+      : `<div class="report-strip none">${ic("file-question")}<span><b>No accuracy report yet.</b> These are starting values. The team replaces them after the accuracy tests; until then, leave them as they are.</span></div>`;
+    const groups = GROUPS.map((g, i) => {
+      const nChanged = g[2].filter((r) => DRAFT[r[0]] !== undefined).length;
+      const open = !narrow || i === 0 || nChanged > 0;
+      return `<details class="subgroup" ${open ? "open" : ""}><summary><span class="sgi">${ic(g[1])}</span><span><h3>${g[0]}</h3><span class="cnt">${g[2].length} settings</span></span>${nChanged ? `<span class="badge badge-info chg changed-n">${nChanged} changed</span>` : ""}<i data-lucide="chevron-down" class="chev"></i></summary>${g[2].map(row).join("")}</details>`;
+    }).join("");
+    return `<section class="card set-card" id="face" aria-labelledby="face-title"><div class="set-head"><span class="hi">${ic("scan-face")}</span><div><h2 id="face-title">Face recognition</h2><p>Matching limits, chosen after the accuracy tests.</p></div><div class="right"><span class="badge badge-success">${ic("circle-check")}In use from M3</span></div></div>
+      ${strip}<div style="height:16px"></div>${groups}
+      <div class="foot-link">${ic("info")}<span>Changes apply to the next punch at every plant. A face setting never changes punches already decided.</span></div></section>`;
+  }
+
+  function privacyCard() {
+    const empty = S === "privacy-empty" || S === "from-consent";
+    const editing = S === "privacy-editing";
+    const addr = empty ? "" : editing ? "Plot K-134, MIDC Waluj, Chhatrapati Sambhajinagar" : "Plot K-134, MIDC Waluj, Chhatrapati Sambhajinagar, Maharashtra 431136";
+    const contact = "Asha Rao (Super Admin), Sheet Shapers, plant office K134, privacy@sheetshapers.example";
+    const addrBox = `<div class="srow textrow ${editing ? "is-changed" : ""}"><div>
+        <label class="l" for="company_address">Company address${editing ? `<span class="badge badge-info chg">${ic("pencil")}Changed</span>` : ""}${empty ? `<span class="badge badge-warning chg">${ic("triangle-alert")}Not set</span>` : ""}</label>
+        <p class="h">The registered address of Sheet Shapers. The consent text and the privacy notice name it.</p></div>
+        ${empty ? `<div class="empty-set">${ic("triangle-alert")}<span><b>Set this before the first enrolment: the consent text names it.</b>Until it is set, the consent dialog cannot be opened (COMPANY_ADDRESS_MISSING).</span></div>` : ""}
+        <textarea class="input" id="company_address" rows="2" ${EDIT ? "" : "readonly"} placeholder="${EDIT ? "For example: Plot number, MIDC Waluj, city, PIN code" : ""}">${addr}</textarea>
+        <div class="under"><span class="used">${ic("file-text")}Used in the consent text and on the privacy notice page</span><span class="tnum">${addr.length} / 300 · at least 5</span></div></div>`;
+    const contactBox = `<div class="srow textrow"><div><label class="l" for="privacy_contact">Privacy contact (grievance officer)</label>
+        <p class="h">Who employees contact about their data. Name, role and how to reach them (phone or email). Filled with the first Super Admin when the system was set up.</p></div>
+        <textarea class="input" id="privacy_contact" rows="2" ${EDIT ? "" : "readonly"}>${contact}</textarea>
+        <div class="under"><span class="used">${ic("file-text")}Used in the consent text and on the privacy notice page</span><span class="tnum">${contact.length} / 200 · at least 5</span></div></div>`;
+    const preview = `<div class="preview"><div class="pl">${ic("eye")}How the consent text reads</div>Sheet Shapers, ${addr ? `<mark>${addr}</mark>` : `<span class="gap">[company address not set]</span>`}, uses Upasthiti to record attendance at the plant gate. … Grievance officer and contact: <mark>${contact}</mark>. We reply within 30 days.</div>`;
+    return `<section class="card set-card ${S === "from-consent" ? "came-from" : ""}" id="privacy" aria-labelledby="privacy-title"><div class="set-head"><span class="hi">${ic("shield-check")}</span><div><h2 id="privacy-title">Privacy</h2><p>Shown in the face consent text and on the public privacy notice page.</p></div><div class="right"><span class="badge badge-info">${ic("sparkles")}New in M3</span></div></div>
+      ${addrBox}${contactBox}${preview}
+      <div class="foot-link">${ic("external-link")}<span>Employees read the full notice at <a class="link" href="06-privacy.html">/privacy</a> (no login). Changing these texts does not change the consent already given.</span></div></section>`;
+  }
+
+  function collapsed(icon, title, summary) {
+    return `<section class="card set-card collapsed-card"><div class="set-head"><span class="hi">${ic(icon)}</span><div><h2>${title}</h2><p class="summary">${summary}</p></div><div class="right"><i data-lucide="chevron-down" style="width:20px;height:20px;color:var(--muted-foreground)"></i></div></div></section>`;
+  }
+
+  function page() {
+    if (S === "loading") return `<div class="page-narrow"><div class="skeleton" style="height:40px;width:260px;margin-bottom:16px"></div><div class="skeleton" style="height:260px;margin-bottom:16px"></div><div class="skeleton" style="height:180px"></div></div>`;
+    const sub = EDIT ? "Company-wide rules. Every change is saved in the audit log with a reason." : "Company-wide rules. Only the Super Admin can change them.";
+    const banner = !EDIT ? `<div class="alert alert-info mb">${ic("eye")}<span><b>View only.</b> Only the Super Admin can change the face and privacy settings. The report values are shown so you can see how the limits were chosen.</span></div>` : "";
+    const back = S === "from-consent" ? `<div class="alert alert-info mb">${ic("corner-up-left")}<span style="flex:1">You came from the consent dialog of <b>Sunita Jadhav</b>. Set the company address, save, then go back.</span><a class="btn btn-outline" href="#">${ic("arrow-left")}Back to Sunita Jadhav</a></div>` : "";
+    const order = S === "from-consent" || S === "privacy-empty" || S === "privacy-editing" ? [privacyCard(), faceCard()] : [faceCard(), privacyCard()];
+    return `<div class="page-narrow" style="padding-bottom:96px"><div class="page-head anim-fade-up"><div><h1 class="page-title">Settings</h1><p class="page-desc">${sub}</p></div></div>
+      ${banner}${back}
+      <div class="stack">
+      ${collapsed("map-pin", "Attendance device and location", "GPS accuracy limit 50 m · geofence margin 25 m · pairing code 10 min")}
+      ${collapsed("timer", "Punch rules", "Cool-down 2 min · earliest OUT 30 min · longest open IN 20 h")}
+      ${collapsed("camera", "Snapshots", "Kept 60 days · dark photo limit 40 of 255")}
+      ${order.join("")}
+      ${collapsed("indian-rupee", "Salary estimate", "Used from M7 · salary days per month 30")}</div></div>`;
+  }
+
+  function savebar() {
+    const n = S === "privacy-editing" ? 1 : 1;
+    const bad = S === "floor-error";
+    return `<div class="savebar"><div><p>${ic("pencil")}${n} unsaved change${bad ? " · fix the error first" : ""}</p><div style="display:flex;gap:8px"><button class="btn btn-outline">Discard</button><button class="btn btn-light" ${bad ? "disabled" : ""}>Save changes</button></div></div></div>`;
+  }
+
+  function reasonDialog() {
+    return `<div class="overlay"></div><div class="dialog anim-scale-in" role="dialog" aria-modal="true" aria-labelledby="rt"><div class="dlg-head"><span class="dlg-icon" style="background:var(--warning-soft);color:var(--warning)">${ic("triangle-alert")}</span><div><h2 class="dlg-title" id="rt">Why are you changing these settings?</h2><p class="dlg-desc">The reason is saved in the audit log with the old and new values.</p></div></div>
+      <div class="dlg-body"><ul class="change-list"><li>${ic("scan-face")}<b>Face match threshold</b><span class="from tnum">0.45</span>${ic("arrow-right")}<b class="tnum">0.40</b></li></ul>
+      <div class="warnbox" style="margin-bottom:14px">${ic("triangle-alert")}<span><b>A lower threshold lets more strangers through.</b> Change only after reading the accuracy report.</span></div>
+      <label class="label" for="why">Reason (required)</label><textarea class="input" id="why" style="width:100%">Too many permanent workers at K134 had to type their code in the morning sun; report section 4 allows 0.40</textarea>
+      <div class="field-row" style="margin-top:6px"><span class="help">At least 10 characters.</span><span class="counter">96 / 300</span></div></div>
+      <div class="dlg-foot"><button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">${ic("save")}Save changes</button></div></div>`;
+  }
+
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    const layer = document.getElementById("layer");
+    if (["threshold-lowered", "floor-error", "privacy-editing"].includes(S)) layer.innerHTML = savebar();
+    if (S === "save-reason") layer.innerHTML = reasonDialog();
+    const tags = { default: "Super Admin, report values present", "no-report": "no accuracy report yet", "threshold-lowered": "threshold lowered: warning + save bar", "floor-error": "code floor above threshold: refused", "save-reason": "reason prompt on save", "privacy-empty": "company address empty", "from-consent": "opened from the consent dialog", "privacy-editing": "address being edited", "corporate-head": "Corporate Head, read-only", "plant-head": "Plant Head, read-only", loading: "loading" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>

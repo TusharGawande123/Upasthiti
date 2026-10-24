@@ -171,7 +171,7 @@ IN/OUT much larger), touch targets at least 64 px, contrast 7:1, colour + icon +
 connection messages, all text from the translation file. Design gates (images, approved in the plan
 step like M2): **Gate A** gate screen (idle with button, face guidance, challenge, checking, code
 pad, results); **Gate B** admin (face panel, consent dialog, enrolment wizard, duplicate warning);
-**Gate C** punch log face columns, settings card, dashboard progress card, poster. Links are added
+**Gate C** punch log face columns, settings cards, dashboard progress card, Ctrl+K, poster, `/privacy` page (approved 24/10/2026, decision 0020: `docs/design-refs/m3/gate-c/`). Links are added
 here once approved. Gate A (approved 24/10/2026, decision 0019): `docs/design-refs/m3/gate-a/`.
 
 ### 4.1 Gate screen: idle (`/attendance`)
@@ -308,6 +308,7 @@ automatic return, name shown but never spoken). Face additions:
 - New filter "Face" (Enrolled / Not enrolled / Re-enrol suggested / Old model) (F-40, F-41).
 
 ### 4.11 Admin: punch log (M2 page)
+- The "Reason" column is merged into "Result and reason" (the table must fit 1280 px). A new side panel "Details" opens a punch for every role; only the Super Admin sees the scores, the typed code and the photo (decision 0020).
 - New column **"Method"** (Face / Card, icon + word) and in the result: "By face", "By code"
   (code path), "Asked for code" (the `needs_code` row, linked to its follow-up row).
 - New filters: method (face / card), "Asked for code", "No face in photo" (F-30, Super Admin).
@@ -319,6 +320,7 @@ automatic return, name shown but never spoken). Face additions:
 - QR rows with a stored photo and `face_found = false` show "◌ No face in photo" (Super Admin).
 
 ### 4.12 Admin: settings card "Face recognition"
+- (Gate C, decision 0020) Each threshold shows "Report value: 0.46" with a "Use 0.46" button, or "No report yet"; the save-reason dialog lists the old and new values. The five sub-groups exist only on screen (all face keys are one group on the server); on a phone the sub-groups fold up. The Privacy card edits the two text settings (company address, privacy contact) and shows how the consent text will read.
 - The face settings of §7 rule 13, grouped: "Matching" (thresholds, margin), "Liveness and
   anti-spoof", "Picture quality", "Code entry", "Hints". Each threshold shows the value of the
   accuracy report next to it ("Report value: 0.46"). Changes need a reason (M1 settings rule) and
@@ -400,12 +402,14 @@ Notes:
 |---|---|---|---|---|---|
 | GET | /api/v1/employees | as M1 | **additive filter** `face_state=enrolled\|not_enrolled\|reenrol_suggested\|old_model` | items gain `face_state` | as M1 |
 | GET | /api/v1/face/enrolment-progress | Super Admin, Corporate Head (all), Plant Head (own plant) | – | `200 { plants: [ { plant: { id, code, name }, face_employees, enrolled, not_enrolled, old_model, reenrol_suggested } ], totals: { … } }` (F-40) | – |
-| GET | /api/v1/punches | as M2 | **additive filters** `method=face\|qr`, `match_mode=one_to_many\|code`, `asked_for_code=true`, `no_face_photo=true` (Super Admin) | items gain `match_mode`, `follows_punch_id`; `snapshot.face_found` (Super Admin) | as M2 |
+| GET | /api/v1/punches | as M2 | **additive filters** `method=face\|qr`, `match_mode=one_to_many\|code`, `asked_for_code=true`, `no_face_photo=true` (Super Admin) | items gain `match_mode`, `follows_punch_id`, `followed_by_punch_id` (the follow-up row of a `needs_code` row; decision 0020); `snapshot.face_found` (Super Admin) | as M2 |
 | GET | /api/v1/punches/summary | as M2 | as M2 | **additive:** `face_accepted`, `code_accepted`, `asked_for_code`, `no_face_photos` (Super Admin only) | – |
 | GET | /api/v1/punches/{id} | as M2 | – | **additive, Super Admin only:** `face: { match_score, second_best_score, antispoof_score, yaw_degrees, challenge, model_id, match_mode, claimed_employee: { id, code, name } \| null }` | as M2 |
 | GET | /api/v1/punches/{id}/snapshot | Super Admin only (M2) | – | as M2; for a code-path follow-up row the photo of its `needs_code` row is served (audited as that punch) | as M2 |
 | GET | /api/v1/health | public (M0) | – | **additive (S-31):** `face: { state: "loading"\|"ready"\|"off"\|"failed", model_pack: "buffalo_l"\|"buffalo_s"\|null, antispoof_model: string\|null }` — no personal data, no database access | – |
-| GET/PUT | /api/v1/settings | as M1 (edit: Super Admin) | the new keys of §7 rule 13 | as M1 | as M1 |
+| GET/PUT | /api/v1/settings | as M1 (edit: Super Admin) | the new keys of §7 rule 13 | as M1; **additive:** each setting gains `report_value` (number or null: the value suggested by the accuracy report of slice D; null shows "No report yet"; decision 0020); the two text settings `company_address` and `privacy_contact` are edited as text | as M1 |
+| GET | /api/v1/search | as M1 | – | **additive:** employee results gain `face_state` (for the face badges in Ctrl+K; decision 0020) | as M1 |
+| GET | /api/v1/privacy-notice | **public, no login** | – | `200 { company_address, privacy_contact, retention_days, consent_version }` and nothing else (no personal data); used by the public `/privacy` page (decision 0020) | – |
 
 Common errors for all admin endpoints: as M1 (`NOT_AUTHENTICATED`, `FORBIDDEN`,
 `ORIGIN_NOT_ALLOWED`, `VALIDATION_FAILED`, `NOT_FOUND`, `TOO_MANY_REQUESTS`, `INTERNAL_ERROR`).

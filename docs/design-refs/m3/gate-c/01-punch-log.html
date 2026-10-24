@@ -1,0 +1,244 @@
+<!doctype html>
+<!--
+  Upasthiti - M3 design gate C - Screen 1: punch log (/admin/punches) with the face additions (spec 4.11, 5.5, AC-24, AC-37).
+  States (URL hash): default · filter-asked · filter-no-face · filter-method · corporate-head · plant-head · loading ·
+  detail-face · detail-code · detail-code-failed · detail-needs-code · detail-qr-no-face · detail-ch · detail-ph · detail-loading.
+  MOCKUP ONLY - static HTML, fake data (made-up names and codes; no photo of any person).
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti punch log</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Punch log";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" || S === "detail-ch" ? "ch" : S === "plant-head" || S === "detail-ph" ? "ph" : "sa";
+  window.MOCK_USER = ROLE === "sa" ? { name: "Asha Rao", role: "Super Admin" } : ROLE === "ch" ? { name: "Meera Joshi", role: "Corporate Head" } : { name: "Prakash Kale", role: "Plant Head · K134", plant: "K134" };
+  const SA = ROLE === "sa";
+
+  const ic = (n) => `<i data-lucide="${n}"></i>`;
+  const B = {
+    in: `<span class="badge badge-success">${ic("log-in")}IN</span>`,
+    out: `<span class="badge badge-info">${ic("log-out")}OUT</span>`,
+    none: `<span class="muted">–</span>`,
+    ok: `<span class="badge badge-success">${ic("circle-check")}Accepted</span>`,
+    no: `<span class="badge badge-danger">${ic("circle-x")}Rejected</span>`,
+    asked: `<span class="badge badge-asked">${ic("keyboard")}Asked for code</span>`,
+    face: `<span class="badge badge-method-face">${ic("scan-face")}Face</span>`,
+    card: `<span class="badge badge-method-card">${ic("id-card")}Card</span>`,
+    noface: `<span class="badge badge-noface">${ic("circle-dashed")}No face in photo</span>`,
+    dark: `<span class="badge badge-neutral">${ic("moon")}Dark photo</span>`,
+  };
+  const how = (t) => `<span class="sub">${t}</span>`;
+
+  /* Rows of 24/10/2026, newest first. kind decides the detail panel. */
+  const ROWS = [
+    { id: "r1", t: "07:04:12", emp: ["Sunita Jadhav", "EMP-0312"], m: "face", dir: "in", res: "ok", how: "By face", reason: null, dev: ["Main gate phone", "K134"], photo: "none-face", kind: "face" },
+    { id: "r2", t: "07:03:51", emp: ["Vijay Salunke", "EMP-0123"], m: "face", dir: "in", res: "ok", how: "By code", link: "After: Asked for code 07:03:20", reason: null, dev: ["Main gate phone", "K134"], photo: "from-asked", kind: "code" },
+    { id: "r3", t: "07:03:20", emp: null, empText: ["circle-help", "Face not matched"], m: "face", dir: null, res: "asked", link: "Then: By code 07:03:51", reason: ["Asked for the employee code", "NEED_EMPLOYEE_CODE"], dev: ["Main gate phone", "K134"], photo: "stored", kind: "needs" },
+    { id: "r4", t: "07:02:47", emp: null, empText: ["circle-help", "Face not matched"], m: "face", dir: null, res: "no", how: "Code typed, face did not match", reason: ["Face not recognised", "FACE_NOT_RECOGNISED"], dev: ["Main gate phone", "K134"], photo: "stored", kind: "codefail" },
+    { id: "r5", t: "07:02:05", emp: ["Santosh Gaikwad", "T-2041"], m: "card", dir: "in", res: "ok", reason: null, dev: ["Main gate phone", "K134"], photo: "noface", kind: "qrnoface" },
+    { id: "r6", t: "07:01:40", emp: ["Anil Pawar", "T-2058"], m: "card", dir: "in", res: "ok", reason: null, dev: ["Gate PC", "X280"], photo: "dark", kind: "qr", otherPlant: true },
+    { id: "r7", t: "07:01:12", emp: null, empText: ["circle-help", "Unknown face"], m: "face", dir: null, res: "no", reason: ["Head did not turn", "LIVENESS_FAILED"], dev: ["Main gate phone", "K134"], photo: "stored", kind: "face-rej" },
+    { id: "r8", t: "07:00:31", emp: ["Rekha Bhosale", "EMP-0204"], m: "face", dir: "in", res: "ok", how: "By face", reason: null, dev: ["Main gate phone", "K134"], photo: "none-face", kind: "face" },
+  ];
+
+  function photoCell(r) {
+    const until = `<small>kept until 23/12/2026</small>`;
+    if (r.photo === "none-face") return `<div class="photo-cell"><span class="ln muted">${ic("image-off")}No photo</span><small>accepted face punch</small></div>`;
+    if (r.photo === "from-asked") return `<div class="photo-cell"><span class="ln">${ic("image")}Photo of 07:03:20</span><small>the Asked for code punch</small></div>`;
+    let extra = "";
+    if (SA && r.photo === "noface") extra = B.noface;
+    if (SA && r.photo === "dark") extra = B.dark;
+    return `<div class="photo-cell"><span class="ln">${ic("image-plus")}Photo stored</span>${until}${extra}</div>`;
+  }
+  function empCell(r) {
+    if (r.emp) return `<span class="emp"><b>${r.emp[0]}</b><span class="code sub">${r.emp[1]}${r.claimed ? " · code typed" : ""}</span></span>`;
+    return `<span class="quiet">${ic(r.empText[0])}${r.empText[1]}</span>`;
+  }
+  function resCell(r) {
+    const badge = B[r.res];
+    const l = r.link ? `<a class="linkline" href="#">${ic(r.res === "asked" ? "arrow-down" : "arrow-up")}${r.link}</a>` : "";
+    const why = r.reason ? `<span class="sub" style="color:var(--foreground)">${r.reason[0]} <span class="code muted">${r.reason[1]}</span></span>` : "";
+    return `<div class="res-stack">${badge}${r.how ? how(r.how) : ""}${why}${l}</div>`;
+  }
+  function actions(r) {
+    const hasPhoto = r.photo !== "none-face";
+    const sa = SA && hasPhoto ? `<button class="btn btn-outline btn-sm2">${ic("eye")}View photo</button>${r.emp ? `<button class="btn btn-ghost btn-sm2">${ic("columns-2")}Compare</button>` : ""}` : "";
+    return `<div class="act">${sa}<button class="btn btn-ghost btn-icon" aria-label="Details of the punch at ${r.t}">${ic("panel-right-open")}</button></div>`;
+  }
+
+  function filterRows() {
+    let rows = ROWS.slice();
+    if (ROLE === "ph") rows = rows.filter((r) => !r.otherPlant);
+    if (S === "filter-asked") rows = rows.filter((r) => r.res === "asked");
+    if (S === "filter-no-face") rows = rows.filter((r) => r.photo === "noface");
+    if (S === "filter-method") rows = rows.filter((r) => r.m === "face");
+    return rows;
+  }
+
+  function table(rows) {
+    const trs = rows.map((r) => {
+      const cls = [r.res === "no" ? "is-rejected" : "", r.res === "asked" ? "is-asked" : "", OPEN && OPEN.id === r.id ? "is-open" : ""].join(" ");
+      return `<tr class="${cls}"><td class="time">${r.t}</td><td>${empCell(r)}</td><td>${B[r.m]}</td><td>${r.dir ? B[r.dir] : B.none}</td><td>${resCell(r)}</td>
+        <td><b style="font-weight:600;white-space:nowrap">${r.dev[0]}</b><span class="code sub">${r.dev[1]}</span></td><td>${photoCell(r)}</td><td>${actions(r)}</td></tr>`;
+    }).join("");
+    return `<div class="ptable-wrap table-scroll"><table class="table ptable"><thead><tr><th>Time</th><th>Employee</th><th>Method <span class="badge badge-info chg" style="margin-left:4px">New</span></th><th>Direction</th><th>Result and reason</th><th>Device</th><th>Photo</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>${trs}</tbody></table></div>`;
+  }
+  function cards(rows) {
+    return `<div class="pcards">` + rows.map((r) => {
+      const who = r.emp ? `${r.emp[0]}` : r.empText[1];
+      const code = r.emp ? `<span class="code">${r.emp[1]}</span> · ` : "";
+      const hasPhoto = r.photo !== "none-face";
+      const photoWord = r.photo === "none-face" ? "No photo" : r.photo === "from-asked" ? "Photo of 07:03:20" : "Photo stored";
+      const extra = SA && r.photo === "noface" ? B.noface : SA && r.photo === "dark" ? B.dark : "";
+      return `<div class="pcard ${r.res === "no" ? "is-rejected" : ""} ${r.res === "asked" ? "is-asked" : ""}">
+        <div class="pcard-top"><b>${who}</b><span class="time">${r.t}</span></div>
+        <div class="meta">${code}${r.dev[0]} · ${r.dev[1]} · ${photoWord}</div>
+        <div class="badges">${B[r.m]}${r.dir ? B[r.dir] : ""}${B[r.res]}${extra}</div>
+        ${r.how ? `<div class="meta" style="margin-top:6px">${r.how}</div>` : ""}${r.reason ? `<div class="meta" style="margin-top:6px">${r.reason[0]} <span class="code">${r.reason[1]}</span></div>` : ""}
+        ${r.link ? `<a class="linkline" style="margin-top:6px" href="#">${ic(r.res === "asked" ? "arrow-down" : "arrow-up")}${r.link}</a>` : ""}
+        <div class="acts">${SA && hasPhoto ? `<button class="btn btn-outline">${ic("eye")}View photo</button>` : ""}<button class="btn btn-outline">${ic("panel-right-open")}Details</button></div></div>`;
+    }).join("") + `</div>`;
+  }
+
+  function chip(icon, tone, n, label, pressed, sa) {
+    return `<button class="chip" aria-pressed="${pressed ? "true" : "false"}"><span class="ci ci-${tone}">${ic(icon)}</span><span><b>${n}</b><small>${label}${sa ? "" : ""}</small></span></button>`;
+  }
+
+  function page() {
+    const ph = ROLE === "ph";
+    const n = ph ? { in: 268, out: 21, rej: 6, asked: 4 } : { in: 412, out: 37, rej: 9, asked: 6 };
+    const chips = `<div class="chips" role="group" aria-label="Totals of the day">
+      ${chip("log-in", "success", n.in, "Accepted IN")}${chip("log-out", "primary", n.out, "Accepted OUT")}${chip("circle-x", "danger", n.rej, "Rejected")}
+      ${SA ? chip("moon", "neutral", 2, "Dark photos") : ""}
+      ${chip("keyboard", "warning", n.asked, "Asked for code", S === "filter-asked")}
+      ${SA ? chip("circle-dashed", "neutral", 1, "No face in photo", S === "filter-no-face") : ""}
+      <span class="chip-hint">Press a number to show only those punches</span></div>
+      <p class="reasons" style="margin:0 0 8px">Accepted by: <b style="color:var(--foreground)">${ph ? 181 : 286}</b> face · <b style="color:var(--foreground)">${ph ? 4 : 6}</b> code · <b style="color:var(--foreground)">${ph ? 104 : 157}</b> card</p>
+      <div class="reasons"><span>Rejected because:</span><button class="rchip"><b>4</b>Face not recognised</button><button class="rchip"><b>2</b>Head did not turn</button><button class="rchip"><b>2</b>Card expired</button><button class="rchip"><b>1</b>Already punched (scanned again too soon)</button></div>`;
+    const banner = ROLE === "ph"
+      ? `<div class="alert alert-info mb">${ic("eye")}<span>Read-only, your plant only. Only the Super Admin can open punch photos and see face scores; here you see the method, the result and whether a photo was saved.</span></div>`
+      : ROLE === "ch" ? `<div class="alert alert-info mb">${ic("eye")}<span>Read-only. Only the Super Admin can open punch photos and see face scores; here you see the method, the result and whether a photo was saved.</span></div>` : "";
+    const method = S === "filter-method" ? "Method: Face" : "Method: any";
+    const result = S === "filter-asked" ? "Result: Asked for code" : "Result: any";
+    const fbar = `<div class="fbar"><div class="datebox"><button class="btn btn-ghost btn-icon" aria-label="Previous day">${ic("chevron-left")}</button><span>${ic("calendar-days")}Today 24/10/2026</span><button class="btn btn-ghost btn-icon" aria-label="Next day" disabled>${ic("chevron-right")}</button></div>
+      <div class="search-box">${ic("search")}<input class="input" placeholder="Code or name" aria-label="Search by employee code or name" /></div>
+      <div class="sel ${S === "filter-method" ? "is-active" : ""}"><select aria-label="Method"><option>${method}</option></select>${ic("chevron-down")}</div>
+      <div class="sel ${S === "filter-asked" ? "is-active" : ""}"><select aria-label="Result"><option>${result}</option></select>${ic("chevron-down")}</div>
+      <div class="sel"><select aria-label="Device"><option>Device: any</option></select>${ic("chevron-down")}</div>
+      <div class="sel"><select aria-label="Reason"><option>Reason: any</option></select>${ic("chevron-down")}</div></div>`;
+    const rows = filterRows();
+    let body;
+    if (S === "loading") body = `<div style="padding:16px;display:grid;gap:12px">${'<div class="skeleton" style="height:44px"></div>'.repeat(6)}</div>`;
+    else body = table(rows) + cards(rows);
+    const count = S === "filter-asked" ? "6 punches · newest first" : S === "filter-no-face" ? "1 punch · newest first" : S === "filter-method" ? "296 punches · newest first" : ph ? "294 punches · newest first" : "464 punches · newest first";
+    return `<div class="page-head anim-fade-up"><div><h1 class="page-title">Punch log</h1><p class="page-desc">${ph ? "Every punch at your plant's gate, by card or by face, accepted or rejected. Times in IST." : "Every punch at the gate attendance devices, by card or by face, accepted or rejected. Times in IST."}</p></div>
+      <div class="head-actions"><span class="head-note">${ic("image-off")}No photos or scores in the file</span><button class="btn btn-outline btn-lg">${ic("file-spreadsheet")}Export day (.xlsx)</button></div></div>
+      ${banner}<section aria-label="Totals of the day">${chips}</section>
+      <div class="card" style="overflow:hidden">${fbar}<div class="countbar"><span>${count}</span><span>${ic("radio")}<b style="color:var(--foreground)">Live</b> · updates every 30 s</span></div>${body}
+      <div class="table-foot"><span>Showing 1–${rows.length} of ${count.split(" ")[0]}</span><div class="pager"><button class="btn btn-outline" disabled aria-label="Previous page">${ic("chevron-left")}</button><button class="btn btn-outline" aria-label="Next page">${ic("chevron-right")}</button></div></div></div>`;
+  }
+
+  /* ---------- Detail sheet ---------- */
+  const DETAIL = { "detail-face": "r1", "detail-code": "r2", "detail-code-failed": "r4", "detail-needs-code": "r3", "detail-qr-no-face": "r5", "detail-ch": "r2", "detail-ph": "r3", "detail-loading": "r1" };
+  const OPEN = DETAIL[S] ? ROWS.find((r) => r.id === DETAIL[S]) : null;
+
+  function score(name, value, limit, verdict) {
+    const v = { ok: `<span class="ok">${ic("circle-check")}Passed</span>`, no: `<span class="no">${ic("circle-x")}Too low</span>`, mid: `<span class="na" style="color:var(--warning)">${ic("keyboard")}Code asked</span>`, na: `<span class="na">${ic("minus")}Not used</span>` }[verdict];
+    return `<div class="score"><span class="nm">${name}</span><span class="vl">${value}</span><span class="lim">${limit}</span>${v}</div>`;
+  }
+  const saTag = `<span class="sa-only">${ic("lock")}Super Admin only</span>`;
+
+  function faceBlock(kind) {
+    if (kind === "face") return `<div class="scores">
+        ${score("Match score", "0.62", "Today's limit: 0.45 or more", "ok")}
+        ${score("Second-best score", "0.31", "Gap 0.31 · today's limit: a gap of 0.08", "ok")}
+        ${score("Anti-spoof score (live face)", "0.97", "Today's limit: 0.80 or more", "ok")}
+        ${score("Head turn", "24° left", "Today's limit: 18° or more", "ok")}</div>
+        <dl class="kv2" style="margin-top:14px"><dt>Challenge</dt><dd>Turn left (1 turn)</dd><dt>Match mode</dt><dd>Whole plant (1:N)</dd><dt>Model</dt><dd class="code">buffalo_s</dd></dl>`;
+    if (kind === "needs") return `<div class="scores">
+        ${score("Match score (best)", "0.39", "Between the ask-for-code floor 0.30 and the limit 0.45", "mid")}
+        ${score("Second-best score", "0.33", "Gap 0.06", "na")}
+        ${score("Anti-spoof score (live face)", "0.95", "Today's limit: 0.80 or more", "ok")}
+        ${score("Head turn", "21° right", "Today's limit: 18° or more", "ok")}</div>
+        <dl class="kv2" style="margin-top:14px"><dt>Challenge</dt><dd>Turn right (1 turn)</dd><dt>Match mode</dt><dd>Whole plant (1:N), then the code was asked</dd><dt>Model</dt><dd class="code">buffalo_s</dd></dl>`;
+    if (kind === "code") return `<div class="claim is-ok"><span class="avatar">VS</span><div><b>Code typed: <span class="code">EMP-0123</span> – face did not match</b><span>Vijay Salunke · K134 · Operator. Then checked against this employee only: <b style="display:inline;font-size:inherit">matched</b>.</span></div></div>
+        <div class="scores" style="margin-top:10px">
+        ${score("Match score with EMP-0123", "0.51", "Today's limit after a code: 0.42 or more", "ok")}
+        ${score("Second-best score", "–", "Not used when a code is typed", "na")}
+        ${score("Anti-spoof score (live face)", "0.95", "Today's limit: 0.80 or more", "ok")}
+        ${score("Head turn", "21° right", "Today's limit: 18° or more", "ok")}</div>
+        <dl class="kv2" style="margin-top:14px"><dt>Challenge</dt><dd>Turn right (1 turn)</dd><dt>Match mode</dt><dd>Employee code (1:1)</dd><dt>Model</dt><dd class="code">buffalo_s</dd><dt>Code tries</dt><dd>1 of 2</dd></dl>`;
+    if (kind === "codefail") return `<div class="claim"><span class="avatar">RP</span><div><b>Code typed: <span class="code">EMP-0457</span> – face did not match</b><span>Ramesh Patil · K134 · Worker. Someone typed this employee's code, but the face was not alike enough. Check the photo: this can be a proxy attempt.</span></div></div>
+        <div class="scores" style="margin-top:10px">
+        ${score("Match score with EMP-0457", "0.18", "Today's limit after a code: 0.42 or more", "no")}
+        ${score("Second-best score", "–", "Not used when a code is typed", "na")}
+        ${score("Anti-spoof score (live face)", "0.93", "Today's limit: 0.80 or more", "ok")}
+        ${score("Head turn", "26° left", "Today's limit: 18° or more", "ok")}</div>
+        <dl class="kv2" style="margin-top:14px"><dt>Challenge</dt><dd>Turn left (1 turn)</dd><dt>Match mode</dt><dd>Employee code (1:1)</dd><dt>Model</dt><dd class="code">buffalo_s</dd><dt>Code tries</dt><dd>2 of 2 (first code did not match either)</dd></dl>`;
+    return "";
+  }
+
+  function chain(kind) {
+    const a = `<li><span class="dotc" style="background:var(--warning-soft);color:var(--warning);border-color:#f1d79c">${ic("keyboard")}</span><div><b>07:03:20 · Asked for code</b>${kind === "needs" ? '<span class="here">this punch</span>' : ""}<span class="sub muted" style="display:block;font-size:13px">Face close, but not sure enough. Photo stored.</span>${kind !== "needs" ? '<a class="linkline" href="#">Open this punch</a>' : ""}</div></li>`;
+    const b = `<li><span class="dotc" style="background:var(--success-soft);color:var(--success);border-color:#bfe3d2">${ic("circle-check")}</span><div><b>07:03:51 · Accepted IN · By code</b>${kind === "code" ? '<span class="here">this punch</span>' : ""}<span class="sub muted" style="display:block;font-size:13px">Vijay Salunke, EMP-0123</span>${kind !== "code" ? '<a class="linkline" href="#">Open this punch</a>' : ""}</div></li>`;
+    return `<ol class="chain">${a}${b}</ol>`;
+  }
+
+  function sheet() {
+    const r = OPEN;
+    const titles = { face: "Accepted IN · By face", code: "Accepted IN · By code", needs: "Asked for code", codefail: "Rejected · Face not recognised", qrnoface: "Accepted IN · Card" };
+    const head = `<div class="sheet-head"><div class="dlg-icon" style="background:${r.res === "ok" ? "var(--success-soft);color:var(--success)" : r.res === "asked" ? "var(--warning-soft);color:var(--warning)" : "var(--danger-soft);color:var(--danger)"}">${ic(r.res === "ok" ? "circle-check" : r.res === "asked" ? "keyboard" : "circle-x")}</div>
+      <div><h2>${titles[r.kind]}</h2><p class="tnum">24/10/2026 ${r.t} IST · ${r.dev[0]} · ${r.dev[1]}</p></div><button class="btn btn-ghost btn-icon" aria-label="Close">${ic("x")}</button></div>`;
+    if (S === "detail-loading") return `<div class="overlay"></div><aside class="sheet anim-sheet-r" role="dialog" aria-label="Punch details" aria-busy="true">${head}<div class="sheet-body"><div class="skel-lines">${'<div class="skeleton"></div>'.repeat(4)}</div><div class="skeleton" style="height:64px;margin-top:20px"></div><div class="skeleton" style="height:64px;margin-top:8px"></div><div class="skeleton" style="height:64px;margin-top:8px"></div></div></aside>`;
+    const emp = r.kind === "needs" ? `<span class="quiet">Not named: the face was not matched</span>` : r.kind === "codefail" ? `<span>Not punched. The code typed belongs to <b>Ramesh Patil</b> (EMP-0457)</span>` : r.emp ? `<b>${r.emp[0]}</b> · <span class="code">${r.emp[1]}</span> <a class="linkline" href="#">Open employee</a>` : "–";
+    const facts = `<section class="sec"><h3>${ic("list")}Punch</h3><dl class="kv2">
+      <dt>Employee</dt><dd>${SA || r.kind !== "codefail" ? emp : '<span class="quiet">Not named</span>'}</dd>
+      <dt>Method</dt><dd>${B[r.m]}</dd>
+      <dt>Result</dt><dd>${B[r.res]} ${r.how && r.kind !== "codefail" ? `<span class="muted" style="margin-left:6px">${r.how}</span>` : ""}</dd>
+      <dt>Direction</dt><dd>${r.dir ? B[r.dir] : "–"}</dd>
+      ${r.reason ? `<dt>Reason</dt><dd>${r.reason[0]} <span class="code muted">${r.reason[1]}</span></dd>` : ""}
+      <dt>Server time</dt><dd class="tnum">24/10/2026 ${r.t} IST</dd><dt>Device</dt><dd>${r.dev[0]} · <span class="code">${r.dev[1]}</span></dd></dl></section>`;
+    let more = "";
+    if (r.kind === "code" || r.kind === "needs") more += `<section class="sec"><h3>${ic("link-2")}Steps of this punch</h3>${chain(r.kind)}</section>`;
+    if (SA && r.m === "face") more += `<section class="sec"><h3>${ic("scan-face")}Face check ${saTag}</h3>${faceBlock(r.kind)}</section>`;
+    if (SA) {
+      if (r.kind === "face") more += `<section class="sec"><h3>${ic("image")}Photo</h3><div class="photo-box"><span class="photo-ph">${ic("image-off")}</span><div><p><b>No photo is kept for an accepted face punch.</b></p><small>The pictures were checked in memory and deleted at once.</small></div></div></section>`;
+      else if (r.kind === "qrnoface") more += `<section class="sec"><h3>${ic("image")}Photo ${saTag}</h3><div class="photo-box"><span class="photo-ph">${ic("image")}</span><div><p><b>Photo stored</b>, kept until 23/12/2026</p><div style="margin-top:6px">${B.noface}</div><small style="margin-top:6px">The automatic check found no face in this card photo. The punch itself was decided as normal. Look at the photo: the card may have been shown without its owner.</small></div></div></section>`;
+      else more += `<section class="sec"><h3>${ic("image")}Photo ${saTag}</h3><div class="photo-box"><span class="photo-ph">${ic("image")}</span><div><p><b>${r.kind === "code" ? "Photo of the 07:03:20 punch (Asked for code)" : "Photo stored"}</b></p><small>Kept until 23/12/2026. Viewing is recorded in the audit log.</small></div></div></section>`;
+    } else {
+      more += `<section class="sec"><div class="role-note">${ic("lock")}<span><b>Scores, the typed code and photos are shown to the Super Admin only.</b> ${r.photo === "none-face" ? "No photo was kept for this punch." : "A photo was saved for this punch."}</span></div></section>`;
+    }
+    const hasPhoto = r.photo !== "none-face";
+    const foot = SA && hasPhoto ? `<div class="sheet-foot"><button class="btn btn-primary btn-lg">${ic("eye")}View photo</button>${r.kind === "qrnoface" || r.kind === "codefail" ? `<button class="btn btn-outline btn-lg">${ic("columns-2")}Compare</button>` : ""}</div>` : "";
+    return `<div class="overlay"></div><aside class="sheet anim-sheet-r" role="dialog" aria-modal="true" aria-label="Punch details">${head}<div class="sheet-body">${facts}${more}</div>${foot}</aside>`;
+  }
+
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    if (OPEN) document.getElementById("layer").innerHTML = sheet();
+    const tags = { "default": "Super Admin, today, all plants", "filter-asked": "chip Asked for code pressed", "filter-no-face": "chip No face in photo pressed (Super Admin)", "filter-method": "Method: Face", "corporate-head": "Corporate Head, read-only", "plant-head": "Plant Head K134, read-only", loading: "loading", "detail-face": "detail: accepted by face (Super Admin)", "detail-code": "detail: accepted by code (Super Admin)", "detail-code-failed": "detail: code typed, face did not match", "detail-needs-code": "detail: Asked for code row", "detail-qr-no-face": "detail: card punch, no face in photo", "detail-ch": "detail as Corporate Head (no scores)", "detail-ph": "detail as Plant Head (no scores)", "detail-loading": "detail loading" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>
