@@ -146,14 +146,14 @@ section at the bottom.
 13. `feat(jobs):` 5-minute face cleanup job (pending matches, expired sessions + shots, old
     challenges) in the scheduler, plus "clean own rows first" on every new session (AC-8).
 14. **Design gate B:** face panel (all states), consent dialog (language switch, equal buttons),
-    enrolment wizard (camera check, 8 poses, retake, finish, duplicate warning), employees list
+    enrolment wizard (camera check, 5 poses, retake, finish, duplicate warning), employees list
     "Face" column.
 15. `feat(frontend):` `src/lib/face-guide/` (+ `prebuild` model fetch); `src/features/face/`
     (panel, consent dialog, wizard, hooks); employees list column + filter; Vitest tests (camera
     not started before "I agree", decline path, retake, duplicate reason, cancel on close, role
     hiding).
 16. `test(e2e):` `face-enrolment.spec.ts` with `FACE_ENGINE=fake` and a synthetic `.y4m` clip
-    (`app/scripts/e2e_face_video.py`, refuses unless `APP_ENV=test`): consent → 8 shots →
+    (`app/scripts/e2e_face_video.py`, refuses unless `APP_ENV=test`): consent → 5 shots →
     "Enrolled"; decline → QR; withdraw → QR; Plant Head / Corporate Head read-only. Push.
 
 ### Slice B – Face punch at the gate

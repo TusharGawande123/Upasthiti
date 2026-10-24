@@ -44,7 +44,7 @@
   function dots(states) {
     const icons = { ok: "check", failed: "x" };
     const words = { ok: "done", failed: "retake needed", current: "now", pending: "waiting", checking: "checking" };
-    return `<ol class="dots" aria-label="Progress: ${states.filter(function (s) { return s === "ok"; }).length} of 8 shots done">${states.map(function (s, i) {
+    return `<ol class="dots" aria-label="Progress: ${states.filter(function (s) { return s === "ok"; }).length} of 5 shots done">${states.map(function (s, i) {
       return `<li class="dot" data-state="${s}">${icons[s] ? `<i data-lucide="${icons[s]}"></i>` : i + 1}<span class="sr-only">Shot ${i + 1}: ${words[s]}</span></li>`;
     }).join("")}</ol>
     <div class="dots-legend" aria-hidden="true"><span><i data-lucide="check"></i>Accepted</span><span><i data-lucide="x"></i>Retake</span><span style="font-weight:700;color:var(--primary)">● Now</span></div>`;
@@ -52,8 +52,8 @@
 
   function poseCard(index, ds, extra, actions) {
     const p = window.POSES[index];
-    return `<section class="card shot-card anim-fade-up" aria-live="polite"><p class="shot-count">Shot ${index + 1} of 8</p>
-      <div class="pose-row"><div class="pose-pic">${window.poseSvg(p[0])}</div><div><p class="pose-line">${p[1]}</p>${index === 7 ? '<p class="pose-sub">If you wear nothing special, look straight again.</p>' : ""}</div></div>
+    return `<section class="card shot-card anim-fade-up" aria-live="polite"><p class="shot-count">Shot ${index + 1} of 5</p>
+      <div class="pose-row"><div class="pose-pic">${window.poseSvg(p[0])}</div><div><p class="pose-line">${p[1]}</p></div></div>
       ${extra || ""}${dots(ds)}${actions || ""}
       <p class="privacy-line"><i data-lucide="lock"></i>Pictures stay in this browser only until they are sent. Nothing is saved on this device.</p></section>`;
   }
@@ -82,29 +82,29 @@
           <p>Allow the camera for this website: tap the lock icon next to the address, choose Camera, then Allow. Then try again.</p>
           <div class="row-wrap" style="justify-content:center;margin-top:22px"><button class="btn btn-primary btn-xl"><i data-lucide="refresh-cw"></i>Try again</button><button class="btn btn-outline btn-xl">Cancel</button></div></section></div>`;
       case "shot-current":
-        return `<div class="wiz-body"><div>${cam({})}</div>${poseCard(0, ["current"].concat(pend(7)), "", take())}</div>`;
+        return `<div class="wiz-body"><div>${cam({})}</div>${poseCard(0, ["current"].concat(pend(4)), "", take())}</div>`;
       case "shot-hold":
-        return `<div class="wiz-body"><div>${cam({ ring: "hold", hold: true, strip: ["ok", "check", "Good. Hold still…"] })}</div>${poseCard(2, ok(2).concat(["current"], pend(5)), hintChip("move-right", "Holding the pose", "The shot is taken by itself after 1 second. Or tap Take shot."), take())}</div>`;
+        return `<div class="wiz-body"><div>${cam({ ring: "hold", hold: true, strip: ["ok", "check", "Good. Hold still…"] })}</div>${poseCard(2, ok(2).concat(["current"], pend(2)), hintChip("move-right", "Holding the pose", "The shot is taken by itself after 1 second. Or tap Take shot."), take())}</div>`;
       case "shot-hint":
-        return `<div class="wiz-body"><div>${cam({ strip: ["warn", "arrow-left", "A little more to the left"] })}</div>${poseCard(1, ok(1).concat(["current"], pend(6)), hintChip("scan-face", "A little more to the left", "Live hint from the camera. It only guides; the server decides if the shot counts."), take())}</div>`;
+        return `<div class="wiz-body"><div>${cam({ strip: ["warn", "arrow-left", "A little more to the left"] })}</div>${poseCard(1, ok(1).concat(["current"], pend(3)), hintChip("scan-face", "A little more to the left", "Live hint from the camera. It only guides; the server decides if the shot counts."), take())}</div>`;
       case "shot-checking":
-        return `<div class="wiz-body"><div>${cam({ checking: true })}</div>${poseCard(2, ok(2).concat(["checking"], pend(5)), `<div class="hint-chip" role="status"><i data-lucide="loader-circle"></i><span>Checking the picture…<small>This takes 1 to 2 seconds. Keep looking at the camera.</small></span></div>`, take(true))}</div>`;
+        return `<div class="wiz-body"><div>${cam({ checking: true })}</div>${poseCard(2, ok(2).concat(["checking"], pend(2)), `<div class="hint-chip" role="status"><i data-lucide="loader-circle"></i><span>Checking the picture…<small>This takes 1 to 2 seconds. Keep looking at the camera.</small></span></div>`, take(true))}</div>`;
       case "shot-failed":
-        return `<div class="wiz-body"><div>${cam({ ring: "bad", badge: "bad", strip: ["bad", "circle-x", "Not accepted. Retake."] })}</div>${poseCard(2, ok(2).concat(["failed"], pend(5)), failedBox("The picture is blurry. Hold still.", "Shot 3 was not accepted. Nothing else is lost; the other shots stay."), retake)}</div>`;
+        return `<div class="wiz-body"><div>${cam({ ring: "bad", badge: "bad", strip: ["bad", "circle-x", "Not accepted. Retake."] })}</div>${poseCard(2, ok(2).concat(["failed"], pend(2)), failedBox("The picture is blurry. Hold still.", "Shot 3 was not accepted. Nothing else is lost; the other shots stay."), retake)}</div>`;
       case "shot-failed-two-faces":
-        return `<div class="wiz-body"><div>${cam({ ring: "bad", badge: "bad", strip: ["bad", "circle-x", "Not accepted. Retake."] })}</div>${poseCard(3, ok(3).concat(["failed"], pend(4)), failedBox("Only the employee should be in the picture.", "Shot 4 was not accepted. Ask the other person to step away."), retake)}</div>`;
+        return `<div class="wiz-body"><div>${cam({ ring: "bad", badge: "bad", strip: ["bad", "circle-x", "Not accepted. Retake."] })}</div>${poseCard(3, ok(3).concat(["failed"], pend(1)), failedBox("Only the employee should be in the picture.", "Shot 4 was not accepted. Ask the other person to step away."), retake)}</div>`;
       case "shot-failed-spoof":
-        return `<div class="wiz-body"><div>${cam({ ring: "bad", badge: "bad", strip: ["bad", "circle-x", "Not accepted. Retake."] })}</div>${poseCard(4, ok(4).concat(["failed"], pend(3)), failedBox("This does not look like a live face. The employee must be present.", "A photo or a screen cannot be used. Shot 5 was not accepted."), retake)}</div>`;
+        return `<div class="wiz-body"><div>${cam({ ring: "bad", badge: "bad", strip: ["bad", "circle-x", "Not accepted. Retake."] })}</div>${poseCard(4, ok(4).concat(["failed"], pend(0)), failedBox("This does not look like a live face. The employee must be present.", "A photo or a screen cannot be used. Shot 5 was not accepted."), retake)}</div>`;
       case "shot-ok":
-        return `<div class="wiz-body"><div>${cam({ ring: "ok", badge: "ok", strip: ["ok", "check", "Accepted"] })}</div>${poseCard(3, ok(3).concat(["current"], pend(4)), `<div class="hint-chip" style="background:var(--success-soft);border-color:#bfe3d2;color:var(--success)" role="status"><i data-lucide="circle-check"></i><span>Shot 3 accepted<small style="color:var(--muted-foreground)">Next: shot 4.</small></span></div>`, take())}</div>`;
+        return `<div class="wiz-body"><div>${cam({ ring: "ok", badge: "ok", strip: ["ok", "check", "Accepted"] })}</div>${poseCard(3, ok(3).concat(["current"], pend(1)), `<div class="hint-chip" style="background:var(--success-soft);border-color:#bfe3d2;color:var(--success)" role="status"><i data-lucide="circle-check"></i><span>Shot 3 accepted<small style="color:var(--muted-foreground)">Next: shot 4.</small></span></div>`, take())}</div>`;
       case "last-shot":
-        return `<div class="wiz-body"><div>${cam({})}</div>${poseCard(7, ok(7).concat(["current"]), "", take())}</div>`;
+        return `<div class="wiz-body"><div>${cam({})}</div>${poseCard(4, ok(4).concat(["current"]), "", take())}</div>`;
       case "saving":
         return `<div class="wiz-body single"><section class="card center-card anim-fade-up" aria-busy="true"><div class="big-icon st-info"><div class="spinner dark" style="width:44px;height:44px"></div></div><h2>Saving…</h2><p>Please wait. This takes a few seconds. Do not close this window.</p>
-          <ol class="step-list"><li><span class="si ok"><i data-lucide="check"></i></span>8 shots checked</li><li><span class="si ok"><i data-lucide="check"></i></span>Face template made</li><li><span class="si now"><i data-lucide="loader-circle"></i></span>Checking that this face is not enrolled twice</li><li><span class="si todo"><i data-lucide="circle-dashed"></i></span>Saving, encrypted</li></ol></section></div>`;
+          <ol class="step-list"><li><span class="si ok"><i data-lucide="check"></i></span>5 shots checked</li><li><span class="si ok"><i data-lucide="check"></i></span>Face template made</li><li><span class="si now"><i data-lucide="loader-circle"></i></span>Checking that this face is not enrolled twice</li><li><span class="si todo"><i data-lucide="circle-dashed"></i></span>Saving, encrypted</li></ol></section></div>`;
       case "success":
         return `<div class="wiz-body single"><section class="card center-card anim-fade-up" role="status"><div class="big-icon st-success"><i data-lucide="circle-check"></i></div><h2>Face enrolled for Sunita Jadhav (<span class="code">EMP-0312</span>)</h2>
-          <p>8 shots accepted. The pictures were deleted; only the encrypted face template is kept. She can now punch with her face at the attendance device.</p>
+          <p>5 shots accepted. The pictures were deleted; only the encrypted face template is kept. She can now punch with her face at the attendance device.</p>
           <div class="row-wrap" style="justify-content:center;margin-top:24px"><button class="btn btn-primary btn-xl"><i data-lucide="check"></i>Done</button></div></section></div>`;
       case "duplicate":
       case "duplicate-filled": {

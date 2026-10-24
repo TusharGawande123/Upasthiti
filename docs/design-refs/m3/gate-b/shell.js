@@ -84,9 +84,6 @@ window.POSES = [
   ["right", "Turn your head slightly to your right"],
   ["up", "Lift your chin slightly"],
   ["down", "Lower your chin slightly"],
-  ["closer", "Look straight, a little closer"],
-  ["farther", "Look straight, a little farther away"],
-  ["gate", "Look straight, wearing what you wear at the gate (helmet, glasses)"],
 ];
 
 /* The shell is drawn only when the page has #sidebar / #topbar. */

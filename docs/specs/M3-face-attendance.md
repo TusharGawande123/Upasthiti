@@ -25,7 +25,7 @@ by face yet.
 M3 delivers:
 - **consent on screen** before any face data is taken (DPDP Act 2023), with a QR card as the free
   alternative;
-- **face enrolment by the Super Admin** in the admin website, with 8 guided shots, each checked by
+- **face enrolment by the Super Admin** in the admin website, with 5 guided shots, each checked by
   the server; only an **encrypted template** (a list of numbers) is kept, never a photo;
 - a **face punch at the gate**: one tap on "Punch with face", a random head-turn challenge chosen
   by the server, a few frames sent with the signed request, and the **server** decides: liveness,
@@ -108,7 +108,7 @@ shows FAR < 0.1% and FRR < 3% (NFR-05); the backend's peak memory during face pu
    the row keeps `deleted_at`, who and why. After a withdrawal the punch method becomes QR and the
    screen offers "Issue QR card".
 9. **In-memory template cache per plant** with invalidation (§7 rule 8).
-10. **Admin screens:** employee face panel, consent dialog, enrolment wizard (8 shots), employees
+10. **Admin screens:** employee face panel, consent dialog, enrolment wizard (5 shots), employees
     list face column and filters, punch log face columns and filters, settings card "Face
     recognition", dashboard enrolment progress card, Ctrl+K entries.
 11. **Approved extras (lead, 2026-10-24; details §12):** F-39 duplicate face check; F-40 enrolment
@@ -247,7 +247,7 @@ automatic return, name shown but never spoken). Face additions:
 - Shown for every employee; content depends on the punch method.
 - **Face-method employee:** state with icon + word:
   - ○ **Not enrolled** ("Consent not recorded" or "Consent given on DD/MM/YYYY");
-  - ● **Enrolled** on DD/MM/YYYY by {{user}} (model `buffalo_l`), 8 shots;
+  - ● **Enrolled** on DD/MM/YYYY by {{user}} (model `buffalo_s`), 5 shots;
   - ⚠ **Re-enrol suggested** (F-41) with the reason ("Needed the code 4 times in 30 days" or
     "Match scores are falling");
   - ⚠ **Enrolled with an old model: re-enrol** (template `model_id` ≠ the running model);
@@ -282,20 +282,16 @@ automatic return, name shown but never spoken). Face additions:
 - Full-screen dialog; works on a laptop webcam and on a phone (front camera, portrait).
 - Step 1 **Camera check:** camera choice, live preview, a lighting hint ("Face the light; avoid a
   window behind the person"). "Start".
-- Step 2 **8 shots**, one after another, each with a small picture of the pose and a line:
+- Step 2 **5 shots**, one after another, each with a small picture of the pose and a line:
   1. "Look straight at the camera";
   2. "Turn your head slightly to your left";
   3. "Turn your head slightly to your right";
   4. "Lift your chin slightly";
   5. "Lower your chin slightly";
-  6. "Look straight, a little closer";
-  7. "Look straight, a little farther away";
-  8. "Look straight, wearing what you wear at the gate (helmet, glasses)" (if nothing: straight
-     again).
 - MediaPipe shows a pose hint ("a little more to the left"); the shot is taken by the "Take shot"
   button or by itself when the pose is held for 1 s. Each shot is sent at once; the server answers
   in about 1–2 s: ✓ (dot turns green) or ✗ with a plain reason and **"Retake"** (§9: e.g. "The
-  picture is blurry. Hold still."). Eight dots show progress.
+  picture is blurry. Hold still."). Five dots show progress.
 - Step 3 **Finish:** "Saving…". Results:
   - success: "Face enrolled for {{name}} ({{code}})" with "Done";
   - **duplicate (F-39):** amber warning "This face looks like EMP-0457 (Ramesh Patil, TP1). Enrol
@@ -303,7 +299,7 @@ automatic return, name shown but never spoken). Face additions:
     "Cancel"; no photo is shown (there is none).
 - Leaving the wizard cancels the session (its stored embeddings are deleted). Images exist only in
   browser memory and are dropped after upload; nothing is kept in local storage.
-- Session time 15 minutes; after that: "This enrolment took too long. Start again."
+- No countdown on screen (decision 0018). The server closes a session that has had no activity for 1 hour; after that: "This enrolment took too long. Start again."
 
 ### 4.10 Admin: employees list (M1 page)
 - New column **"Face"** for face-method rows: ● Enrolled, ○ Not enrolled, ⚠ Re-enrol suggested,
@@ -393,7 +389,7 @@ Notes:
 ### 5.4 Admin: enrolment session
 | Method | Path | Role / identity | Request | Response | Error codes |
 |---|---|---|---|---|---|
-| POST | /api/v1/employees/{id}/face/enrolment-sessions | Super Admin | – | `201 { session_id, expires_at, model_id, poses: [ "straight", "left", "right", "up", "down", "closer", "farther", "work_wear" ] }` (an open session of the same employee is cancelled) | `EMPLOYEE_LEFT`, `EMPLOYEE_NOT_FACE` (punch method is QR), `CONSENT_REQUIRED`, `FACE_SERVICE_UNAVAILABLE`, `FACE_NOT_CONFIGURED`, `FORBIDDEN` |
+| POST | /api/v1/employees/{id}/face/enrolment-sessions | Super Admin | – | `201 { session_id, expires_at, model_id, poses: [ "straight", "left", "right", "up", "down" ] }` (an open session of the same employee is cancelled) | `EMPLOYEE_LEFT`, `EMPLOYEE_NOT_FACE` (punch method is QR), `CONSENT_REQUIRED`, `FACE_SERVICE_UNAVAILABLE`, `FACE_NOT_CONFIGURED`, `FORBIDDEN` |
 | POST | /api/v1/face/enrolment-sessions/{session_id}/shots | Super Admin (the user who started it) | `{ pose, image_jpeg (base64; ≤ 150 KB decoded; 480–1280 px wide) }` | `200 { accepted: bool, reason_code: null \| ENROL_*, shots_done, next_pose \| null, quality: { face_px, sharpness, brightness, yaw, pitch } }` (a refused shot is a normal answer, not an error) | `ENROLMENT_SESSION_NOT_FOUND`, `ENROLMENT_SESSION_EXPIRED`, `ENROLMENT_SESSION_CLOSED`, `PAYLOAD_TOO_LARGE` (body > 256 KB), `TOO_MANY_REQUESTS` (more than 60 shots a minute per user), `FACE_SERVICE_BUSY` |
 | POST | /api/v1/face/enrolment-sessions/{session_id}/finish | Super Admin | `{ duplicate_override_reason? (10–300 chars) }` | `201 { template: { enrolled_at, model_id, shot_count }, replaced_previous: bool }` | `ENROLMENT_INCOMPLETE` (fewer than 8 accepted shots), `FACE_DUPLICATE_FOUND` (409, `details.matches: [ { employee_id, employee_code, name, plant_code } ]` up to 3, no scores), `ENROLMENT_SESSION_EXPIRED`, `ENROLMENT_SESSION_CLOSED`, `CONSENT_REQUIRED` (withdrawn meanwhile) |
 | POST | /api/v1/face/enrolment-sessions/{session_id}/cancel | Super Admin | – | `204` | `ENROLMENT_SESSION_NOT_FOUND` |
@@ -440,7 +436,7 @@ and deleting them is the privacy rule (they hold face data or nothing of value).
 **Migration `0012_face_enrolment_sessions`**
 | Table | Columns | Keys / constraints |
 |---|---|---|
-| `face_enrolment_sessions` | employee_id (FK), consent_id (FK), started_by (FK users), started_at, expires_at (started_at + 15 min), model_id, state (`open`/`finished`/`cancelled`/`expired`), finished_template_id (FK face_templates null), accepted_shots (smallint), refused_shots (smallint) | partial unique (employee_id) where state = `open`; index (expires_at) where state = `open`. Holds no face data; kept as a small trail |
+| `face_enrolment_sessions` | employee_id (FK), consent_id (FK), started_by (FK users), started_at, expires_at (last activity + 1 hour), model_id, state (`open`/`finished`/`cancelled`/`expired`), finished_template_id (FK face_templates null), accepted_shots (smallint), refused_shots (smallint) | partial unique (employee_id) where state = `open`; index (expires_at) where state = `open`. Holds no face data; kept as a small trail |
 | `face_enrolment_shots` | session_id (FK, on delete cascade), pose (text), nonce (bytea), ciphertext (bytea: the shot's embedding, AES-256-GCM, associated data = session id + pose), created_at | unique (session_id, pose). **Rows deleted** when the session finishes, is cancelled or expires (cleanup, §7 rule 12) |
 
 **Migration `0013_face_punches`**
@@ -513,7 +509,7 @@ fit next to the 0.55 GB of QR photos.
      the new plant's gallery only.
 
 4. **Enrolment rules** (FR-12; decision 0016 item 10).
-   - One open session per employee (a new one cancels the old one); 15 minutes life; only the
+   - One open session per employee (a new one cancels the old one); 1 hour without activity closes it; only the
      Super Admin who started it may add shots or finish it.
    - Each shot: JPEG, ≤ 150 KB, 480–1280 px wide, decoded with a pixel limit (as M2 snapshots).
      Server checks, in order, each with an `ENROL_*` reason:
@@ -534,7 +530,7 @@ fit next to the 0.55 GB of QR photos.
    - An accepted shot's embedding (512 numbers, L2-normalised) is encrypted and saved in
      `face_enrolment_shots`; **the image is dropped from memory right after the embedding** and is
      never written to disk, storage or logs.
-   - Finish: needs all 8 poses accepted (`ENROLMENT_INCOMPLETE`). Template = mean of the 8
+   - Finish: needs all 5 poses accepted (`ENROLMENT_INCOMPLETE`). Template = mean of the 5
      normalised embeddings, normalised again (a stable "average face"). Then the duplicate check
      (rule 11). Then, in one transaction: the old active template (re-enrolment) is deleted with
      `delete_kind = re_enrolled`, the new template is stored, the session becomes `finished`, its
@@ -786,7 +782,7 @@ fit next to the 0.55 GB of QR photos.
 - **Minimisation:** template only (2 KB of numbers), no enrolment photos, no frames kept, no photo
   for an accepted face punch, no name spoken, no template ever leaves the server.
 - **Retention:** template until leaving or withdrawal, then deleted at once; enrolment shot
-  embeddings ≤ 15 minutes; pending matches ≤ 90 s; photos 60 days (setting) then purged; consent
+  embeddings ≤ 1 hour after the last activity; pending matches ≤ 90 s; photos 60 days (setting) then purged; consent
   records kept with the employee record as proof of consent, for the employment period plus the
   period the Labour Codes require for records (years to be confirmed by the client's HR/legal).
   Attendance punch rows are kept as labour law requires even after the face data is deleted. Deleted ciphertext may remain in the
@@ -990,8 +986,8 @@ Gate messages show title + message + next step and "For the admin: CODE" on reje
 | Photo or screen held up during enrolment | retake | `ENROL_SPOOF_SUSPECTED` | "This does not look like a live face. The employee must be present." |
 | Another person in shot 5 | retake | `ENROL_NOT_SAME_PERSON` | "This looks like a different person. Retake with the same employee." |
 | Shot not a JPEG / too big | refused | `ENROL_IMAGE_INVALID` / `PAYLOAD_TOO_LARGE` | "The picture could not be read. Try again." |
-| Finish with 7 shots | refused | `ENROLMENT_INCOMPLETE` | "All 8 shots are needed." `errors.ENROLMENT_INCOMPLETE` |
-| Session older than 15 min | refused | `ENROLMENT_SESSION_EXPIRED` | "This enrolment took too long. Start again." `errors.ENROLMENT_SESSION_EXPIRED` |
+| Finish with 4 shots | refused | `ENROLMENT_INCOMPLETE` | "All 5 shots are needed." `errors.ENROLMENT_INCOMPLETE` |
+| Session idle for more than 1 hour | refused | `ENROLMENT_SESSION_EXPIRED` | "This enrolment took too long. Start again." `errors.ENROLMENT_SESSION_EXPIRED` |
 | Session finished or cancelled | refused | `ENROLMENT_SESSION_CLOSED` | "This enrolment has ended. Start again." `errors.ENROLMENT_SESSION_CLOSED` |
 | Unknown session | refused | `ENROLMENT_SESSION_NOT_FOUND` | "This enrolment was not found. Start again." `errors.ENROLMENT_SESSION_NOT_FOUND` |
 | New face looks like EMP-0457 | blocked; override with reason | `FACE_DUPLICATE_FOUND` | "This face looks like {{code}} ({{name}}, {{plant}}). Enrol anyway only if they are different people (for example twins), and give the reason." `errors.FACE_DUPLICATE_FOUND` |
@@ -1029,7 +1025,7 @@ Core:
   photo, or a different person than shot 1, then the answer is `accepted: false` with
   `ENROL_MULTIPLE_FACES`, `ENROL_BLURRY`, `ENROL_POSE_WRONG`, `ENROL_SPOOF_SUSPECTED`,
   `ENROL_NOT_SAME_PERSON` respectively, and a retake of that pose can be accepted.
-- **AC-8** Given a session that finished, was cancelled or is older than 15 minutes, when the cleanup
+- **AC-8** Given a session that finished, was cancelled or has been idle for more than 1 hour, when the cleanup
   has run (or a new session starts), then no `face_enrolment_shots` row of it exists.
 - **AC-9** Given an enrolled employee at plant TP1 and a paired TP1 attendance device, when the
   employee taps "Punch with face" and turns the head as asked, then within 5 s (warm deployed site)
@@ -1183,12 +1179,12 @@ Extras:
   result / code pad → idle; cancel; 30 s timeout; challenge renewal once; fallback without MediaPipe);
   code pad (digits, letters, backspace, countdown, tries message); button hidden / greyed from
   `/kiosk/me`; result texts per code including "For the admin" line and no name on rejections;
-  consent dialog (camera not started before "I agree"; decline path); wizard (8 poses, retake on a
+  consent dialog (camera not started before "I agree"; decline path); wizard (5 poses, retake on a
   refused shot, duplicate warning with required reason, cancel on close); face panel role hiding;
   punch log face columns hidden for non-Super Admin.
 - **End-to-end (Playwright, headed locally; backend with `FACE_ENGINE=fake` and `APP_ENV=test`;
   Chrome's fake camera plays a synthetic `.y4m` clip made during the test run, no real face):**
-  1. Super Admin records consent and enrols (8 shots) → face panel "Enrolled" (AC-3, AC-6);
+  1. Super Admin records consent and enrols (5 shots) → face panel "Enrolled" (AC-3, AC-6);
   2. gate: "Punch with face" → IN; again → "Already IN" (AC-9);
   3. fake engine set to "unsure" → code pad → right code → accepted; wrong code twice → not
      recognised; punch log shows "Asked for code" and the claimed employee for the Super Admin
@@ -1257,7 +1253,7 @@ publish them.
 | No onnxruntime / opencv wheel for Python 3.14 | Build fails | Checked in slice 1 step 4; see §14 question 3 |
 | Anti-spoof model misses a good phone replay | Proxy punch with a video | Spoof test set at the real devices (AC-17); threshold from the report; photo + claimed employee kept for every failure; M4 location check |
 | Small team test set | FAR / FRR numbers uncertain | Public dataset for impostor pairs; the report states the sample sizes and confidence |
-| Cheap gate camera, back light at the gate | False rejects, many code entries | Enrolment shot 8 in work wear; low-light hint; gate setup guide (light, camera height); F-41 hint |
+| Cheap gate camera, back light at the gate | False rejects, many code entries | Enrolment poses straight, left, right, up, down; low-light hint; gate setup guide (light, camera height); F-41 hint |
 | Public dataset or model URL disappears | Accuracy run or build breaks | sha256-pinned files; a copy attached to a GitHub Release of our repo where the licence allows |
 | `FACE_TEMPLATE_KEY` lost | Everyone must re-enrol | Password manager; handover checklist; stated in the setup guide |
 
@@ -1281,7 +1277,7 @@ All four were answered by the lead (Tushar Gawande) in chat on 2026-10-24 (decis
   (lead decision 2026-10-24, decision 0016 item 9). SRS §9 demo scenario 2 "(zero-tap)" becomes
   "(one tap)".
 - **SRS FR-11:** "HR" → the Super Admin; consent text version, language, text hash, time, Super Admin.
-- **SRS FR-12:** 8 guided shots (decision 0016 item 10), each checked by the server including pose
+- **SRS FR-12:** 5 guided shots (decision 0018, was 8 in 0016 item 10), each checked by the server including pose
   and same person.
 - **SRS FR-18:** challenge = one server-chosen head turn (left / right), no blink; 2–4 frames; the
   code path is a 1:1 match against the typed code, at most 2 tries, then "Please visit the plant
