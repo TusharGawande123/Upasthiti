@@ -206,9 +206,22 @@ def test_the_code_floor_cannot_be_above_the_match_threshold(boss: TestClient) ->
     lowered_threshold = _change(boss, face_match_threshold=0.25)  # floor is 0.30
     assert lowered_threshold.json()["error"]["code"] == "SETTING_INVALID"
 
-    both = _change(boss, face_match_threshold=0.70, face_code_offer_floor=0.60)
+    both = _change(
+        boss, face_match_threshold=0.70, face_code_offer_floor=0.60, face_code_match_threshold=0.65
+    )
     assert both.status_code == 200
     assert _settings(boss)["face_code_offer_floor"]["value"] == 0.60
+
+
+def test_the_code_threshold_cannot_be_below_the_code_floor(boss: TestClient) -> None:
+    """Codes are not secret: a bar under the floor would accept faces that were never unsure."""
+    below = _change(boss, face_code_match_threshold=0.25)  # floor is 0.30
+    assert below.status_code == 422
+    assert below.json()["error"]["code"] == "SETTING_INVALID"
+    assert below.json()["error"]["details"]["key"] == "face_code_match_threshold"
+
+    raised_floor = _change(boss, face_code_offer_floor=0.44)  # code threshold is 0.42
+    assert raised_floor.json()["error"]["code"] == "SETTING_INVALID"
 
 
 def test_text_settings_are_trimmed_and_length_checked(boss: TestClient) -> None:

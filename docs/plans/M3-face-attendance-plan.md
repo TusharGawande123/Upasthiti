@@ -439,3 +439,17 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
   D; the CelebA-Spoof candidate has no stable ONNX link yet; `FACE_TEMPLATE_KEY` must be set on
   Render before the merge (step 32). For the client before the first real enrolment: grievance
   officer, consent-record years, processor agreements, Marathi / Hindi text check (decision 0017).
+
+### Step 33 – reviews (2026-10-24)
+- Done: five reviewers ran (security, compliance, code quality, i18n, tests). Fixes and the open
+  list are in decision 0022: stricter head-turn check, locked code-try limit, code-threshold
+  setting rule, gate text fixes, demo-plant tool removes face data. Everything else needing a
+  decision is listed under "Open for the lead" in decision 0022.
+- Test results after the fixes: backend 967 passed, 7 skipped (coverage 89.6 %); frontend 500
+  passed (branches 80.1 %), lint, typecheck, i18n:check green. Full e2e run before the fixes:
+  56 of 57 passed; `admin-foundation.spec.ts:36` ("Super Admin adds a user") timed out once under
+  load and passed alone (a flake, not M3). The fixes touched no frontend code, only two gate texts.
+- Tushar, in this order: (1) read decision 0022 "Open for the lead" and decide (erasure closes
+  consent? consent text names Vercel? InsightFace licence?); (2) step 28 real-people runs;
+  (3) step 32 Render keys and settings; (4) approve the CLAUDE.md diff (items in the earlier
+  Status); (5) run `/ship`, watch the first CI `docker` job (memory check) and merge.

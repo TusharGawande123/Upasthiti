@@ -438,10 +438,12 @@ def record_code_try(
         return punch_answer(session, stored, kiosk.name, limits)
 
     now = utc_now()
+    # Locked until the commit: tries sent at the same moment wait for each other, so each one
+    # sees the real number of tries left and the limit cannot be beaten in parallel.
     pending = session.scalar(
-        select(FacePendingMatch).where(
-            FacePendingMatch.token_sha256 == _token_hash(request.code_entry_token)
-        )
+        select(FacePendingMatch)
+        .where(FacePendingMatch.token_sha256 == _token_hash(request.code_entry_token))
+        .with_for_update()
     )
     if pending is None or pending.kiosk_id != kiosk.id:
         # Unknown, already finished or another kiosk's token: the same answer as a timeout.

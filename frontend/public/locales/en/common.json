@@ -301,7 +301,7 @@
       "SPOOF_SUSPECTED": {
         "title": "NOT ACCEPTED",
         "message": "The check did not pass.",
-        "next": "Look at the camera yourself and try again. If it repeats, please visit the plant office.",
+        "next": "Please try again. If it repeats, please visit the plant office.",
         "voice": "The check did not pass. Please visit the plant office."
       },
       "CHALLENGE_INVALID": {
@@ -348,7 +348,7 @@
       },
       "FACE_NOT_CONFIGURED": {
         "title": "ERROR",
-        "message": "Face punch is not set up on this server.",
+        "message": "Face punch is not available here.",
         "next": "Please visit the plant office.",
         "voice": "Face punch is not available. Please visit the plant office."
       }

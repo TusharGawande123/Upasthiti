@@ -240,7 +240,7 @@ automatic return, name shown but never spoken). Face additions:
 | Rejected (face codes, §9) | red ✗ **NOT ACCEPTED** | worker-safe message + next step + "For the admin: CODE" | the short `.voice` line |
 
 - A "Try again" button appears on rejections where a retry can help (`NO_FACE`, `MULTIPLE_FACES`,
-  `FACE_TOO_SMALL`, `FACE_QUALITY_LOW`, `LIVENESS_FAILED`, `CHALLENGE_EXPIRED`, `FACE_INCONSISTENT`);
+  `FACE_TOO_SMALL`, `FACE_QUALITY_LOW`, `LIVENESS_FAILED`, `CHALLENGE_EXPIRED`, `FACE_INCONSISTENT`, `CHALLENGE_INVALID`, `FRAMES_INVALID`);
   it starts the face guidance again (countdown 10 s on these screens). Other rejections return to idle.
   `FACE_SERVICE_UNAVAILABLE`, `FACE_SERVICE_BUSY` and `TOO_MANY_REQUESTS` are amber "PLEASE WAIT" (decision 0019).
 
@@ -817,7 +817,7 @@ fit next to the 0.55 GB of QR photos.
   > Sheet Shapers, {{company_address}}, uses Upasthiti to record attendance at the plant gate. If you
   > agree, you can punch IN and OUT by showing your face to the gate attendance device.
   >
-  > **What we keep.** During enrolment the camera takes 8 pictures of your face. The system turns
+  > **What we keep.** During enrolment the camera takes 5 pictures of your face. The system turns
   > them into a face template: a list of numbers that describes your face. The pictures are deleted
   > at once. Only the template is kept, and it is encrypted. When you punch, the device takes a few
   > pictures; the server compares them with your template and then deletes them. If a punch fails,
@@ -956,7 +956,7 @@ Gate messages show title + message + next step and "For the admin: CODE" on reje
 | Stranger or QR worker presses "Punch with face" | not recognised | `FACE_NOT_RECOGNISED` | as above |
 | Employee of another plant at this gate, types own code, face matches | rejected, photo kept | `WRONG_PLANT` | M2 "This card is for another plant…" is card wording, so a face text: "You are registered at another plant. Please visit the plant office." `kiosk.punch.WRONG_PLANT_FACE` (same code `WRONG_PLANT`; the gate picks the text by method) |
 | Face employee shows an old QR card | rejected (M2) | `EMPLOYEE_NOT_QR` | M2 text |
-| Printed photo held to the camera | cannot turn → or anti-spoof fails | `LIVENESS_FAILED` / `SPOOF_SUSPECTED` | "The check did not pass. Look at the camera yourself and try again. If it repeats, please visit the plant office." `kiosk.punch.SPOOF_SUSPECTED`; `LIVENESS_FAILED`: "Please turn your head as the arrow shows, then look straight." |
+| Printed photo held to the camera | cannot turn → or anti-spoof fails | `LIVENESS_FAILED` / `SPOOF_SUSPECTED` | "The check did not pass. Please try again. If it repeats, please visit the plant office." (no hint about why the check failed) `kiosk.punch.SPOOF_SUSPECTED`; `LIVENESS_FAILED`: "Please turn your head as the arrow shows, then look straight." |
 | Phone video replay | anti-spoof fails | `SPOOF_SUSPECTED` | as above |
 | Person did not turn, or turned the wrong way | rejected, retry offered | `LIVENESS_FAILED` | as above |
 | Two people in front of the camera | rejected, retry offered | `MULTIPLE_FACES` | "Only one person, please. Try again." `kiosk.punch.MULTIPLE_FACES` |

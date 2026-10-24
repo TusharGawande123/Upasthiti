@@ -26,7 +26,7 @@ import sys
 import uuid
 from dataclasses import dataclass, field
 
-from sqlalchemy import Table, delete, or_, select, text
+from sqlalchemy import Table, delete, or_, select, text, update
 from sqlalchemy.orm import Session
 
 from app.core.config import load_settings_or_exit
@@ -106,6 +106,7 @@ def build_plan(session: Session, plant_code: str, include_test_cards: bool) -> R
             punches.c.plant_id == plant.id,
             punches.c.kiosk_id.in_(plan.kiosk_ids),
             punches.c.employee_id.in_(plan.employee_ids),
+            punches.c.claimed_employee_id.in_(plan.employee_ids),
         ),
     )
     plan.photo_keys = [
@@ -125,6 +126,41 @@ def build_plan(session: Session, plant_code: str, include_test_cards: bool) -> R
     return plan
 
 
+def _remove_face_data(session: Session, plan: RemovalPlan) -> None:
+    """Face consents, templates, enrolment sessions, waiting code matches and challenges of the
+    demo plant go too: test faces must not stay behind (DPDP: erase when the purpose is over)."""
+    t = _table
+    session.execute(
+        delete(t("face_pending_matches")).where(
+            or_(
+                t("face_pending_matches").c.origin_punch_id.in_(plan.punch_ids),
+                t("face_pending_matches").c.kiosk_id.in_(plan.kiosk_ids),
+            )
+        )
+    )
+    session.execute(
+        delete(t("punch_challenges")).where(t("punch_challenges").c.kiosk_id.in_(plan.kiosk_ids))
+    )
+    # A real employee's template may point at a demo employee as "duplicate of": unlink it.
+    session.execute(
+        update(t("face_templates"))
+        .where(t("face_templates").c.duplicate_of_employee_id.in_(plan.employee_ids))
+        .values(duplicate_of_employee_id=None)
+    )
+    # Sessions first (their shots go with them), then templates, then consents.
+    session.execute(
+        delete(t("face_enrolment_sessions")).where(
+            t("face_enrolment_sessions").c.employee_id.in_(plan.employee_ids)
+        )
+    )
+    session.execute(
+        delete(t("face_templates")).where(t("face_templates").c.employee_id.in_(plan.employee_ids))
+    )
+    session.execute(
+        delete(t("face_consents")).where(t("face_consents").c.employee_id.in_(plan.employee_ids))
+    )
+
+
 def remove(session: Session, plan: RemovalPlan) -> None:
     """Deletes the plan's rows. The caller commits (or rolls everything back on an error)."""
     plant_id = plan.plant_id
@@ -135,6 +171,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
     session.execute(text("ALTER TABLE punches DISABLE TRIGGER USER"))
     try:
         t = _table
+        _remove_face_data(session, plan)
         session.execute(
             delete(t("punch_snapshots")).where(t("punch_snapshots").c.punch_id.in_(plan.punch_ids))
         )

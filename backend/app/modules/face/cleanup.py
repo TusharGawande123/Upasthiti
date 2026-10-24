@@ -1,8 +1,8 @@
 """Removes face data that has outlived its time (spec M3 §7 rule 12). Safe to run again and again.
 
 Runs every 5 minutes and at start-up (app/jobs/daily.py). Each new enrolment session also
-cleans its own employee's old rows first, so no shot embedding outlives its 15 minutes even if
-the scheduler is switched off. The job logs only counts, never what was deleted.
+cleans its own employee's old rows first, so no shot embedding outlives its 2 hours (decision
+0018) even if the scheduler is switched off. The job logs only counts, never what was deleted.
 """
 
 import uuid

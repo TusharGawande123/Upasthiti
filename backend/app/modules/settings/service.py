@@ -138,8 +138,11 @@ def _check_text(definition: SettingDefinition, value: Any) -> str:
 
 def _check_face_floor(session: Session, new_values: dict[str, SettingValueType]) -> None:
     """The code-entry floor must not be above the match threshold, or a face could be "unsure"
-    without ever being "matched" (spec M3 §7 rule 13). Checked on the values after this save."""
-    if "face_code_offer_floor" not in new_values and "face_match_threshold" not in new_values:
+    without ever being "matched" (spec M3 §7 rule 13). The 1:1 code threshold must not be below
+    the floor either: employee codes are not secret, so a lower bar would let a face that was
+    never "unsure" be accepted with a coworker's code. Checked on the values after this save."""
+    watched = ("face_code_offer_floor", "face_match_threshold", "face_code_match_threshold")
+    if not any(key in new_values for key in watched):
         return
 
     def after_save(key: str) -> float:
@@ -152,6 +155,13 @@ def _check_face_floor(session: Session, new_values: dict[str, SettingValueType])
             "The code-entry floor must be lower than the match threshold.",
             422,
             {"key": "face_code_offer_floor"},
+        )
+    if after_save("face_code_match_threshold") < after_save("face_code_offer_floor"):
+        raise ApiError(
+            "SETTING_INVALID",
+            "The code threshold must not be lower than the code-entry floor.",
+            422,
+            {"key": "face_code_match_threshold"},
         )
 
 

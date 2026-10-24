@@ -26,6 +26,8 @@ FACE_RETRY_CODES = (
     "LIVENESS_FAILED",
     "CHALLENGE_EXPIRED",
     "FACE_INCONSISTENT",
+    "CHALLENGE_INVALID",  # their texts say "Please try again", so the button must be there
+    "FRAMES_INVALID",
 )
 
 

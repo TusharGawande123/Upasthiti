@@ -338,6 +338,24 @@ def test_no_turn_at_all_or_a_turned_frontal_frame_fails_liveness(
     assert answer.json()["reason_code"] == "LIVENESS_FAILED"
 
 
+def test_turn_frames_that_go_both_ways_do_not_pass_a_one_way_challenge(
+    db_client: TestClient, device: Device, kiosk: KioskDevice, ravi: str
+) -> None:
+    """A left and a right turn together would pass every challenge: more turn frames than steps
+    are refused (security review of M3)."""
+    given = challenge(db_client, device)
+    right_way = turn_yaw(given["challenge"])
+    both_ways = [
+        frame(1),
+        frame(1, yaw=right_way, role="turn"),
+        frame(1, yaw=-right_way, role="turn"),
+    ]
+
+    answer = face_punch(db_client, device, 1, frames=both_ways, nonce=given["challenge_nonce"])
+
+    assert answer.json()["reason_code"] == "LIVENESS_FAILED"
+
+
 def test_another_face_in_the_turn_frame_is_inconsistent(
     db_client: TestClient, device: Device, kiosk: KioskDevice, ravi: str
 ) -> None:

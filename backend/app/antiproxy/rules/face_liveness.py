@@ -26,12 +26,13 @@ def check_liveness(context: FacePunchContext) -> RuleResult:
 
     steps = CHALLENGE_STEPS.get(context.challenge or "")
     turns = [frame.yaw for frame in context.turn_frames if frame.yaw is not None]
-    if steps is None or len(turns) < len(steps):
+    # Exactly one turn frame per step, each turned the asked way, in the asked order. Extra
+    # frames are refused: a clip (or a hand-made request) that sends a left and a right turn
+    # would otherwise pass every challenge and the 1-in-2 chance would mean nothing.
+    if steps is None or len(turns) != len(steps):
         return RuleResult.rejected("LIVENESS_FAILED")
-    # Each step needs its own turn frame, in the order asked.
-    remaining = iter(turns)
-    for direction in steps:
-        if not any(yaw * direction >= limits.min_yaw_degrees for yaw in remaining):
+    for yaw, direction in zip(turns, steps, strict=True):
+        if yaw * direction < limits.min_yaw_degrees:
             return RuleResult.rejected("LIVENESS_FAILED")
     first_direction = steps[0]
     context.yaw_degrees = max(turns, key=lambda yaw: yaw * first_direction)
