@@ -20,3 +20,9 @@ Status: Accepted. Mockups: `docs/design-refs/m3/gate-a/`. Changes spec §4.1, §
    - face rejections that can be retried say "NOT ACCEPTED" with a "Try again" button;
    - on a phone the idle page scrolls down to the long privacy footer; the camera, the card
      instruction and "Punch with face" stay visible without scrolling.
+6. **Build notes (step 22):** the gate chunk grew from about 50 to 54 kB gzip (face view, code pad, the
+   face logic), so its size budget in `frontend/size-budgets.json` went from 53,000 to 57,000 bytes.
+   New dependency: `@fontsource/jetbrains-mono` (SIL OFL 1.1, free), only the latin 600 weight, used for
+   the typed employee code. The head-turn picture is taken when MediaPipe sees the turn
+   `(min_yaw + 7)` degrees past the straight face, with a rough 0.0175 per degree conversion
+   (`face-sequence.ts`); the real-face accuracy runs of slice D must confirm it (Status reminder).

@@ -6,12 +6,14 @@ import type { TFunction } from "i18next";
 import {
   CircleAlert,
   Clock3,
+  Hourglass,
   IdCard,
   Info,
   LogIn,
   LogOut,
   type LucideIcon,
   MoveRight,
+  RotateCw,
   Wifi,
   WifiOff,
   Wrench,
@@ -20,7 +22,9 @@ import {
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
+import { KioskButton } from "../components/kiosk-button";
 import { formatIstTime } from "../components/server-clock";
+import { rejectionTextCode } from "./feedback";
 import { type PunchAnswer, type ResultKind, resultKind } from "./punch-types";
 
 type Look = "in" | "out" | "already" | "reject";
@@ -59,7 +63,42 @@ const KNOWN_CODES = new Set([
   "INTERNAL_ERROR",
   "TOO_MANY_REQUESTS",
   "PAYLOAD_TOO_LARGE",
+  // Face punch (spec M3 §9).
+  "NO_FACE",
+  "MULTIPLE_FACES",
+  "FACE_TOO_SMALL",
+  "FACE_QUALITY_LOW",
+  "LIVENESS_FAILED",
+  "FACE_INCONSISTENT",
+  "CHALLENGE_EXPIRED",
+  "SPOOF_SUSPECTED",
+  "CHALLENGE_INVALID",
+  "FRAMES_INVALID",
+  "FACE_NOT_RECOGNISED",
+  "CODE_ENTRY_EXPIRED",
+  "WRONG_PLANT_FACE",
+  "FACE_SERVICE_UNAVAILABLE",
+  "FACE_SERVICE_BUSY",
+  "FACE_NOT_CONFIGURED",
 ]);
+
+// Nobody did anything wrong: the punch was not saved, please wait (amber, not red; decision 0019).
+const WAIT_CODES = new Set(["FACE_SERVICE_UNAVAILABLE", "FACE_SERVICE_BUSY", "TOO_MANY_REQUESTS"]);
+
+/** The "stopped" or "please wait" look of a rejection or a failure. */
+function stoppedLook(code: string, texts: string, time: string, t: TFunction): Shown {
+  const waiting = WAIT_CODES.has(code);
+  return {
+    look: waiting ? "already" : "reject",
+    icon: waiting ? Hourglass : code === "NETWORK_OFFLINE" ? WifiOff : X,
+    shape: waiting ? "square" : "octagon",
+    word: t(`kiosk.punch.${texts}.title`),
+    lead: t(`kiosk.punch.${texts}.message`),
+    card: { icon: MoveRight, main: t(`kiosk.punch.${texts}.next`) },
+    adminCode: code,
+    time,
+  };
+}
 
 function textCode(code: string): string {
   return KNOWN_CODES.has(code) ? code : "INTERNAL_ERROR";
@@ -146,7 +185,7 @@ type Shown = {
   time: string;
 };
 
-function describeAnswer(answer: PunchAnswer, t: TFunction): Shown {
+function describeAnswer(answer: PunchAnswer, t: TFunction, viaFace: boolean): Shown {
   const kind: ResultKind = resultKind(answer);
   const time = hhmm(answer.server_time);
   const name = answer.employee?.display_name;
@@ -206,31 +245,13 @@ function describeAnswer(answer: PunchAnswer, t: TFunction): Shown {
     };
   }
   const reason = answer.reason_code ?? "INTERNAL_ERROR";
-  const texts = textCode(reason);
-  return {
-    look: "reject",
-    icon: X,
-    shape: "octagon",
-    word: t(`kiosk.punch.${texts}.title`),
-    lead: t(`kiosk.punch.${texts}.message`),
-    card: { icon: MoveRight, main: t(`kiosk.punch.${texts}.next`) },
-    adminCode: reason,
-    time,
-  };
+  return stoppedLook(reason, textCode(rejectionTextCode(reason, viaFace)), time, t);
 }
 
 function describeFailure(code: string, time: string, t: TFunction): Shown {
-  const texts = textCode(code);
-  return {
-    look: "reject",
-    icon: code === "NETWORK_OFFLINE" ? WifiOff : CircleAlert,
-    shape: "octagon",
-    word: t(`kiosk.punch.${texts}.title`),
-    lead: t(`kiosk.punch.${texts}.message`),
-    card: { icon: MoveRight, main: t(`kiosk.punch.${texts}.next`) },
-    adminCode: code,
-    time,
-  };
+  const shown = stoppedLook(code, textCode(code), time, t);
+  // A failure that is not a server rejection (no answer, an error) keeps its own icon.
+  return shown.icon === X ? { ...shown, icon: CircleAlert } : shown;
 }
 
 export function ResultView({
@@ -241,6 +262,8 @@ export function ResultView({
   subtitle,
   online,
   seconds,
+  viaFace = false,
+  onTryAgain,
 }: {
   answer?: PunchAnswer;
   failedCode?: string;
@@ -250,15 +273,20 @@ export function ResultView({
   subtitle: string;
   online: boolean;
   seconds: number;
+  /** The punch was a face punch (or the code typed after one): face wording. */
+  viaFace?: boolean;
+  /** Given when another try can help: shows the "Try again" button. */
+  onTryAgain?: () => void;
 }) {
   const { t } = useTranslation();
   const [shownAt] = useState(() => new Date(Date.now() + serverOffsetMs).toISOString());
   const shown = answer
-    ? describeAnswer(answer, t)
+    ? describeAnswer(answer, t, viaFace)
     : describeFailure(failedCode ?? "INTERNAL_ERROR", hhmm(shownAt), t);
   const flood = FLOOD[shown.look];
   const textColour = flood.ink ? "text-foreground" : "text-white";
-  const isRejection = shown.look === "reject";
+  const isRejection =
+    shown.look === "reject" || (shown.adminCode !== undefined && shown.look === "already");
 
   return (
     <div
@@ -331,6 +359,16 @@ export function ResultView({
                 ) : null}
               </div>
             </div>
+          ) : null}
+          {onTryAgain ? (
+            <KioskButton
+              variant="key"
+              className="min-h-24 w-full border-4 border-foreground text-[36px]"
+              onClick={onTryAgain}
+            >
+              <RotateCw className="size-10" aria-hidden />
+              {t("kiosk.attendance.tryAgain")}
+            </KioskButton>
           ) : null}
           {shown.adminCode ? (
             <p className="text-[24px] font-bold">

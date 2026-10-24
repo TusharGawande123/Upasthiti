@@ -181,7 +181,12 @@ describe("screens of a face punch", () => {
     expect(pad).toEqual({ name: "code-entry", entry: CODE_ENTRY, wrong: false });
 
     const afterCode = nextScreen(pad, { type: "code-sent" });
-    expect(afterCode).toEqual({ name: "checking", slow: false, via: "code" });
+    expect(afterCode).toEqual({
+      name: "checking",
+      slow: false,
+      via: "code",
+      entry: CODE_ENTRY,
+    });
     const wrong = answer({
       decision: "needs_code",
       reason_code: "CODE_NOT_MATCHED",

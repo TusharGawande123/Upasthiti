@@ -31,7 +31,8 @@ export type AttendanceScreen =
   | { name: "face-guide"; timedOut: boolean }
   | { name: "face-challenge"; shown: CaptureShown }
   | { name: "code-entry"; entry: CodeEntry; wrong: boolean }
-  | { name: "checking"; slow: boolean; via?: "face" | "code" }
+  // `entry` is kept while a typed code is checked, so the code pad stays on the screen.
+  | { name: "checking"; slow: boolean; via?: "face" | "code"; entry?: CodeEntry }
   | { name: "result"; answer: PunchAnswer; via?: "face" | "code" }
   | { name: "failed"; code: string };
 
@@ -110,7 +111,9 @@ export function nextScreen(screen: AttendanceScreen, event: AttendanceEvent): At
         ? { name: "checking", slow: false, via: "face" }
         : screen;
     case "code-sent":
-      return screen.name === "code-entry" ? { name: "checking", slow: false, via: "code" } : screen;
+      return screen.name === "code-entry"
+        ? { name: "checking", slow: false, via: "code", entry: screen.entry }
+        : screen;
     case "face-cancel":
       return screen.name === "face-guide" ||
         screen.name === "face-challenge" ||

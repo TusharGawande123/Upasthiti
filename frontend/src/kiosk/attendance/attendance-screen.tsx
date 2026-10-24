@@ -14,7 +14,9 @@ import { useTranslation } from "react-i18next";
 import { Frame } from "../components/frame";
 import { ProblemScreen } from "../components/problem-screen";
 import type { PairedKiosk } from "../device-store";
-import type { KioskMe } from "./punch-types";
+import { CodePad } from "./code-pad";
+import { FaceView, showsFaceView } from "./face-view";
+import { type CodeEntry, canTryAgain, canTryAgainAfterFailure, type KioskMe } from "./punch-types";
 import { ResultView } from "./result-view";
 import { ScanningView } from "./scanning-view";
 import { ConnectionChip, TopClock } from "./top-bar";
@@ -109,6 +111,8 @@ export function AttendanceScreen({
           lowLight={attendance.lowLight}
           camera={attendance.camera}
           getReady={attendance.getReady}
+          face={heartbeat.settings.face}
+          onStartFace={attendance.face.start}
           onStartCamera={attendance.startCameraAfterTap}
         />
       </div>
@@ -131,6 +135,32 @@ export function AttendanceScreen({
           code={screen.code}
         />
       ) : null}
+      {showsFaceView(screen) ? (
+        <FaceView
+          screen={screen}
+          hint={attendance.face.guide.hint}
+          good={attendance.face.guide.good}
+          videoRef={attendance.videoRef}
+          cameraReady={attendance.camera.ready}
+          mirrored={attendance.camera.facing === "user"}
+          onCancel={attendance.face.cancel}
+          onRetry={attendance.face.retry}
+        />
+      ) : null}
+      {screen.name === "code-entry" || (screen.name === "checking" && screen.via === "code") ? (
+        <CodePad
+          entry={screen.name === "code-entry" ? screen.entry : (screen.entry as CodeEntry)}
+          wrong={screen.name === "code-entry" && screen.wrong}
+          checking={screen.name === "checking"}
+          slow={screen.name === "checking" && screen.slow}
+          prefixes={heartbeat.settings.face.code_prefixes}
+          totalSeconds={heartbeat.settings.face.code_entry_seconds}
+          serverOffsetMs={heartbeat.serverOffsetMs}
+          onSubmit={(code) => void attendance.face.submitCode(code)}
+          onCancel={attendance.face.cancel}
+          onExpired={attendance.face.expireCode}
+        />
+      ) : null}
       {screen.name === "result" || screen.name === "failed" ? (
         <ResultView
           answer={screen.name === "result" ? screen.answer : undefined}
@@ -140,6 +170,13 @@ export function AttendanceScreen({
           subtitle={kiosk.kioskName}
           online={heartbeat.online}
           seconds={attendance.holdSeconds ?? heartbeat.settings.result_seconds}
+          viaFace={screen.name === "result" && screen.via !== undefined}
+          onTryAgain={
+            (screen.name === "result" && canTryAgain(screen.answer)) ||
+            (screen.name === "failed" && canTryAgainAfterFailure(screen.code))
+              ? attendance.face.retry
+              : undefined
+          }
         />
       ) : null}
     </Frame>

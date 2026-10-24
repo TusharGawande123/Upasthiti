@@ -251,6 +251,12 @@ export function useAttendance({
     }
   }, [screen.name, photoFacing, scanFacing]);
 
+  // The code pad ran out of time: shown as a rejection, like any other (spec M3 §4.5).
+  const expireCode = useCallback(
+    () => finishPunch({ kind: "failed", code: "CODE_ENTRY_EXPIRED" }),
+    [finishPunch],
+  );
+
   // The face punch: guidance, head turn, pictures, and the code pad when the server is unsure.
   const facePunch = useFacePunch({
     screen,
@@ -307,7 +313,7 @@ export function useAttendance({
     videoRef,
     lowLight,
     holdSeconds,
-    face: facePunch,
+    face: { ...facePunch, expireCode },
     startCameraAfterTap,
     retryCamera,
     // For the "get ready" screen.

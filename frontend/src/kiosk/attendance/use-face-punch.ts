@@ -18,7 +18,7 @@ import {
   CHALLENGE_STEPS,
   GUIDE_GIVE_UP_MS,
   GUIDE_TIMEOUT_MS,
-  type GuideHint,
+  type GuideReading,
   GuideTracker,
   readGuide,
 } from "./face-sequence";
@@ -32,6 +32,7 @@ import {
 } from "./punch-client";
 import type { KioskFaceSettings } from "./punch-types";
 
+const NOT_READY: GuideReading = { good: false, hint: null };
 const GUIDE_EVERY_MS = 150;
 const CAPTURE_EVERY_MS = 100;
 // The challenge lives `challenge_seconds`; the pictures must be sent a little before that.
@@ -86,7 +87,7 @@ export function useFacePunch({
 }) {
   // 0 means no run; each start or retry takes the next number and cancels the run before it.
   const [attempt, setAttempt] = useState(0);
-  const [hint, setHint] = useState<GuideHint | null>(null);
+  const [guide, setGuide] = useState<GuideReading>(NOT_READY);
   const guideRef = useRef<FaceGuide | null>(null);
   const guideLoading = useRef<Promise<void> | null>(null);
   const cameraReadyRef = useRef(cameraReady);
@@ -157,12 +158,12 @@ export function useFacePunch({
             const brightness = measureVideoBrightness(video, canvas);
             const dark = brightness !== null && watcher.update(brightness, Date.now());
             const reading = readGuide(faces, dark);
-            setHint(reading.hint);
+            setGuide(reading);
             if (guideTracker.update(now, reading.good).ready) return true;
           }
           if (!timedOut && now - startedAt >= GUIDE_TIMEOUT_MS) {
             timedOut = true;
-            setHint(null);
+            setGuide(NOT_READY);
             dispatch({ type: "face-guide-timeout" });
           }
           if (now - startedAt >= GUIDE_GIVE_UP_MS) {
@@ -211,13 +212,13 @@ export function useFacePunch({
   }, [attempt, dispatch, videoRef]);
 
   const start = useCallback(() => {
-    setHint(null);
+    setGuide(NOT_READY);
     setAttempt((current) => current + 1);
     dispatch({ type: "face-start" });
   }, [dispatch]);
 
   const retry = useCallback(() => {
-    setHint(null);
+    setGuide(NOT_READY);
     setAttempt((current) => current + 1);
     dispatch({ type: "face-retry" });
   }, [dispatch]);
@@ -241,5 +242,5 @@ export function useFacePunch({
     [screen, dispatch],
   );
 
-  return { hint, start, retry, cancel, submitCode };
+  return { guide, start, retry, cancel, submitCode };
 }

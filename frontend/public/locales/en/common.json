@@ -243,6 +243,114 @@
         "title": "This browser cannot read cards",
         "message": "Open this page in Google Chrome or Microsoft Edge.",
         "steps": ["Install or update Chrome or Edge.", "Open the attendance page again."]
+      },
+      "NEED_EMPLOYEE_CODE": {
+        "title": "Type your employee code",
+        "message": "We could not be sure it is you.",
+        "next": "",
+        "voice": "Please type your employee code."
+      },
+      "CODE_NOT_MATCHED": {
+        "title": "Type your employee code",
+        "message": "That code does not match your face. Check it and try once more.",
+        "next": "",
+        "voice": "That code does not match. Please try once more."
+      },
+      "NO_FACE": {
+        "title": "NOT ACCEPTED",
+        "message": "We could not see your face.",
+        "next": "Stand in front of the camera and try again.",
+        "voice": "Face not seen. Please try again."
+      },
+      "MULTIPLE_FACES": {
+        "title": "NOT ACCEPTED",
+        "message": "Only one person, please.",
+        "next": "Please try again.",
+        "voice": "Only one person, please."
+      },
+      "FACE_TOO_SMALL": {
+        "title": "NOT ACCEPTED",
+        "message": "Come a little closer.",
+        "next": "Please try again.",
+        "voice": "Please come closer and try again."
+      },
+      "FACE_QUALITY_LOW": {
+        "title": "NOT ACCEPTED",
+        "message": "The picture is too dark or blurry.",
+        "next": "Please switch on the gate light and hold still.",
+        "voice": "Too dark. Please try again."
+      },
+      "LIVENESS_FAILED": {
+        "title": "NOT ACCEPTED",
+        "message": "Please turn your head as the arrow shows, then look straight.",
+        "next": "Please try again.",
+        "voice": "Please turn your head as shown."
+      },
+      "FACE_INCONSISTENT": {
+        "title": "NOT ACCEPTED",
+        "message": "The check did not pass.",
+        "next": "Please try again.",
+        "voice": "The check did not pass. Please try again."
+      },
+      "CHALLENGE_EXPIRED": {
+        "title": "NOT ACCEPTED",
+        "message": "Too slow.",
+        "next": "Please try again.",
+        "voice": "Too slow. Please try again."
+      },
+      "SPOOF_SUSPECTED": {
+        "title": "NOT ACCEPTED",
+        "message": "The check did not pass.",
+        "next": "Look at the camera yourself and try again. If it repeats, please visit the plant office.",
+        "voice": "The check did not pass. Please visit the plant office."
+      },
+      "CHALLENGE_INVALID": {
+        "title": "NOT ACCEPTED",
+        "message": "Please try again.",
+        "next": "Please try again.",
+        "voice": "Please try again."
+      },
+      "FRAMES_INVALID": {
+        "title": "NOT ACCEPTED",
+        "message": "The pictures could not be read.",
+        "next": "Please try again.",
+        "voice": "Please try again."
+      },
+      "FACE_NOT_RECOGNISED": {
+        "title": "NOT ACCEPTED",
+        "message": "We could not recognise you.",
+        "next": "If you have an ID card, show it to the camera. Otherwise, please visit the plant office.",
+        "voice": "Not recognised. Please visit the plant office."
+      },
+      "CODE_ENTRY_EXPIRED": {
+        "title": "NOT ACCEPTED",
+        "message": "Time is up.",
+        "next": "Please try again.",
+        "voice": "Time is up. Please try again."
+      },
+      "WRONG_PLANT_FACE": {
+        "title": "NOT ACCEPTED",
+        "message": "You are registered at another plant.",
+        "next": "Please visit the plant office.",
+        "voice": "Registered at another plant. Please visit the plant office."
+      },
+      "FACE_SERVICE_UNAVAILABLE": {
+        "title": "PLEASE WAIT",
+        "message": "Face punch is starting.",
+        "next": "Please wait a minute.",
+        "voice": "Face punch is starting. Please wait a minute."
+      },
+      "FACE_SERVICE_BUSY": {
+        "title": "PLEASE WAIT",
+        "message": "Many people are punching.",
+        "next": "Please try again in a moment.",
+        "voice": "Many people are punching. Please try again in a moment."
+      },
+      "FACE_NOT_CONFIGURED": {
+        "title": "ERROR",
+        "message": "Face punch is not set up on this server.",
+        "next": "Please visit the plant office.",
+        "voice": "Face punch is not available. Please visit the plant office."
       }
     },
     "attendance": {
@@ -257,7 +365,7 @@
       "notACard": "This is not an Upasthiti ID card.",
       "lowLight": "Too dark. Please switch on the gate light.",
       "startCamera": "Start camera",
-      "privacy": "A photo is taken at each card punch to stop card sharing. Kept for {{days}} days.",
+      "privacy": "Face punch: your face is checked against an encrypted record. A photo is kept for {{days}} days only if the punch fails or you type your code. Card punch: a photo is kept for {{days}} days and checked automatically to see that a face is present.",
       "help": "Need help? Ask the plant office.",
       "online": "Online",
       "offline": "No internet",
@@ -303,9 +411,46 @@
       "alreadyIn": "Already checked in.",
       "alreadyOut": "Already checked out.",
       "selfTest": "Device test passed.",
-      "getReady": "Card read. Get ready for your photo."
+      "getReady": "Card read. Get ready for your photo.",
+      "needCode": "Please type your employee code."
     },
-    "soundBanner": "Tap once to turn on sound and full screen. Tap again after every update."
+    "soundBanner": "Tap once to turn on sound and full screen. Tap again after every update.",
+    "face": {
+      "button": "Punch with face",
+      "or": "or",
+      "starting": "Face punch is starting…",
+      "unavailable": "Face punch is not available right now",
+      "cameraLabel": "Camera picture with an oval for your face",
+      "guideTitle": "Look at the camera. Keep your face inside the oval.",
+      "hintCloser": "Come closer",
+      "hintFarther": "Move a little back",
+      "hintOnePerson": "Only one person, please",
+      "hintCentre": "Keep your face inside the oval",
+      "hintLight": "More light needed",
+      "good": "Good. Hold still.",
+      "guideTimeout": "We could not see your face clearly. Try again.",
+      "cancel": "Cancel",
+      "turnLeft": "Turn your head to your",
+      "turnRight": "Turn your head to your",
+      "left": "LEFT",
+      "right": "RIGHT",
+      "straightAgain": "Now look straight again."
+    },
+    "codePad": {
+      "subtitle": "We could not be sure it is you.",
+      "typed": "Employee code typed so far",
+      "numbers": "123",
+      "letters": "ABC",
+      "delete": "Delete",
+      "deleteLong": "Delete last character",
+      "ok": "OK",
+      "keys": "Keypad",
+      "starts": "Common starts of employee codes",
+      "secondsLeft": "Time left: {{count}} seconds",
+      "triesLeft_one": "{{count}} try left",
+      "triesLeft_other": "{{count}} tries left",
+      "tryAgain": "Try again"
+    }
   },
   "health": {
     "checking": "Checking server…",

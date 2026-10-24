@@ -159,7 +159,7 @@ describe("kiosk attendance screen", () => {
     expect(screen.getByRole("timer")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "A photo is taken at each card punch to stop card sharing. Kept for 60 days.",
+        "Face punch: your face is checked against an encrypted record. A photo is kept for 60 days only if the punch fails or you type your code. Card punch: a photo is kept for 60 days and checked automatically to see that a face is present.",
       ),
     ).toBeInTheDocument();
   });
