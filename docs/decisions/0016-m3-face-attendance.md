@@ -65,3 +65,34 @@ Measured in Docker with Render's limits and on a temporary Render Free service (
 19. **Still open:** `buffalo_s` must meet NFR-05 (FAR < 0.1%, FRR < 3%) in the accuracy run of slice D.
     If it does not, stop and ask the lead (Plan B host, item 1).
 20. **Python stays 3.14:** onnxruntime, opencv-python-headless and numpy have 3.14 wheels (item 15 not needed).
+
+## Slice 1 result and answers to spec §14
+**Chosen models.** Recognition and detection: InsightFace **`buffalo_s`** (`det_500m` + `w600k_mbf`,
+FP32, detector input 640, 3 frames). Anti-spoof: **MiniFASNet V2 + V1SE** (both small models; the
+tool in decision 0021 also compares each alone). The CelebA-Spoof candidate was not measured: no free
+ONNX file with a stable link was found (decision 0021, item 1).
+
+**Numbers** (`docs/reports/M3-face-accuracy.md` §1, 24/10/2026):
+- Docker, `--memory=512m --cpus=0.1`: `buffalo_s` 640 / 3 frames: decision p50 / p95 1.00 / 1.19 s,
+  peak 127 MB; at detector 320: 0.55 / 0.60 s, 98 MB. `buffalo_l` 640: 12.35 / 12.50 s, 408 MB.
+- Render Free (temporary service, deleted the same day): `buffalo_s` p95 1.00 s and 1.09 s (two
+  runs), peak 197 MB and 136 MB container (process 179 / 181 MB); `buffalo_l` p95 8.20 s, process
+  peak 454 MB. Targets: p95 < 2 s, peak at most 450 MB.
+- INT8 copies were slower for `buffalo_s`, and `buffalo_l` INT8 stayed above 2 s: not used (S-33).
+- CI memory check (decision 0021): 20 signed face punches against `--memory=512m`, peak 269 MB.
+- **Accuracy (NFR-05: FAR < 0.1%, FRR < 3%) is not measured yet.** The tool is built; the run with
+  real consented faces is plan step 28, done by the lead. Open point 19 stays open until then.
+
+**Answers to spec §14** (spec §14 already records them; the plan step lists agree):
+1. Face to QR by a normal edit or an approved request: **delete the template at once**
+   (`delete_kind = method_changed`) (item 13).
+2. Privacy contact: **the Super Admin**, name and email, editable in Settings (item 14).
+3. No Python 3.14 wheel: **Python 3.13 allowed** (item 15). Not needed: 3.14 wheels exist (item 20).
+4. Temporary second Render Free service for slice 1: **yes**, deleted the same day (item 16). Done;
+   its numbers are in the report above.
+
+Later changes that touch this decision: five enrolment shots instead of eight (decision 0018, item 10
+above is changed); consent texts and the open legal points (decision 0017).
+**To confirm with the lead:** the final `face_match_threshold` and the other "report" defaults of
+spec §7 rule 13 (they come from the accuracy run, not yet done); the final anti-spoof threshold and
+whether V2 + V1SE together or one model alone is kept (decided by the spoof run at the gate devices).

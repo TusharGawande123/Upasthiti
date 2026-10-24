@@ -35,10 +35,10 @@ docs/client/client-answers-2026-10.md). Out of scope:
 | Punch | One check-in or check-out attempt at a kiosk (accepted, rejected or flagged) |
 | Kiosk | A company tablet/phone/laptop fixed at a plant gate, paired to one plant, running `/kiosk` full-screen |
 | Geofence | A polygon or circle on the map around a plant; a kiosk must be inside it |
-| Liveness | Proof that a real, present person is in front of the camera (blink / head turn + anti-spoof) |
+| Liveness | Proof that a real, present person is in front of the camera (head turn + anti-spoof; no blink check, decision 0016) |
 | Embedding / template | A number vector computed from a face; stored encrypted instead of a photo |
 | QR credential | A signed code on a temporary worker's ID card; can expire or be revoked |
-| Snapshot | A small photo taken at each QR punch for HR review; auto-deleted after the retention period |
+| Snapshot | A small photo taken at each QR punch for admin review; also kept for failed face punches and face punches that needed the employee code (never for an accepted face punch); auto-deleted after the retention period |
 | Regularisation | An approved correction to attendance (e.g. a forgotten punch), always audited |
 | Proxy attendance | Attendance marked for someone not actually present |
 | IST | India Standard Time (Asia/Kolkata); all times stored in UTC, shown in IST |
@@ -148,7 +148,15 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
   (the overtime rate is per employee, FR-07).
 - **FR-05 (S, M5)** Holiday calendar per plant (paid/unpaid) and weekly offs.
 - **FR-06 (M, M1)** Settings screen for every configurable rule, with defaults:
-  - face threshold and margin;
+  - face settings (M3; the Super Admin edits them, each change needs a reason; spec M3 §7 rule 13):
+    - matching: match threshold, match margin, code-entry floor, duplicate-face threshold;
+    - code entry and timing: code-match threshold, challenge seconds (10), code-entry seconds (90),
+      code tries (2);
+    - liveness and anti-spoof: minimum head-turn degrees, frontal-face limit, anti-spoof threshold,
+      same-person threshold between frames, challenge steps (1 or 2);
+    - picture quality: minimum face size, blur minimum, brightness minimum;
+    - hints: re-enrol after n code entries, re-enrol score margin;
+    - privacy: company address and privacy contact (both shown in the consent text);
   - GPS accuracy limit (50 m);
   - punch cool-down (2 min);
   - snapshot retention (60 days);
@@ -175,12 +183,14 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
   - their history is kept.
 
 ### 4.c Face enrolment and consent
-- **FR-11 (M, M3)** Before enrolment, HR shows a consent screen and records consent
-  (text version, language, time, HR user). Without consent the camera stays locked.
+- **FR-11 (M, M3)** Before enrolment, the Super Admin shows a consent screen and records consent
+  (text version, language, hash of the exact text shown, time, the Super Admin). The text exists in
+  English, Marathi and Hindi. Without consent the camera stays locked.
   The employee may choose a QR card instead.
-- **FR-12 (M, M3)** Enrolment:
-  - 8–10 supervised shots;
-  - each shot passes quality checks (one face, size, blur, anti-spoof);
+- **FR-12 (M, M3)** Enrolment (Super Admin only, in the admin website):
+  - 5 guided shots (straight, left, right, up, down; decision 0018);
+  - each shot is checked by the server (one face, size, blur, brightness, pose, anti-spoof, same
+    person as the first shot);
   - the mean embedding is stored, encrypted with AES-256-GCM;
   - the raw images are discarded.
 - **FR-13 (M, M3)** Consent can be withdrawn. The templates are then deleted and the punch
@@ -197,12 +207,16 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 
 ### 4.e Kiosk punch flow
 - **FR-16 (M, M2/M3)** The kiosk idle screen shows the plant, the server time and how to
-  punch. Detection starts automatically, with zero taps.
+  punch. A card punch needs zero taps: card detection starts automatically. A face punch starts
+  with one tap on "Punch with face" (decision 0016 item 9).
 - **FR-17 (M, M2)** QR punch: scan → snapshot → signed request → result screen showing name,
   IN or OUT, and the time.
 - **FR-18 (M, M3)** Face punch:
-  - liveness challenge chosen by the server → frames → server decision;
-  - if the server is unsure, the kiosk asks for the employee code.
+  - the challenge is one head turn (left or right) chosen at random by the server; no blink check;
+  - the kiosk sends 2–4 frames and the server decides (liveness, anti-spoof, same person, 1:N match
+    against the plant's enrolled employees);
+  - if the server is unsure, the kiosk asks for the employee code; the server then does a 1:1 match
+    against that employee, at most 2 tries, then "Please visit the plant office".
 - **FR-19 (M, M2)** The server decides IN or OUT, not the kiosk.
 - **FR-20 (M, M2)** Result screens use colour + icon + word. Rejections show a worker-safe
   message and a next step; the detailed reason is visible to HR only.
@@ -320,8 +334,10 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 | POST | /kiosks · /kiosks/{id}/revoke | plant admin | Create kiosk + pairing code; revoke |
 | POST | /kiosk/register | pairing code | Register the device public key |
 | GET/POST | /kiosk/me (heartbeat, notices, kiosk settings) · /kiosk/report · /kiosk/sync (M4) | kiosk | Health; error report; offline batch upload |
-| POST | /punch/challenge · /punch/kiosk | kiosk | Liveness challenge; submit a punch |
-| POST | /enrol/consent · /enrol/face · DELETE /enrol/face/{employee} | HR | Consent + enrolment |
+| POST | /punch/challenge · /punch/kiosk · /punch/kiosk/code | kiosk | Head-turn challenge; submit a punch (card or face); employee-code try after `needs_code` (M3 spec §5.1–5.2) |
+| GET/POST | /employees/{id}/face · /employees/{id}/face/consent · /face/consent/withdraw · /face/template/delete · GET /face/consent-texts/{version} | Super Admin (read: all roles in scope) | Face state, consent, template deletion (M3 spec §5.3) |
+| POST | /employees/{id}/face/enrolment-sessions · /face/enrolment-sessions/{id}/shots · /finish · /cancel | Super Admin | Face enrolment (M3 spec §5.4) |
+| GET | /face/enrolment-progress · GET /privacy-notice (public, no login) | roles in scope / public | Enrolment progress; data for the public `/privacy` page (M3 spec §5.5) |
 | GET/POST/PATCH | /qr-cards · /employees/{id}/qr-cards · /qr-cards/{id}/revoke · /qr-cards/bulk · /qr-cards/print · POST /qr-cards/{id}/card.pdf · /qr-test-cards | Super Admin (lists: all roles in scope) | QR credentials (M2 spec §5.1) |
 | GET | /punches · /punches/summary · /punches/{id} · /punches/{id}/snapshot · /punches/{id}/compare · /punches/export.xlsx | roles in scope; photos Super Admin only | Punch log (M2 spec §5.3) |
 | CRUD | /notices · POST /notices/{id}/end | Super Admin, Plant Head (own plant) | Gate notices (M2) |
@@ -372,7 +388,8 @@ unless the user is an admin).
 | Night shift across midnight | The attendance date belongs to the shift's start date |
 | Transfer between plants | Employee plant history; punches allowed only at the current plant (`WRONG_PLANT`); the card is reprinted |
 | No check-out | Day marked incomplete → regularisation |
-| Face fails repeatedly | Employee code fallback; then supervisor-verified QR/manual punch (proposed extra), logged |
+| Face fails repeatedly | Employee code fallback (`NEED_EMPLOYEE_CODE`, 1:1 match, 2 tries); then `FACE_NOT_RECOGNISED`: "Please visit the plant office"; the day is corrected later by a regularisation (M5). A supervisor-verified punch stays a proposed extra, not approved |
+| Employee of another plant types their code after a face is unsure | The face match is 1:1 with that employee, then `WRONG_PLANT` (photo kept); the face alone is never accepted at another plant |
 
 Every error has a code, a short English message (i18n key), a log entry and, where useful,
 an admin alert rule.
@@ -382,7 +399,7 @@ an admin alert rule.
   criteria.
 - **End-to-end demo scenarios:**
   1. A temporary worker checks in with a QR card at the gate → accepted, snapshot saved.
-  2. A permanent employee checks in by face at the gate (zero-tap) → accepted.
+  2. A permanent employee checks in by face at the gate (one tap) → accepted.
   3. A proxy attempt from home → rejected:
      - unregistered device → `DEVICE_SIGNATURE_INVALID`;
      - kiosk outside the geofence → `OUTSIDE_GEOFENCE`.
@@ -401,7 +418,7 @@ ER summary and table dictionary: **docs/architecture.md §7**.
 | M0 Setup | SRS, architecture, ADRs; monorepo skeleton; CI; pre-commit; Dependabot; `.env.example`; keep-alive workflow | CI green on a PR; docs approved |
 | M1 Foundation | Login and roles; approvals inbox; plants, geofence editor, shifts, categories; kiosk pairing; employees + Excel import; contractors; design system; audit writes; deploy to Vercel + Render + Supabase | An admin logs in on the live URL, creates a plant with a geofence, pairs a kiosk, imports employees |
 | M2 QR attendance | QR issue/revoke/expiry, ID card PDF, kiosk QR scan, snapshot, server checks, result screens | **First demo:** a valid card is accepted and a revoked card is rejected, with its reason, on the deployed kiosk |
-| M3 Face | Consent, enrolment, encrypted templates, liveness challenge, server face pipeline, code fallback, FAR/FRR report | Zero-tap face punch works; spoofs are rejected; the accuracy targets are met; RAM fits the host |
+| M3 Face | Consent, enrolment, encrypted templates, liveness challenge, server face pipeline, code fallback, FAR/FRR report | One-tap face punch works; spoofs are rejected; the accuracy targets are met; RAM fits the host |
 | M4 Anti-proxy + offline | Geofence/IP/impossible-travel rules, exceptions screen, offline queue + signed sync | Security-reviewer spoof tests all rejected; a 1-hour offline sync is correct |
 | M4b Phone punching | Per-employee phone punch permission, registered phones, phone face + liveness, at-plant geofence / outside-plant tag, review list, temporary workers' phone scan of the gate QR | An allowed employee punches by phone inside the geofence (accepted) and outside the plant (accepted and tagged); a not-allowed employee is rejected |
 | M5 Attendance, dashboards, reports | Pairing, late/early/OT, night shifts, regularisation, leave/holidays, live dashboard, Excel/PDF reports | Hand-calculated test cases match; reports open in Excel |
@@ -435,7 +452,7 @@ premium; each screen designed inside its milestone).
 | Face accuracy below target on cheap cameras | False rejects at the gate | Calibrate in M3; employee-code fallback; better lighting / canopy advice |
 | Client answers delayed (plants, shifts, salary) | Rework | Everything is a setting; M7 is last |
 | Free-tier terms change | Hosting breaks | Portable app (config through env, backend Dockerfile) |
-| `buffalo_l` face model too heavy for Render free | Slow or failing face punches | Measure in M3; move the backend to a bigger free server (decision 0002 Plan B); keep the big model |
+| `buffalo_l` face model too heavy for Render free; Render Free also gives only 0.1 CPU | Slow or failing face punches | Measured in M3 slice 1 (decision 0016 items 17–20): `buffalo_l` is no-go (decision p95 8.2 s on Render, process peak 454 MB); `buffalo_s` chosen (p95 1.0–1.2 s, peak 127–197 MB). Left to watch: `buffalo_s` accuracy (NFR-05), measured in M3 slice D; Plan B host (decision 0002) if it fails |
 | Team availability (exams) | Delays | Small milestones; demo-ready after M2 |
 
 ### Appendix D – Glossary

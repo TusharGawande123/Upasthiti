@@ -3,7 +3,7 @@
 Consent and template rows are never hard-deleted: a deleted template keeps its row (who, when,
 why) but its ciphertext and nonce become NULL, so the face data itself is gone. The working rows
 of an enrolment (`FaceEnrolmentShot`) are deleted on purpose as soon as the session ends: they
-hold face data for at most 15 minutes.
+hold face data only until the session ends or has been idle for 2 hours (decision 0018).
 """
 
 import enum

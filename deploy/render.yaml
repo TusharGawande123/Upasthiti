@@ -52,3 +52,13 @@ services:
       # A PRIVATE bucket made in Supabase (keep the Data API switched off).
       - key: SNAPSHOT_BUCKET
         value: punch-snapshots
+      # M3: face recognition (decision 0016). Typed in Render, never written here. Make the key
+      # on your laptop: uv run python -m app.scripts.make_face_key. Keep a copy in the password
+      # manager: if it is lost, every employee must be enrolled again. The backend does not
+      # start in production without it.
+      - key: FACE_TEMPLATE_KEY
+        sync: false
+      # The face model, chosen by measuring (docs/reports/M3-face-accuracy.md). The models are
+      # baked into the image at build time. Changing the pack means everyone enrols again.
+      - key: FACE_MODEL_PACK
+        value: buffalo_s
