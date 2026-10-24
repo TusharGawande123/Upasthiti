@@ -161,6 +161,8 @@ class SearchEmployee(BaseModel):
     status: str
     # Set when the search text was a card serial: the serial that matched.
     card_serial: str | None = None
+    # M3: for the face badge in the palette (enrolled, not_enrolled, ...), as in the employee list.
+    face_state: str | None = None
 
 
 class SearchPlant(BaseModel):

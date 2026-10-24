@@ -150,9 +150,15 @@ def test_the_poster_names_the_plant_and_the_current_retention(
     text = poster_text(boss.get(f"/api/v1/plants/{k134.id}/gate-poster.pdf"))
 
     assert "Plant K134" in text and "K134" in text
-    assert "Show your ID card to the camera" in text
+    assert "Card: hold your card to the camera" in text
+    assert "Face: tap Punch with face, turn your head as the arrow shows" in text
     assert "NOT ACCEPTED" in text
     assert "kept for 60 days" in text
+    # The face notice of spec M3 §8.1 and the address of the public privacy page (as text).
+    assert "Pressing Punch with face means your face is checked." in text
+    assert "your face is checked against an encrypted record" in text
+    assert "Full privacy notice:" in text and "/privacy" in text
+    assert "never used for face recognition" not in text
 
 
 def test_the_poster_follows_a_changed_retention(boss: TestClient, k134: PlantIds) -> None:

@@ -84,6 +84,9 @@ def test_the_log_shows_face_rows_and_filters_them(
     assert by_id[code_path["asked"]]["decision"] == "needs_code"
     assert by_id[code_path["final"]]["match_mode"] == "code"
     assert by_id[code_path["final"]]["follows_punch_id"] == code_path["asked"]
+    # The link also goes the other way, so the screen can jump to the answer (decision 0020).
+    assert by_id[code_path["asked"]]["followed_by_punch_id"] == code_path["final"]
+    assert by_id[code_path["final"]]["followed_by_punch_id"] is None
 
     asked = boss.get(PUNCHES, params={"asked_for_code": "true"}).json()["items"]
     assert [item["id"] for item in asked] == [code_path["asked"]]

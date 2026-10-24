@@ -168,6 +168,8 @@ class PunchLogItem(BaseModel):
     snapshot: PunchLogSnapshot
     match_mode: str | None = None  # M3: one_to_many (by face) or code (by typed code)
     follows_punch_id: uuid.UUID | None = None  # a code-path answer points to "asked for code"
+    # The other way round: an "asked for code" row points to the answer that followed it.
+    followed_by_punch_id: uuid.UUID | None = None
 
 
 class PunchLocation(BaseModel):

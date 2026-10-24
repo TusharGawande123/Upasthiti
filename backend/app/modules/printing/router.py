@@ -10,6 +10,7 @@ from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import ApiError
 from app.modules.auth.dependencies import CurrentUser, require
@@ -80,8 +81,13 @@ def gate_poster(
     if allowed is not None and plant_id not in allowed:
         raise ApiError("PLANT_NOT_FOUND", "This plant does not exist.", 404)
     plant = get_plant(session, plant_id)
+    # The address of the public privacy page, printed as text (no QR code, decision 0020).
+    origin = get_settings().allowed_origin.removeprefix("https://").removeprefix("http://")
     content = gate_poster_pdf(
-        plant.name, plant.code, get_int_setting(session, "snapshot_retention_days")
+        plant.name,
+        plant.code,
+        get_int_setting(session, "snapshot_retention_days"),
+        f"{origin}/privacy",
     )
     return Response(
         content=content,

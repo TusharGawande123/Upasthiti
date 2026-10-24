@@ -27,6 +27,9 @@ class SettingDefinition:
     is_whole_number: bool = True
     # A text setting (company address, privacy contact): minimum and maximum are its length.
     is_text: bool = False
+    # The value the accuracy report of slice D suggests (spec M3 §4.12, decision 0020); None until
+    # that report is written, and the screen then says "No report yet".
+    report_value: float | None = None
 
     @property
     def is_editable(self) -> bool:

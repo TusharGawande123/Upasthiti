@@ -41,6 +41,7 @@ class _Related:
     kiosks: dict[uuid.UUID, KioskDevice]
     plants: dict[uuid.UUID, Plant]
     snapshots: dict[uuid.UUID, PunchSnapshot]
+    followers: dict[uuid.UUID, uuid.UUID]  # "asked for code" row -> the row that followed it
 
 
 def _load_related(session: Session, punches: Sequence[Punch]) -> _Related:
@@ -61,11 +62,24 @@ def _load_related(session: Session, punches: Sequence[Punch]) -> _Related:
         if punches
         else {}
     )
+    asked = [p.id for p in punches if p.decision == "needs_code"]
+    followers = (
+        {
+            origin_id: punch_id
+            for punch_id, origin_id in session.execute(
+                select(Punch.id, Punch.follows_punch_id).where(Punch.follows_punch_id.in_(asked))
+            )
+            if origin_id is not None
+        }
+        if asked
+        else {}
+    )
     return _Related(
         employees=by_id(Employee, {p.employee_id for p in punches if p.employee_id}),
         kiosks=by_id(KioskDevice, {p.kiosk_id for p in punches}),
         plants=by_id(Plant, {p.plant_id for p in punches}),
         snapshots=snapshots,
+        followers=followers,
     )
 
 
@@ -113,6 +127,7 @@ def _item(punch: Punch, related: _Related, viewer: Viewer) -> PunchLogItem:
         snapshot=_snapshot(punch, related, viewer),
         match_mode=punch.match_mode,
         follows_punch_id=punch.follows_punch_id,
+        followed_by_punch_id=related.followers.get(punch.id),
     )
 
 
