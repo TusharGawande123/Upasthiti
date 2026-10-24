@@ -1,10 +1,11 @@
-// The attendance screen's brain (spec M2 §4.1 to §4.5): starts the camera by itself (zero taps),
+// The attendance screen's brain (spec M2 §4.1 to §4.5, M3 §4): starts the camera by itself (zero taps),
 // looks for a card about 6 times a second, and after a card is read gives the person time to get
 // ready (look at the camera, switch the camera if needed) before the photo is taken. Then it sends
-// the punch and shows the answer for a few seconds before scanning again.
+// the punch and shows the answer for a few seconds before scanning again. The face punch
+// ("Punch with face") runs in use-face-punch.ts and shares the result handling below.
 // The screens only show `screen` and call the actions; all timing lives here.
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
-import { INITIAL_SCREEN, nextScreen, secondsOnScreen } from "./attendance-machine";
+import { INITIAL_SCREEN, isFaceScreen, nextScreen, secondsOnScreen } from "./attendance-machine";
 import { LowLightWatcher, measureVideoBrightness } from "./brightness";
 import {
   CameraError,
@@ -16,10 +17,11 @@ import {
   stopCamera,
 } from "./camera";
 import { loadFacing, saveFacing } from "./camera-preference";
-import { sendPunch } from "./punch-client";
+import { type PunchOutcome, sendPunch } from "./punch-client";
 import type { KioskScreenSettings } from "./punch-types";
 import { createQrDetector, isUpasthitiCard, type QrDetector, SameCardFilter } from "./qr-reader";
 import { takeSnapshot } from "./snapshot";
+import { useFacePunch } from "./use-face-punch";
 
 const SCAN_EVERY_MS = 150;
 const NOT_A_CARD_MS = 3_000;
@@ -109,7 +111,8 @@ export function useAttendance({
   // photo, the "scan" camera otherwise. Nothing happens when both are the same camera.
   const cameraStarted =
     screen.name !== "starting" && screen.name !== "needs-tap" && screen.name !== "camera-problem";
-  const wantedFacing = screen.name === "get-ready" ? photoFacing : scanFacing;
+  const wantedFacing =
+    screen.name === "get-ready" || isFaceScreen(screen) ? photoFacing : scanFacing;
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !cameraStarted) return;
@@ -189,6 +192,20 @@ export function useAttendance({
     return () => clearInterval(timer);
   }, [payload, totalSeconds]);
 
+  // The server's answer (or why there is none) of a card punch, a face punch or a typed code.
+  const finishPunch = useCallback((outcome: PunchOutcome) => {
+    const { onOnline, onRevoked, onUnpaired } = handlers.current;
+    if (outcome.kind === "answer") {
+      onOnline(true);
+      dispatch({ type: "answered", answer: outcome.answer });
+      return;
+    }
+    if (outcome.code === "DEVICE_REVOKED") onRevoked();
+    else if (outcome.code === "DEVICE_SIGNATURE_INVALID") onUnpaired();
+    onOnline(outcome.code !== "NETWORK_OFFLINE");
+    dispatch({ type: "failed", code: outcome.code });
+  }, []);
+
   const takePhotoNow = useCallback(async () => {
     if (payload === null || !cameraReady || sending.current) return;
     sending.current = true;
@@ -202,20 +219,11 @@ export function useAttendance({
         { onSlow: () => dispatch({ type: "slow" }) },
       );
       sameCard.current.remember(payload, Date.now());
-      const { onOnline, onRevoked, onUnpaired } = handlers.current;
-      if (outcome.kind === "answer") {
-        onOnline(true);
-        dispatch({ type: "answered", answer: outcome.answer });
-        return;
-      }
-      if (outcome.code === "DEVICE_REVOKED") onRevoked();
-      else if (outcome.code === "DEVICE_SIGNATURE_INVALID") onUnpaired();
-      onOnline(outcome.code !== "NETWORK_OFFLINE");
-      dispatch({ type: "failed", code: outcome.code });
+      finishPunch(outcome);
     } finally {
       sending.current = false;
     }
-  }, [payload, cameraReady]);
+  }, [payload, cameraReady, finishPunch]);
 
   const cancelPhoto = useCallback(() => {
     if (payload === null || sending.current) return;
@@ -242,6 +250,19 @@ export function useAttendance({
       saveFacing("scan", next);
     }
   }, [screen.name, photoFacing, scanFacing]);
+
+  // The face punch: guidance, head turn, pictures, and the code pad when the server is unsure.
+  const facePunch = useFacePunch({
+    screen,
+    dispatch,
+    videoRef,
+    cameraReady,
+    face: settings.face,
+    darkThreshold: settings.dark_threshold,
+    onOutcome: finishPunch,
+    onFailed: (code) => finishPunch({ kind: "failed", code }),
+    onCameraProblem: (message) => handlers.current.onProblem("decoder_fallback", message),
+  });
 
   // 4. A result or failure stays a few seconds, then the kiosk scans again.
   const holdSeconds = secondsOnScreen(screen, settings);
@@ -286,6 +307,7 @@ export function useAttendance({
     videoRef,
     lowLight,
     holdSeconds,
+    face: facePunch,
     startCameraAfterTap,
     retryCamera,
     // For the "get ready" screen.

@@ -8,7 +8,7 @@ import { apiError, mockApi } from "../../test/mock-api";
 import { renderRoute } from "../../test/render";
 import { createDeviceKey } from "../device-key";
 import { forgetDevice, saveDevice } from "../device-store";
-import type { PunchAnswer } from "./punch-types";
+import { DEFAULT_SCREEN_SETTINGS, type PunchAnswer } from "./punch-types";
 
 // --- Fakes for the hardware ---------------------------------------------------------------------
 
@@ -74,6 +74,7 @@ function me(changes: Record<string, unknown> = {}) {
       photo_ready_seconds: 20,
       snapshot_retention_days: 60,
       dark_threshold: 40,
+      face: DEFAULT_SCREEN_SETTINGS.face,
     },
     ...changes,
   };

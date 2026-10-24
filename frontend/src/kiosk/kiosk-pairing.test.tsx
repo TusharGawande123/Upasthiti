@@ -5,6 +5,7 @@ import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { apiError, mockApi } from "../test/mock-api";
 import { renderRoute } from "../test/render";
+import { DEFAULT_SCREEN_SETTINGS } from "./attendance/punch-types";
 import { createDeviceKey } from "./device-key";
 import { forgetDevice, loadDevice, saveDevice } from "./device-store";
 
@@ -53,6 +54,7 @@ const ME = {
     reject_seconds: 6,
     snapshot_retention_days: 60,
     dark_threshold: 40,
+    face: DEFAULT_SCREEN_SETTINGS.face,
   },
 };
 // After pairing, the kiosk opens the attendance screen with the plant and kiosk in the top bar.
