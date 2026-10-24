@@ -410,7 +410,16 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
   `frontend/vite.config.ts` (backend 89.6 %, frontend lines 85.6 / branches 80.1 / functions 80.6 /
   statements 87.1: the frontend branches have only 0.1 point of room, so a new feature needs its
   tests); AC-26 test now also scans every database table and the storage folder.
-- Next: slice D: 31 (docs), 33 (reviews). Then
+- Done (session 3): **step 31 (docs)**: SRS (FR-06/11/12/16/18, §1.3, §5.b, §8, §9, App. C),
+  architecture §4/§6/§7, `deploy/README.md` section 9 + `render.yaml` (FACE_TEMPLATE_KEY,
+  FACE_MODEL_PACK), `kiosk-setup.md` (face light, camera height, the face button), new
+  `docs/guides/face-privacy-handover.md`, README, decision 0016 answers. Questions for Tushar:
+  (a) final thresholds and the anti-spoof choice wait for step 28 (0016 says "to confirm");
+  (b) gate distance in cm is not in any source: test with a real person; (c) the Dockerfile default
+  bakes buffalo_l and INT8 copies into the image although only buffalo_s runs: trim
+  FACE_MODEL_DOWNLOADS in the Render build if the image size matters; (d) consent record years,
+  grievance officer, DPDP log period vs 60-day photos stay open for the client (decision 0017).
+- Next: slice D: 33 (reviews). Then
   Tushar: the step 28 runs above, step 32 (FACE_TEMPLATE_KEY on Render), CLAUDE.md approval, the PR.
 - Notes for slice D and for Tushar: `report_value` of each setting (`settings/definitions.py`) is empty
   until the accuracy report fills it. The plan's "Gate C" settings screen shows "No report yet" until
