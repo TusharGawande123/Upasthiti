@@ -131,7 +131,11 @@ export function ConsentDialog({ employee, onAgreed, onClose }: Props) {
           ))}
         </div>
 
-        <div
+        {/* The text scrolls: it must be reachable with the keyboard (tabIndex) and have a name. */}
+        <section
+          aria-label={t("face.consent.title")}
+          // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrolling text box needs focus
+          tabIndex={0}
           className="mt-3 min-h-40 flex-1 overflow-y-auto rounded-lg border bg-muted/40 p-4"
           lang={language}
         >
@@ -156,7 +160,7 @@ export function ConsentDialog({ employee, onAgreed, onClose }: Props) {
           ) : (
             <ConsentTextView text={text.data.text} />
           )}
-        </div>
+        </section>
 
         <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
           <label className="flex cursor-pointer items-center gap-2">

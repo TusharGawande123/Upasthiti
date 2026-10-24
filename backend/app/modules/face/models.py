@@ -210,7 +210,7 @@ class FaceEnrolmentSession(IdMixin, TimestampMixin, Base):
     consent_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("face_consents.id"))
     started_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
     started_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
-    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))  # last shot + 1 hour idle
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))  # last shot + 2 h idle
     model_id: Mapped[str] = mapped_column(String(60))
     state: Mapped[str] = mapped_column(String(10), default=EnrolmentState.OPEN.value)
     finished_template_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("face_templates.id"))

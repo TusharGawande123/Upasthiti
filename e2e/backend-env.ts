@@ -32,6 +32,9 @@ export const BACKEND_ENV: Record<string, string> = {
   QR_SIGNING_KEY: testKey("upasthiti end-to-end tests: QR card signing"),
   QR_SIGNING_KEY_ID: "A",
   SNAPSHOT_ENCRYPTION_KEY: testKey("upasthiti end-to-end tests: snapshot encryption"),
+  // M3: a stand-in for the face models (test only) and a key for the face templates.
+  FACE_ENGINE: "fake",
+  FACE_TEMPLATE_KEY: testKey("upasthiti end-to-end tests: face template encryption"),
   STORAGE_BACKEND: "local",
   STORAGE_LOCAL_DIR: `${TMP_FOLDER}/storage`,
 };

@@ -201,3 +201,118 @@ export async function assignPlant(api: Api, username: string, plantId: string): 
   if (!user) throw new Error(`The user ${username} should exist (see the e2e seed).`);
   await api.patch(`/users/${user.id}`, { plant_id: plantId });
 }
+
+// --- Face enrolment (M3) --------------------------------------------------------------------------
+
+/** The consent text names the privacy contact and the company address, so both must be set. */
+export async function setPrivacySettings(api: Api): Promise<void> {
+  await api.put("/settings", {
+    values: {
+      privacy_contact: "E2E Privacy Officer, privacy@example.invalid",
+      company_address: "Plot 1, MIDC Waluj, Chhatrapati Sambhajinagar",
+    },
+    reason: "End-to-end test set-up",
+  });
+}
+
+/** A permanent employee (punches by face). Returns the id for the employee page. */
+export async function makePermanentEmployee(
+  api: Api,
+  plant: TestPlant,
+  employeeCode: string,
+  fullName: string,
+): Promise<{ id: string }> {
+  const staff = await api.get<Array<{ id: string; name: string }>>(
+    `/plants/${plant.id}/categories`,
+  );
+  const category = staff.find((item) => item.name === "Staff");
+  if (!category) throw new Error("A new plant should have the category Staff.");
+  return api.post<{ id: string }>("/employees", {
+    employee_code: employeeCode,
+    full_name: fullName,
+    type: "permanent",
+    plant_id: plant.id,
+    category_id: category.id,
+    shift_id: plant.shiftId,
+    ot_rate_per_hour: "150.00",
+    joined_on: new Date().toISOString().slice(0, 10),
+  });
+}
+
+/**
+ * Starts a separate Chromium whose camera plays a clip of made-up person `person` holding the
+ * five enrolment poses in turn (3 s each, repeating), and logs in as `login`. Returns the page;
+ * call `close()` at the end of the test (it also deletes the clip).
+ */
+export async function openAdminWithFaceCamera(
+  person: number,
+  login: string,
+  viewport: { width: number; height: number } = { width: 1280, height: 800 },
+) {
+  mkdirSync(TMP_FOLDER, { recursive: true });
+  const clip = `${TMP_FOLDER}/face-${person}-${Date.now()}.y4m`;
+  execFileSync("uv", ["run", "python", "-m", "app.scripts.e2e_face_video", String(person), clip], {
+    cwd: BACKEND_FOLDER,
+    env: { ...process.env, ...BACKEND_ENV },
+    stdio: "pipe",
+  });
+  const browser = await chromium.launch({
+    args: [
+      "--use-fake-device-for-media-stream",
+      "--use-fake-ui-for-media-stream",
+      `--use-file-for-fake-video-capture=${clip}`,
+      "--autoplay-policy=no-user-gesture-required",
+    ],
+  });
+  const context = await browser.newContext({
+    baseURL: FRONTEND_URL,
+    permissions: ["camera"],
+    locale: "en-IN",
+    timezoneId: "Asia/Kolkata",
+    viewport,
+  });
+  const page = await context.newPage();
+  await logIn(page, login);
+  await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
+  const close = async () => {
+    await browser.close();
+    rmSync(clip, { force: true });
+  };
+  return { page, close };
+}
+
+type Pose = "straight" | "left" | "right" | "up" | "down";
+
+/** Which pose the fake clip shows right now, read from the grey marks in its top-left corner. */
+async function poseShownByCamera(page: Page): Promise<Pose | null> {
+  return page.evaluate(() => {
+    const video = document.querySelector("video");
+    if (!video || video.videoWidth === 0) return null;
+    const canvas = document.createElement("canvas");
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const context = canvas.getContext("2d");
+    if (!context) return null;
+    context.drawImage(video, 0, 0);
+    // Squares 2 and 4 of the fake engine's marks: head turn (128 = straight, +2 per degree) and
+    // chin (150 = straight, +2 per degree). The grey may shift a little, so the limits are wide.
+    const grey = (index: number) => context.getImageData(index * 16 + 8, 8, 1, 1).data[0] ?? 0;
+    const yaw = (grey(1) - 128) / 2;
+    const pitch = (grey(3) - 150) / 2;
+    if (yaw > 10) return "left";
+    if (yaw < -10) return "right";
+    if (pitch > 10) return "up";
+    if (pitch < -10) return "down";
+    return Math.abs(yaw) < 6 && Math.abs(pitch) < 6 ? "straight" : null;
+  });
+}
+
+/** Waits until the clip shows `pose` (twice in a row, so it is not about to change), then taps. */
+export async function takeShotWhenCameraShows(page: Page, pose: Pose): Promise<void> {
+  await expect(async () => {
+    expect(await poseShownByCamera(page)).toBe(pose);
+    await page.waitForTimeout(400);
+    expect(await poseShownByCamera(page)).toBe(pose);
+  }).toPass({ timeout: 30_000, intervals: [200] });
+  await page.getByRole("button", { name: "Take shot" }).click();
+}
