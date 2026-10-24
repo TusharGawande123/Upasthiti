@@ -21,6 +21,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { describeError } from "@/features/auth/error-message";
 import { useMe } from "@/features/auth/use-auth";
+import { EmployeeFacePanel } from "@/features/face/employee-face-panel";
 import { EmployeeCardPanel } from "@/features/qr-cards/employee-card-panel";
 import { formatDate, formatRupees, formatTime } from "@/lib/format";
 import { EmployeeStatusBadge, initialsOf, TypeBadge } from "./employee-badges";
@@ -167,6 +168,9 @@ export function EmployeeDetailPage() {
 
       <div className="grid gap-5 lg:grid-cols-[1fr_380px]">
         <div className="space-y-5">
+          {employee.punch_method === "face" || employee.type === "permanent" ? (
+            <EmployeeFacePanel employee={employee} canManage={role === "super_admin"} />
+          ) : null}
           <EmployeeCardPanel employee={employee} canManage={role === "super_admin"} />
 
           <Card>

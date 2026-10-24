@@ -25,6 +25,16 @@
     "maxGzipBytes": 506400
   },
   {
+    "name": "Face guide, JavaScript (face screens only)",
+    "pattern": "^vision_bundle-.*.js$",
+    "maxGzipBytes": 50100
+  },
+  {
+    "name": "Face guide, WebAssembly (face screens only)",
+    "pattern": "^vision_wasm_internal-.*.wasm$",
+    "maxGzipBytes": 4286700
+  },
+  {
     "name": "Styles",
     "pattern": "^index-.*.css$",
     "maxGzipBytes": 11300

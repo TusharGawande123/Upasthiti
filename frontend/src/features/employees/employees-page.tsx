@@ -23,6 +23,8 @@ import {
 import { describeError } from "@/features/auth/error-message";
 import { useMe } from "@/features/auth/use-auth";
 import { useContractors } from "@/features/contractors/use-contractors";
+import { FaceStateBadge } from "@/features/face/face-badges";
+import { FACE_FILTERS, type FaceFilter } from "@/features/face/use-face";
 import { useNamedItems } from "@/features/plants/use-plants";
 import { formatNumber, formatRupees } from "@/lib/format";
 import { BulkDialog } from "./bulk-dialog";
@@ -52,6 +54,7 @@ export function EmployeesPage() {
   const [type, setType] = useState<EmployeeType | "">("");
   const [categoryId, setCategoryId] = useState("");
   const [contractorId, setContractorId] = useState("");
+  const [faceFilter, setFaceFilter] = useState<FaceFilter | "">("");
   const [page, setPage] = useState(1);
   // Selected people, kept by id across pages. Employees of other pages are remembered here.
   const [selected, setSelected] = useState<Map<string, Employee>>(new Map());
@@ -83,6 +86,7 @@ export function EmployeesPage() {
     status,
     category_id: categoryId || undefined,
     contractor_id: contractorId || undefined,
+    face_state: faceFilter || undefined,
     page,
     page_size: PAGE_SIZE,
   });
@@ -233,6 +237,22 @@ export function EmployeesPage() {
               </option>
             ))}
           </Select>
+          <Select
+            aria-label={t("face.filter.label")}
+            value={faceFilter}
+            onChange={(event) => {
+              setFaceFilter(event.target.value as FaceFilter | "");
+              setPage(1);
+            }}
+            className="w-auto"
+          >
+            <option value="">{t("face.filter.any")}</option>
+            {FACE_FILTERS.map((filter) => (
+              <option key={filter} value={filter}>
+                {t(`face.state.${filter}`)}
+              </option>
+            ))}
+          </Select>
         </div>
 
         {employees.isError ? (
@@ -272,6 +292,7 @@ export function EmployeesPage() {
               <TableHead>{t("employees.columns.shift")}</TableHead>
               <TableHead>{t("employees.columns.contractor")}</TableHead>
               <TableHead className="text-right">{t("employees.columns.otRate")}</TableHead>
+              <TableHead>{t("face.column")}</TableHead>
               <TableHead>{t("employees.columns.status")}</TableHead>
             </TableRow>
           </TableHeader>
@@ -280,7 +301,7 @@ export function EmployeesPage() {
               ? Array.from({ length: 6 }, (_, index) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: fixed placeholder rows
                   <TableRow key={index}>
-                    <TableCell colSpan={canChange ? 11 : 10}>
+                    <TableCell colSpan={canChange ? 12 : 11}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
@@ -339,6 +360,16 @@ export function EmployeesPage() {
                       )}
                     </TableCell>
                     <TableCell>
+                      {/* QR employees show "Card"; face employees their enrolment state. */}
+                      <FaceStateBadge
+                        state={
+                          employee.punch_method === "face"
+                            ? (employee.face_state ?? "not_enrolled")
+                            : "not_face_method"
+                        }
+                      />
+                    </TableCell>
+                    <TableCell>
                       <EmployeeStatusBadge status={employee.status} />
                     </TableCell>
                   </TableRow>
@@ -348,7 +379,7 @@ export function EmployeesPage() {
 
         {employees.data && rows.length === 0 ? (
           <p className="p-10 text-center text-muted-foreground">
-            {typedSearch || type || categoryId || contractorId
+            {typedSearch || type || categoryId || contractorId || faceFilter
               ? t("employees.noMatch")
               : t("employees.empty")}
           </p>

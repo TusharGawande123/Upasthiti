@@ -38,9 +38,9 @@ DECLINE = {"text_version": "face-consent-v1", "language": "en", "choice": "decli
 
 # A used consent text is never edited: a change is a new version (spec §7 rule 3, AC-33).
 FIXED_HASHES = {
-    "en": "d62d58f3a9962032f0c113d9d0d20d96d4c4b7d3ad5396d98e0220245cd6dd3d",
-    "mr": "03409e1674409c4b36b5a2c71b3acefa5991c98f4bfb7bb305193782fd1373e9",
-    "hi": "0a93094de7474e1a4c0de8d658029d3a761b1222c352bac5ce2c0cd9d929ae82",
+    "en": "3870b07a4ac31f4ef58398e286624580ad02a6d436c9382d3f44b426a1f70e44",
+    "mr": "53327bc310c3e617b42d3eaabc02f200c4c92c401a61872044dfcab072952d47",
+    "hi": "c0d266c0f750cc6423b7ad834869f96c3bf3bf204537f24f82ebd5243a502149",
 }
 
 

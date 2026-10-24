@@ -47,3 +47,6 @@ backend/models/
 models/
 *.onnx
 *.task
+
+# Face guide model (downloaded by frontend/scripts/fetch-face-model.mjs, never committed)
+frontend/public/models/

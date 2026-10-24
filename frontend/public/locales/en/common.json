@@ -447,7 +447,35 @@
     "STORAGE_UNAVAILABLE": "The photo store cannot be reached. Try again later.",
     "NOTICE_TEXT_INVALID": "Write 1 to 200 characters on one line.",
     "NOTICE_DATES_INVALID": "The end must be after the start, at most 90 days later, and not in the past.",
-    "NOTICE_ENDED": "This notice has ended and cannot be changed."
+    "NOTICE_ENDED": "This notice has ended and cannot be changed.",
+    "COMPANY_ADDRESS_MISSING": "Set the company address in Settings first.",
+    "CONSENT_ALREADY_GIVEN": "Consent is already recorded.",
+    "CONSENT_NOT_ACTIVE": "There is no active consent to withdraw.",
+    "CONSENT_REQUIRED": "Record the employee's consent first.",
+    "CONSENT_TEXT_UNKNOWN": "This consent text does not exist. Reload the page.",
+    "EMPLOYEE_NOT_FACE": "This employee punches with a QR card. Change the punch method to face first.",
+    "ENROLMENT_INCOMPLETE": "All 5 shots are needed.",
+    "ENROLMENT_SESSION_CLOSED": "This enrolment has ended. Start again.",
+    "ENROLMENT_SESSION_EXPIRED": "Please start the enrolment again.",
+    "ENROLMENT_SESSION_NOT_FOUND": "This enrolment was not found. Start again.",
+    "ENROL_IMAGE_INVALID": "The picture could not be read. Try again.",
+    "ENROL_NO_FACE": "No face found.",
+    "ENROL_MULTIPLE_FACES": "Only the employee should be in the picture.",
+    "ENROL_FACE_TOO_SMALL": "Come closer to the camera.",
+    "ENROL_BLURRY": "The picture is blurry. Hold still.",
+    "ENROL_TOO_DARK": "Too dark. Face the light.",
+    "ENROL_TOO_BRIGHT": "Too bright. Move away from the window.",
+    "ENROL_POSE_WRONG": "Please follow the pose: {{pose}}",
+    "ENROL_SPOOF_SUSPECTED": "This does not look like a live face. The employee must be present.",
+    "ENROL_NOT_SAME_PERSON": "This looks like a different person. Retake with the same employee.",
+    "FACE_DUPLICATE_FOUND": "This face looks like another employee. Enrol anyway only if they are different people (for example twins), and give the reason.",
+    "FACE_NOT_CONFIGURED": "Face recognition is not set up on the server yet. Ask the person who runs the server.",
+    "FACE_NOT_ENROLLED": "This employee has no face data.",
+    "FACE_SERVICE_BUSY": "Face checks are busy. Try again in a moment.",
+    "FACE_SERVICE_UNAVAILABLE": "Face checks are not available right now. Try again in a minute.",
+    "PAYLOAD_TOO_LARGE": "The picture could not be read. Try again.",
+    "PRIVACY_CONTACT_MISSING": "Set the privacy contact in Settings first.",
+    "SETTING_INVALID": "The code-entry floor must be lower than the match threshold."
   },
   "nav": {
     "label": "Main menu",
@@ -1951,6 +1979,157 @@
       "endBeforeStart": "The end must be after the start.",
       "tooLong": "A notice can show for at most 90 days.",
       "endPast": "The end is already past."
+    }
+  },
+  "face": {
+    "column": "Face",
+    "filter": {
+      "label": "Face",
+      "any": "Face: any"
+    },
+    "state": {
+      "enrolled": "Enrolled",
+      "not_enrolled": "Not enrolled",
+      "reenrol_suggested": "Re-enrol suggested",
+      "old_model": "Old model",
+      "withdrawn": "Card",
+      "not_face_method": "Card"
+    },
+    "panel": {
+      "title": "Face recognition",
+      "enrolledLine": "Enrolled on {{date}} by {{name}} · model {{model}} · {{count}} shots.",
+      "oldModelLine": "Enrolled on {{date}} with the older model {{model}}.",
+      "oldModelText": "This face was enrolled with an older face model. Re-enrol so it matches the model now in use. Until then the employee types their employee code at the gate.",
+      "consentGiven": "Consent given on {{date}}. The face is not enrolled yet.",
+      "noConsent": "Consent not recorded yet.",
+      "reenrolReason": {
+        "code_entries": "Re-enrol suggested: the employee needed the employee code often in the last 30 days.",
+        "falling_scores": "Re-enrol suggested: the match scores are falling."
+      },
+      "enrol": "Enrol face",
+      "reenrol": "Re-enrol face",
+      "delete": "Delete face data",
+      "withdraw": "Withdraw consent",
+      "qrMethod": "This employee punches with a QR card.",
+      "nowQr": "This employee now punches with a QR card. Issue a card now?",
+      "issueCard": "Issue QR card",
+      "changeToFace": "Change to face",
+      "history": "Face history"
+    },
+    "history": {
+      "consent_given": "Consent given",
+      "consent_declined": "Chose a QR card",
+      "consent_withdrawn": "Consent withdrawn",
+      "enrolled": "Face enrolled",
+      "deleted": "Face data deleted",
+      "system": "System",
+      "detail": {
+        "withdrawn": "by the employee",
+        "left": "marked as left",
+        "consent_withdrawn": "consent withdrawn",
+        "re_enrolled": "re-enrolled",
+        "deleted_by_admin": "deleted by an admin",
+        "method_changed": "punch method changed to QR"
+      }
+    },
+    "withdraw": {
+      "title": "Withdraw face consent of {{name}}?",
+      "text": "The face data is deleted at once and the employee punches with a QR card from now on. Their attendance records are kept.",
+      "reason": "Reason (optional)",
+      "defaultReason": "Employee asked to withdraw consent.",
+      "submit": "Withdraw consent",
+      "done": "Consent withdrawn. {{name}} now punches with a QR card."
+    },
+    "delete": {
+      "title": "Delete the face data of {{name}}?",
+      "text": "The face template is deleted at once. The employee cannot punch with their face until they are enrolled again. Their attendance records are kept.",
+      "submit": "Delete face data",
+      "done": "Face data of {{name}} deleted."
+    },
+    "consent": {
+      "title": "Face attendance consent",
+      "for": "For {{name}} · text {{version}}",
+      "cameraOff": "Camera off",
+      "language": "Language of the text",
+      "languages": {
+        "en": "English",
+        "mr": "मराठी",
+        "hi": "हिन्दी",
+        "other": "Other"
+      },
+      "explained": "I explained this text to the employee in their language",
+      "explainedLanguage": "Language explained in",
+      "agree": "I agree",
+      "decline": "No, I prefer a QR card",
+      "openSettings": "Open Settings",
+      "declinedTitle": "QR card chosen",
+      "declinedText": "{{name}} chose a QR card. Their punch method is now QR card. Issue a card so they can punch at the gate.",
+      "loading": "Loading the consent text…"
+    },
+    "pose": {
+      "straight": "Look straight at the camera",
+      "left": "Turn your head slightly to your left",
+      "right": "Turn your head slightly to your right",
+      "up": "Lift your chin slightly",
+      "down": "Lower your chin slightly"
+    },
+    "hint": {
+      "no_face": "No face found. Look at the camera.",
+      "two_faces": "Only one person, please.",
+      "closer": "Come a little closer.",
+      "farther": "Move a little back.",
+      "centre": "Bring your face into the oval.",
+      "turn_left": "A little more to your left.",
+      "turn_right": "A little more to your right.",
+      "less_turn": "A little less. Turn back slightly.",
+      "look_straight": "Look straight at the camera.",
+      "chin_up": "Lift your chin a little more.",
+      "chin_down": "Lower your chin a little more.",
+      "hold": "Good. Hold still…"
+    },
+    "wizard": {
+      "title": "Enrol face",
+      "cancel": "Cancel enrolment",
+      "mirrored": "Mirrored preview",
+      "cameraStep": "Step 1 of 2 · Camera check",
+      "cameraTitle": "Check the camera and the light",
+      "cameraChoice": "Camera",
+      "tipLight": "Face the light. Avoid a window behind the person.",
+      "tipAlone": "Only the employee in the picture.",
+      "lightTip": "Face the light. No window behind the person.",
+      "start": "Start",
+      "restarted": "The earlier enrolment was closed. Press Start to begin again.",
+      "camera": {
+        "CAMERA_BLOCKED": "The camera is blocked. Allow the camera for this site in the browser, then reload the page.",
+        "CAMERA_NOT_FOUND": "No camera found. Connect a camera or use a phone, then reload the page."
+      },
+      "shotOf": "Shot {{number}} of {{total}}",
+      "progress": "Progress: {{done}} of {{total}} shots done",
+      "dot": {
+        "ok": "Shot {{number}}: accepted",
+        "failed": "Shot {{number}}: retake needed",
+        "current": "Shot {{number}}: now",
+        "checking": "Shot {{number}}: checking",
+        "pending": "Shot {{number}}: waiting"
+      },
+      "takeShot": "Take shot",
+      "retake": "Retake",
+      "checking": "Checking the picture…",
+      "notAccepted": "Not accepted. Retake.",
+      "othersKept": "Shot {{number}} was not accepted. Nothing else is lost; the other shots stay.",
+      "saving": "Saving…",
+      "savingText": "Making the encrypted face template from the 5 shots.",
+      "doneTitle": "Face enrolled for {{name}}",
+      "doneText": "{{count}} shots accepted. The pictures were deleted; only the encrypted face template is kept.",
+      "done": "Done",
+      "privacyNote": "Pictures stay in this browser only until they are sent. Nothing is saved on this device.",
+      "duplicate": {
+        "title": "This face looks like {{code}} ({{name}}, {{plant}}). Enrol anyway?",
+        "text": "Enrol anyway only if they are different people, for example twins. The reason is saved in the audit log.",
+        "reason": "Reason to enrol anyway (required)",
+        "reasonHint": "At least 10 characters, for example: Twins, checked with HR.",
+        "confirm": "Enrol anyway"
+      }
     }
   }
 }

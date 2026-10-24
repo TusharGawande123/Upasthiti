@@ -351,11 +351,14 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
   clean-up after **2 hours without activity** (every shot restarts the clock; no "took too long" screen), migration 0014, spec and tests updated. The "Old model" badge, filter and
   panel state stay: the state is computed from the template's stored model id against the running
   model (`buffalo_s`), so it is empty today.
-- Next: lead approves gate B screenshots, then frontend step 15 (use 5 poses, no timer; the
-  wizard returns quietly to the camera check if the session was closed), then design gates A and C, frontend steps 22 and 27, the
-  e2e specs (16, 23, 27), then slice D (accuracy run, CI memory test S-30, coverage 80, docs).
-- Test results: backend 935 passed, 7 skipped (full run before the last three test fixes; those
-  three files re-run green).
+- Done (session 2): gate B approved by the lead; **frontend step 15**: `src/features/face/`
+  (face panel, consent dialog with en/mr/hi, 5-shot wizard with retake, duplicate warning, quiet
+  restart, cancel on close), `src/lib/face-guide/` (MediaPipe hints + timed fallback), employees
+  list Face column + filter, texts, size budgets. Consent text v1 now says "5 pictures".
+- Next: e2e `face-enrolment.spec.ts` (step 16, needs `app/scripts/e2e_face_video.py`), then design
+  gate A (step 21) and the gate screens (22, 23), then gate C (26, 27), then slice D.
+- Test results (2026-10-24, after step 15): backend 935 passed, 7 skipped (coverage floor 75 met);
+  frontend 440 passed, lint + typecheck + i18n:check + build + size budgets green.
 - Open questions: none blocking. Reminders: `buffalo_s` accuracy (NFR-05) is measured in slice D;
   the head-turn sign (+ = the person's own left) must be confirmed with real team frames in slice
   D; the CelebA-Spoof candidate has no stable ONNX link yet; `FACE_TEMPLATE_KEY` must be set on

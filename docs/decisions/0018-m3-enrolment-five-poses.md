@@ -14,3 +14,12 @@ Status: Accepted. Changes decision 0016 item 10 and spec §4.9, §7.
 4. Template = mean of the 5 shots. Backend change needed: `ENROLMENT_POSES`, the pose and
    `shot_count` check constraints (new migration), `SESSION_IDLE_MINUTES`, enrolment checks, tests.
    Done in session 2.
+5. **Consent text `face-consent-v1` now says "5 pictures"** (en, mr, hi) and the pinned hashes were
+   updated. Allowed only because v1 has never been shown to a real employee (M3 is not live yet);
+   after the first real consent, any change is a new version (spec §7 rule 3).
+6. **Frontend step 15 dependency:** `@mediapipe/tasks-vision` 1.1.0 (Apache-2.0, free), as planned in
+   spec §13.1, for live pose hints only. Its .wasm (≈3.8 MB gzip) and the `face_landmarker.task`
+   model (downloaded by `frontend/scripts/fetch-face-model.mjs`, sha256-pinned, never committed)
+   are served from our own site and load only when a face screen opens (new size budgets).
+7. **"Change to face"** on the face panel is a link to the normal M1 edit form (one way to change
+   the punch method). The Face filter shows no counts (no extra endpoint).

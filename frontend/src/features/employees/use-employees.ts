@@ -5,6 +5,7 @@
 // request that waits for the Super Admin (decision 0005). `isPendingApproval` tells the two
 // answers apart so the screen can say "Sent for approval" instead of "Saved".
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import type { FaceFilter, FaceState } from "@/features/face/use-face";
 import { apiGet, apiPatch, apiPost, apiUpload } from "@/lib/api-client";
 import { type Page, queryString } from "@/lib/paging";
 
@@ -34,6 +35,8 @@ export type Employee = {
   left_on: string | null;
   left_reason: string | null;
   has_pending_change: boolean;
+  // M3: the face column (only meaningful for face employees; QR employees show "Card").
+  face_state?: FaceState;
 };
 
 export type EmployeeDetail = {
@@ -71,6 +74,7 @@ export type EmployeeFilters = {
   department_id?: string;
   shift_id?: string;
   contractor_id?: string;
+  face_state?: FaceFilter;
   page: number;
   page_size?: number;
 };
