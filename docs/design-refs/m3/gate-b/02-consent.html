@@ -1,0 +1,132 @@
+<!doctype html>
+<!--
+  Upasthiti - M3 design gate B - Screen 2: consent dialog (spec 4.8, text in spec section 8).
+  States (URL hash): en (default), mr, hi, explained (checkbox on, language chosen), loading, privacy-missing,
+  address-missing, declined-done, error. The camera is OFF in every state (a visible "Camera is off" chip).
+  The Marathi and Hindi texts are SAMPLE translations for the layout only; the real ones are checked by a
+  Marathi- and a Hindi-reading person before the first live enrolment (spec section 8).
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti consent dialog</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=Noto+Sans+Devanagari:wght@400..700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page" aria-hidden="true">
+      <nav class="crumbs">Employees › EMP-0312 Sunita Jadhav</nav>
+      <div class="card emp-head"><div class="emp-id"><span class="avatar avatar-lg">SJ</span><div><div class="meta">Employee code <span class="code">EMP-0312</span></div><h1>Sunita Jadhav</h1></div></div></div>
+    </main>
+  </div>
+</div>
+<div id="overlay-root"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_USER = { name: "Asha Rao", role: "Super Admin" };
+  const ADDRESS = "Plot 42, MIDC Waluj, Chhatrapati Sambhajinagar 431136";
+  const CONTACT = "Asha Rao (Super Admin), asha.rao@sheetshapers.example";
+  const F = (t) => `<span class="fill">${t}</span>`; // values filled in from settings are tinted in the mockup only
+
+  const TEXT = {
+    en: { title: "Face attendance – your consent", paras: [
+      `Sheet Shapers, ${F(ADDRESS)}, uses Upasthiti to record attendance at the plant gate. If you agree, you can punch IN and OUT by showing your face to the gate attendance device.`,
+      `<b>What we keep.</b> During enrolment the camera takes 8 pictures of your face. The system turns them into a face template: a list of numbers that describes your face. The pictures are deleted at once. Only the template is kept, and it is encrypted. When you punch, the device takes a few pictures; the server compares them with your template and then deletes them. If a punch fails, or you have to type your employee code, one small photo is kept for ${F("60")} days so the office can check what happened.`,
+      `<b>Why.</b> Only to record your attendance and to stop anyone else from marking attendance for you. Your face data is not used for anything else, is not shared, and is never sent to any AI company. The pictures are checked in memory on our hosting provider's server in Singapore; the encrypted template is stored in Mumbai.`,
+      `<b>Who can see it.</b> No person can see your template. Only the Super Admin can see the small photos of failed punches, and every view is recorded.`,
+      `<b>How long.</b> Until you leave the company or withdraw your consent. Your template is then deleted at once.`,
+      `<b>Your choice.</b> You do not have to agree. If you do not agree, you will get a QR ID card to punch with instead. Saying no, or withdrawing later, will not affect your job, pay, shift or treatment in any way. You can withdraw your consent at any time by telling the plant office; that is enough. Your template is then deleted and you get a QR card.`,
+      `<b>Your rights.</b> You can ask what data we keep about you, ask to correct or delete it, and raise a complaint. Your attendance records (punch times) are kept as labour law requires, even after your face data is deleted. Grievance officer and contact: ${F(CONTACT)}. We reply within 30 days. If you are not satisfied with the answer, you can complain to the Data Protection Board of India.`,
+      `<p class="agree-line">I have read this text, or it was explained to me, and I agree to face attendance.</p>`,
+    ] },
+    mr: { title: "चेहरा हजेरी – तुमची संमती", paras: [
+      `शीट शेपर्स, ${F(ADDRESS)}, प्लांटच्या गेटवर हजेरी नोंदवण्यासाठी उपस्थिती (Upasthiti) वापरते. तुम्ही संमती दिल्यास, गेटवरील हजेरी उपकरणासमोर चेहरा दाखवून तुम्ही आत येताना (IN) आणि बाहेर जाताना (OUT) हजेरी लावू शकता.`,
+      `<b>आम्ही काय साठवतो.</b> नोंदणीच्या वेळी कॅमेरा तुमच्या चेहऱ्याची ८ छायाचित्रे घेतो. प्रणाली त्यांचे चेहरा टेम्पलेटमध्ये रूपांतर करते: तुमच्या चेहऱ्याचे वर्णन करणाऱ्या संख्यांची यादी. छायाचित्रे लगेच नष्ट केली जातात. फक्त टेम्पलेट साठवले जाते आणि ते एनक्रिप्टेड असते. हजेरी लावताना उपकरण काही छायाचित्रे घेते; सर्व्हर त्यांची तुमच्या टेम्पलेटशी तुलना करतो आणि नंतर ती नष्ट करतो. हजेरी अयशस्वी झाली किंवा तुम्हाला कर्मचारी कोड टाइप करावा लागला, तर कार्यालयाला काय घडले ते तपासता यावे म्हणून एक लहान छायाचित्र ${F("६०")} दिवस ठेवले जाते.`,
+      `<b>कशासाठी.</b> फक्त तुमची हजेरी नोंदवण्यासाठी आणि दुसऱ्या कोणीही तुमच्या नावाने हजेरी लावू नये यासाठी. तुमचा चेहऱ्याचा डेटा इतर कशासाठीही वापरला जात नाही, कोणाशीही शेअर केला जात नाही आणि कोणत्याही एआय कंपनीला पाठवला जात नाही.`,
+      `<b>कोण पाहू शकतो.</b> कोणतीही व्यक्ती तुमचे टेम्पलेट पाहू शकत नाही. फक्त सुपर अॅडमिन अयशस्वी हजेरीची लहान छायाचित्रे पाहू शकतो आणि प्रत्येक वेळी पाहिल्याची नोंद ठेवली जाते.`,
+      `<b>किती काळ.</b> तुम्ही कंपनी सोडेपर्यंत किंवा संमती मागे घेईपर्यंत. त्यानंतर तुमचे टेम्पलेट लगेच नष्ट केले जाते.`,
+      `<b>तुमची निवड.</b> संमती देणे सक्तीचे नाही. संमती न दिल्यास तुम्हाला हजेरीसाठी QR ओळखपत्र मिळेल. नाही म्हटल्याने किंवा नंतर संमती मागे घेतल्याने तुमची नोकरी, पगार, शिफ्ट किंवा वागणूक यावर कोणताही परिणाम होणार नाही. तुम्ही कधीही प्लांट कार्यालयाला सांगून संमती मागे घेऊ शकता; तेवढे पुरेसे आहे.`,
+      `<b>तुमचे हक्क.</b> आमच्याकडे तुमचा कोणता डेटा आहे ते विचारण्याचा, तो दुरुस्त किंवा नष्ट करण्यास सांगण्याचा आणि तक्रार करण्याचा तुम्हाला अधिकार आहे. तक्रार अधिकारी आणि संपर्क: ${F(CONTACT)}. आम्ही ३० दिवसांत उत्तर देतो.`,
+      `<p class="agree-line">मी हा मजकूर वाचला आहे, किंवा तो मला समजावून सांगितला आहे, आणि मी चेहरा हजेरीला संमती देतो/देते.</p>`,
+    ] },
+    hi: { title: "चेहरा हाज़िरी – आपकी सहमति", paras: [
+      `शीट शेपर्स, ${F(ADDRESS)}, प्लांट के गेट पर हाज़िरी दर्ज करने के लिए उपस्थिति (Upasthiti) का उपयोग करती है। यदि आप सहमत हों, तो गेट के हाज़िरी उपकरण को अपना चेहरा दिखाकर आप आते समय (IN) और जाते समय (OUT) हाज़िरी लगा सकते हैं।`,
+      `<b>हम क्या रखते हैं।</b> नामांकन के समय कैमरा आपके चेहरे की 8 तस्वीरें लेता है। सिस्टम उन्हें चेहरा टेम्पलेट में बदलता है: आपके चेहरे का वर्णन करने वाली संख्याओं की सूची। तस्वीरें तुरंत मिटा दी जाती हैं। केवल टेम्पलेट रखा जाता है, और वह एन्क्रिप्टेड होता है। हाज़िरी लगाते समय उपकरण कुछ तस्वीरें लेता है; सर्वर उनकी आपके टेम्पलेट से तुलना करके उन्हें मिटा देता है। यदि हाज़िरी विफल हो या आपको कर्मचारी कोड टाइप करना पड़े, तो कार्यालय को जाँच करने के लिए एक छोटी फ़ोटो ${F("60")} दिन तक रखी जाती है।`,
+      `<b>क्यों।</b> केवल आपकी हाज़िरी दर्ज करने और किसी और को आपके नाम से हाज़िरी लगाने से रोकने के लिए। आपका चेहरा-डेटा किसी अन्य काम में नहीं लिया जाता, साझा नहीं किया जाता और किसी AI कंपनी को नहीं भेजा जाता।`,
+      `<b>कौन देख सकता है।</b> कोई भी व्यक्ति आपका टेम्पलेट नहीं देख सकता। केवल सुपर एडमिन विफल हाज़िरी की छोटी फ़ोटो देख सकता है, और हर बार देखने का रिकॉर्ड रखा जाता है।`,
+      `<b>कितने समय तक।</b> जब तक आप कंपनी नहीं छोड़ते या सहमति वापस नहीं लेते। उसके बाद आपका टेम्पलेट तुरंत मिटा दिया जाता है।`,
+      `<b>आपकी पसंद।</b> सहमत होना ज़रूरी नहीं है। सहमत न होने पर आपको हाज़िरी के लिए QR पहचान-पत्र मिलेगा। मना करने या बाद में सहमति वापस लेने से आपकी नौकरी, वेतन, शिफ़्ट या व्यवहार पर कोई असर नहीं पड़ेगा। आप कभी भी प्लांट कार्यालय को बताकर सहमति वापस ले सकते हैं; इतना काफ़ी है।`,
+      `<b>आपके अधिकार।</b> आप पूछ सकते हैं कि हमारे पास आपका कौन-सा डेटा है, उसे सुधारने या मिटाने को कह सकते हैं और शिकायत कर सकते हैं। शिकायत अधिकारी और संपर्क: ${F(CONTACT)}। हम 30 दिनों में उत्तर देते हैं।`,
+      `<p class="agree-line">मैंने यह पाठ पढ़ा है, या मुझे समझाया गया है, और मैं चेहरा हाज़िरी के लिए सहमत हूँ।</p>`,
+    ] },
+  };
+
+  function head(lang, ver) {
+    const names = { en: "English", mr: "मराठी", hi: "हिन्दी" };
+    const sw = ["en", "mr", "hi"].map(function (k) {
+      return `<button role="radio" aria-checked="${k === lang}" lang="${k}">${k === lang ? '<i data-lucide="check"></i>' : ""}${names[k]}</button>`;
+    }).join("");
+    return `<div class="consent-top">
+      <div class="consent-top-row"><div><h2 id="dlg-t">Face attendance consent</h2><div class="muted" style="font-size:14px">For <b style="color:var(--foreground)">Sunita Jadhav</b> · <span class="code">EMP-0312</span> · K134</div></div>
+        <span class="cam-off"><i data-lucide="camera-off"></i>Camera is off</span></div>
+      <div class="consent-top-row"><div class="lang-switch" role="radiogroup" aria-label="Language of the text">${sw}</div>
+        <span class="ver"><i data-lucide="file-text" style="width:15px;height:15px"></i><span class="code">face-consent-v1</span> · ${ver}</span></div>
+    </div>`;
+  }
+
+  function textCard(lang, on, pick) {
+    const t = TEXT[lang];
+    return `<div class="consent-scroll" tabindex="0" role="region" aria-label="Consent text"><article class="consent-card" lang="${lang}"><h3>${t.title}</h3>${t.paras.map(function (p) { return p.indexOf("<p ") === 0 ? p : `<p>${p}</p>`; }).join("")}</article>${explain(on, pick, "explain-inline")}
+      <div class="scroll-cue"><span><i data-lucide="chevrons-down"></i>Scroll to read all</span></div></div>`;
+  }
+
+  function explain(on, pick, cls) {
+    const radios = ["Marathi", "Hindi", "Other"].map(function (n) {
+      return `<button class="pill-radio" role="radio" aria-checked="${n === pick}">${n === pick ? '<i data-lucide="check"></i>' : ""}${n}</button>`;
+    }).join("");
+    return `<div class="consent-explain ${cls || "explain-foot"}"><label class="check-row"><input type="checkbox" ${on ? "checked" : ""} />I explained this text to the employee in their language</label>
+      ${on ? `<div class="lang-pick" role="radiogroup" aria-label="Language used to explain">${radios}</div>` : ""}</div>`;
+  }
+
+  const actions = `<div class="consent-actions"><button class="btn btn-primary" id="agree"><i data-lucide="circle-check"></i>I agree</button><button class="btn btn-outline"><i data-lucide="qr-code"></i>No, I prefer a QR card</button></div>
+    <p class="consent-note">Hand the screen to the employee, or read the text aloud. Saying no changes nothing about job, pay or shift.</p>`;
+
+  function dlg(inner, extra) {
+    return `<div class="overlay"></div><div class="dialog consent-dialog anim-scale-in" role="dialog" aria-modal="true" aria-labelledby="dlg-t">${inner}</div>`;
+  }
+
+  window.mockStart(function (state) {
+    document.getElementById("topbar").innerHTML = `<button class="menu-btn" aria-label="Open menu"><i data-lucide="menu"></i></button><span class="topbar-brand">${window.upasthitiLogo(30)}<span>Upasthiti</span></span><div class="spacer"></div><span class="avatar" style="width:40px;height:40px">AR</span>`;
+    let html;
+    if (state === "mr" || state === "hi") html = head(state, state === "mr" ? "Marathi" : "Hindi") + textCard(state) + explain(false) + actions;
+    else if (state === "explained") html = head("mr", "Marathi") + textCard("mr", true, "Marathi") + explain(true, "Marathi") + actions;
+    else if (state === "loading") html = head("en", "English") + `<div class="consent-scroll" aria-busy="true"><div class="consent-card skel-lines" aria-label="Loading the consent text"><div class="skeleton" style="width:60%;height:26px"></div><div class="skeleton"></div><div class="skeleton" style="width:92%"></div><div class="skeleton" style="width:80%"></div><div class="skeleton"></div><div class="skeleton" style="width:70%"></div></div></div>` + explain(false) + `<div class="consent-actions"><button class="btn btn-primary" aria-disabled="true" disabled><i data-lucide="circle-check"></i>I agree</button><button class="btn btn-outline" aria-disabled="true" disabled><i data-lucide="qr-code"></i>No, I prefer a QR card</button></div>`;
+    else if (state === "privacy-missing" || state === "address-missing") {
+      const priv = state === "privacy-missing";
+      html = `<div class="consent-top"><div class="consent-top-row"><div><h2 id="dlg-t">Face attendance consent</h2><div class="muted" style="font-size:14px">For <b style="color:var(--foreground)">Sunita Jadhav</b> · <span class="code">EMP-0312</span> · K134</div></div><span class="cam-off"><i data-lucide="camera-off"></i>Camera is off</span></div></div>
+        <div class="blocked-body"><div class="blocked-card" role="alert"><i data-lucide="${priv ? "user-round-cog" : "map-pin-off"}"></i><div><h3>${priv ? "Set the privacy contact in Settings first." : "Set the company address in Settings first."}</h3>
+        <p>${priv ? "The consent text must name a person the employee can contact about their data." : "The consent text must show the company address."} Enrolment cannot start until it is set. Nothing has been recorded.</p>
+        <div class="row-wrap"><button class="btn btn-primary btn-lg"><i data-lucide="settings"></i>Open Settings</button><button class="btn btn-outline btn-lg">Close</button></div></div></div></div>
+        <div class="consent-actions" style="opacity:.55"><button class="btn btn-primary" disabled><i data-lucide="circle-check"></i>I agree</button><button class="btn btn-outline" disabled><i data-lucide="qr-code"></i>No, I prefer a QR card</button></div>
+        <p class="consent-note">Both buttons stay off until the text can be shown.</p>`;
+    } else if (state === "declined-done") {
+      html = `<div class="consent-top"><div class="consent-top-row"><h2 id="dlg-t">Choice saved</h2><span class="cam-off"><i data-lucide="camera-off"></i>Camera is off</span></div></div>
+        <div class="center-card" style="padding:34px 24px 28px"><div class="big-icon st-info"><i data-lucide="qr-code"></i></div><h2>Sunita will punch with a QR card</h2><p>She chose not to use face attendance. The punch method is now QR card. No face data was collected. Nothing changes in her job, pay or shift.</p>
+        <div class="row-wrap" style="justify-content:center;margin-top:22px"><button class="btn btn-primary btn-xl"><i data-lucide="id-card"></i>Issue QR card</button><button class="btn btn-outline btn-xl">Close</button></div></div>`;
+    } else if (state === "error") {
+      html = head("en", "English") + `<div class="consent-scroll"><div class="alert alert-danger" role="alert"><i data-lucide="circle-alert"></i><span><b>The consent text could not be loaded.</b> Check the internet connection and try again. Nothing has been recorded.</span><button class="btn btn-outline" style="margin-left:auto">Try again</button></div></div>` + `<div class="consent-actions"><button class="btn btn-primary" disabled><i data-lucide="circle-check"></i>I agree</button><button class="btn btn-outline" disabled><i data-lucide="qr-code"></i>No, I prefer a QR card</button></div>`;
+    } else html = head("en", "English") + textCard("en") + explain(false) + actions;
+    document.getElementById("overlay-root").innerHTML = dlg(html);
+  });
+</script>
+</body>
+</html>

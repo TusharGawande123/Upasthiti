@@ -1,0 +1,201 @@
+<!doctype html>
+<!--
+  Upasthiti - M3 design gate B - Screen 1: employee face panel on the employee detail page (spec 4.7).
+  States (URL hash): no-consent, consent-given, enrolled, reenrol-codes, reenrol-scores, old-model, withdrawn,
+  qr-method, readonly-corporate, readonly-plant, loading, dialog-withdraw, dialog-withdraw-error, dialog-delete.
+  MOCKUP ONLY - static HTML, fake data (Sunita Jadhav, EMP-0312, plant K134).
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti face panel</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&family=Noto+Sans+Devanagari:wght@400..700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="overlay-root"></div>
+<div class="state-tag" id="state-tag"></div>
+
+<script src="shell.js"></script>
+<script>
+  const ROLES = {
+    admin: { name: "Asha Rao", role: "Super Admin" },
+    corporate: { name: "Vikram Deshmukh", role: "Corporate Head" },
+    plant: { name: "Meena Kulkarni", role: "Plant Head · K134" },
+  };
+
+  /* One entry per panel state. icon + word + tone: status is never colour alone. */
+  const STATES = {
+    "no-consent": {
+      tone: "neutral", icon: "circle-dashed", word: "Not enrolled",
+      sub: "Consent not recorded. Face data is collected only after the employee agrees.",
+      actions: ["enrol"], history: [],
+    },
+    "consent-given": {
+      tone: "neutral", icon: "circle-dashed", word: "Not enrolled",
+      sub: "<b>Consent given on 21/10/2026</b> (recorded by Asha Rao). The face is not enrolled yet.",
+      actions: ["enrol", "withdraw"],
+      history: [["shield-check", "Consent given", "21/10/2026 11:42 · Asha Rao · English, explained in Marathi"]],
+    },
+    enrolled: {
+      tone: "success", icon: "scan-face", word: "Enrolled",
+      sub: "Enrolled on <b>22/10/2026</b> by Asha Rao · model <span class='code'>buffalo_l</span> · 8 shots.",
+      actions: ["reenrol", "delete", "withdraw"],
+      history: [
+        ["scan-face", "Face enrolled", "22/10/2026 09:15 · Asha Rao · 8 shots", "ok"],
+        ["shield-check", "Consent given", "22/10/2026 09:09 · Asha Rao · English"],
+      ],
+    },
+    "reenrol-codes": {
+      tone: "warning", icon: "triangle-alert", word: "Re-enrol suggested",
+      sub: "Enrolled on <b>02/09/2026</b> by Asha Rao · model <span class='code'>buffalo_l</span> · 8 shots.",
+      reason: "Needed the employee code 4 times in the last 30 days. A fresh enrolment usually fixes this.",
+      actions: ["reenrol-primary", "delete", "withdraw"],
+      history: [
+        ["scan-face", "Face enrolled", "02/09/2026 10:30 · Asha Rao · 8 shots", "ok"],
+        ["shield-check", "Consent given", "02/09/2026 10:24 · Asha Rao · English"],
+      ],
+    },
+    "reenrol-scores": {
+      tone: "warning", icon: "triangle-alert", word: "Re-enrol suggested",
+      sub: "Enrolled on <b>14/07/2026</b> by Asha Rao · model <span class='code'>buffalo_l</span> · 8 shots.",
+      reason: "Match scores have been falling over the last 30 days. Re-enrol in good light.",
+      actions: ["reenrol-primary", "delete", "withdraw"],
+      history: [
+        ["scan-face", "Face enrolled", "14/07/2026 08:50 · Asha Rao · 8 shots", "ok"],
+        ["shield-check", "Consent given", "14/07/2026 08:44 · Asha Rao · Hindi"],
+      ],
+    },
+    "old-model": {
+      tone: "warning", icon: "history", word: "Old model: re-enrol",
+      sub: "Enrolled on <b>05/03/2026</b> by Asha Rao · model <span class='code'>buffalo_s</span> · 8 shots.",
+      reason: "This face was enrolled with an older model. Re-enrol so it matches the model now in use (<span class='code'>buffalo_l</span>). Until then the face may not be recognised.",
+      actions: ["reenrol-primary", "delete", "withdraw"],
+      history: [
+        ["scan-face", "Face enrolled", "05/03/2026 12:05 · Asha Rao · 8 shots", "ok"],
+        ["shield-check", "Consent given", "05/03/2026 11:58 · Asha Rao · English"],
+      ],
+    },
+    withdrawn: {
+      tone: "neutral", icon: "ban", word: "Consent withdrawn",
+      sub: "<b>Withdrawn on 23/10/2026</b> by Asha Rao. The face data was deleted at once.",
+      banner: true, actions: ["to-face"],
+      history: [
+        ["ban", "Consent withdrawn", "23/10/2026 15:20 · Asha Rao", "bad", "Employee asked at the plant office to stop face attendance."],
+        ["trash-2", "Face data deleted", "23/10/2026 15:20 · system", "bad"],
+        ["scan-face", "Face enrolled", "22/10/2026 09:15 · Asha Rao · 8 shots", "ok"],
+        ["shield-check", "Consent given", "22/10/2026 09:09 · Asha Rao · English"],
+      ],
+    },
+    "qr-method": {
+      tone: "info", icon: "qr-code", word: "Punches with a QR card",
+      sub: "This employee punches with a QR card.",
+      actions: ["to-face"],
+      history: [["user-round-x", "Consent declined", "20/10/2026 16:02 · Asha Rao · “No, I prefer a QR card”", "bad"]],
+    },
+  };
+  STATES["readonly-corporate"] = Object.assign({}, STATES.enrolled, { readonly: "corporate", actions: [] });
+  STATES["readonly-plant"] = Object.assign({}, STATES["reenrol-codes"], { readonly: "plant", actions: [] });
+
+  const BTN = {
+    enrol: '<button class="btn btn-primary btn-lg"><i data-lucide="scan-face"></i>Enrol face</button>',
+    reenrol: '<button class="btn btn-outline btn-lg"><i data-lucide="refresh-cw"></i>Re-enrol face</button>',
+    "reenrol-primary": '<button class="btn btn-primary btn-lg"><i data-lucide="refresh-cw"></i>Re-enrol face</button>',
+    delete: '<button class="btn btn-danger-outline btn-lg" data-dlg="delete"><i data-lucide="trash-2"></i>Delete face data</button>',
+    withdraw: '<button class="btn btn-danger-outline btn-lg" data-dlg="withdraw"><i data-lucide="ban"></i>Withdraw consent</button>',
+    "to-face": '<button class="btn btn-outline btn-lg"><i data-lucide="scan-face"></i>Change to face</button>',
+  };
+
+  function panel(stateKey) {
+    const s = STATES[stateKey];
+    const hist = s.history.length
+      ? `<div class="card-sub"><h3 class="hist-title"><i data-lucide="history"></i>History</h3><ul class="hist">${s.history.map(function (h) {
+          return `<li><span class="hist-icon ${h[3] === "bad" ? "is-bad" : h[3] === "ok" ? "is-ok" : ""}"><i data-lucide="${h[0]}"></i></span><div><b>${h[1]}</b><span class="when">${h[2]}</span>${h[4] ? `<div class="why">${h[4]}</div>` : ""}</div></li>`;
+        }).join("")}</ul></div>`
+      : `<div class="card-sub"><h3 class="hist-title"><i data-lucide="history"></i>History</h3><p class="muted" style="margin:4px 20px 16px;font-size:14px">Nothing yet. Consent and enrolment will be listed here.</p></div>`;
+    const reason = s.reason ? `<div class="face-reason"><div class="alert alert-warning"><i data-lucide="info"></i><span>${s.reason}</span></div></div>` : "";
+    const banner = s.banner ? `<div class="face-reason"><div class="alert alert-info" style="align-items:center;flex-wrap:wrap"><i data-lucide="qr-code"></i><span style="flex:1;min-width:200px"><b>This employee now punches with a QR card.</b> Issue a card now?</span><button class="btn btn-primary btn-lg"><i data-lucide="id-card"></i>Issue QR card</button></div></div>` : "";
+    const actions = s.actions.length ? `<div class="face-actions">${s.actions.map(function (a) { return BTN[a]; }).join("")}</div>` : "";
+    const ro = s.readonly ? `<div class="face-note"><i data-lucide="lock"></i><span><b>View only.</b> Only the Super Admin can enrol, re-enrol or delete face data.</span></div>` : "";
+    const never = `<div class="face-note" style="margin-top:0"><i data-lucide="eye-off"></i><span>No one can see the face template. It is stored encrypted and used only to match at the attendance device.</span></div>`;
+    const headRight = s.readonly ? `<span class="ro-badge"><i data-lucide="eye"></i>Read only</span>` : `<span class="badge badge-${s.tone === "info" ? "info" : s.tone}"><i data-lucide="${s.icon}"></i>${s.word}</span>`;
+    return `<section class="card anim-fade-up" aria-labelledby="face-h">
+      <div class="card-head"><h2 class="card-title" id="face-h"><i data-lucide="scan-face"></i>Face attendance</h2><span class="row-wrap"><span class="badge badge-neutral"><i data-lucide="${s.icon === "qr-code" || stateKey === "withdrawn" ? "qr-code" : "scan-face"}"></i>Method: ${s.icon === "qr-code" || stateKey === "withdrawn" ? "QR card" : "Face"}</span>${s.readonly ? '<span class="ro-badge"><i data-lucide="eye"></i>Read only</span>' : ""}</span></div>
+      <div class="face-main"><div class="state-tile st-${s.tone}" aria-hidden="true"><i data-lucide="${s.icon}"></i></div>
+        <div><p class="face-state">${s.word}</p><p class="face-sub">${s.sub}</p></div></div>
+      ${reason}${banner}${actions}${ro}${stateKey === "qr-method" || stateKey === "withdrawn" ? "" : never}${hist}
+    </section>`;
+  }
+
+  function loadingPanel() {
+    return `<section class="card" aria-busy="true" aria-label="Loading face attendance"><div class="card-head"><h2 class="card-title"><i data-lucide="scan-face"></i>Face attendance</h2></div>
+      <div class="face-main"><div class="skeleton" style="width:72px;height:72px;border-radius:20px"></div><div style="display:grid;gap:10px"><div class="skeleton" style="height:24px;width:200px"></div><div class="skeleton" style="height:16px;width:90%"></div><div class="skeleton" style="height:16px;width:60%"></div></div></div>
+      <div class="face-actions"><div class="skeleton" style="height:48px;width:150px;border-radius:10px"></div></div></section>`;
+  }
+
+  function dialog(kind, withError) {
+    const isW = kind === "withdraw";
+    const title = isW ? "Withdraw consent for Sunita Jadhav?" : "Delete face data for Sunita Jadhav?";
+    const desc = isW
+      ? "The face data is deleted at once. Sunita will punch with a QR card. Her attendance records stay."
+      : "The face data is deleted at once. Consent stays, so you can enrol the face again. Attendance records stay.";
+    return `<div class="overlay"></div><div class="dialog anim-scale-in" role="dialog" aria-modal="true" aria-labelledby="dlg-t">
+      <div class="dlg-head"><span class="dlg-icon" style="background:var(--danger-soft);color:var(--danger)"><i data-lucide="${isW ? "ban" : "trash-2"}"></i></span><div><h2 class="dlg-title" id="dlg-t">${title}</h2><p class="dlg-desc">${desc}</p></div></div>
+      <div class="dlg-body"><label class="label" for="why">Reason (required)</label>
+        <textarea id="why" class="input" ${withError ? 'aria-invalid="true"' : ""} placeholder="${isW ? "For example: employee asked at the plant office" : "For example: wrong person was enrolled"}">${withError ? "Asked" : ""}</textarea>
+        <div class="field-row">${withError ? '<span class="field-error"><i data-lucide="circle-alert" style="width:16px;height:16px"></i>Write at least 10 characters.</span>' : '<span class="help">At least 10 characters. It is saved in the audit log.</span>'}<span class="counter">${withError ? "5" : "0"} / 10</span></div>
+        ${isW ? '<div class="alert alert-info" style="margin-top:14px"><i data-lucide="qr-code"></i><span>After this you can issue a QR card straight away.</span></div>' : ""}
+      </div>
+      <div class="dlg-foot"><button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-danger btn-lg" aria-disabled="true"><i data-lucide="${isW ? "ban" : "trash-2"}"></i>${isW ? "Withdraw consent" : "Delete face data"}</button></div>
+    </div>`;
+  }
+
+  function page(stateKey) {
+    const dlgKey = stateKey.indexOf("dialog-") === 0 ? stateKey : null;
+    const base = dlgKey ? "enrolled" : stateKey;
+    const roleKey = base === "readonly-corporate" ? "corporate" : base === "readonly-plant" ? "plant" : "admin";
+    window.MOCK_USER = ROLES[roleKey];
+    const body = base === "loading" ? loadingPanel() : panel(base || "enrolled");
+    return `
+    <nav class="crumbs" aria-label="Breadcrumb">Employees <span aria-hidden="true">›</span> EMP-0312 Sunita Jadhav</nav>
+    <div class="card emp-head anim-fade-up" style="margin-bottom:20px">
+      <div class="emp-id"><span class="avatar avatar-lg">SJ</span><div style="min-width:0"><div class="meta">Employee code <span class="code">EMP-0312</span></div><h1>Sunita Jadhav</h1>
+        <div class="row-wrap"><span class="badge badge-info"><i data-lucide="scan-face"></i>Permanent</span><span class="badge badge-success"><i data-lucide="circle-check"></i>Active</span><span class="badge badge-neutral code">K134</span></div></div></div>
+      ${roleKey === "admin" ? '<div class="row-wrap"><button class="btn btn-outline btn-lg"><i data-lucide="pencil"></i>Edit</button><button class="btn btn-outline btn-lg"><i data-lucide="arrow-right-left"></i>Transfer</button></div>' : ""}
+    </div>
+    <div class="detail-grid">
+      <div class="stack">
+        ${body}
+        <section class="card"><div class="card-head"><h2 class="card-title">Details</h2></div><div class="card-pad"><dl class="kv"><dt>Plant</dt><dd>K134</dd><dt>Category</dt><dd>Operator</dd><dt>Shift</dt><dd>General 07:00–19:00</dd><dt>Joined on</dt><dd>12/06/2023</dd></dl></div></section>
+      </div>
+      <section class="card"><div class="card-head"><h2 class="card-title">Timeline</h2></div><div class="card-pad"><ol class="tl">
+        <li><span class="hist-icon"><i data-lucide="scan-face"></i></span><div><b>Face enrolled</b><span class="when" style="display:block;font-size:13px;color:var(--muted-foreground)">22/10/2026 09:15 · Asha Rao</span></div></li>
+        <li><span class="hist-icon"><i data-lucide="pencil"></i></span><div><b>Employee updated</b><span class="when" style="display:block;font-size:13px;color:var(--muted-foreground)">18/09/2026 14:02 · Asha Rao</span></div></li>
+      </ol></div></section>
+    </div>`;
+  }
+
+  window.mockStart(function (state) {
+    const key = state && (STATES[state] || state === "loading" || state.indexOf("dialog-") === 0) ? state : "enrolled";
+    document.getElementById("page").innerHTML = page(key);
+    // user is chosen inside page(); redraw the top bar with it
+    document.getElementById("topbar").innerHTML = "";
+    const tb = document.getElementById("topbar");
+    tb.innerHTML = `<button class="menu-btn" aria-label="Open menu"><i data-lucide="menu"></i></button><span class="topbar-brand">${window.upasthitiLogo(30)}<span>Upasthiti</span></span><button class="search-trigger"><i data-lucide="search"></i><span>Search employees, plants, pages…</span><span class="kbd-group"><span class="kbd">Ctrl</span><span class="kbd">K</span></span></button><button class="btn btn-outline plant-filter"><i data-lucide="factory" style="color:var(--muted-foreground)"></i><span>${window.MOCK_USER.role.indexOf("Plant Head") === 0 ? "K134" : "All plants"}</span><i data-lucide="chevrons-up-down" style="color:var(--subtle-foreground)"></i></button><div class="spacer"></div><button class="user-trigger" aria-label="Account menu"><span class="avatar" style="width:40px;height:40px">${window.initialsOf(window.MOCK_USER.name)}</span><span class="user-meta"><b>${window.MOCK_USER.name}</b><span>${window.MOCK_USER.role}</span></span><i data-lucide="chevron-down" style="width:16px;height:16px;color:var(--muted-foreground)"></i></button>`;
+    if (key === "dialog-withdraw") document.getElementById("overlay-root").innerHTML = dialog("withdraw", false);
+    if (key === "dialog-withdraw-error") document.getElementById("overlay-root").innerHTML = dialog("withdraw", true);
+    if (key === "dialog-delete") document.getElementById("overlay-root").innerHTML = dialog("delete", false);
+  });
+</script>
+</body>
+</html>

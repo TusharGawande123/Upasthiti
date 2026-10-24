@@ -1,0 +1,41 @@
+<!doctype html>
+<!--
+  Upasthiti - M3 design gate B index: face enrolment admin screens and their states (URL hash).
+  Open with a browser (needs internet for Inter, Noto Sans Devanagari and Lucide) or run
+  "python -m http.server 8767" in this folder. MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti M3 gate B index</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    body { padding: 40px 24px 80px; }
+    .wrap { max-width: 1040px; margin: 0 auto; }
+    h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 6px; }
+    .lead { color: var(--muted-foreground); margin: 0 0 28px; max-width: 72ch; font-size: 15px; }
+    section { margin-bottom: 20px; } section > .card { padding: 18px 22px; }
+    h2 { font-size: 17px; margin: 0 0 2px; } .meta { color: var(--muted-foreground); font-size: 13px; margin: 0 0 12px; }
+    .states { display: flex; flex-wrap: wrap; gap: 8px; }
+    .states a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 999px; text-decoration: none; border: 1px solid var(--border-strong); background: var(--surface); color: var(--foreground); font-weight: 600; font-size: 13.5px; }
+    .states a:hover { background: var(--primary-soft); border-color: #b9c6ef; }
+    code { font-feature-settings: "zero", "cv05", "cv08"; background: var(--muted); padding: 1px 6px; border-radius: 5px; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>M3 design gate B: face enrolment (admin)</h1>
+  <p class="lead">Four admin screens for spec <code>docs/specs/M3-face-attendance.md</code> sections 4.7 to 4.10 and 9. Same "Steel &amp; Signal" tokens as M1 and M2 (<code>tokens.css</code> unchanged), Inter, Lucide icons. Resize the browser to 1280, 768 or 360 px wide to see each size. Add <code>?shot</code> to a URL to hide the state tag. Screenshots are in <code>screenshots/</code>; read <code>notes.md</code> for decisions and open questions.</p>
+  <section><div class="card"><h2>01 Employee face panel</h2><p class="meta">01-face-panel.html - spec 4.7</p><div class="states">
+    <a href="01-face-panel.html#no-consent">Not enrolled, no consent</a><a href="01-face-panel.html#consent-given">Not enrolled, consent given</a><a href="01-face-panel.html#enrolled">Enrolled</a><a href="01-face-panel.html#reenrol-codes">Re-enrol: code used 4 times</a><a href="01-face-panel.html#reenrol-scores">Re-enrol: scores falling</a><a href="01-face-panel.html#old-model">Old model</a><a href="01-face-panel.html#withdrawn">Consent withdrawn + Issue QR card</a><a href="01-face-panel.html#qr-method">QR-method employee</a><a href="01-face-panel.html#readonly-corporate">Read only: Corporate Head</a><a href="01-face-panel.html#readonly-plant">Read only: Plant Head</a><a href="01-face-panel.html#loading">Loading</a><a href="01-face-panel.html#dialog-withdraw">Withdraw dialog</a><a href="01-face-panel.html#dialog-withdraw-error">Withdraw dialog, error</a><a href="01-face-panel.html#dialog-delete">Delete dialog</a></div></div></section>
+  <section><div class="card"><h2>02 Consent dialog</h2><p class="meta">02-consent.html - spec 4.8 and the text in section 8</p><div class="states">
+    <a href="02-consent.html#en">English</a><a href="02-consent.html#mr">Marathi</a><a href="02-consent.html#hi">Hindi</a><a href="02-consent.html#explained">Explained in their language</a><a href="02-consent.html#loading">Loading text</a><a href="02-consent.html#error">Text failed to load</a><a href="02-consent.html#privacy-missing">PRIVACY_CONTACT_MISSING</a><a href="02-consent.html#address-missing">COMPANY_ADDRESS_MISSING</a><a href="02-consent.html#declined-done">After "No, I prefer a QR card"</a></div></div></section>
+  <section><div class="card"><h2>03 Enrolment wizard</h2><p class="meta">03-wizard.html - spec 4.9 and 9</p><div class="states">
+    <a href="03-wizard.html#camera-check">Camera check</a><a href="03-wizard.html#camera-blocked">Camera blocked</a><a href="03-wizard.html#shot-current">Shot 1</a><a href="03-wizard.html#shot-hint">Pose hint</a><a href="03-wizard.html#shot-hold">Holding the pose</a><a href="03-wizard.html#shot-checking">Checking the shot</a><a href="03-wizard.html#shot-ok">Shot accepted</a><a href="03-wizard.html#shot-failed">Failed: blurry</a><a href="03-wizard.html#shot-failed-two-faces">Failed: two faces</a><a href="03-wizard.html#shot-failed-spoof">Failed: not live</a><a href="03-wizard.html#last-shot">Shot 8</a><a href="03-wizard.html#saving">Saving</a><a href="03-wizard.html#success">Success</a><a href="03-wizard.html#duplicate">Duplicate warning</a><a href="03-wizard.html#duplicate-filled">Duplicate, reason filled</a><a href="03-wizard.html#expired">Session expired</a></div></div></section>
+  <section><div class="card"><h2>04 Employees list</h2><p class="meta">04-employees-list.html - spec 4.10</p><div class="states">
+    <a href="04-employees-list.html#default">All face states</a><a href="04-employees-list.html#filter-open">Face filter open</a><a href="04-employees-list.html#filtered">Filtered: re-enrol suggested</a><a href="04-employees-list.html#empty">No match</a><a href="04-employees-list.html#loading">Loading</a><a href="04-employees-list.html#error">Error</a></div></div></section>
+</div>
+</body>
+</html>
