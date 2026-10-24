@@ -299,7 +299,7 @@ automatic return, name shown but never spoken). Face additions:
     "Cancel"; no photo is shown (there is none).
 - Leaving the wizard cancels the session (its stored embeddings are deleted). Images exist only in
   browser memory and are dropped after upload; nothing is kept in local storage.
-- No countdown on screen (decision 0018). The server closes a session that has had no activity for 1 hour; after that: "This enrolment took too long. Start again."
+- No countdown on screen (decision 0018). Leaving the wizard cancels the session at once. A session whose admin vanished (closed browser) is deleted by the server after 2 hours without activity (clean-up only). No "took too long" screen: if a very idle wizard finds its session closed, it quietly goes back to the camera check.
 
 ### 4.10 Admin: employees list (M1 page)
 - New column **"Face"** for face-method rows: ● Enrolled, ○ Not enrolled, ⚠ Re-enrol suggested,
@@ -436,7 +436,7 @@ and deleting them is the privacy rule (they hold face data or nothing of value).
 **Migration `0012_face_enrolment_sessions`**
 | Table | Columns | Keys / constraints |
 |---|---|---|
-| `face_enrolment_sessions` | employee_id (FK), consent_id (FK), started_by (FK users), started_at, expires_at (last activity + 1 hour), model_id, state (`open`/`finished`/`cancelled`/`expired`), finished_template_id (FK face_templates null), accepted_shots (smallint), refused_shots (smallint) | partial unique (employee_id) where state = `open`; index (expires_at) where state = `open`. Holds no face data; kept as a small trail |
+| `face_enrolment_sessions` | employee_id (FK), consent_id (FK), started_by (FK users), started_at, expires_at (last activity + 2 hours), model_id, state (`open`/`finished`/`cancelled`/`expired`), finished_template_id (FK face_templates null), accepted_shots (smallint), refused_shots (smallint) | partial unique (employee_id) where state = `open`; index (expires_at) where state = `open`. Holds no face data; kept as a small trail |
 | `face_enrolment_shots` | session_id (FK, on delete cascade), pose (text), nonce (bytea), ciphertext (bytea: the shot's embedding, AES-256-GCM, associated data = session id + pose), created_at | unique (session_id, pose). **Rows deleted** when the session finishes, is cancelled or expires (cleanup, §7 rule 12) |
 
 **Migration `0013_face_punches`**
@@ -509,7 +509,7 @@ fit next to the 0.55 GB of QR photos.
      the new plant's gallery only.
 
 4. **Enrolment rules** (FR-12; decision 0016 item 10).
-   - One open session per employee (a new one cancels the old one); 1 hour without activity closes it; only the
+   - One open session per employee (a new one cancels the old one); 2 hours without activity closes it (clean-up only); only the
      Super Admin who started it may add shots or finish it.
    - Each shot: JPEG, ≤ 150 KB, 480–1280 px wide, decoded with a pixel limit (as M2 snapshots).
      Server checks, in order, each with an `ENROL_*` reason:
@@ -782,7 +782,7 @@ fit next to the 0.55 GB of QR photos.
 - **Minimisation:** template only (2 KB of numbers), no enrolment photos, no frames kept, no photo
   for an accepted face punch, no name spoken, no template ever leaves the server.
 - **Retention:** template until leaving or withdrawal, then deleted at once; enrolment shot
-  embeddings ≤ 1 hour after the last activity; pending matches ≤ 90 s; photos 60 days (setting) then purged; consent
+  embeddings ≤ 2 hours after the last activity; pending matches ≤ 90 s; photos 60 days (setting) then purged; consent
   records kept with the employee record as proof of consent, for the employment period plus the
   period the Labour Codes require for records (years to be confirmed by the client's HR/legal).
   Attendance punch rows are kept as labour law requires even after the face data is deleted. Deleted ciphertext may remain in the
@@ -987,7 +987,7 @@ Gate messages show title + message + next step and "For the admin: CODE" on reje
 | Another person in shot 5 | retake | `ENROL_NOT_SAME_PERSON` | "This looks like a different person. Retake with the same employee." |
 | Shot not a JPEG / too big | refused | `ENROL_IMAGE_INVALID` / `PAYLOAD_TOO_LARGE` | "The picture could not be read. Try again." |
 | Finish with 4 shots | refused | `ENROLMENT_INCOMPLETE` | "All 5 shots are needed." `errors.ENROLMENT_INCOMPLETE` |
-| Session idle for more than 1 hour | refused | `ENROLMENT_SESSION_EXPIRED` | "This enrolment took too long. Start again." `errors.ENROLMENT_SESSION_EXPIRED` |
+| Session idle for more than 2 hours | refused | `ENROLMENT_SESSION_EXPIRED` | "Please start the enrolment again." `errors.ENROLMENT_SESSION_EXPIRED` |
 | Session finished or cancelled | refused | `ENROLMENT_SESSION_CLOSED` | "This enrolment has ended. Start again." `errors.ENROLMENT_SESSION_CLOSED` |
 | Unknown session | refused | `ENROLMENT_SESSION_NOT_FOUND` | "This enrolment was not found. Start again." `errors.ENROLMENT_SESSION_NOT_FOUND` |
 | New face looks like EMP-0457 | blocked; override with reason | `FACE_DUPLICATE_FOUND` | "This face looks like {{code}} ({{name}}, {{plant}}). Enrol anyway only if they are different people (for example twins), and give the reason." `errors.FACE_DUPLICATE_FOUND` |
@@ -1025,7 +1025,7 @@ Core:
   photo, or a different person than shot 1, then the answer is `accepted: false` with
   `ENROL_MULTIPLE_FACES`, `ENROL_BLURRY`, `ENROL_POSE_WRONG`, `ENROL_SPOOF_SUSPECTED`,
   `ENROL_NOT_SAME_PERSON` respectively, and a retake of that pose can be accepted.
-- **AC-8** Given a session that finished, was cancelled or has been idle for more than 1 hour, when the cleanup
+- **AC-8** Given a session that finished, was cancelled or has been idle for more than 2 hours, when the cleanup
   has run (or a new session starts), then no `face_enrolment_shots` row of it exists.
 - **AC-9** Given an enrolled employee at plant TP1 and a paired TP1 attendance device, when the
   employee taps "Punch with face" and turns the head as asked, then within 5 s (warm deployed site)

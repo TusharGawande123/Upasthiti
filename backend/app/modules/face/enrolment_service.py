@@ -2,7 +2,7 @@
 rule 4, F-39, AC-6 to AC-8, AC-35).
 
 Each accepted shot keeps only its embedding, encrypted, while the session is open (it closes
-after an hour without activity); the picture is dropped as soon as the checks are done.
+after two hours without activity); the picture is dropped as soon as the checks are done.
 Finishing averages the 5 embeddings into the template, checks that the face is not already
 enrolled under another employee, and stores the template encrypted with FACE_TEMPLATE_KEY. The
 shots are then deleted.
@@ -62,9 +62,10 @@ from app.modules.settings.service import get_float_setting, get_int_setting
 
 logger = logging.getLogger(__name__)
 
-# An open session closes after this long without a shot. The admin sees no countdown; this only
-# makes sure a forgotten, half-finished enrolment does not keep face data (decision 0018).
-SESSION_IDLE_MINUTES = 60
+# Clean-up only: leaving the wizard cancels the session at once. A session whose admin just
+# vanished (closed browser, crashed laptop) is closed after this long without a shot, so
+# half-finished face data is not kept (decision 0018). The admin sees no countdown.
+SESSION_IDLE_MINUTES = 120
 MAX_SHOT_BYTES = 150 * 1024
 MAX_DUPLICATES_SHOWN = 3
 RE_ENROLLED_REASON = "Enrolled again"
@@ -449,9 +450,7 @@ def open_session_of(
         session.commit()
         session.refresh(row)
     if row.state == EnrolmentState.EXPIRED.value:
-        raise ApiError(
-            "ENROLMENT_SESSION_EXPIRED", "This enrolment took too long. Start again.", 409
-        )
+        raise ApiError("ENROLMENT_SESSION_EXPIRED", "Please start the enrolment again.", 409)
     if row.state != EnrolmentState.OPEN.value:
         raise _closed()
     return row

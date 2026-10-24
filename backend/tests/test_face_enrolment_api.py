@@ -57,19 +57,19 @@ def face_key() -> bytes:
     return decode_key(key.get_secret_value())
 
 
-def test_a_shot_restarts_the_one_hour_idle_clock(
+def test_a_shot_restarts_the_two_hour_idle_clock(
     boss: TestClient, db_session: Session, k134: PlantIds
 ) -> None:
     session_id = start(boss, new_employee(boss, k134))
     row = db_session.get(FaceEnrolmentSession, uuid.UUID(session_id))
     assert row is not None
-    row.expires_at = utc_now() + timedelta(minutes=5)  # nearly idle for an hour
+    row.expires_at = utc_now() + timedelta(minutes=5)  # nearly idle for two hours
     db_session.commit()
 
     shot(boss, session_id, "straight", person=8)
 
     db_session.refresh(row)
-    assert row.expires_at > utc_now() + timedelta(minutes=55)
+    assert row.expires_at > utc_now() + timedelta(minutes=115)
 
 
 def head_of(db_app: FastAPI, db_session: Session, plant: PlantIds) -> TestClient:

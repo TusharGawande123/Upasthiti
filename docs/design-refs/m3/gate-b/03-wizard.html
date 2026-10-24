@@ -2,7 +2,7 @@
 <!--
   Upasthiti - M3 design gate B - Screen 3: face enrolment wizard, a full-screen dialog (spec 4.9, 9).
   States (URL hash): camera-check, camera-blocked, shot-current, shot-hold, shot-checking, shot-failed,
-  shot-failed-two-faces, shot-failed-spoof, last-shot, saving, success, duplicate, duplicate-filled, expired.
+  shot-failed-two-faces, shot-failed-spoof, last-shot, saving, success, duplicate, duplicate-filled, (no expired screen).
   Desktop 1280, tablet 768, phone 360 (portrait). The camera is a neutral grey picture with a grey silhouette:
   no photo of any person is used. MOCKUP ONLY - static HTML, fake data.
 -->
@@ -115,9 +115,6 @@
           <div class="field-row">${filled ? '<span class="help" style="color:var(--success);font-weight:600;display:flex;gap:6px;align-items:center"><i data-lucide="circle-check" style="width:16px;height:16px"></i>Reason is long enough.</span>' : '<span class="help">At least 10 characters. It is saved in the audit log.</span>'}<span class="counter">${filled ? "66" : "0"} / 10</span></div></div>
           <div class="dup-foot"><button class="btn btn-outline btn-xl">Cancel</button><button class="btn btn-danger btn-xl" ${filled ? "" : 'aria-disabled="true"'} ${filled ? "" : "disabled"}><i data-lucide="user-check"></i>Enrol anyway</button></div></section></div>`;
       }
-      case "expired":
-        return `<div class="wiz-body single"><section class="card center-card anim-fade-up" role="alert"><div class="big-icon st-warning"><i data-lucide="timer-off"></i></div><h2>This enrolment took too long. Start again.</h2><p>For safety, the server closes an enrolment that stays open too long. The pictures that were sent have been deleted. Nothing was saved.</p>
-          <div class="row-wrap" style="justify-content:center;margin-top:22px"><button class="btn btn-primary btn-xl"><i data-lucide="refresh-cw"></i>Start again</button><button class="btn btn-outline btn-xl">Close</button></div></section></div>`;
     }
     return body("shot-current");
   }

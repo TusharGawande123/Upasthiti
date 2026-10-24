@@ -99,7 +99,7 @@ admin (admin is not the sunlit kiosk), but the **consent card is 18 px** and the
   row with the other person's details and a "Possible match" badge, **no photo** (said in words), the required reason textarea with a counter, and
   two big buttons "Cancel" and "Enrol anyway". "Enrol anyway" stays disabled (greyed, `aria-disabled`) until the reason has at least 10 characters,
   then turns red with a user-check icon. Cancel is the safe default on the left.
-- **Session expired:** amber timer-off tile, "This enrolment took too long. Start again.", Start again / Close.
+- **No "expired" screen** (decision 0018): leaving the wizard cancels the session; if the server closed an idle one (2 h clean-up), the wizard goes back quietly to the camera check.
 - **Motion:** card fade-up, spinner, yellow pulse on the oval while holding; all stop under `prefers-reduced-motion` (the strips and icons carry the
   meaning, motion is only decoration).
 - **Accessibility:** the pose card is an `aria-live` region so a screen reader hears the new instruction and the reason; colour is never alone (oval colour
