@@ -406,7 +406,11 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
   Locust face task `loadtest/locustfile_face.py`; decision 0021. Local Docker run: 3 accepted + 17
   cool-down, peak 269 MB. Not yet seen on GitHub (CI runs only on a PR): check the `docker` job on
   the first PR run (the buildx actions are new in this repo).
-- Next: slice D: 30 (coverage floor 75 to 80), 31 (docs), 33 (reviews). Then
+- Done (session 3): **step 30**: coverage floor 80 in `backend/pyproject.toml` and
+  `frontend/vite.config.ts` (backend 89.6 %, frontend lines 85.6 / branches 80.1 / functions 80.6 /
+  statements 87.1: the frontend branches have only 0.1 point of room, so a new feature needs its
+  tests); AC-26 test now also scans every database table and the storage folder.
+- Next: slice D: 31 (docs), 33 (reviews). Then
   Tushar: the step 28 runs above, step 32 (FACE_TEMPLATE_KEY on Render), CLAUDE.md approval, the PR.
 - Notes for slice D and for Tushar: `report_value` of each setting (`settings/definitions.py`) is empty
   until the accuracy report fills it. The plan's "Gate C" settings screen shows "No report yet" until
