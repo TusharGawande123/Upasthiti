@@ -70,8 +70,16 @@ def _login_limit() -> int:
     return settings.e2e_login_limit if settings.app_env == "test" else LOGINS_PER_IP
 
 
+PAIRINGS_PER_IP = 10
+
+
+def _pairing_limit() -> int:
+    settings = get_settings()
+    return settings.e2e_pairing_limit if settings.app_env == "test" else PAIRINGS_PER_IP
+
+
 login_limiter = RateLimiter(max_attempts=_login_limit, window_seconds=TEN_MINUTES)
-pairing_limiter = RateLimiter(max_attempts=10, window_seconds=TEN_MINUTES)
+pairing_limiter = RateLimiter(max_attempts=_pairing_limit, window_seconds=TEN_MINUTES)
 # Wrong pairing codes from ANYONE (not per IP): the client IP can be faked when the
 # backend is reached directly, so a global cap stops guessing a 6-digit code.
 FAILED_PAIRINGS_ALL = "all"

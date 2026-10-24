@@ -362,10 +362,28 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
   `e2e/backend-env.ts`. The test found a real accessibility bug (the scrolling consent text was not
   reachable by keyboard); fixed. Run headed: 7 passed.
 - Done (session 2): **design gate A (step 21)** approved by Anuradha: `docs/design-refs/m3/gate-a/` (43 states x 360/768/1280 px, no sideways scroll), decision 0019 (code prefix keys via a new `code_prefixes` field in `/kiosk/me`, amber PLEASE WAIT for the 503 codes, JetBrains Mono for the code).
-- Next: step 22 (first the small backend field `code_prefixes`, then the gate screens), step 23; gate C (26, 27); slice D.
-- Test results (2026-10-24, after step 16): backend 935 passed, 7 skipped (coverage 90%);
-  frontend 440 passed, lint + typecheck + i18n:check green; e2e: full suite 38 passed before one
-  name clash in my spec was fixed, then face-enrolment + responsive 10 passed.
+- Done (session 2): **steps 22 and 23**. Backend: `code_prefixes` (up to 3 common code starts) in
+  `/kiosk/me` (decision 0019). Frontend (`src/kiosk/attendance/`): "Punch with face" button (ready /
+  starting / not available / hidden), `face-view.tsx` (oval, hints, head-turn arrow, checking),
+  `code-pad.tsx` (digits, letters, prefix keys, countdown ring, JetBrains Mono), `use-face-punch.ts`
+  (guidance, challenge, pictures, one new challenge by itself, timed fallback without MediaPipe),
+  `face-sequence.ts` (pure logic), face results with "Try again" (10 s) and amber PLEASE WAIT, face
+  texts, sound and voice. e2e `kiosk-face-punch.spec.ts` (8 tests: IN then ALREADY IN, code pad accepted,
+  wrong code twice, head that does not turn + Try again, stranger, hidden button, 360 and 768 px) with
+  a browser-painted fake camera (no clip, no real face). Also: Settings texts for the 16 face settings
+  (the raw keys made the Settings page too wide on a phone), `E2E_PAIRING_LIMIT` (test server only,
+  production stays 10 per 10 minutes), the sideways-scroll check no longer fails on a headed
+  browser's scrollbar.
+- Next: design gate C (step 26), then step 27 (it also adds the Privacy settings card: `company_address`
+  and `privacy_contact` have no Settings screen yet); then slice D (steps 28 to 31, 33).
+- Reminders for slice D (real people, Tushar): the head-turn timing in `face-sequence.ts` uses a rough
+  0.0175 turn per degree (MediaPipe to degrees) and the turn sign must be checked with real frames;
+  nobody has tried the gate or the wizard with a real webcam or a phone yet (hints, 1-second hold,
+  sunlight reading of the code pad). For the CLAUDE.md update: new variable `E2E_PAIRING_LIMIT`
+  (honoured only when `APP_ENV=test`), new dependency `@fontsource/jetbrains-mono` (OFL, code pad).
+- Test results (2026-10-24, after step 23): backend 938 passed, 7 skipped (coverage 90.2%); frontend
+  478 passed, lint + typecheck + i18n:check + build size budgets green; e2e (headed): 50 tests, the
+  full suite passed in two parts after the pairing limit and scrollbar fixes (kiosk-face-punch 8/8).
 - Open questions: none blocking. Reminders: `buffalo_s` accuracy (NFR-05) is measured in slice D;
   the head-turn sign (+ = the person's own left) must be confirmed with real team frames in slice
   D; the CelebA-Spoof candidate has no stable ONNX link yet; `FACE_TEMPLATE_KEY` must be set on

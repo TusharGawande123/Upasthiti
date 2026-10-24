@@ -44,6 +44,9 @@ class Settings(BaseSettings):
     # Logins allowed per IP per 10 minutes. Honoured ONLY when APP_ENV=test (the end-to-end
     # tests log in many times from one laptop); production always allows 20.
     e2e_login_limit: int = Field(default=20, ge=1)
+    # Kiosk pairings allowed per IP per 10 minutes; the same rule: only when APP_ENV=test (the face
+    # tests pair many gate devices from one laptop); production always allows 10.
+    e2e_pairing_limit: int = Field(default=10, ge=1)
     # The daily job runs inside the backend. Tests and one-off scripts switch it off.
     run_scheduler: bool = True
 

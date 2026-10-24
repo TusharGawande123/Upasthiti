@@ -38,7 +38,7 @@ function Ring({ seconds, total }: { seconds: number; total: number }) {
     <div
       role="timer"
       aria-label={t("kiosk.codePad.secondsLeft", { count: Math.max(seconds, 0) })}
-      className="relative grid size-24 shrink-0 place-items-center"
+      className="relative grid size-20 shrink-0 place-items-center sm:size-24"
     >
       <svg viewBox="0 0 100 100" className="absolute inset-0 -rotate-90" aria-hidden>
         <circle cx="50" cy="50" r="42" fill="none" stroke="#e3e8f2" strokeWidth="10" />
@@ -54,7 +54,7 @@ function Ring({ seconds, total }: { seconds: number; total: number }) {
           strokeDashoffset={circumference * (1 - share)}
         />
       </svg>
-      <span aria-hidden className="tnum relative text-[26px] font-extrabold">
+      <span aria-hidden className="tnum relative text-[22px] font-extrabold sm:text-[26px]">
         {Math.max(seconds, 0)} s
       </span>
     </div>
@@ -128,10 +128,10 @@ export function CodePad({
       />
       <div className="mx-auto flex w-full max-w-[720px] flex-1 flex-col gap-3 px-4 py-4 sm:px-8">
         <div className="flex items-center gap-4">
-          <span className="grid size-20 shrink-0 place-items-center rounded-2xl border-4 border-[#5a3b00] bg-[var(--flood-already)] text-foreground">
-            <Info className="size-12" aria-hidden />
+          <span className="grid size-16 shrink-0 place-items-center rounded-2xl border-4 border-[#5a3b00] bg-[var(--flood-already)] text-foreground sm:size-20">
+            <Info className="size-10 sm:size-12" aria-hidden />
           </span>
-          <h1 className="text-[40px] leading-tight font-extrabold tracking-tight">
+          <h1 className="text-[32px] leading-tight font-extrabold tracking-tight sm:text-[40px]">
             {t("kiosk.punch.NEED_EMPLOYEE_CODE.title")}
           </h1>
         </div>
@@ -141,7 +141,11 @@ export function CodePad({
           <output
             aria-label={t("kiosk.codePad.typed")}
             aria-live="polite"
-            className="flex min-h-20 min-w-0 flex-1 items-center overflow-hidden rounded-2xl border-4 border-foreground bg-card px-5 text-[44px] font-semibold tracking-[0.12em]"
+            className={cn(
+              "flex min-h-20 min-w-0 flex-1 items-center overflow-hidden rounded-2xl border-4 border-foreground bg-card px-4 font-semibold tracking-[0.08em] sm:px-5 sm:tracking-[0.12em]",
+              // Long codes get smaller letters, so the whole code stays visible on a phone.
+              code.length > 8 ? "text-[26px] sm:text-[40px]" : "text-[34px] sm:text-[44px]",
+            )}
             style={{ fontFamily: CODE_FONT, fontFeatureSettings: '"zero"' }}
           >
             <span className="truncate">{code}</span>
@@ -156,12 +160,14 @@ export function CodePad({
         {wrong ? (
           <p
             role="alert"
-            className="flex flex-wrap items-center gap-x-3 gap-y-1 rounded-2xl border-4 border-[var(--flood-reject)] bg-[#ffe9e6] px-4 py-3 text-[26px] leading-snug font-bold text-[var(--flood-reject)]"
+            className="flex items-start gap-3 rounded-2xl border-4 border-[var(--flood-reject)] bg-[#ffe9e6] px-4 py-3 text-[26px] leading-snug font-bold text-[var(--flood-reject)]"
           >
-            <X className="size-8 shrink-0" aria-hidden />
-            {t("kiosk.punch.CODE_NOT_MATCHED.message")}
-            <span className="rounded-full border-2 border-current px-3 text-[24px]">
-              {t("kiosk.codePad.triesLeft", { count: entry.tries_left })}
+            <X className="mt-1 size-8 shrink-0" aria-hidden />
+            <span>
+              {t("kiosk.punch.CODE_NOT_MATCHED.message")}{" "}
+              <span className="inline-block rounded-full border-2 border-current px-3 text-[24px]">
+                {t("kiosk.codePad.triesLeft", { count: entry.tries_left })}
+              </span>
             </span>
           </p>
         ) : null}
@@ -175,11 +181,11 @@ export function CodePad({
         <div className="grid grid-cols-[1fr_1.4fr] gap-3">
           <KioskButton
             variant="key"
-            className="border-[3px] border-foreground text-[28px]"
+            className="border-[3px] border-foreground px-2 text-[26px] sm:text-[28px]"
             disabled={checking}
             onClick={onCancel}
           >
-            <X className="size-7" aria-hidden />
+            <X className="hidden size-7 sm:block" aria-hidden />
             {t("kiosk.face.cancel")}
           </KioskButton>
           <fieldset className="grid grid-cols-2 overflow-hidden rounded-2xl border-[3px] border-foreground">
@@ -191,14 +197,14 @@ export function CodePad({
                 aria-pressed={letters === showLetters}
                 onClick={() => setLetters(showLetters)}
                 className={cn(
-                  "flex min-h-16 cursor-pointer items-center justify-center gap-2 text-[26px] font-extrabold",
+                  "flex min-h-16 cursor-pointer items-center justify-center gap-2 text-[24px] font-extrabold sm:text-[26px]",
                   letters === showLetters ? "bg-foreground text-white" : "bg-card text-foreground",
                 )}
               >
                 {showLetters ? (
-                  <Type className="size-6" aria-hidden />
+                  <Type className="hidden size-6 sm:block" aria-hidden />
                 ) : (
-                  <Hash className="size-6" aria-hidden />
+                  <Hash className="hidden size-6 sm:block" aria-hidden />
                 )}
                 {t(showLetters ? "kiosk.codePad.letters" : "kiosk.codePad.numbers")}
               </button>

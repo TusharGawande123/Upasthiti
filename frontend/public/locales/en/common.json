@@ -882,6 +882,70 @@
       "kiosk_photo_ready_seconds": {
         "label": "Time to get ready for the photo",
         "help": "After a card is read, the worker gets this long to look at the camera (and switch the camera) before the photo is taken. Tapping \"I'm ready\" takes it sooner."
+      },
+      "face_code_offer_floor": {
+        "label": "Ask-for-code floor",
+        "help": "Below this score the face is simply not recognised. Between this score and the match threshold the gate asks for the employee code."
+      },
+      "face_code_match_threshold": {
+        "label": "Face threshold after a code",
+        "help": "When an employee types a code, the face must be at least this alike to the person with that code."
+      },
+      "face_duplicate_threshold": {
+        "label": "Duplicate face threshold",
+        "help": "At enrolment, a new face this alike to an enrolled face is held back as a possible duplicate."
+      },
+      "face_consistency_threshold": {
+        "label": "Same-person check",
+        "help": "The pictures of one face punch must show faces at least this alike."
+      },
+      "face_antispoof_threshold": {
+        "label": "Live-face check",
+        "help": "How sure the system must be that the face is real and not a photo or a screen. Higher is stricter."
+      },
+      "face_min_yaw_degrees": {
+        "label": "Head turn needed",
+        "help": "How far the head must turn at the gate, in degrees."
+      },
+      "face_frontal_max_yaw_degrees": {
+        "label": "Straight face limit",
+        "help": "The first and the last picture must be at least this straight, in degrees."
+      },
+      "face_challenge_steps": {
+        "label": "Head turns at the gate",
+        "help": "1 = one turn. 2 = two turns in a row (for example left, then right): harder to fake, a little slower."
+      },
+      "face_min_face_px": {
+        "label": "Smallest face",
+        "help": "A smaller face (in pixels, counted at 640 pixels picture width) asks the person to come closer."
+      },
+      "face_blur_min": {
+        "label": "Sharpness needed",
+        "help": "Blurry pictures are refused. A higher number is stricter."
+      },
+      "face_brightness_min": {
+        "label": "Brightness needed",
+        "help": "Darker pictures are refused (0 is black, 255 is white)."
+      },
+      "face_challenge_seconds": {
+        "label": "Time for the head turn",
+        "help": "How long the person has to turn the head after the device asks."
+      },
+      "face_code_entry_seconds": {
+        "label": "Time to type the code",
+        "help": "How long the employee code pad stays open."
+      },
+      "face_code_max_tries": {
+        "label": "Code tries",
+        "help": "How many times a wrong employee code can be typed before the punch is refused."
+      },
+      "face_reenrol_code_count": {
+        "label": "Re-enrol hint: codes typed",
+        "help": "Suggest enrolling a face again when this many code entries happen within 30 days."
+      },
+      "face_reenrol_score_margin": {
+        "label": "Re-enrol hint: falling score",
+        "help": "Suggest enrolling a face again when recent match scores fall this far below the older ones."
       }
     },
     "units": {

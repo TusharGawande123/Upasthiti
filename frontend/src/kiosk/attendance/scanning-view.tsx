@@ -96,7 +96,7 @@ function CameraPanel({
   const live = screen.name !== "needs-tap" && screen.name !== "starting";
 
   return (
-    <div className="relative aspect-square w-full max-w-[520px] shrink-0 overflow-hidden rounded-[20px] border-4 border-foreground bg-[#2b2f38] sm:w-[min(46vw,calc(100vh-262px))] sm:max-w-none sm:min-w-[260px]">
+    <div className="relative aspect-square w-[min(100%,34dvh)] max-w-[520px] shrink-0 overflow-hidden rounded-[20px] border-4 border-foreground bg-[#2b2f38] sm:w-[min(46vw,calc(100vh-262px))] sm:max-w-none sm:min-w-[260px]">
       <video
         ref={videoRef}
         aria-label={t("kiosk.attendance.cameraLabel")}
@@ -146,15 +146,15 @@ function CameraPanel({
 function InstructionCard() {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-6 rounded-[20px] border-4 border-foreground bg-card p-6 shadow-[0_6px_0_0_#0e1726]">
-      <span className="relative grid size-32 shrink-0 place-items-center rounded-2xl border-2 border-[#b9c6ef] bg-primary-soft">
+    <div className="flex items-center gap-6 rounded-[20px] border-4 border-foreground bg-card p-4 shadow-[0_6px_0_0_#0e1726] lg:p-6">
+      <span className="relative hidden size-32 shrink-0 place-items-center lg:grid rounded-2xl border-2 border-[#b9c6ef] bg-primary-soft">
         <IdCard className="size-20 text-foreground" aria-hidden />
         <ScanLine
           className="absolute -top-2 -right-2 size-12 rounded-full bg-signal p-2 text-foreground"
           aria-hidden
         />
       </span>
-      <h1 className="text-[44px] leading-tight font-extrabold tracking-tight">
+      <h1 className="text-[30px] leading-tight font-extrabold tracking-tight lg:text-[44px]">
         {t("kiosk.attendance.showCard")}
       </h1>
     </div>

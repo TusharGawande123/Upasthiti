@@ -37,14 +37,16 @@ const ADMIN_PAGES = [
 
 /** The whole page must fit the screen width (a table may scroll inside its own card). */
 async function expectNoSidewaysScroll(page: Page, where: string) {
+  // clientWidth is the room for the page: a visible scrollbar (in a headed browser, on a long
+  // page) takes some of the screen, and that is fine.
   const widths = await page.evaluate(() => ({
     page: document.documentElement.scrollWidth,
-    screen: window.innerWidth,
+    screen: document.documentElement.clientWidth,
   }));
   expect(
     widths.page,
     `${where}: page is ${widths.page}px wide on a ${widths.screen}px screen`,
-  ).toBe(widths.screen);
+  ).toBeLessThanOrEqual(widths.screen);
 }
 
 async function settle(page: Page) {

@@ -81,45 +81,20 @@ function LivePicture({
 
 type OvalLook = "waiting" | "good" | "busy";
 
-// The oval with a dimmed surround. Drawn as one path (a rectangle with an oval hole).
+// The oval is a 3:4 shape sized from the camera area (container units, so it is never squashed on
+// a narrow phone). The huge shadow dims everything around it; the area clips it.
 function Oval({ look }: { look: OvalLook }) {
-  const stroke = look === "good" ? "#3ddc84" : "#ffffff";
   return (
-    <svg
-      viewBox="0 0 100 100"
-      preserveAspectRatio="none"
-      className="absolute inset-0 size-full"
+    <span
       aria-hidden
-    >
-      <path
-        fillRule="evenodd"
-        fill="rgba(14,23,38,0.62)"
-        d="M0 0H100V100H0Z M50 8A26 38 0 1 0 50 84A26 38 0 1 0 50 8Z"
-      />
-      <ellipse
-        cx="50"
-        cy="46"
-        rx="26"
-        ry="38"
-        fill="none"
-        stroke="#0e1726"
-        strokeWidth={look === "good" ? 2.2 : 1.8}
-        vectorEffect="non-scaling-stroke"
-        opacity="0.9"
-      />
-      <ellipse
-        cx="50"
-        cy="46"
-        rx="26"
-        ry="38"
-        fill="none"
-        stroke={look === "busy" ? "#1f3a93" : stroke}
-        strokeWidth={look === "good" ? 5 : 4}
-        strokeDasharray={look === "waiting" ? "3 2.4" : undefined}
-        vectorEffect="non-scaling-stroke"
-        className={look === "waiting" ? "motion-safe:animate-pulse" : undefined}
-      />
-    </svg>
+      className={cn(
+        "absolute top-[46%] left-1/2 -translate-x-1/2 -translate-y-1/2 rounded-[50%] border-[6px] shadow-[0_0_0_100vmax_rgba(14,23,38,0.62)] outline-[3px] outline-[#0e1726]",
+        look === "waiting" && "border-dashed border-white motion-safe:animate-pulse",
+        look === "good" && "border-solid border-[#3ddc84]",
+        look === "busy" && "border-solid border-white outline-[#1f3a93]",
+      )}
+      style={{ height: "min(84cqh, 118cqw)", aspectRatio: "3 / 4" }}
+    />
   );
 }
 
@@ -235,7 +210,7 @@ export function FaceView({
         </HeaderBar>
       )}
 
-      <div className="relative min-h-0 flex-1 overflow-hidden">
+      <div className="relative min-h-0 flex-1 overflow-hidden" style={{ containerType: "size" }}>
         <LivePicture source={videoRef} cameraReady={cameraReady} mirrored={mirrored} />
         <Oval look={look} />
         {turning ? (
