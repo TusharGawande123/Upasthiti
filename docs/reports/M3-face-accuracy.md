@@ -50,7 +50,19 @@ packs (the Docker numbers decided them).
   worker, inside the 10 minute window.
 
 ## 2. Accuracy (NFR-05)
-To be filled in slice D (S-32): FAR, FRR, code-path rate, threshold curve, for `buffalo_s`.
+Written by `uv run python -m app.scripts.face_accuracy --faces <folder outside the repo>` (S-32):
+FAR, FRR, code-path rate and threshold curve for `buffalo_s`, on the team's consented faces
+(written consent first) and a public dataset such as LFW. The tool replaces only the text between
+the two markers below.
+
+<!-- face-accuracy:start -->
+Not measured yet: the run with real faces is done by the lead (plan step 28).
+<!-- face-accuracy:end -->
 
 ## 3. Anti-spoof (AC-17)
-To be filled in slice D: APCER / BPCER of MiniFASNet (V2 + V1SE) and the CelebA-Spoof candidate.
+Written by the same tool with `--spoof <folder>` (sub-folders `real/` and `attack/`, pictures taken
+at the real gate devices): APCER / BPCER of MiniFASNet V2, V1SE and both together.
+
+<!-- antispoof:start -->
+Not measured yet: the spoof run at the gate devices is done by the lead (plan step 28).
+<!-- antispoof:end -->

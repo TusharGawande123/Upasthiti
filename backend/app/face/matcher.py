@@ -67,13 +67,20 @@ def match_one_to_many(
     order = np.argsort(-scores)
     best = float(scores[order[0]])
     second = float(scores[order[1]]) if len(order) > 1 else None
+    kind = decide_match(best, second, thresholds)
+    employee_id = gallery.employee_ids[order[0]] if kind is MatchKind.MATCHED else None
+    return MatchResult(kind, employee_id, best, second)
+
+
+def decide_match(best: float, second: float | None, thresholds: MatchThresholds) -> MatchKind:
+    """The 1:N rule on the two best scores (also used by the accuracy tool, S-32)."""
     # With one person in the gallery there is no second best; the margin then counts from 0.
     ahead_by = best - (second if second is not None else 0.0)
     if best >= thresholds.match and ahead_by >= thresholds.margin:
-        return MatchResult(MatchKind.MATCHED, gallery.employee_ids[order[0]], best, second)
+        return MatchKind.MATCHED
     if best >= thresholds.code_offer_floor:
-        return MatchResult(MatchKind.UNSURE, None, best, second)
-    return MatchResult(MatchKind.NO_MATCH, None, best, second)
+        return MatchKind.UNSURE
+    return MatchKind.NO_MATCH
 
 
 def mean_template(embeddings: list[np.ndarray]) -> np.ndarray:

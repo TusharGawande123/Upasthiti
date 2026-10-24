@@ -384,9 +384,25 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
   merged "Result and reason", "Asked for code" and "No face in photo" chips, Method filter, Details side
   sheet (scores only for the Super Admin); `punchReasons` texts for the face codes. e2e
   `admin-face.spec.ts` (6 tests) and `/privacy` in `responsive.spec.ts`.
-- Next: slice D: step 28 (accuracy tool; the real-face runs are Tushar's), 29 (CI memory check), 30
-  (coverage floor 75 to 80), 31 (docs), 33 (reviews). Then Tushar: step 32 (FACE_TEMPLATE_KEY on Render),
-  CLAUDE.md approval, the PR.
+- Done (session 3): **step 28, the tool**: `app/scripts/face_accuracy.py` (S-32) with
+  `tests/test_face_accuracy.py` (fake engine, painted pictures). It refuses a data folder inside the
+  repo, writes only numbers between markers in `docs/reports/M3-face-accuracy.md` (sections 2 and 3),
+  measures FAR / FRR / code path / 1:1 code false accepts / threshold curve with 95 % upper bounds over
+  galleries of 60, and APCER / BPCER for MiniFASNet V2, V1SE and both. The 1:N rule moved into
+  `matcher.decide_match` so the tool uses the server's rule.
+  **Step 28 runs for Tushar** (real faces, laptop with the models):
+  1. `uv run python scripts/download_models.py`.
+  2. Written consent of each team member; take about 5 enrolment-like + 5 gate-like pictures each
+     (640 × 480, the gate device) into `D:/face-data/team/<any folder per person>/` (outside the repo).
+  3. Download LFW by hand (official LFW page, research use) and unzip to `D:/face-data/lfw/`.
+  4. `uv run python -m app.scripts.face_accuracy --faces D:/face-data/team --faces D:/face-data/lfw`
+     (about 5 000 stranger attempts are needed before the 95 % bound can show < 0.1 %).
+  5. Spoof set at each gate device: `D:/face-data/spoof/real/` and `attack/` (printed photo, phone
+     screen, laptop screen), then `... face_accuracy --spoof D:/face-data/spoof`.
+  6. Put the suggested values into `report_value` (and if the team agrees `default`) in
+     `settings/definitions.py`; commit the report (numbers only). Delete the face data when done.
+- Next: slice D: 29 (CI memory check), 30 (coverage floor 75 to 80), 31 (docs), 33 (reviews). Then
+  Tushar: the step 28 runs above, step 32 (FACE_TEMPLATE_KEY on Render), CLAUDE.md approval, the PR.
 - Notes for slice D and for Tushar: `report_value` of each setting (`settings/definitions.py`) is empty
   until the accuracy report fills it. The plan's "Gate C" settings screen shows "No report yet" until
   then. The Settings page, the punch log and the dashboard card have no real-people check yet.
