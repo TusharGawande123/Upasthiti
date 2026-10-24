@@ -11,9 +11,9 @@ import {
   Trash2,
   TriangleAlert,
 } from "lucide-react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router";
+import { Link, useSearchParams } from "react-router";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -130,6 +130,23 @@ export function EmployeeFacePanel({
   const { t } = useTranslation();
   const face = useEmployeeFace(employee.id);
   const [dialog, setDialog] = useState<DialogName>(null);
+  // Ctrl+K "Enrol face…" opens this page with ?face=enrol: start the enrolment once, then tidy the address.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const wantsEnrolment = searchParams.get("face") === "enrol";
+  const faceData = face.data;
+  useEffect(() => {
+    if (!wantsEnrolment || !faceData) return;
+    if (canManage && employee.status === "active" && faceData.punch_method === "face") {
+      setDialog(hasActiveConsent(faceData) ? "wizard" : "consent");
+    }
+    setSearchParams(
+      (current) => {
+        current.delete("face");
+        return current;
+      },
+      { replace: true },
+    );
+  }, [wantsEnrolment, faceData, canManage, employee.status, setSearchParams]);
 
   if (face.isError) return <Alert tone="danger">{describeError(face.error, t)}</Alert>;
   if (face.isPending) return <Skeleton className="h-40 w-full" />;

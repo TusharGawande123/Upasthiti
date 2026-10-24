@@ -157,3 +157,51 @@ describe("plant filter", () => {
     await vi.waitFor(() => expect(screen.getByLabelText("Plant filter")).toHaveValue(""));
   });
 });
+
+// The face commands (spec M3 §4.13): the Super Admin enrols; every role sees the two lists.
+describe("face commands", () => {
+  const FACE_RESULTS = {
+    ...RESULTS,
+    employees: [{ ...RESULTS.employees[0], face_state: "not_enrolled" }],
+  };
+
+  it("lets the Super Admin pick an employee to enrol, with the face badge, and opens the enrolment", async () => {
+    mockApi({
+      ...LAYOUT,
+      "GET /auth/me": { body: SUPER_ADMIN },
+      "GET /search": { body: FACE_RESULTS },
+      "GET /employees/e-1": {
+        status: 404,
+        body: { error: { code: "NOT_FOUND", message: "x", details: {} } },
+      },
+    });
+    const user = userEvent.setup();
+
+    const router = renderRoute("/admin/employees");
+    const dialog = await openPalette();
+    await user.click(within(dialog).getByText("Enrol face…"));
+    await user.type(within(dialog).getByPlaceholderText("Type an employee's code or name…"), "ram");
+    expect(await within(dialog).findByText("Not enrolled")).toBeInTheDocument();
+    await user.click(await within(dialog).findByText("Ramesh Kulkarni"));
+
+    await waitFor(() =>
+      expect(router.state.location.pathname + router.state.location.search).toBe(
+        "/admin/employees/e-1?face=enrol",
+      ),
+    );
+  });
+
+  it("gives every role the two lists, and only the Super Admin the enrol command", async () => {
+    mockApi({
+      ...LAYOUT,
+      "GET /auth/me": { body: PLANT_HEAD },
+    });
+
+    renderRoute("/admin/employees");
+    const dialog = await openPalette();
+
+    expect(within(dialog).getByText("Employees not enrolled")).toBeInTheDocument();
+    expect(within(dialog).getByText("Re-enrol suggested")).toBeInTheDocument();
+    expect(within(dialog).queryByText("Enrol face…")).not.toBeInTheDocument();
+  });
+});

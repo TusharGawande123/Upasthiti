@@ -109,6 +109,21 @@ describe("face panel", () => {
     expect(screen.getByRole("button", { name: "Withdraw consent" })).toBeInTheDocument();
   });
 
+  it("opens the consent dialog by itself when Ctrl+K sent the Super Admin here to enrol", async () => {
+    mockApi(answers({}));
+    renderRoute("/admin/employees/e-1?face=enrol");
+
+    expect(await screen.findByRole("dialog", { name: "Face attendance consent" })).toBeVisible();
+  });
+
+  it("does not open the dialog for the Corporate Head, who cannot enrol", async () => {
+    mockApi(answers({ me: { ...SUPER_ADMIN, role: "corporate_head" } }));
+    renderRoute("/admin/employees/e-1?face=enrol");
+
+    await screen.findByRole("heading", { name: "Face recognition" });
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("shows 'Old model' only when the server says the stored model differs", async () => {
     mockApi(
       answers({

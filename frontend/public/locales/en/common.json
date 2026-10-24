@@ -689,6 +689,31 @@
       "text_other": "{{count}} QR cards end in the next {{days}} days. Extend them or let them end.",
       "link": "See these cards",
       "error": "The number could not be loaded."
+    },
+    "face": {
+      "title": "Face enrolment",
+      "titleAt": "Face enrolment at {{plant}}",
+      "description": "People who punch with their face.",
+      "enrolledOf": "of {{total}} enrolled",
+      "percent": "{{percent}}% · {{count}} not enrolled yet",
+      "reenrol": "Re-enrol suggested",
+      "perPlant": "Face enrolment per plant",
+      "plantCount": "of {{total}}",
+      "plantReenrol": "{{count}} re-enrol",
+      "updated": "Updated when you open the page.",
+      "seeNotEnrolled": "See employees not enrolled ({{count}})",
+      "empty": {
+        "title": "Nobody is enrolled yet",
+        "step1": "Set the company address and the privacy contact in Settings.",
+        "step2": "Open an employee and record the consent.",
+        "step3": "Take the 5 pictures."
+      },
+      "engine": {
+        "starting": "The face engine is starting. Face punches and enrolment work again in a minute.",
+        "failed": "The face engine did not start. Face punches are switched off at every gate and enrolment cannot start; card punches work."
+      },
+      "error": "The numbers could not be loaded.",
+      "retry": "Try again"
     }
   },
   "users": {
@@ -1403,6 +1428,19 @@
       "print": {
         "label": "Print QR cards…",
         "hint": "Open the cards that are not printed yet"
+      },
+      "enrol": {
+        "label": "Enrol face…",
+        "hint": "Choose an employee, then record consent and take 5 pictures",
+        "placeholder": "Type an employee's code or name…"
+      },
+      "notEnrolled": {
+        "label": "Employees not enrolled",
+        "hint": "Open the employees who punch with their face but have no face yet"
+      },
+      "reenrol": {
+        "label": "Re-enrol suggested",
+        "hint": "Open the employees whose face should be enrolled again"
       }
     }
   },

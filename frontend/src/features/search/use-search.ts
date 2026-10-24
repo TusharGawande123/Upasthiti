@@ -12,6 +12,8 @@ export type SearchResults = {
     status: string;
     // Set when the text was a QR card serial: the serial that matched.
     card_serial?: string | null;
+    // M3: for the face badge in the palette picker.
+    face_state?: string | null;
   }[];
   plants: { id: string; code: string; name: string }[];
   kiosks: { id: string; name: string; plant_id: string }[];

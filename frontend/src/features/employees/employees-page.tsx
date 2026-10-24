@@ -4,7 +4,7 @@
 import { ChevronLeft, ChevronRight, FileSpreadsheet, Plus, ShieldCheck, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate } from "react-router";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { usePlantFilter } from "@/app/layouts/plant-filter";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -54,7 +54,12 @@ export function EmployeesPage() {
   const [type, setType] = useState<EmployeeType | "">("");
   const [categoryId, setCategoryId] = useState("");
   const [contractorId, setContractorId] = useState("");
-  const [faceFilter, setFaceFilter] = useState<FaceFilter | "">("");
+  // The dashboard card and Ctrl+K link here with ?face_state=not_enrolled (or another state).
+  const [searchParams] = useSearchParams();
+  const [faceFilter, setFaceFilter] = useState<FaceFilter | "">(() => {
+    const fromAddress = searchParams.get("face_state");
+    return FACE_FILTERS.find((filter) => filter === fromAddress) ?? "";
+  });
   const [page, setPage] = useState(1);
   // Selected people, kept by id across pages. Employees of other pages are remembered here.
   const [selected, setSelected] = useState<Map<string, Employee>>(new Map());
