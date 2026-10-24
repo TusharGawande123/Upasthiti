@@ -128,8 +128,9 @@ test("withdrawing consent deletes the face and moves the employee to a QR card",
   const dialog = page.getByRole("dialog", { name: `Withdraw face consent of ${ENROLLED_NAME}?` });
   await dialog.getByRole("button", { name: "Withdraw consent" }).click();
 
-  await expect(page.getByText(`Consent withdrawn. ${ENROLLED_NAME} now punches with a QR card.`))
-    .toBeVisible();
+  await expect(
+    page.getByText(`Consent withdrawn. ${ENROLLED_NAME} now punches with a QR card.`),
+  ).toBeVisible();
   await expect(page.getByText("This employee punches with a QR card.")).toBeVisible();
   await expect(page.getByRole("link", { name: "Issue QR card" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Re-enrol face" })).toHaveCount(0);
