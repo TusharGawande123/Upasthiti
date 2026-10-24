@@ -361,7 +361,8 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
   (5 poses, 3 s each, 640 x 480 .y4m, test only), `FACE_ENGINE=fake` + a test key in
   `e2e/backend-env.ts`. The test found a real accessibility bug (the scrolling consent text was not
   reachable by keyboard); fixed. Run headed: 7 passed.
-- Next: design gate A (step 21, the gate screens), then steps 22 and 23; gate C (26, 27); slice D.
+- Done (session 2): **design gate A (step 21)** approved by Anuradha: `docs/design-refs/m3/gate-a/` (43 states x 360/768/1280 px, no sideways scroll), decision 0019 (code prefix keys via a new `code_prefixes` field in `/kiosk/me`, amber PLEASE WAIT for the 503 codes, JetBrains Mono for the code).
+- Next: step 22 (first the small backend field `code_prefixes`, then the gate screens), step 23; gate C (26, 27); slice D.
 - Test results (2026-10-24, after step 16): backend 935 passed, 7 skipped (coverage 90%);
   frontend 440 passed, lint + typecheck + i18n:check green; e2e: full suite 38 passed before one
   name clash in my spec was fixed, then face-enrolment + responsive 10 passed.

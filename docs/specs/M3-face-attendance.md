@@ -172,7 +172,7 @@ connection messages, all text from the translation file. Design gates (images, a
 step like M2): **Gate A** gate screen (idle with button, face guidance, challenge, checking, code
 pad, results); **Gate B** admin (face panel, consent dialog, enrolment wizard, duplicate warning);
 **Gate C** punch log face columns, settings card, dashboard progress card, poster. Links are added
-here once approved.
+here once approved. Gate A (approved 24/10/2026, decision 0019): `docs/design-refs/m3/gate-a/`.
 
 ### 4.1 Gate screen: idle (`/attendance`)
 - Exactly the M2 scanning screen (top bar, camera preview with the card frame, notices, low-light
@@ -216,8 +216,7 @@ here once approved.
   once by itself; the second time it shows "Too slow. Please try again."
 
 ### 4.4 Gate screen: checking
-- Spinner + "Checking…" (M2). After 5 s "The server is starting. Please wait…" (M2 Render wake-up
-  text). After 60 s or a network error: the M2 connection error screen.
+- Spinner + "Checking…" (M2). After 5 s the live M2 wake-up text (`kiosk.attendance.serverWaking`). No Cancel while checking (the pictures are sent). After 60 s or a network error: the M2 connection error screen.
 
 ### 4.5 Gate screen: employee code pad (`needs_code`)
 - Amber ⓘ icon, title **"Type your employee code"**, line "We could not be sure it is you."
@@ -225,6 +224,7 @@ here once approved.
   **OK**; a key **"ABC"** switches to letters A–Z plus `-` and `/` (employee codes are 1–12
   letters, digits, `-`, `/`, M1); keys at least 64 px.
 - A countdown ring shows the remaining code time (90 s setting). "Cancel" returns to idle.
+- One-tap prefix keys ("EMP-", at most 3, from `/kiosk/me` `code_prefixes`) sit above the pad (decision 0019). The code is shown in JetBrains Mono.
 - After a wrong code with a try left: "That code does not match your face. Check it and try once
   more." (`kiosk.punch.CODE_NOT_MATCHED`).
 - The name is never shown on this screen.
@@ -241,7 +241,8 @@ automatic return, name shown but never spoken). Face additions:
 
 - A "Try again" button appears on rejections where a retry can help (`NO_FACE`, `MULTIPLE_FACES`,
   `FACE_TOO_SMALL`, `FACE_QUALITY_LOW`, `LIVENESS_FAILED`, `CHALLENGE_EXPIRED`, `FACE_INCONSISTENT`);
-  it starts the face guidance again. Other rejections return to idle.
+  it starts the face guidance again (countdown 10 s on these screens). Other rejections return to idle.
+  `FACE_SERVICE_UNAVAILABLE`, `FACE_SERVICE_BUSY` and `TOO_MANY_REQUESTS` are amber "PLEASE WAIT" (decision 0019).
 
 ### 4.7 Admin: employee face panel (employee detail page)
 - Shown for every employee; content depends on the punch method.
@@ -357,7 +358,7 @@ every frame.
 |---|---|---|---|---|---|
 | POST | /api/v1/punch/kiosk | kiosk (signed) | M2 body with **`method: "face"`** (additive): `{ client_punch_id (uuid), method: "face", challenge_nonce, frames: [ { role: "frontal"\|"turn", jpeg (base64) } ] (2–4 items; at least 1 frontal and 1 turn; the first item is frontal), device_time?, location?, app_version? }`. `qr_payload` and `snapshot_jpeg` are not sent for face | M2 response, **additive:** `decision` may also be `"needs_code"`; new field `code_entry: { token (base64url, 43 chars), expires_at, tries_left } \| null`; `details` may carry `retry_allowed: bool` | request-level only, as M2: `DEVICE_SIGNATURE_INVALID`, `NONCE_REUSED`, `DEVICE_REVOKED`, `VALIDATION_FAILED` (422, field names only, never the input), `PAYLOAD_TOO_LARGE` (413), `TOO_MANY_REQUESTS` (429), **`FACE_SERVICE_UNAVAILABLE` (503)**, **`FACE_SERVICE_BUSY` (503)**, `FACE_NOT_CONFIGURED` (503, development), `INTERNAL_ERROR` |
 | POST | /api/v1/punch/kiosk/code | kiosk (signed) | `{ client_punch_id (uuid, new for each try), code_entry_token, employee_code (1–12 chars) }` | the same punch response: `accepted` (by code), `rejected` (`FACE_NOT_RECOGNISED`, `CODE_ENTRY_EXPIRED`, `WRONG_PLANT`, `COOLDOWN_ACTIVE`, `OUT_TOO_SOON`), or `needs_code` again with `reason_code: "CODE_NOT_MATCHED"` and `tries_left` | `VALIDATION_FAILED`, `TOO_MANY_REQUESTS` (more than 10 a minute per kiosk), `DEVICE_*` as above, `FACE_SERVICE_UNAVAILABLE` |
-| GET | /api/v1/kiosk/me | kiosk (signed) | – | M2 fields **plus (additive)** `kiosk_settings.face: { available: bool, state: "ready"\|"loading"\|"off", enabled_for_plant: bool, challenge_seconds, code_entry_seconds, min_yaw_degrees }` | as M2 |
+| GET | /api/v1/kiosk/me | kiosk (signed) | – | M2 fields **plus (additive)** `kiosk_settings.face: { available: bool, state: "ready"\|"loading"\|"off", enabled_for_plant: bool, challenge_seconds, code_entry_seconds, min_yaw_degrees, code_prefixes: string[] (at most 3) }` (decision 0019: the most common starts of the plant's employee codes, e.g. "EMP-", for one-tap keys; never a whole code) | as M2 |
 
 Notes:
 - **Decided punches return 200**, also when rejected or `needs_code` (M2 rule). Request-level
