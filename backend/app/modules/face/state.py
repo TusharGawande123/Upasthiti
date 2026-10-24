@@ -7,7 +7,9 @@ Face state:
   another model: re-enrol), or "not_enrolled".
 """
 
+import re
 import uuid
+from collections import Counter
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from statistics import median
@@ -219,6 +221,27 @@ def plant_has_enrolled_faces(session: Session, plant_id: uuid.UUID, model_id: st
         )
         is not None
     )
+
+
+# The start of a code, up to and including the first "-" or "/": "EMP-0312" -> "EMP-".
+_CODE_START = re.compile(r"^[A-Z0-9]*[-/]")
+CODE_PREFIX_KEYS = 3
+
+
+def common_code_prefixes(session: Session, plant_id: uuid.UUID, model_id: str) -> list[str]:
+    """The most common starts of the codes of enrolled employees here, for the gate's code pad.
+
+    The pad shows them as one-tap keys (decision 0019). Only starts are sent, never a whole code.
+    """
+    codes = session.scalars(
+        select(Employee.employee_code).where(
+            Employee.plant_id == plant_id,
+            Employee.status == EmployeeStatus.ACTIVE.value,
+            face_state_condition("enrolled", model_id),
+        )
+    )
+    starts = Counter(match.group() for code in codes if (match := _CODE_START.match(code)))
+    return [start for start, _ in starts.most_common(CODE_PREFIX_KEYS)]
 
 
 # --- F-41: "Re-enrol suggested" ----------------------------------------------------------------

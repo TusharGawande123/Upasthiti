@@ -24,7 +24,7 @@ from app.modules.auth.permissions import Capability
 from app.modules.auth.rate_limit import report_limiter
 from app.modules.auth.scope import ensure_plant_in_scope, plant_filter
 from app.modules.face.engine_provider import engine_state, get_face_engine, running_model_id
-from app.modules.face.state import plant_has_enrolled_faces
+from app.modules.face.state import common_code_prefixes, plant_has_enrolled_faces
 from app.modules.kiosks import service
 from app.modules.kiosks.dependencies import require_kiosk
 from app.modules.kiosks.models import KioskDevice
@@ -246,6 +246,7 @@ def _screen_settings(
             challenge_seconds=get_int_setting(session, "face_challenge_seconds"),
             code_entry_seconds=get_int_setting(session, "face_code_entry_seconds"),
             min_yaw_degrees=get_int_setting(session, "face_min_yaw_degrees"),
+            code_prefixes=common_code_prefixes(session, kiosk.plant_id, running_model_id()),
         ),
     )
 

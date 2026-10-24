@@ -96,6 +96,7 @@ class KioskFaceSettings(BaseModel):
     challenge_seconds: int
     code_entry_seconds: int
     min_yaw_degrees: int
+    code_prefixes: list[str]  # up to 3 common starts of codes here, e.g. "EMP-" (decision 0019)
 
 
 class KioskScreenSettings(BaseModel):

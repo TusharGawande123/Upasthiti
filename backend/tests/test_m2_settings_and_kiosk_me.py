@@ -339,6 +339,7 @@ def test_the_heartbeat_keeps_the_old_fields_and_adds_settings(
             "challenge_seconds": 10,
             "code_entry_seconds": 90,
             "min_yaw_degrees": 18,
+            "code_prefixes": [],
         },
     }
 

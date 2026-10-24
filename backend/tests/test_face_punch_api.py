@@ -190,6 +190,19 @@ def test_the_heartbeat_offers_face_punch_once_someone_is_enrolled(
     assert after["kiosk_settings"]["face"]["enabled_for_plant"] is True
 
 
+def test_the_heartbeat_sends_the_most_common_code_starts_never_whole_codes(
+    db_client: TestClient, boss: TestClient, k134: PlantIds, device: Device, kiosk: KioskDevice
+) -> None:
+    for code, person in (("EMP-1", 1), ("EMP-2", 2), ("T-3", 3), ("4050", 4)):
+        enrol(boss, new_employee(boss, k134, code=code), person=person)
+
+    path = "/api/v1/kiosk/me"
+    face = db_client.get(path, headers=device.headers("GET", path)).json()["kiosk_settings"]["face"]
+
+    # "4050" has no "-" or "/", so it gives no start; the most common start comes first.
+    assert face["code_prefixes"] == ["EMP-", "T-"]
+
+
 # --- Challenge (AC-11) --------------------------------------------------------------------------
 
 
