@@ -22,3 +22,8 @@ Status: Accepted. Mockups: `docs/design-refs/m3/gate-c/`. Changes spec §4.11, �
    numbers dropped. One new icon (a head-turn picture) for `printing/icons`.
 7. **Known text fix:** the help text of `face_reenrol_score_margin` must match spec §7 rule 15 (median
    against threshold + margin); the corrected text is in the gate C notes.
+8. **Build notes (step 27):** the stylesheet budget in `frontend/size-budgets.json` went from 11,300 to
+   12,400 bytes gzip (settings sub-groups, privacy page, punch log sheet, face screens). The two text
+   settings (company address, privacy contact) are edited in the Settings "Privacy" card (the consent
+   dialog links to `/admin/settings#privacy`). `/privacy` is a public route; it is linked from the admin
+   login page and the consent dialog (not from the gate screen).

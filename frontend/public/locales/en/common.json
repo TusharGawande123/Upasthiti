@@ -2112,14 +2112,28 @@
     "EMPLOYEE_NOT_QR": "Employee punches by face",
     "WRONG_PLANT": "Card of another plant",
     "COOLDOWN_ACTIVE": "Already punched (scanned again too soon)",
-    "OUT_TOO_SOON": "Already IN (OUT not allowed yet)"
+    "OUT_TOO_SOON": "Already IN (OUT not allowed yet)",
+    "NO_FACE": "No face seen",
+    "MULTIPLE_FACES": "More than one person",
+    "FACE_TOO_SMALL": "Face too far from the camera",
+    "FACE_QUALITY_LOW": "Picture too dark or blurry",
+    "LIVENESS_FAILED": "Head did not turn as asked",
+    "FACE_INCONSISTENT": "Different faces in the pictures",
+    "CHALLENGE_EXPIRED": "Too slow",
+    "CHALLENGE_INVALID": "Challenge not valid",
+    "FRAMES_INVALID": "Pictures not readable",
+    "SPOOF_SUSPECTED": "Not a live face",
+    "FACE_NOT_RECOGNISED": "Face not recognised",
+    "CODE_ENTRY_EXPIRED": "Code pad timed out",
+    "NEED_EMPLOYEE_CODE": "Asked for the employee code",
+    "CODE_NOT_MATCHED": "Code did not match the face"
   },
   "punches": {
     "title": "Punch log",
-    "description": "Every card punch at the gate attendance devices, accepted or rejected. Times in IST.",
-    "descriptionOwnPlant": "Every card punch at your plant's gate, accepted or rejected. Times in IST.",
-    "readOnlyPlantHead": "Read-only, your plant only. Only the Super Admin can open punch photos; here you see whether a photo was saved.",
-    "readOnlyCorporateHead": "Read-only. Only the Super Admin can open punch photos; here you see whether a photo was saved.",
+    "description": "Every punch at the gate attendance devices, by card or by face, accepted or rejected. Times in IST.",
+    "descriptionOwnPlant": "Every punch at your plant's gate, by card or by face, accepted or rejected. Times in IST.",
+    "readOnlyPlantHead": "Read-only, your plant only. Only the Super Admin can open punch photos and the face scores; here you see whether a photo was saved.",
+    "readOnlyCorporateHead": "Read-only. Only the Super Admin can open punch photos and the face scores; here you see whether a photo was saved.",
     "noPhotosInFile": "No photos in the file",
     "export": "Export day (.xlsx)",
     "unknownCard": "Unknown card",
@@ -2141,7 +2155,10 @@
       "rejected": "Rejected",
       "dark": "Dark photos",
       "hint": "Press a number to show only those punches",
-      "because": "Rejected because:"
+      "because": "Rejected because:",
+      "asked": "Asked for code",
+      "noFace": "No face in photo",
+      "acceptedBy": "Accepted by:"
     },
     "filter": {
       "date": "Date",
@@ -2155,7 +2172,9 @@
       "kiosk": "Device",
       "anyKiosk": "Device: any",
       "reason": "Reason",
-      "anyReason": "Reason: any"
+      "anyReason": "Reason: any",
+      "method": "Method",
+      "anyMethod": "Method: any"
     },
     "columns": {
       "time": "Time",
@@ -2165,7 +2184,9 @@
       "reason": "Reason",
       "kiosk": "Device",
       "photo": "Photo",
-      "actions": "Actions"
+      "actions": "Actions",
+      "method": "Method",
+      "resultAndReason": "Result and reason"
     },
     "direction": {
       "in": "IN",
@@ -2173,7 +2194,8 @@
     },
     "result": {
       "accepted": "Accepted",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "needsCode": "Asked for code"
     },
     "photoState": {
       "stored": "Photo stored",
@@ -2210,6 +2232,64 @@
       "audited_other": "{{count}} photos shown. Each photo shown is recorded in the audit log.",
       "back": "Back to this photo",
       "openEmployee": "Open employee"
+    },
+    "method": {
+      "face": "Face",
+      "card": "Card",
+      "faceByCode": "Face, by code"
+    },
+    "how": {
+      "face": "By face",
+      "code": "By code",
+      "codeFailed": "Code typed, face did not match",
+      "faceShort": "face",
+      "codeShort": "code",
+      "cardShort": "card"
+    },
+    "link": {
+      "then": "Then: By code",
+      "after": "After: Asked for code"
+    },
+    "unknownFace": "Unknown face",
+    "faceNotMatched": "Face not matched",
+    "noFacePhoto": "No face in photo",
+    "photoOfAsked": "Photo of the Asked for code punch",
+    "noPhotoFace": "No photo · accepted face punch",
+    "detail": {
+      "title": "Punch details",
+      "loading": "Loading the punch…",
+      "button": "Details",
+      "openFor": "Details of the punch at {{time}}",
+      "punch": "Punch",
+      "serverTime": "Server time",
+      "openEmployee": "Open employee",
+      "notPunched": "Not punched. The code typed belongs to",
+      "steps": "Steps of this punch",
+      "openPunch": "Open this punch",
+      "face": "Face check",
+      "superOnly": "Super Admin only",
+      "matchScore": "Match score",
+      "secondBest": "Second-best score",
+      "notUsedCode": "Not used when a code is typed",
+      "antispoof": "Anti-spoof score (live face)",
+      "headTurn": "Head turn",
+      "todayLimit": "Today's limit: {{limit}} or more",
+      "passed": "Passed",
+      "tooLow": "Too low",
+      "notUsed": "Not used",
+      "degreesLeft": "{{degrees}}° left",
+      "degreesRight": "{{degrees}}° right",
+      "challenge": "Challenge",
+      "matchMode": "Match mode",
+      "oneToMany": "Whole plant (1:N)",
+      "codeMode": "Employee code (1:1)",
+      "model": "Model",
+      "codeTyped": "Code typed: {{code}} – face did not match",
+      "codeTypedOk": "Code typed: {{code}}",
+      "proxy": "Someone typed this employee's code, but the face was not alike enough. Check the photo: this can be a proxy attempt.",
+      "photo": "Photo",
+      "noPhotoKept": "No photo is kept for an accepted face punch.",
+      "notShown": "Scores, the typed code and photos are shown to the Super Admin only."
     }
   },
   "notices": {
