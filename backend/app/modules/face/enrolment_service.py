@@ -56,6 +56,7 @@ from app.modules.face.template_service import (
     active_template,
     cancel_open_session,
     delete_active_template,
+    end_consent_after_erasure,
 )
 from app.modules.org.models import Plant
 from app.modules.settings.service import get_float_setting, get_int_setting
@@ -415,13 +416,16 @@ def cancel(session: Session, actor: Actor, session_id: uuid.UUID) -> None:
 
 
 def delete_face_data(session: Session, actor: Actor, employee: Employee, *, reason: str) -> None:
-    """ "Delete face data": the template goes, consent and punch method stay (spec §5.3)."""
+    """ "Delete face data": the template goes AND the consent ends (an erasure request ends the
+    consent too, DPDP; decision 0023). The punch method stays face, so the employee shows "Not
+    enrolled" and a new enrolment first asks for consent again."""
     if active_template(session, employee.id) is None:
         raise ApiError("FACE_NOT_ENROLLED", "This employee has no face data.", 409)
     cancel_open_session(session, employee, actor=actor)
     delete_active_template(
         session, employee, kind=TemplateDeleteKind.DELETED_BY_ADMIN, actor=actor, reason=reason
     )
+    end_consent_after_erasure(session, actor, employee, reason=reason)
     session.commit()
     invalidate_plant_gallery(employee.plant_id)
 

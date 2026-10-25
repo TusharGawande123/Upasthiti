@@ -101,6 +101,13 @@ export function SettingRow({
     !locked &&
     isValid(setting, draft) &&
     Number(draft) < Number(setting.value);
+  // Raising it changes the days named in the face consent text, whose version stays the same
+  // (decision 0023): the Super Admin is warned, the change stays allowed (with its reason).
+  const raisesRetention =
+    setting.key === "snapshot_retention_days" &&
+    !locked &&
+    isValid(setting, draft) &&
+    Number(draft) > Number(setting.value);
   // Lowering a face threshold lets more strangers through (spec M3 §4.12).
   const lowersThreshold =
     isThreshold(setting) &&
@@ -220,6 +227,18 @@ export function SettingRow({
             <span>
               <b>{t("settings.retentionWarning.title", { days: draft })}</b>{" "}
               {t("settings.retentionWarning.text", { days: draft, current: setting.value })}
+            </span>
+          </div>
+        ) : null}
+        {raisesRetention ? (
+          <div
+            role="alert"
+            className="mt-2 flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft p-2 text-[13px] text-warning"
+          >
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              <b>{t("settings.retentionRaise.title", { days: draft })}</b>{" "}
+              {t("settings.retentionRaise.text", { days: draft, current: setting.value })}
             </span>
           </div>
         ) : null}

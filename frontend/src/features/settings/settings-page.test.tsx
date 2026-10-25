@@ -183,6 +183,37 @@ describe("face and privacy settings (spec M3 §4.12)", () => {
     expect(screen.getByLabelText("Face match threshold")).toHaveValue("0.46");
   });
 
+  it("warns that raising the photo retention changes the consent text", async () => {
+    const retention = {
+      settings: [
+        {
+          key: "snapshot_retention_days",
+          group: "snapshots",
+          value: 60,
+          default: 60,
+          unit: "days",
+          used_from: 2,
+          editable: true,
+          minimum: 7,
+          maximum: 365,
+          allowed_values: null,
+        },
+      ],
+    };
+    mockApi({ "GET /auth/me": { body: SUPER_ADMIN }, "GET /settings": { body: retention } });
+    const user = userEvent.setup();
+
+    renderRoute("/admin/settings");
+    const field = await screen.findByLabelText("Snapshot retention");
+    await user.clear(field);
+    await user.type(field, "90");
+
+    expect(
+      screen.getByText("Keeping photos for 90 days changes what the face consent text says."),
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save changes" })).toBeEnabled();
+  });
+
   it("warns when a threshold is lowered", async () => {
     mockApi({ "GET /auth/me": { body: SUPER_ADMIN }, "GET /settings": { body: FACE_SETTINGS } });
     const user = userEvent.setup();

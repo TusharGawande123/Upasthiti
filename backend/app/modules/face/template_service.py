@@ -108,3 +108,34 @@ def close_consent_of_leaver(session: Session, employee: Employee) -> None:
     consent.withdrawn_at = utc_now()
     consent.withdraw_kind = WithdrawKind.LEFT.value
     session.flush()
+
+
+def end_consent_after_erasure(
+    session: Session, actor: Actor, employee: Employee, *, reason: str | None
+) -> None:
+    """ "Delete face data" ends the active consent as well (decision 0023), recorded as a
+    withdrawal by the Super Admin who deleted, with the same reason."""
+    consent = session.scalar(
+        select(FaceConsent).where(
+            FaceConsent.employee_id == employee.id,
+            FaceConsent.choice == ConsentChoice.AGREED.value,
+            FaceConsent.withdrawn_at.is_(None),
+        )
+    )
+    if consent is None:
+        return
+    consent.withdrawn_at = utc_now()
+    consent.withdrawn_by = actor.actor_id if actor.actor_type == "user" else None
+    consent.withdraw_kind = WithdrawKind.WITHDRAWN.value
+    consent.withdraw_reason = reason
+    session.flush()
+    record_audit(
+        session,
+        actor=actor,
+        action="face_consent.withdraw",
+        entity_type="employee",
+        entity_id=employee.id,
+        after={"consent_id": consent.id, "with": "delete_face_data"},
+        reason=reason,
+        plant_id=employee.plant_id,
+    )

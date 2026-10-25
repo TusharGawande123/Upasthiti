@@ -1004,6 +1004,10 @@
       "30": "30 days",
       "actual": "Actual days"
     },
+    "retentionRaise": {
+      "title": "Keeping photos for {{days}} days changes what the face consent text says.",
+      "text": "The consent text and the gate notice will say {{days}} days instead of {{current}}. Employees who already agreed read {{current}} days: tell them, and print the gate posters again after saving."
+    },
     "retentionWarning": {
       "title": "Lowering to {{days}} days also shortens the photos already stored.",
       "text": "Photos older than {{days}} days are deleted tonight at 00:05 IST and cannot be brought back. The gate posters say “kept for {{current}} days”: download and print them again after saving."

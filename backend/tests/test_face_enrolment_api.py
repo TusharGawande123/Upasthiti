@@ -452,7 +452,7 @@ def test_a_short_override_reason_is_refused(boss: TestClient, k134: PlantIds) ->
 # --- Deleting face data (AC-19, decision 0016 item 13) -----------------------------------------
 
 
-def test_delete_face_data_keeps_the_consent(
+def test_delete_face_data_also_ends_the_consent(
     boss: TestClient, db_session: Session, k134: PlantIds
 ) -> None:
     employee_id = new_employee(boss, k134)
@@ -462,7 +462,12 @@ def test_delete_face_data_keeps_the_consent(
     assert boss.post(url, json={"reason": "Bad enrolment"}).json() == {"template_deleted": True}
 
     panel = boss.get(f"/api/v1/employees/{employee_id}/face").json()
-    assert panel["face_state"] == "not_enrolled" and panel["consent"]["choice"] == "agreed"
+    assert panel["face_state"] == "not_enrolled" and panel["punch_method"] == "face"
+    # Erasure ends the consent too (decision 0023): a new enrolment asks for consent again.
+    assert panel["consent"]["withdrawn_at"] is not None
+    assert panel["consent"]["withdraw_reason"] == "Bad enrolment"
+    again_start = boss.post(f"/api/v1/employees/{employee_id}/face/enrolment-sessions")
+    assert again_start.json()["error"]["code"] == "CONSENT_REQUIRED"
     template = db_session.scalars(select(FaceTemplate)).one()
     assert template.ciphertext is None and template.delete_kind == "deleted_by_admin"
     again = boss.post(url, json={"reason": "Bad enrolment"})
