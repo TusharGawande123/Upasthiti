@@ -453,3 +453,13 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
   consent? consent text names Vercel? InsightFace licence?); (2) step 28 real-people runs;
   (3) step 32 Render keys and settings; (4) approve the CLAUDE.md diff (items in the earlier
   Status); (5) run `/ship`, watch the first CI `docker` job (memory check) and merge.
+
+### Dependabot PRs waiting for the M3 merge (2026-10-27)
+- Open: #21 (`astral-sh/setup-uv` 10.3.0 to 10.3.2), #22 (`@hookform/resolvers` 5.9.1 to 6.0.0; its breaking
+  change is only the effect-ts resolver, we use zod), #23 (frontend, 14 minor/patch updates), #24
+  (backend, 8 updates incl. fastapi 0.143.2 to 0.161.1, sqlalchemy 2.1.4 to 2.1.6). All checks were
+  green on the old `main`, but all four touch files that M3 also changed (`ci.yml`, `pyproject.toml`,
+  `uv.lock`, `package.json`, `package-lock.json`).
+- Decision (lead, 2026-10-27): do NOT merge them before M3. After the M3 merge: comment
+  `@dependabot rebase` on each, wait for the 5 CI checks on the M3 code (fastapi 0.161 and the other
+  bumps have never run against the face code), then the lead merges them one by one, oldest first.
