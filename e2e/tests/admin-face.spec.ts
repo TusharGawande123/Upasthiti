@@ -73,7 +73,9 @@ test("the face settings are shown in sub-groups with a warning when a threshold 
   await signIn(page);
   await page.goto("/admin/settings");
   await expect(page.getByRole("heading", { name: "Face recognition" })).toBeVisible();
-  await expect(page.getByText("No accuracy report yet.").first()).toBeVisible();
+  // The accuracy run of 27/10/2026 suggests 0.425 for the match threshold (decision 0024).
+  await expect(page.getByText("The report values come from the accuracy report.")).toBeVisible();
+  await expect(page.getByText("Report value: 0.425")).toBeVisible();
   const threshold = page.getByLabel("Face match threshold");
   await threshold.fill("0.30");
   await expect(page.getByText("A lower threshold lets more strangers through.")).toBeVisible();
