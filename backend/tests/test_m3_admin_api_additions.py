@@ -19,8 +19,10 @@ def test_every_setting_says_whether_it_is_text_and_has_a_report_value_slot(
 
     assert settings["company_address"]["is_text"] is True
     assert settings["face_match_threshold"]["is_text"] is False
-    # Nothing is suggested until the accuracy report of slice D fills it in.
-    assert settings["face_match_threshold"]["report_value"] is None
+    # The accuracy report of 27/10/2026 suggests 0.425; the default stays 0.45 (decision 0024).
+    assert settings["face_match_threshold"]["report_value"] == 0.425
+    assert settings["face_match_threshold"]["default"] == 0.45
+    assert settings["face_antispoof_threshold"]["report_value"] is None  # sample too small
 
 
 def test_the_quick_search_gives_the_face_state_of_each_employee(

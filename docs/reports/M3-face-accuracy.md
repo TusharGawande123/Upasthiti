@@ -56,7 +56,56 @@ FAR, FRR, code-path rate and threshold curve for `buffalo_s`, on the team's cons
 the two markers below.
 
 <!-- face-accuracy:start -->
-Not measured yet: the run with real faces is done by the lead (plan step 28).
+Measured 27/10/2026 with `buffalo_s/w600k_mbf` (tool `app/scripts/face_accuracy.py`, seed 7).
+
+| What | Count |
+|---|---|
+| People folders | 5751 |
+| Pictures (unreadable / no face found) | 13243 (0 / 15) |
+| People with a template (5 picture(s) each) | 312 |
+| Galleries × people | 5 × 60 |
+| Genuine attempts | 3752 |
+| Stranger attempts | 54588 |
+
+Thresholds of the settings: match 0.45, margin 0.08, code-pad floor 0.3, 1:1 code 0.42.
+
+| Rate | Value | 95 % upper bound | Target |
+|---|---|---|---|
+| False accept (strangers + wrong person) | 0.02 % | 0.04 % | < 0.1 % |
+| False reject (genuine not matched directly) | 0.96 % | 1.33 % | < 3 % |
+| Code path (genuine sent to the code pad) | 0.40 % | | |
+| ... then accepted by the 1:1 check | 46.67 % | | |
+| Face not recognised (genuine) | 0.48 % | | |
+| Strangers sent to the code pad | 1.53 % | | |
+| 1:1 false accept (stranger types the look-alike's code) | 0.04 % | | |
+
+Threshold curve (margin and floor as above; the floor never above the threshold):
+
+| Match threshold | False accept | False reject | Code path | Not recognised |
+|---|---|---|---|---|
+| 0.200 | 6.11 % | 0.53 % | 0.11 % | 0.29 % |
+| 0.225 | 4.89 % | 0.53 % | 0.03 % | 0.37 % |
+| 0.250 | 3.25 % | 0.53 % | 0.03 % | 0.43 % |
+| 0.275 | 1.79 % | 0.53 % | 0.00 % | 0.45 % |
+| 0.300 | 1.04 % | 0.56 % | 0.00 % | 0.48 % |
+| 0.325 | 0.68 % | 0.59 % | 0.03 % | 0.48 % |
+| 0.350 | 0.45 % | 0.59 % | 0.03 % | 0.48 % |
+| 0.375 | 0.26 % | 0.64 % | 0.08 % | 0.48 % |
+| 0.400 | 0.10 % | 0.69 % | 0.13 % | 0.48 % |
+| 0.425 | 0.04 % | 0.80 % | 0.24 % | 0.48 % |
+| 0.450 | 0.02 % | 0.96 % | 0.40 % | 0.48 % |
+| 0.475 | 0.02 % | 1.17 % | 0.61 % | 0.48 % |
+| 0.500 | 0.02 % | 1.52 % | 0.96 % | 0.48 % |
+| 0.525 | 0.02 % | 2.16 % | 1.60 % | 0.48 % |
+| 0.550 | 0.02 % | 2.93 % | 2.40 % | 0.48 % |
+| 0.575 | 0.02 % | 4.24 % | 3.70 % | 0.48 % |
+| 0.600 | 0.02 % | 6.45 % | 5.92 % | 0.48 % |
+| 0.625 | 0.01 % | 9.04 % | 8.50 % | 0.48 % |
+| 0.650 | 0.01 % | 13.65 % | 13.11 % | 0.48 % |
+| 0.675 | 0.01 % | 20.07 % | 19.54 % | 0.48 % |
+| 0.700 | 0.01 % | 29.64 % | 29.16 % | 0.48 % |
+
+Suggested match threshold (lowest one whose false-accept upper bound is under 0.1 %): **0.425**.
 <!-- face-accuracy:end -->
 
 ## 3. Anti-spoof (AC-17)
@@ -64,5 +113,52 @@ Written by the same tool with `--spoof <folder>` (sub-folders `real/` and `attac
 at the real gate devices): APCER / BPCER of MiniFASNet V2, V1SE and both together.
 
 <!-- antispoof:start -->
-Not measured yet: the spoof run at the gate devices is done by the lead (plan step 28).
+Measured 27/10/2026 (tool `app/scripts/face_accuracy.py`).
+Pictures: 10 per model (9 real faces, 1 attacks with a face found).
+
+At the setting `face_antispoof_threshold` = 0.8:
+
+| Model | APCER (attacks passed) | BPCER (real refused) |
+|---|---|---|
+| MiniFASNet V2 | 0.00 % | 0.00 % |
+| MiniFASNet V1SE | 0.00 % | 0.00 % |
+| both (server today) | 0.00 % | 0.00 % |
+
+Curve (APCER / BPCER):
+
+| Threshold | MiniFASNet V2 | MiniFASNet V1SE | both (server today) |
+|---|---|---|---|
+| 0.50 | 0.00 % / 0.00 % | 0.00 % / 0.00 % | 0.00 % / 0.00 % |
+| 0.55 | 0.00 % / 0.00 % | 0.00 % / 0.00 % | 0.00 % / 0.00 % |
+| 0.60 | 0.00 % / 0.00 % | 0.00 % / 0.00 % | 0.00 % / 0.00 % |
+| 0.65 | 0.00 % / 0.00 % | 0.00 % / 0.00 % | 0.00 % / 0.00 % |
+| 0.70 | 0.00 % / 0.00 % | 0.00 % / 0.00 % | 0.00 % / 0.00 % |
+| 0.75 | 0.00 % / 0.00 % | 0.00 % / 0.00 % | 0.00 % / 0.00 % |
+| 0.80 | 0.00 % / 0.00 % | 0.00 % / 0.00 % | 0.00 % / 0.00 % |
+| 0.85 | 0.00 % / 0.00 % | 0.00 % / 0.00 % | 0.00 % / 0.00 % |
+| 0.90 | 0.00 % / 0.00 % | 0.00 % / 0.00 % | 0.00 % / 0.00 % |
+| 0.95 | 0.00 % / 22.22 % | 0.00 % / 0.00 % | 0.00 % / 0.00 % |
 <!-- antispoof:end -->
+
+## 4. How far these numbers can be trusted (run of 27/10/2026)
+Who ran it: the lead, on his laptop, `buffalo_s`, data outside the repo (deleted afterwards).
+
+- **False accept / false reject (section 2)** come mostly from LFW: 5,749 people, mostly
+  Western public figures, photos from the web. The team's own pictures are two people (the
+  lead: 9 pictures, a friend: 1). So the numbers prove the model works on LFW-like faces. They
+  say less about Indian faces, which models mix up more often, so **the false-accept rate on the
+  real workforce is probably higher than 0.02 %**. That is why the default threshold stays 0.45
+  (the report would allow 0.425) and the first weeks live must be watched (decision 0024).
+- **False reject** counts mostly LFW pictures (3,752 genuine attempts). The lead's own gate-like
+  pictures (far, tube light, dark, spectacles) scored 0.69 to 0.83, well above 0.45.
+- **Direct check:** a friend's picture against the lead's template scored 0.15 (refused; the
+  code-pad floor is 0.30), so a stranger does not even reach the code pad.
+- **Anti-spoof (section 3)** was run on 9 real pictures and **1** attack picture (a tablet screen
+  photographed with a phone, score 0.08, caught). One attack proves nothing about the rate, and no
+  printed photo, laptop screen or video replay was tried. The curve is flat, so no report value
+  is suggested for `face_antispoof_threshold`: it stays 0.80. A printed photo is also stopped
+  by the head-turn check (`LIVENESS_FAILED`), which is tested with painted frames, not yet with a
+  real device.
+- **Still to do before real employees are enrolled:** a pilot with a few consenting people,
+  more attacks at a real gate device, and, after go-live, the "asked for code" rate and the
+  "Re-enrol suggested" hint in the punch log (plan, decision 0024).

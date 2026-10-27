@@ -463,3 +463,12 @@ safety glasses; spoof attempts (AC-17); voice and tones on the face results; key
 - Decision (lead, 2026-10-27): do NOT merge them before M3. After the M3 merge: comment
   `@dependabot rebase` on each, wait for the 5 CI checks on the M3 code (fastapi 0.161 and the other
   bumps have never run against the face code), then the lead merges them one by one, oldest first.
+
+### Step 28 done in small form (2026-10-27, the lead)
+- Ran `face_accuracy` with the lead's own face (9 pictures), one friend (1 picture) and LFW, and the
+  spoof set (9 real, 1 attack). FAR 0.02 % (bound 0.04 %), FRR 0.96 % (bound 1.33 %): NFR-05 met on
+  this data. Details, limits and the thresholds decision: `docs/reports/M3-face-accuracy.md` section 4
+  and decision 0024. `report_value` of `face_match_threshold` = 0.425; default stays 0.45.
+- NOT proven (provisional until a pilot): the rates on Indian faces, and printed-photo / laptop-screen /
+  video-replay attacks at a real gate device. The photos in `C:\face-data` must be deleted by the lead.
+- Next for the lead: step 32 (Render key), then `/ship`.

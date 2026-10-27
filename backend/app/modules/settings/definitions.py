@@ -67,8 +67,19 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     # Face recognition (M3, spec §7 rule 13). The defaults marked "provisional" are the spec's
     # starting values; the accuracy report of slice D replaces them before the milestone ends.
     # Matching: cosine similarity of face templates, from -1 to 1.
+    # report_value 0.425 = the lowest threshold whose false-accept upper bound is under 0.1 %
+    # (docs/reports/M3-face-accuracy.md, 27/10/2026). The default stays at 0.45: the data is
+    # mostly non-Indian faces, which flatters the false-accept rate (decision 0024).
     SettingDefinition(
-        "face_match_threshold", "face", 0.45, "", 3, 0.20, 0.90, is_whole_number=False
+        "face_match_threshold",
+        "face",
+        0.45,
+        "",
+        3,
+        0.20,
+        0.90,
+        is_whole_number=False,
+        report_value=0.425,
     ),
     SettingDefinition("face_match_margin", "face", 0.08, "", 3, 0.0, 0.30, is_whole_number=False),
     SettingDefinition(
