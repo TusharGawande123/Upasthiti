@@ -1,6 +1,6 @@
 # M3 – proposed CLAUDE.md changes (for Tushar to approve)
 
-Status: **proposal only. CLAUDE.md is NOT changed yet.** After Tushar says "ok" (or edits this
+Status: **APPLIED to CLAUDE.md on the M3 branch (lead said "ok" on 2026-10-27).** Two blocks changed after the lead's answers (decision 0023): "Delete face data" also ends the consent, and the model licence is judged by cost only. The text below is the original proposal, kept as a record.
 file), the changes are applied on the same branch, before the PR (CLAUDE.md §8 step 7).
 Each block shows the old line(s) and the new line(s). Dates and the PR number are filled in by Tushar
 at merge time.
