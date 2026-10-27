@@ -16,6 +16,8 @@ from app.modules.employees.schemas import (
     SearchPlant,
     SearchResponse,
 )
+from app.modules.face.engine_provider import running_model_id
+from app.modules.face.state import list_face_states
 from app.modules.kiosks.models import KioskDevice
 from app.modules.org.models import Plant
 
@@ -48,6 +50,7 @@ def search(
     card_serials = queries.matching_card_serials(
         session, text, [employee.id for employee in employees]
     )
+    face_states = list_face_states(session, employees, running_model_id())
     return SearchResponse(
         employees=[
             SearchEmployee(
@@ -57,6 +60,7 @@ def search(
                 plant_code=plant_codes.get(employee.plant_id, ""),
                 status=employee.status,
                 card_serial=card_serials.get(employee.id),
+                face_state=face_states.get(employee.id),
             )
             for employee in employees
         ],

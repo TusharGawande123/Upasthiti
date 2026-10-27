@@ -6,14 +6,17 @@ import {
   CalendarDays,
   ChevronLeft,
   ChevronRight,
+  CircleDashed,
   CircleX,
   Columns2,
   Eye,
   FileSpreadsheet,
   ImageOff,
+  Keyboard,
   LogIn,
   LogOut,
   Moon,
+  PanelRight,
   Radio,
   Search,
 } from "lucide-react";
@@ -44,14 +47,16 @@ import { PhotoDialog } from "./photo-dialog";
 import {
   DirectionBadge,
   EmployeeCell,
+  MethodBadge,
   PhotoStateCell,
-  ReasonCell,
-  ResultBadge,
+  ResultCell,
   useReasonText,
 } from "./punch-cells";
+import { PunchDetailSheet } from "./punch-detail-sheet";
 import {
   downloadPunchExport,
   isToday,
+  type PunchDetail,
   type PunchFilters,
   type PunchItem,
   usePunches,
@@ -60,7 +65,9 @@ import {
 
 const PAGE_SIZE = 50;
 // What the day's chips and the reason chips can show.
-type Focus = "all" | "in" | "out" | "rejected" | "dark";
+type Focus = "all" | "in" | "out" | "rejected" | "dark" | "asked" | "noFace";
+// The Method filter: any, face, face punches decided by a typed code, or card.
+type MethodFilter = "" | "face" | "code" | "qr";
 
 function Chip({
   icon: Icon,
@@ -118,6 +125,10 @@ export function PunchesPage() {
   const [search, setSearch] = useState("");
   const [typedSearch, setTypedSearch] = useState("");
   const [result, setResult] = useState<"" | "accepted" | "rejected">("");
+  const [method, setMethod] = useState<MethodFilter>("");
+  const [askedOnly, setAskedOnly] = useState(false);
+  const [noFaceOnly, setNoFaceOnly] = useState(false);
+  const [detailId, setDetailId] = useState<string | null>(null);
   const [kioskId, setKioskId] = useState("");
   const [reason, setReason] = useState("");
   const [darkOnly, setDarkOnly] = useState(false);
@@ -148,6 +159,10 @@ export function PunchesPage() {
     date,
     plant_id: plantId || undefined,
     decision: result || undefined,
+    method: method === "face" || method === "code" ? "face" : method || undefined,
+    match_mode: method === "code" ? "code" : undefined,
+    asked_for_code: askedOnly || undefined,
+    no_face_photo: noFaceOnly || undefined,
     kiosk_id: kioskId || undefined,
     reason_code: reason || undefined,
     dark_only: darkOnly || undefined,
@@ -162,7 +177,9 @@ export function PunchesPage() {
   const total = punches.data?.total ?? 0;
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const today = isToday(date);
-  const filtered = Boolean(typedSearch || result || kioskId || reason || darkOnly);
+  const filtered = Boolean(
+    typedSearch || result || kioskId || reason || darkOnly || method || askedOnly || noFaceOnly,
+  );
   const withPhoto = rows.filter((row) => row.snapshot.state === "stored");
 
   const apply = (change: () => void) => {
@@ -178,11 +195,13 @@ export function PunchesPage() {
       setResult(
         chosen === "rejected"
           ? "rejected"
-          : chosen === "all" || chosen === "dark"
+          : chosen === "all" || chosen === "dark" || chosen === "asked" || chosen === "noFace"
             ? ""
             : "accepted",
       );
       setDarkOnly(chosen === "dark");
+      setAskedOnly(chosen === "asked");
+      setNoFaceOnly(chosen === "noFace");
       setReason("");
     });
 
@@ -278,8 +297,49 @@ export function PunchesPage() {
               onClick={() => pressChip("dark")}
             />
           ) : null}
+          {data?.asked_for_code !== undefined ? (
+            <Chip
+              icon={Keyboard}
+              tone="neutral"
+              count={data.asked_for_code}
+              label={t("punches.summary.asked")}
+              active={focus === "asked"}
+              onClick={() => pressChip("asked")}
+            />
+          ) : null}
+          {isSuperAdmin && data?.no_face_photos !== null && data?.no_face_photos !== undefined ? (
+            <Chip
+              icon={CircleDashed}
+              tone="neutral"
+              count={data.no_face_photos}
+              label={t("punches.summary.noFace")}
+              active={focus === "noFace"}
+              onClick={() => pressChip("noFace")}
+            />
+          ) : null}
           <span className="text-xs text-muted-foreground">{t("punches.summary.hint")}</span>
         </div>
+        {data && (data.face_accepted ?? 0) + (data.code_accepted ?? 0) > 0 ? (
+          <p className="text-sm text-muted-foreground">
+            {t("punches.summary.acceptedBy")}{" "}
+            <b className="tnum text-foreground">{formatNumber(data.face_accepted ?? 0)}</b>{" "}
+            {t("punches.how.faceShort")} ·{" "}
+            <b className="tnum text-foreground">{formatNumber(data.code_accepted ?? 0)}</b>{" "}
+            {t("punches.how.codeShort")} ·{" "}
+            <b className="tnum text-foreground">
+              {formatNumber(
+                Math.max(
+                  0,
+                  data.accepted_in +
+                    data.accepted_out -
+                    (data.face_accepted ?? 0) -
+                    (data.code_accepted ?? 0),
+                ),
+              )}
+            </b>{" "}
+            {t("punches.how.cardShort")}
+          </p>
+        ) : null}
         {reasons.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">
             <span className="text-sm text-muted-foreground">{t("punches.summary.because")}</span>
@@ -357,12 +417,15 @@ export function PunchesPage() {
           </span>
           <Select
             aria-label={t("punches.filter.result")}
-            value={result}
+            value={askedOnly ? "asked" : result}
             onChange={(event) => {
               apply(() => {
-                setResult(event.target.value as typeof result);
-                setFocus("all");
+                const chosen = event.target.value;
+                setAskedOnly(chosen === "asked");
+                setResult(chosen === "asked" ? "" : (chosen as typeof result));
+                setFocus(chosen === "asked" ? "asked" : "all");
                 setDarkOnly(false);
+                setNoFaceOnly(false);
               });
             }}
             className="w-auto"
@@ -370,6 +433,18 @@ export function PunchesPage() {
             <option value="">{t("punches.filter.anyResult")}</option>
             <option value="accepted">{t("punches.result.accepted")}</option>
             <option value="rejected">{t("punches.result.rejected")}</option>
+            <option value="asked">{t("punches.result.needsCode")}</option>
+          </Select>
+          <Select
+            aria-label={t("punches.filter.method")}
+            value={method}
+            onChange={(event) => apply(() => setMethod(event.target.value as MethodFilter))}
+            className="w-auto"
+          >
+            <option value="">{t("punches.filter.anyMethod")}</option>
+            <option value="face">{t("punches.method.face")}</option>
+            <option value="code">{t("punches.method.faceByCode")}</option>
+            <option value="qr">{t("punches.method.card")}</option>
           </Select>
           <Select
             aria-label={t("punches.filter.kiosk")}
@@ -431,16 +506,14 @@ export function PunchesPage() {
             <TableRow className="hover:bg-transparent">
               <TableHead>{t("punches.columns.time")}</TableHead>
               <TableHead>{t("punches.columns.employee")}</TableHead>
+              <TableHead>{t("punches.columns.method")}</TableHead>
               <TableHead>{t("punches.columns.direction")}</TableHead>
-              <TableHead>{t("punches.columns.result")}</TableHead>
-              <TableHead>{t("punches.columns.reason")}</TableHead>
+              <TableHead>{t("punches.columns.resultAndReason")}</TableHead>
               <TableHead>{t("punches.columns.kiosk")}</TableHead>
               <TableHead>{t("punches.columns.photo")}</TableHead>
-              {isSuperAdmin ? (
-                <TableHead>
-                  <span className="sr-only">{t("punches.columns.actions")}</span>
-                </TableHead>
-              ) : null}
+              <TableHead>
+                <span className="sr-only">{t("punches.columns.actions")}</span>
+              </TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -448,7 +521,7 @@ export function PunchesPage() {
               ? Array.from({ length: 6 }, (_, index) => (
                   // biome-ignore lint/suspicious/noArrayIndexKey: fixed placeholder rows
                   <TableRow key={index}>
-                    <TableCell colSpan={isSuperAdmin ? 8 : 7}>
+                    <TableCell colSpan={8}>
                       <Skeleton className="h-6 w-full" />
                     </TableCell>
                   </TableRow>
@@ -460,14 +533,12 @@ export function PunchesPage() {
                     isSuperAdmin={isSuperAdmin}
                     onViewPhoto={() => setPhotoFor({ id: punch.id, compare: false })}
                     onCompare={() => setPhotoFor({ id: punch.id, compare: true })}
+                    onOpenDetail={setDetailId}
                   />
                 ))}
             {!punches.isPending && rows.length === 0 ? (
               <TableRow className="hover:bg-transparent">
-                <TableCell
-                  colSpan={isSuperAdmin ? 8 : 7}
-                  className="py-10 text-center text-muted-foreground"
-                >
+                <TableCell colSpan={8} className="py-10 text-center text-muted-foreground">
                   {filtered
                     ? t("punches.noMatch")
                     : today
@@ -511,6 +582,22 @@ export function PunchesPage() {
         </div>
       </Card>
 
+      {detailId ? (
+        <PunchDetailSheet
+          punchId={detailId}
+          isSuperAdmin={isSuperAdmin}
+          onClose={() => setDetailId(null)}
+          onOpenPunch={setDetailId}
+          onViewPhoto={(punch: PunchDetail) => {
+            setDetailId(null);
+            setPhotoFor({ id: punch.id, compare: false });
+          }}
+          onCompare={(punch: PunchDetail) => {
+            setDetailId(null);
+            setPhotoFor({ id: punch.id, compare: true });
+          }}
+        />
+      ) : null}
       {photoFor ? (
         <PhotoDialog
           punches={withPhoto}
@@ -528,16 +615,23 @@ function PunchRow({
   isSuperAdmin,
   onViewPhoto,
   onCompare,
+  onOpenDetail,
 }: {
   punch: PunchItem;
   isSuperAdmin: boolean;
   onViewPhoto: () => void;
   onCompare: () => void;
+  onOpenDetail: (punchId: string) => void;
 }) {
   const { t } = useTranslation();
   const hasPhoto = punch.snapshot.state === "stored";
   return (
-    <TableRow className={cn(punch.decision === "rejected" && "border-l-4 border-l-destructive")}>
+    <TableRow
+      className={cn(
+        punch.decision === "rejected" && "border-l-4 border-l-destructive",
+        punch.decision === "needs_code" && "border-l-4 border-l-warning",
+      )}
+    >
       <TableCell className="tnum font-semibold">
         {formatTimeWithSeconds(punch.server_received_at)}
       </TableCell>
@@ -545,13 +639,13 @@ function PunchRow({
         <EmployeeCell punch={punch} />
       </TableCell>
       <TableCell>
+        <MethodBadge method={punch.method} />
+      </TableCell>
+      <TableCell>
         <DirectionBadge direction={punch.direction} />
       </TableCell>
       <TableCell>
-        <ResultBadge decision={punch.decision} />
-      </TableCell>
-      <TableCell>
-        <ReasonCell punch={punch} />
+        <ResultCell punch={punch} onOpenPunch={onOpenDetail} />
       </TableCell>
       <TableCell>
         <span className="block font-semibold">{punch.kiosk.name}</span>
@@ -560,9 +654,20 @@ function PunchRow({
       <TableCell>
         <PhotoStateCell punch={punch} showDark={isSuperAdmin} />
       </TableCell>
-      {isSuperAdmin ? (
-        <TableCell>
-          {hasPhoto ? (
+      <TableCell>
+        <span className="flex flex-wrap gap-2">
+          <Button
+            size="sm"
+            variant="outline"
+            aria-label={t("punches.detail.openFor", {
+              time: formatTimeWithSeconds(punch.server_received_at),
+            })}
+            onClick={() => onOpenDetail(punch.id)}
+          >
+            <PanelRight aria-hidden />
+            {t("punches.detail.button")}
+          </Button>
+          {isSuperAdmin && hasPhoto ? (
             <span className="flex gap-2">
               <Button size="sm" variant="outline" onClick={onViewPhoto}>
                 <Eye aria-hidden />
@@ -576,8 +681,8 @@ function PunchRow({
               ) : null}
             </span>
           ) : null}
-        </TableCell>
-      ) : null}
+        </span>
+      </TableCell>
     </TableRow>
   );
 }

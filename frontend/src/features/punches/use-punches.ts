@@ -15,6 +15,8 @@ export type PunchSnapshotInfo = {
   is_dark: boolean | null; // Super Admin only
   expires_at: string | null;
   purged_at: string | null;
+  // M3 (F-30): whether the card photo shows a face; Super Admin only, null while unchecked.
+  face_found?: boolean | null;
 };
 
 export type PunchItem = {
@@ -25,11 +27,32 @@ export type PunchItem = {
   employee_hidden: boolean;
   plant: { id: string; name: string; code: string | null };
   kiosk: { id: string; name: string };
-  method: string;
+  method: string; // "qr" (card) or "face"
   direction: "in" | "out" | null;
-  decision: "accepted" | "rejected";
+  decision: "accepted" | "rejected" | "needs_code";
   reason_codes: string[];
   snapshot: PunchSnapshotInfo;
+  // M3: how a face punch was decided, and the two rows of a code entry.
+  match_mode?: "one_to_many" | "code" | null;
+  follows_punch_id?: string | null;
+  followed_by_punch_id?: string | null;
+};
+
+/** What the face check measured. Super Admin only; other roles get no such object (AC-24). */
+export type PunchFaceDetail = {
+  match_score: number | null;
+  second_best_score: number | null;
+  antispoof_score: number | null;
+  yaw_degrees: number | null;
+  challenge: string | null;
+  model_id: string | null;
+  match_mode: string | null;
+  claimed_employee: { id: string; code: string; name: string } | null;
+};
+
+export type PunchDetail = PunchItem & {
+  app_version: string | null;
+  face: PunchFaceDetail | null;
 };
 
 export type PunchSummary = {
@@ -38,12 +61,21 @@ export type PunchSummary = {
   rejected: number;
   dark_photos: number | null; // Super Admin only
   rejected_by_reason: Record<string, number>;
+  // M3: how the accepted punches were decided, and the code and photo counts.
+  face_accepted?: number;
+  code_accepted?: number;
+  asked_for_code?: number;
+  no_face_photos?: number | null; // Super Admin only
 };
 
 export type PunchFilters = {
   date: string;
   plant_id?: string;
   decision?: "accepted" | "rejected";
+  method?: "face" | "qr";
+  match_mode?: "code";
+  asked_for_code?: boolean;
+  no_face_photo?: boolean;
   kiosk_id?: string;
   reason_code?: string;
   dark_only?: boolean;
@@ -74,6 +106,14 @@ export function usePunchSummary(date: string, plantId: string | undefined) {
       apiGet<PunchSummary>(`/punches/summary${queryString({ date, plant_id: plantId })}`),
     placeholderData: (previous) => previous,
     refetchInterval: isToday(date) ? REFRESH_EVERY_MS : false,
+  });
+}
+
+export function usePunchDetail(punchId: string | null) {
+  return useQuery({
+    queryKey: [...PUNCHES_KEY, "detail", punchId],
+    queryFn: () => apiGet<PunchDetail>(`/punches/${punchId}`),
+    enabled: punchId !== null,
   });
 }
 

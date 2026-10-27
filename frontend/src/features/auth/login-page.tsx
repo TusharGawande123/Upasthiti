@@ -5,7 +5,7 @@ import { CircleAlert, Loader2, Lock } from "lucide-react";
 import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { useTranslation } from "react-i18next";
-import { Navigate, useLocation, useNavigate } from "react-router";
+import { Link, Navigate, useLocation, useNavigate } from "react-router";
 import { z } from "zod";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -63,7 +63,12 @@ export function LoginPage() {
           </h1>
           <p className="mt-4 text-[15px] text-muted-foreground">{t("login.subheadline")}</p>
         </div>
-        <p className="text-[13px] text-subtle-foreground">{t("login.footer")}</p>
+        <p className="text-[13px] text-subtle-foreground">
+          {t("login.footer")} ·{" "}
+          <Link to="/privacy" className="font-semibold underline">
+            {t("login.privacyLink")}
+          </Link>
+        </p>
       </section>
 
       <section className="flex items-center justify-center p-6">

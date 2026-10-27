@@ -42,7 +42,7 @@ test("a Corporate Head's new employee waits; the Super Admin approves it and it 
   page,
 }) => {
   await logIn(page, CORPORATE_HEAD_LOGIN);
-  await page.getByRole("link", { name: "Employees" }).click();
+  await page.getByRole("link", { name: "Employees", exact: true }).click();
   await expect(page.getByText(/Your changes wait for the Super Admin/)).toBeVisible();
   await page.getByRole("button", { name: "Add employee" }).click();
 
@@ -77,7 +77,7 @@ test("a Corporate Head's new employee waits; the Super Admin approves it and it 
   await drawer.getByRole("button", { name: "Approve" }).click();
   await expect(page.getByText("Nothing is waiting")).toBeVisible();
 
-  await page.getByRole("link", { name: "Employees" }).click();
+  await page.getByRole("link", { name: "Employees", exact: true }).click();
   await expect(page.getByRole("cell", { name: "ET-001" })).toBeVisible();
   await expectNoSeriousAccessibilityIssues(page);
 });
@@ -102,7 +102,7 @@ test("a Super Admin marks the person as left; the history stays and nothing can 
   page,
 }) => {
   await logIn(page, SUPER_ADMIN_LOGIN);
-  await page.getByRole("link", { name: "Employees" }).click();
+  await page.getByRole("link", { name: "Employees", exact: true }).click();
   await page.getByRole("link", { name: "Asha Rao" }).first().click();
   await expect(page.getByRole("button", { name: /delete/i })).toHaveCount(0);
 

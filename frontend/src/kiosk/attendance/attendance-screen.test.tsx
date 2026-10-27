@@ -8,7 +8,7 @@ import { apiError, mockApi } from "../../test/mock-api";
 import { renderRoute } from "../../test/render";
 import { createDeviceKey } from "../device-key";
 import { forgetDevice, saveDevice } from "../device-store";
-import type { PunchAnswer } from "./punch-types";
+import { DEFAULT_SCREEN_SETTINGS, type PunchAnswer } from "./punch-types";
 
 // --- Fakes for the hardware ---------------------------------------------------------------------
 
@@ -74,6 +74,7 @@ function me(changes: Record<string, unknown> = {}) {
       photo_ready_seconds: 20,
       snapshot_retention_days: 60,
       dark_threshold: 40,
+      face: DEFAULT_SCREEN_SETTINGS.face,
     },
     ...changes,
   };
@@ -158,7 +159,7 @@ describe("kiosk attendance screen", () => {
     expect(screen.getByRole("timer")).toBeInTheDocument();
     expect(
       screen.getByText(
-        "A photo is taken at each card punch to stop card sharing. Kept for 60 days.",
+        "Face punch: your face is checked against an encrypted record. A photo is kept for 60 days only if the punch fails or you type your code. Card punch: a photo is kept for 60 days and checked automatically to see that a face is present.",
       ),
     ).toBeInTheDocument();
   });

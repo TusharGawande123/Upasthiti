@@ -1,0 +1,87 @@
+<!doctype html>
+<!--
+  Upasthiti - M3 design gate C - Screen 6: the public privacy notice page /privacy (SPDI Rule 4, spec 8.1).
+  No login, no admin shell. Same facts as the consent text face-consent-v1, in short sections.
+  States (URL hash): default (contact and address set) · contact-missing (privacy_contact or company_address empty).
+  MOCKUP ONLY - static HTML, English only (all text goes in the translation file).
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Privacy notice</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+</head>
+<body>
+<div class="pv-stripe" aria-hidden="true"></div>
+<header class="pv-top"><div class="pv-top-in"><a class="pv-brand" href="#"><span id="logo"></span><span><b>Upasthiti</b><span>Sheet Shapers · Smart Attendance</span></span></a>
+  <button class="btn btn-outline" aria-label="Back"><i data-lucide="arrow-left"></i><span>Back</span></button></div></header>
+<main id="pv"></main>
+<footer class="pv-foot"><div class="pv-foot-in"><span>Upasthiti – Smart Attendance · Sheet Shapers</span><a href="#"><i data-lucide="printer"></i>Print this page</a><a href="#"><i data-lucide="log-in"></i>Admin login</a></div></footer>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  const S = location.hash.replace("#", "") || "default";
+  const MISSING = S === "contact-missing";
+  const ic = (n) => `<i data-lucide="${n}"></i>`;
+  const DAYS = 60;
+  const SECTIONS = [
+    ["collect", "scan-face", "What we collect", `
+      <p>If you punch with your face:</p>
+      <ul><li><b>A face template.</b> At enrolment the camera takes 5 pictures of your face. The system turns them into a list of numbers that describes your face. The pictures are deleted at once; only the template is kept, and it is encrypted.</li>
+      <li><b>Pictures at each face punch.</b> The device takes a few pictures. The server compares them with your template and then deletes them.</li>
+      <li><b>One small photo</b> when a face punch fails or you type your employee code.</li></ul>
+      <p>If you punch with a card: <b>one photo at each card punch.</b></p>
+      <p>For everyone: your name, employee code, plant, and the time and device of each punch.</p>`],
+    ["why", "target", "Why", `
+      <p>Only to record your attendance and to stop anyone else from marking attendance for you.</p>
+      <p>Your face data is not used for anything else, is not shared, and is never sent to any AI company. Card photos are checked automatically only to see that a face is present.</p>`],
+    ["how-long", "clock", "How long we keep it", `
+      <div class="kept">
+        <div><span>Face template</span><b>Until you leave or withdraw</b></div>
+        <div><span>Pictures taken at a face punch</span><b>Deleted after the check</b></div>
+        <div><span>Photo of a failed face punch, or when you type your code</span><b>${DAYS} days</b></div>
+        <div><span>Photo of a card punch</span><b>${DAYS} days</b></div>
+        <div><span>Punch times (attendance records)</span><b>As labour law requires</b></div>
+        <div><span>Your consent record (proof of your choice)</span><b>With your employee record</b></div></div>
+      <p>When you leave the company or withdraw your consent, your template is deleted at once.</p>`],
+    ["where", "server", "Where it is processed", `
+      <p>The pictures are checked in memory on our hosting provider's server in <b>Singapore</b>. The encrypted template and the photos are stored in <b>Mumbai</b>, India. They are encrypted with a key that the storage provider does not have.</p>`],
+    ["who", "eye", "Who can see it", `
+      <p><b>No person can see your template.</b> Only the Super Admin can see the small photos, and every view is recorded.</p>
+      <p>The Plant Head and the Corporate Head see only whether you punched, when, and how (face or card).</p>`],
+    ["choice", "hand", "Your choice, and how to withdraw", `
+      <p>You do not have to agree to face attendance. If you do not agree, you get a QR ID card to punch with instead.</p>
+      <p>Saying no, or withdrawing later, will not affect your job, pay, shift or treatment in any way.</p>
+      <p><b>To withdraw, tell the plant office. That is enough.</b> Your template is then deleted and you get a QR card.</p>`],
+    ["rights", "scale", "Your rights", `
+      <p>You can ask what data we keep about you, ask to correct or delete it, and raise a complaint. Your punch times are kept as labour law requires, even after your face data is deleted.</p>
+      <p>We reply within 30 days. If you are not satisfied with the answer, you can complain to the Data Protection Board of India.</p>`],
+    ["contact", "messages-square", "Who to contact", MISSING
+      ? `<div class="contact missing"><div class="who">${ic("triangle-alert")}The contact is being set up.</div><div class="addr">Until then, ask at your plant office. They will pass on your question.</div></div>`
+      : `<div class="contact"><div class="addr" style="margin:0 0 4px;font-weight:600">Grievance officer and contact</div><div class="who">Asha Rao (Super Admin), Sheet Shapers, plant office K134, privacy@sheetshapers.example</div><div class="addr">Sheet Shapers, Plot K-134, MIDC Waluj, Chhatrapati Sambhajinagar, Maharashtra 431136</div></div>
+        <p style="margin-top:12px">Or ask at your plant office.</p>`],
+  ];
+  document.getElementById("logo").innerHTML = window.upasthitiLogo(34);
+  document.getElementById("pv").innerHTML = `
+    <section class="pv-hero anim-fade-up"><span class="eyebrow">${ic("shield-check")}Privacy notice</span>
+      <h1>Face and photo attendance at Sheet Shapers</h1>
+      <p class="lead">How the gate attendance devices use your face and photos, why, for how long, and what you can do. In plain words.</p>
+      <div class="pv-meta"><span>${ic("file-text")}Version face-consent-v1</span><span>${ic("calendar")}Updated 24/10/2026</span><span>${ic("building-2")}Sheet Shapers${MISSING ? "" : ", MIDC Waluj"}</span></div></section>
+    <section class="pv-short" aria-label="In short"><ul>
+      <li>${ic("target")}<b>Only for attendance</b>Never shared, never sent to an AI company.</li>
+      <li>${ic("lock")}<b>Numbers, not pictures</b>We keep an encrypted face template, not your photos.</li>
+      <li>${ic("qr-code")}<b>Your choice</b>Say no and punch with a QR card. Nothing else changes.</li>
+      <li>${ic("messages-square")}<b>Questions?</b>Ask the plant office, or the contact below.</li></ul></section>
+    <div class="pv-main"><nav class="pv-toc" aria-label="On this page"><b>On this page</b>${SECTIONS.map((s, i) => `<a href="#${s[0]}" ${i === 0 ? 'aria-current="true"' : ""}>${ic(s[1])}${s[2]}</a>`).join("")}</nav>
+      <div>${SECTIONS.map((s) => `<section class="pv-sec" id="sec-${s[0]}" aria-labelledby="h-${s[0]}"><span class="ic">${ic(s[1])}</span><div><h2 id="h-${s[0]}">${s[2]}</h2>${s[3]}</div></section>`).join("")}</div></div>`;
+  if (location.search.indexOf("shot") >= 0) document.body.classList.add("shot");
+  document.getElementById("state-tag").textContent = "State: " + (MISSING ? "contact not set yet" : "default");
+  if (window.lucide) window.lucide.createIcons();
+</script>
+</body>
+</html>

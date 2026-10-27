@@ -77,6 +77,72 @@ the camera**. Nobody has to tap anything: scanning starts by itself.
 
 Workers can punch only at **their own plant's** gate, and only if their punch method is QR.
 
+## Punching with the face (from M3)
+
+Permanent employees punch with their face. Card scanning stays exactly as above and needs no tap.
+A face punch starts with **one tap** on the big **Punch with face** button under (or beside) the
+camera picture.
+
+### Set up the gate for faces
+
+Face punches need a clear picture of the face. Do this once when you mount the device:
+
+1. **Light on the face.** The face must be lit from the front. Put a light above or beside the
+   device, pointing at the place where people stand.
+2. **No strong light behind the person.** Do not mount the device facing a window, an open
+   gate or the sun. A bright background makes the face dark, and the device says "The picture is
+   too dark or blurry".
+3. **Camera at face height**, about **1.5 m** from the floor. A camera that is too low or too
+   high sees the chin or the top of the head.
+4. **Distance.** People should stand close enough that the face fills a good part of the oval.
+   If a worker is too far, the screen says "Come closer". (The server needs a face at least 80
+   pixels wide in a 640 pixel picture; this is a setting. The distance in metres depends on
+   the camera, so test with a real person and mark the spot on the floor.)
+5. **One person at a time.** Mark a spot on the floor, or fix a small rail, so only one person
+   stands in front of the camera. If two faces of about the same size are seen, the punch is not
+   accepted ("Only one person, please").
+6. **Keep the camera glass clean.** A dusty or greasy glass makes the picture blurry.
+7. **Poster.** Print the gate poster again after M3 (Plants › the plant › **Download gate poster
+   (A4 PDF)**). It now shows both ways (card and face) and the privacy notice. Fix it **next to
+   the device, at eye level**, where people wait.
+
+### What the worker sees
+
+1. The worker taps **Punch with face**. The camera picture fills the screen with an **oval**.
+   The text says: "Look at the camera. Keep your face inside the oval."
+2. Short hints can appear: "Come closer", "Move a little back", "Only one person, please",
+   "More light needed".
+3. When the face is good, a big **arrow** appears with the words **"Turn your head to your LEFT"**
+   (or RIGHT). The direction is chosen at random by the server. The worker turns their head
+   that way, then "Now look straight again."
+4. The screen says "Checking…". The answer takes about 1 to 2 seconds when the server is awake:
+   **IN** (green) or **OUT** (blue) with the name.
+5. If the system is not sure who the person is, a **code pad** opens: "Type your employee code."
+   The worker types their code (digits and letters; the keys "EMP-" and similar are one tap).
+   There are 2 tries. If it still does not work, the screen says "Please visit the plant office."
+6. A **Cancel** button is always shown. After 30 seconds without progress the screen goes back
+   to normal by itself.
+
+Whenever a punch is refused, or the code pad was needed, one small photo is kept for the
+retention period (60 days by default) so the Super Admin can check what happened. An accepted
+face punch keeps **no** photo.
+
+### When the face button is missing or not available
+
+| What you see | What it means | What to do |
+|---|---|---|
+| No **Punch with face** button | No employee of this plant has enrolled a face yet | Normal. The Super Admin enrols faces in the admin website (employee page › Enrol face). Card punches still work |
+| Button greyed: "Face punch is starting…" | The server was asleep or has just restarted; the face models load for a short time | Wait one minute. Card punches work meanwhile |
+| Button greyed: "Face punch is not available right now" | The face part of the server is switched off or failed to start | Tell the admin. Check `https://<site>/api/v1/health`: `face.state` should say `ready`. If it says `failed`, see the runbook (deploy/README.md, "Face recognition"). Card punches work meanwhile |
+| "Many people are punching. Please try again in a moment." | The server is busy (shift change) | Wait a few seconds and press **Try again** |
+| "Please visit the plant office." | The face and the code were not accepted | The worker goes to the plant office. The Super Admin can check the photo in the punch log |
+
+The camera used for the face photo can be changed with the camera button (front camera is the
+default), the same as for card photos.
+
+**Keep the device locked.** Keep the browser in full-screen kiosk mode (see below). A device
+that anyone can open is a risk: someone could try to feed it prepared pictures.
+
 ## Make the device a good gate kiosk
 
 **Full screen and sound.** Tap the screen once after the page opens (**Tap once to turn on
@@ -129,8 +195,9 @@ attendance and takes no photo.
 
 ## The gate poster
 
-Plants › the plant › **Download gate poster (A4 PDF)** gives an A4 page with how to punch and the photo
-privacy notice (how long photos are kept). Print it and fix it next to the kiosk.
+Plants › the plant › **Download gate poster (A4 PDF)** gives an A4 page with how to punch (card and,
+from M3, face) and the photo privacy notice (how long photos are kept). Print it and fix it next to
+the kiosk. It also prints the address of the public privacy page (`/privacy`) as text.
 
 ## If the kiosk shows a problem while punching
 

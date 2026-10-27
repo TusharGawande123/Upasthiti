@@ -13,6 +13,9 @@ dependencies = [
     "fastapi-cli>=0.0.32",
     "fpdf2>=2.8.9",
     "httpx2>=2.15.1",
+    "numpy>=2.5.4",
+    "onnxruntime>=1.31.0",
+    "opencv-python-headless>=5.0.0.93",
     "openpyxl>=3.1.5",
     "pillow>=13.0.0",
     "psycopg[binary]>=3.3.6",
@@ -68,7 +71,10 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=75"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=80"
+markers = [
+    "face_models: needs the downloaded face model files (skipped without them)",
+]
 
 [tool.coverage.run]
 branch = true

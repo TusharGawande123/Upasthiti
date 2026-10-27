@@ -115,6 +115,39 @@ M2 pull request is merged (spec M2 §7 rule 14, decision 0008).
 Render's own disk is wiped at every deploy, which is why the photos live in Supabase Storage.
 They are encrypted (AES-256-GCM) before upload, so the bucket holds no readable photo.
 
+### 9. Face recognition (M3)
+The live backend **refuses to start** without `FACE_TEMPLATE_KEY`, so set it before the M3
+pull request is merged (spec M3 §7 rule 10, decision 0016).
+
+1. **Make the key on your laptop** (from `backend/`):
+   ```powershell
+   uv run python -m app.scripts.make_face_key   # prints FACE_TEMPLATE_KEY=...
+   ```
+   Store it in the password manager at once. **If it is lost, every employee must be
+   enrolled again.** Never paste it in chat, an issue or the repository. It is a different key
+   from `SNAPSHOT_ENCRYPTION_KEY`.
+2. **Render → upasthiti-backend → Environment**, add:
+   - `FACE_TEMPLATE_KEY`: the value from step 1;
+   - `FACE_MODEL_PACK` = `buffalo_s` (already in `render.yaml`). Changing it later means
+     everyone must enrol again.
+3. **The models are inside the image.** The Docker build downloads them and checks their sha256
+   (a changed file stops the build), so nothing is downloaded when the backend starts and no
+   model file is ever stored in git.
+4. **Memory.** Render Free allows 512 MB. The CI `docker` job starts the real image with
+   `--memory=512m`, sends 20 signed face punches and fails if the peak is above 450 MB
+   (decision 0021). Measured on 24/10/2026: 269 MB peak. If the check fails after an update,
+   do not merge it.
+5. **After the first deploy, in the admin website → Settings → Privacy:**
+   - set `company_address` (consent is refused until it is set; it is printed in the consent
+     text);
+   - check `privacy_contact` (filled with the first Super Admin's name and email; change it to the
+     grievance officer once the client names one).
+6. Open `https://<vercel address>/api/v1/health`: `face.state` goes from `loading` to `ready`
+   a short time after a start.
+
+Privacy tasks for the client (consent texts, data requests, incident steps) are in
+[docs/guides/face-privacy-handover.md](../docs/guides/face-privacy-handover.md).
+
 ## Every later deployment
 Merging a pull request into `main` deploys both automatically. The post-deploy smoke test
 (`.github/workflows/post-deploy-smoke.yml`) then checks the live site.

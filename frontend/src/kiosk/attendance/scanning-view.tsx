@@ -9,6 +9,7 @@ import {
   IdCard,
   Loader2,
   type LucideIcon,
+  ScanFace,
   ScanLine,
   SwitchCamera,
   TriangleAlert,
@@ -20,7 +21,7 @@ import { cn } from "@/lib/utils";
 import { KioskButton } from "../components/kiosk-button";
 import type { AttendanceScreen } from "./attendance-machine";
 import { NoticesPanel } from "./notices-panel";
-import type { KioskNotice } from "./punch-types";
+import type { KioskFaceSettings, KioskNotice } from "./punch-types";
 
 type FrameLook = "scan" | "busy" | "not-a-card";
 
@@ -95,7 +96,7 @@ function CameraPanel({
   const live = screen.name !== "needs-tap" && screen.name !== "starting";
 
   return (
-    <div className="relative aspect-square w-full max-w-[520px] shrink-0 overflow-hidden rounded-[20px] border-4 border-foreground bg-[#2b2f38] sm:w-[min(46vw,calc(100vh-262px))] sm:max-w-none sm:min-w-[260px]">
+    <div className="relative aspect-square w-[min(100%,34dvh)] max-w-[520px] shrink-0 overflow-hidden rounded-[20px] border-4 border-foreground bg-[#2b2f38] sm:w-[min(46vw,calc(100vh-262px))] sm:max-w-none sm:min-w-[260px]">
       <video
         ref={videoRef}
         aria-label={t("kiosk.attendance.cameraLabel")}
@@ -145,15 +146,15 @@ function CameraPanel({
 function InstructionCard() {
   const { t } = useTranslation();
   return (
-    <div className="flex items-center gap-6 rounded-[20px] border-4 border-foreground bg-card p-6 shadow-[0_6px_0_0_#0e1726]">
-      <span className="relative grid size-32 shrink-0 place-items-center rounded-2xl border-2 border-[#b9c6ef] bg-primary-soft">
+    <div className="flex items-center gap-6 rounded-[20px] border-4 border-foreground bg-card p-4 shadow-[0_6px_0_0_#0e1726] lg:p-6">
+      <span className="relative hidden size-32 shrink-0 place-items-center lg:grid rounded-2xl border-2 border-[#b9c6ef] bg-primary-soft">
         <IdCard className="size-20 text-foreground" aria-hidden />
         <ScanLine
           className="absolute -top-2 -right-2 size-12 rounded-full bg-signal p-2 text-foreground"
           aria-hidden
         />
       </span>
-      <h1 className="text-[44px] leading-tight font-extrabold tracking-tight">
+      <h1 className="text-[30px] leading-tight font-extrabold tracking-tight lg:text-[44px]">
         {t("kiosk.attendance.showCard")}
       </h1>
     </div>
@@ -286,6 +287,54 @@ function GetReadyCard({
   );
 }
 
+/**
+ * "Punch with face" (spec M3 §4.1): under the card instruction, hidden when nobody at this plant
+ * is enrolled, greyed with the reason while the face service starts or is not available.
+ */
+function FaceButton({ face, onStart }: { face: KioskFaceSettings; onStart: () => void }) {
+  const { t } = useTranslation();
+  if (!face.enabled_for_plant) return null;
+  const ready = face.available && face.state === "ready";
+  const reason = ready
+    ? null
+    : face.available && face.state === "loading"
+      ? t("kiosk.face.starting")
+      : t("kiosk.face.unavailable");
+  return (
+    <>
+      <div
+        className="flex items-center gap-4 text-[24px] font-bold text-muted-foreground"
+        aria-hidden
+      >
+        <span className="h-0.5 flex-1 bg-border" />
+        {t("kiosk.face.or")}
+        <span className="h-0.5 flex-1 bg-border" />
+      </div>
+      <KioskButton
+        className={cn(
+          "min-h-24 w-full justify-start gap-5 px-5 text-left text-[36px] leading-tight",
+          !ready && "border-4 border-dashed border-muted-foreground",
+        )}
+        aria-disabled={!ready}
+        disabled={!ready}
+        onClick={onStart}
+      >
+        <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-white text-primary">
+          {face.state === "loading" && face.available ? (
+            <Loader2 className="size-10 animate-spin" aria-hidden />
+          ) : (
+            <ScanFace className="size-10" aria-hidden />
+          )}
+        </span>
+        <span>
+          {t("kiosk.face.button")}
+          {reason ? <span className="block text-[24px] font-bold">{reason}</span> : null}
+        </span>
+      </KioskButton>
+    </>
+  );
+}
+
 export function ScanningView({
   screen,
   videoRef,
@@ -293,6 +342,8 @@ export function ScanningView({
   lowLight,
   camera,
   getReady,
+  face,
+  onStartFace,
   onStartCamera,
 }: {
   screen: AttendanceScreen;
@@ -301,6 +352,8 @@ export function ScanningView({
   lowLight: boolean;
   camera: CameraControls;
   getReady: GetReadyControls;
+  face: KioskFaceSettings;
+  onStartFace: () => void;
   onStartCamera: () => void;
 }) {
   const { t } = useTranslation();
@@ -323,6 +376,7 @@ export function ScanningView({
         ) : (
           <>
             <InstructionCard />
+            <FaceButton face={face} onStart={onStartFace} />
             <SwitchCameraButton camera={camera} />
           </>
         )}

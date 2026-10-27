@@ -1,0 +1,45 @@
+<!doctype html>
+<!--
+  Upasthiti - M3 design gate A: list of every gate screen state for the face punch. MOCKUP ONLY.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>M3 gate A screens</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    body { margin: 0; background: var(--background); color: #0e1726; font: 16px/1.5 var(--font-sans); }
+    main { max-width: 1100px; margin: 0 auto; padding: 24px 16px 48px; }
+    h1 { font-size: 30px; letter-spacing: -0.02em; margin: 0 0 4px; }
+    .lead { color: #3d4757; margin: 0 0 24px; max-width: 75ch; }
+    section { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 16px 20px; margin-bottom: 14px; }
+    h2 { font-size: 20px; margin: 0 0 6px; }
+    h2 small { font-weight: 500; color: #3d4757; font-size: 15px; }
+    ul { display: flex; flex-wrap: wrap; gap: 8px; padding: 0; margin: 8px 0 0; list-style: none; }
+    a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 14px; border-radius: 10px; border: 1px solid var(--border-strong); color: #1f3a93; font-weight: 600; text-decoration: none; }
+    a:hover { background: var(--primary-soft); }
+    a:focus-visible { outline: 3px solid #1f3a93; outline-offset: 2px; }
+  </style>
+</head>
+<body>
+  <main>
+    <h1>M3 design gate A: face punch at the gate</h1>
+    <p class="lead">Static mockups of the attendance device screens (spec docs/specs/M3-face-attendance.md sections 4.1 to 4.6 and 9). Fake data, no camera, no photo of any person. Open a state, or add <code>?shot</code> before the <code>#</code> to hide the state tag. Notes, contrast and open questions: notes.md. Screenshots: screenshots/ at 360, 768 and 1280 px.</p>
+    <div id="list"></div>
+  </main>
+  <script>
+    const SCREENS = [
+      ["01-idle.html", "01 Idle with Punch with face", "4.1", ["ready", "starting", "unavailable", "no-button", "busiest"]],
+      ["02-guidance.html", "02 Face guidance", "4.2", ["look", "come-closer", "move-back", "one-person", "more-light", "face-good", "timeout"]],
+      ["03-challenge.html", "03 Challenge", "4.3", ["turn-left", "turn-right", "frame-taken", "too-slow"]],
+      ["04-checking.html", "04 Checking", "4.4", ["checking", "server-waking"]],
+      ["05-code-pad.html", "05 Employee code pad", "4.5", ["empty", "letters", "typing", "wrong-once", "time-low", "checking"]],
+      ["06-results.html", "06 Results", "4.6, 9", ["in-face", "out-face", "in-code", "already-in", "rejected-no-face", "rejected-multiple-faces", "rejected-face-too-small", "rejected-face-quality-low", "rejected-liveness-failed", "rejected-face-inconsistent", "rejected-challenge-expired", "rejected-spoof-suspected", "rejected-challenge-invalid", "rejected-frames-invalid", "rejected-face-not-recognised", "rejected-code-entry-expired", "rejected-wrong-plant-face", "wait-face-service-unavailable", "wait-face-service-busy"]],
+    ];
+    document.getElementById("list").innerHTML = SCREENS.map(([file, title, spec, states]) =>
+      `<section><h2>${title} <small>spec ${spec} · ${states.length} states</small></h2><ul>${states.map((s) => `<li><a href="${file}#${s}">${s}</a></li>`).join("")}</ul></section>`).join("");
+  </script>
+</body>
+</html>

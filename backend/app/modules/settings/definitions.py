@@ -8,7 +8,7 @@ screen shows it read-only, because changing it would have no effect yet.
 from dataclasses import dataclass
 
 # Bump this in each milestone, so its settings become editable.
-CURRENT_MILESTONE = 2
+CURRENT_MILESTONE = 3
 
 SettingValueType = int | float | str | None
 
@@ -16,7 +16,8 @@ SettingValueType = int | float | str | None
 @dataclass(frozen=True)
 class SettingDefinition:
     key: str
-    group: str  # screen card: kiosk, kiosk_screen, punch, face, snapshots, cards, salary, security
+    # screen card: kiosk, kiosk_screen, punch, face, privacy, snapshots, cards, salary, security
+    group: str
     default: SettingValueType
     unit: str
     used_from: int  # milestone number
@@ -24,6 +25,11 @@ class SettingDefinition:
     maximum: float | None = None
     allowed_values: tuple[SettingValueType, ...] | None = None
     is_whole_number: bool = True
+    # A text setting (company address, privacy contact): minimum and maximum are its length.
+    is_text: bool = False
+    # The value the accuracy report of slice D suggests (spec M3 §4.12, decision 0020); None until
+    # that report is written, and the screen then says "No report yet".
+    report_value: float | None = None
 
     @property
     def is_editable(self) -> bool:
@@ -58,9 +64,60 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition("kiosk_reject_seconds", "kiosk_screen", 6, "s", 2, 3, 15),
     # After a card is read the person gets this long to look at the camera before the photo.
     SettingDefinition("kiosk_photo_ready_seconds", "kiosk_screen", 20, "s", 2, 5, 60),
-    # The face values are chosen in M3 from the accuracy tests, so they have no default yet.
-    SettingDefinition("face_match_threshold", "face", None, "", 3, 0, 1, is_whole_number=False),
-    SettingDefinition("face_match_margin", "face", None, "", 3, 0, 1, is_whole_number=False),
+    # Face recognition (M3, spec §7 rule 13). The defaults marked "provisional" are the spec's
+    # starting values; the accuracy report of slice D replaces them before the milestone ends.
+    # Matching: cosine similarity of face templates, from -1 to 1.
+    # report_value 0.425 = the lowest threshold whose false-accept upper bound is under 0.1 %
+    # (docs/reports/M3-face-accuracy.md, 27/10/2026). The default stays at 0.45: the data is
+    # mostly non-Indian faces, which flatters the false-accept rate (decision 0024).
+    SettingDefinition(
+        "face_match_threshold",
+        "face",
+        0.45,
+        "",
+        3,
+        0.20,
+        0.90,
+        is_whole_number=False,
+        report_value=0.425,
+    ),
+    SettingDefinition("face_match_margin", "face", 0.08, "", 3, 0.0, 0.30, is_whole_number=False),
+    SettingDefinition(
+        "face_code_offer_floor", "face", 0.30, "", 3, 0.10, 0.80, is_whole_number=False
+    ),
+    SettingDefinition(
+        "face_code_match_threshold", "face", 0.42, "", 3, 0.20, 0.90, is_whole_number=False
+    ),
+    SettingDefinition(
+        "face_duplicate_threshold", "face", 0.45, "", 3, 0.20, 0.90, is_whole_number=False
+    ),
+    # Liveness and anti-spoof.
+    SettingDefinition(
+        "face_consistency_threshold", "face", 0.40, "", 3, 0.10, 0.90, is_whole_number=False
+    ),
+    SettingDefinition(
+        "face_antispoof_threshold", "face", 0.80, "", 3, 0.10, 0.99, is_whole_number=False
+    ),
+    SettingDefinition("face_min_yaw_degrees", "face", 18, "degrees", 3, 10, 40),
+    SettingDefinition("face_frontal_max_yaw_degrees", "face", 12, "degrees", 3, 5, 25),
+    SettingDefinition("face_challenge_steps", "face", 1, "steps", 3, 1, 2),
+    # Picture quality (pixels are counted at 640 pixels picture width).
+    SettingDefinition("face_min_face_px", "face", 80, "px", 3, 40, 200),
+    SettingDefinition("face_blur_min", "face", 40, "", 3, 5, 300),
+    SettingDefinition("face_brightness_min", "face", 50, "of 255", 3, 20, 120),
+    # Code entry and timing.
+    SettingDefinition("face_challenge_seconds", "face", 10, "s", 3, 5, 30),
+    SettingDefinition("face_code_entry_seconds", "face", 90, "s", 3, 30, 180),
+    SettingDefinition("face_code_max_tries", "face", 2, "tries", 3, 1, 3),
+    # Hints (F-41): when to suggest enrolling a face again.
+    SettingDefinition("face_reenrol_code_count", "face", 3, "times in 30 days", 3, 1, 20),
+    SettingDefinition(
+        "face_reenrol_score_margin", "face", 0.05, "", 3, 0.0, 0.20, is_whole_number=False
+    ),
+    # Privacy (shown in the consent text). Both are empty until the Super Admin sets them;
+    # the contact is filled with the first Super Admin when the system is set up (spec §7 rule 13).
+    SettingDefinition("company_address", "privacy", "", "", 3, 5, 300, is_text=True),
+    SettingDefinition("privacy_contact", "privacy", "", "", 3, 5, 200, is_text=True),
     SettingDefinition("impossible_travel_kmh", "punch", 60, "km/h", 4, 10, 200),
     SettingDefinition(
         "salary_day_basis", "salary", 30, "days", 7, allowed_values=(26, 30, "actual")

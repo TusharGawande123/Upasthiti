@@ -73,6 +73,27 @@ Without them the app still starts locally, but issuing a card answers
 `backend/.storage/` (git-ignored, `STORAGE_BACKEND=local`); the live site uses a private
 Supabase Storage bucket ([deploy/README.md](deploy/README.md)).
 
+### Face recognition (from M3)
+
+Permanent employees punch with their face: one tap on "Punch with face", a random head turn, and the
+server decides (model `buffalo_s`, anti-spoof MiniFASNet; nothing goes to an outside AI service). Only
+the Super Admin enrols a face, after the employee's consent. Face templates are encrypted with
+`FACE_TEMPLATE_KEY`: make it once, keep it in the password manager (if it is lost, everyone must
+enrol again). The model files are never in git; download them for local work:
+
+```powershell
+cd backend
+uv run python scripts/download_models.py            # models, sha256 checked, into backend/models
+uv run python -m app.scripts.make_face_key          # FACE_TEMPLATE_KEY=...  (paste into .env)
+uv run python -m app.scripts.face_accuracy --faces <folder outside the repo>   # FAR / FRR numbers (S-32)
+uv run python -m app.scripts.face_memory_check --help   # the CI memory check (prepare, punch)
+```
+
+Details: [docs/specs/M3-face-attendance.md](docs/specs/M3-face-attendance.md),
+[deploy/README.md](deploy/README.md) (Render settings), and the handover page
+[docs/guides/face-privacy-handover.md](docs/guides/face-privacy-handover.md). The face accuracy tool
+reads pictures only from a folder outside the repository and writes only numbers.
+
 ## Run it
 
 ```powershell

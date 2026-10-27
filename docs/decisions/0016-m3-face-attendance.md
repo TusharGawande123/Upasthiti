@@ -1,0 +1,98 @@
+# 0016 – M3 decisions: face enrolment and face punch
+
+Date: 2026-10-24 · Decided by: Tushar Gawande (project lead), in chat while the M3 spec was written ·
+Status: Accepted (the spec itself is still a draft)
+Details: [docs/specs/M3-face-attendance.md](../specs/M3-face-attendance.md).
+
+## Decisions
+
+1. **Face model: measure first, then pick.** Slice 1 runs both InsightFace `buffalo_l` (SCRFD det_10g +
+   ArcFace w600k_r50) and `buffalo_s` (det_500m + w600k_mbf) in a Docker container limited to 512 MB
+   (Render Free's hard limit; more RAM is a paid plan, so it is not an option). `buffalo_l` is kept only
+   if it leaves enough free memory and the server's face decision stays under 2 s (NFR-01); otherwise
+   `buffalo_s` is used, if it meets NFR-05. If neither fits, Plan B of decision 0002 (a free host with
+   more RAM) is discussed with the lead first.
+2. **Liveness: server-chosen head turn + passive anti-spoof.** The server picks "turn left" or "turn
+   right" at random and checks the head turn itself in the frames; an anti-spoof model (MiniFASNet or a
+   CelebA-Spoof model, compared in M3) checks the frontal frame. No blink check: a blink can only be
+   seen by the browser, and the browser is not trusted.
+3. **Only the Super Admin enrols faces** (like QR cards, decision 0005).
+4. **Enrolment happens in the admin website**, with the camera of any admin laptop or phone. The gate
+   attendance device gets no admin login.
+5. **Face does not match → employee code + 1:1 match.** When the server is unsure, the attendance
+   device asks for the employee code and the server compares the face with that one person only. If
+   that fails too: "Please visit the plant office." A face employee's QR card stays refused
+   (`EMPLOYEE_NOT_QR`, as in M2).
+6. **Consent on screen.** The employee reads the consent text and taps "I agree" (text version,
+   language, time and the Super Admin are saved). Without consent the camera stays off. The employee
+   may choose a QR card instead.
+7. **Photo at a face punch only when it is rejected or needed the employee code** (320 px, encrypted,
+   same retention as QR photos, Super Admin only). An accepted face punch keeps no photo; face frames are
+   never stored.
+8. **Template deleted at once** when the employee is marked as left or withdraws consent (the row keeps
+   only the deletion date). After a withdrawal the punch method becomes QR (SRS FR-13).
+9. **Gate screen: a "Punch with face" button.** Card reading stays zero-tap as today; a face punch
+   starts with one tap. This changes SRS FR-16 ("zero taps") for face punches.
+10. **8 guided enrolment shots** (SRS FR-12), each checked by the server.
+11. **Accuracy test data:** the team's own faces (with consent, kept on their laptops, never committed)
+    plus a public face dataset downloaded at test time. Only the numbers go into the repository.
+12. **A new, separate key `FACE_TEMPLATE_KEY`** encrypts the templates (not the snapshot key). If it is
+    lost, every face must be enrolled again: keep it in the password manager.
+
+13. **Punch method changed from face to QR (normal edit or approved request): the template is deleted
+    at once**, as for a withdrawal.
+14. **Privacy contact = the Super Admin** by default (name and email), editable in Settings.
+15. **Python 3.13 is allowed** for the backend image if onnxruntime or opencv has no 3.14 wheel
+    (then a new decision changes 0001).
+16. **Slice 1 runs once on a temporary second Render Free service** (deleted the same day) to measure
+    Render's real 0.1 CPU. Other free hosts were checked: none without a card gives more than 512 MB;
+    Oracle Cloud Always Free needs an international credit card. Render stays; if the face models do
+    not fit even as `buffalo_s` / INT8, the lead chooses between Oracle and the client's own server.
+
+## Extras (accepted-extras.md)
+Approved for M3: duplicate face check at enrolment, enrolment progress, F-30 face-in-photo check on QR
+photos, re-enrol hint, 512 MB memory test in CI, face model state on the health check (+ warm-up), face
+accuracy report tool. Not chosen (Later): DPDP consent register export.
+
+## Slice 1 result (2026-10-24): the face model is `buffalo_s`
+Measured in Docker with Render's limits and on a temporary Render Free service (numbers:
+[docs/reports/M3-face-accuracy.md](../reports/M3-face-accuracy.md) §1). Rule of item 1 applied:
+17. **`buffalo_l` is not used.** Its decision takes p95 8.2 s on Render (target < 2 s) and its process
+    peak is 454 MB (target ≤ 450 MB). **`buffalo_s` FP32 with detector input 640 and 3 frames** takes
+    p95 1.0–1.2 s and peaks at 127–197 MB, so it is the model for M3 (`FACE_MODEL_PACK` default
+    `buffalo_s`, detector 640; 320 stays a fallback if the gate is too slow).
+18. **INT8 (S-33) is not used:** it makes `buffalo_s` slower, and `buffalo_l` INT8 is still above 2 s.
+19. **Still open:** `buffalo_s` must meet NFR-05 (FAR < 0.1%, FRR < 3%) in the accuracy run of slice D.
+    If it does not, stop and ask the lead (Plan B host, item 1).
+20. **Python stays 3.14:** onnxruntime, opencv-python-headless and numpy have 3.14 wheels (item 15 not needed).
+
+## Slice 1 result and answers to spec §14
+**Chosen models.** Recognition and detection: InsightFace **`buffalo_s`** (`det_500m` + `w600k_mbf`,
+FP32, detector input 640, 3 frames). Anti-spoof: **MiniFASNet V2 + V1SE** (both small models; the
+tool in decision 0021 also compares each alone). The CelebA-Spoof candidate was not measured: no free
+ONNX file with a stable link was found (decision 0021, item 1).
+
+**Numbers** (`docs/reports/M3-face-accuracy.md` §1, 24/10/2026):
+- Docker, `--memory=512m --cpus=0.1`: `buffalo_s` 640 / 3 frames: decision p50 / p95 1.00 / 1.19 s,
+  peak 127 MB; at detector 320: 0.55 / 0.60 s, 98 MB. `buffalo_l` 640: 12.35 / 12.50 s, 408 MB.
+- Render Free (temporary service, deleted the same day): `buffalo_s` p95 1.00 s and 1.09 s (two
+  runs), peak 197 MB and 136 MB container (process 179 / 181 MB); `buffalo_l` p95 8.20 s, process
+  peak 454 MB. Targets: p95 < 2 s, peak at most 450 MB.
+- INT8 copies were slower for `buffalo_s`, and `buffalo_l` INT8 stayed above 2 s: not used (S-33).
+- CI memory check (decision 0021): 20 signed face punches against `--memory=512m`, peak 269 MB.
+- **Accuracy (NFR-05: FAR < 0.1%, FRR < 3%) is not measured yet.** The tool is built; the run with
+  real consented faces is plan step 28, done by the lead. Open point 19 stays open until then.
+
+**Answers to spec §14** (spec §14 already records them; the plan step lists agree):
+1. Face to QR by a normal edit or an approved request: **delete the template at once**
+   (`delete_kind = method_changed`) (item 13).
+2. Privacy contact: **the Super Admin**, name and email, editable in Settings (item 14).
+3. No Python 3.14 wheel: **Python 3.13 allowed** (item 15). Not needed: 3.14 wheels exist (item 20).
+4. Temporary second Render Free service for slice 1: **yes**, deleted the same day (item 16). Done;
+   its numbers are in the report above.
+
+Later changes that touch this decision: five enrolment shots instead of eight (decision 0018, item 10
+above is changed); consent texts and the open legal points (decision 0017).
+**To confirm with the lead:** the final `face_match_threshold` and the other "report" defaults of
+spec §7 rule 13 (they come from the accuracy run, not yet done); the final anti-spoof threshold and
+whether V2 + V1SE together or one model alone is kept (decided by the spoof run at the gate devices).

@@ -102,29 +102,63 @@ Principles:
    Rejections never show the name and show a worker-safe message; the reason code is for the
    admin.
 
-## 4. Face punch (permanent staff)
-1. The kiosk detects a face locally with MediaPipe and calls `POST /api/v1/punch/challenge`.
-   The server returns a nonce (10 s life, single use) and a random challenge: blink and/or
-   a head turn left or right.
-2. The kiosk guides the worker and captures about 6 frames (640×480 JPEG): frontal, the peak
-   of the blink, and the peak of each turn. It then sends a signed `POST /api/v1/punch/kiosk`
-   with `{method: "face", frames[], challenge_nonce, gps, device_time, nonce, counter}`.
-3. The server runs device/network/geo rules 1–3 (same as the QR punch), then the face
-   pipeline:
-   1. InsightFace SCRFD finds exactly one face per frame (`NO_FACE` / `MULTIPLE_FACES`).
-   2. The head-pose change between frames matches the challenge (`LIVENESS_FAILED`).
-   3. The anti-spoof score (model chosen in M3) on the frontal frames is above the threshold
-      (`SPOOF_SUSPECTED`).
-   4. InsightFace ArcFace `buffalo_l` 512-d embeddings show every frame is the same person
-      (`FACE_INCONSISTENT`).
-   5. 1:N match against the plant's decrypted templates. The best score must be at least
-      the threshold **and** beat the second-best by the set margin.
-      - If it does: accepted.
-      - If it is unsure: `NEED_EMPLOYEE_CODE`. The kiosk asks for the employee code and
-        re-sends, and the server does a 1:1 match.
-      - If it is clearly no match: `FACE_NOT_RECOGNISED`.
-4. Then cool-down and impossible travel, the IN/OUT decision, the punch row and the audit
-   entry. **Frames are never stored.**
+## 4. Face punch (permanent staff) — built in M3 (spec docs/specs/M3-face-attendance.md §7 rule 5)
+Model: InsightFace `buffalo_s` (`det_500m` + `w600k_mbf`, 512-d) through onnxruntime, with
+MiniFASNet V2 + V1SE for anti-spoof. `buffalo_l` was measured and refused: too slow and too big
+for Render Free (decision 0016, items 17–20). The frames are processed in memory only.
+1. **One tap.** Card scanning keeps running by itself. The worker taps "Punch with face". The
+   kiosk screen shows an oval guide. MediaPipe Face Landmarker on the device is guidance only
+   (oval, arrow, "hold still"); nothing it says is trusted.
+2. **Challenge.** When the face has been good for 0.5 s, the kiosk calls
+   `POST /api/v1/punch/challenge`. The server returns a nonce (10 s life, single use, bound to
+   the kiosk; only its SHA-256 hash is stored) and **one** head turn, left or right, chosen at
+   random. There is no blink check: only the server can be trusted, and it cannot see a blink.
+3. **Frames.** The kiosk captures 2–4 JPEG frames (640×480 at most: frontal, the peak of the
+   turn, frontal again) and sends a signed `POST /api/v1/punch/kiosk` with
+   `{client_punch_id, method: "face", challenge_nonce, frames[], device_time?, location?,
+   app_version}`. The signature covers every frame. Body limit 384 KB.
+4. **Request checks** (no punch row on failure): body size, device signature / nonce /
+   counter / active (`require_kiosk`, M1), 60 punches a minute per kiosk, request shape,
+   face engine ready (`FACE_SERVICE_UNAVAILABLE`). **One face worker** runs one face decision at
+   a time (at most 4 waiting, at most 8 s; else `FACE_SERVICE_BUSY`, and the challenge is not
+   used up).
+5. **Rules** in `app/antiproxy/rules/` (`FACE_RULES`); the first refusal wins and its reason
+   code is stored:
+   1. `face_challenge`: the challenge exists, is this kiosk's, is unused and not expired
+      (`CHALLENGE_INVALID` / `CHALLENGE_EXPIRED`); it is used up even if a later rule refuses;
+   2. `face_frames`: frames decode; one face per frame (`FRAMES_INVALID`, `NO_FACE`,
+      `MULTIPLE_FACES`, `FACE_TOO_SMALL`, `FACE_QUALITY_LOW`);
+   3. `face_liveness`: the server estimates the head turn from the detector's 5 keypoints; the
+      turn is in the asked direction (`LIVENESS_FAILED`);
+   4. `face_antispoof`: the anti-spoof score on the frontal frames (`SPOOF_SUSPECTED`);
+   5. `face_consistency`: all frames show the same person (`FACE_INCONSISTENT`);
+   6. `face_match`: 1:N match against the **kiosk plant's** decrypted gallery (in-memory cache
+      per plant, rebuilt when a cheap stamp query shows a change). Match = best score at least
+      the threshold **and** ahead of the second best by the margin.
+      - match: the employee is known;
+      - unsure (best score above the code-offer floor but not a clear match):
+        `NEED_EMPLOYEE_CODE`;
+      - clearly no match, or an empty gallery: `FACE_NOT_RECOGNISED`;
+   7. `cooldown` (the M2 rule, unchanged): the employee row is locked, then `COOLDOWN_ACTIVE` /
+      `OUT_TOO_SOON`, otherwise IN or OUT.
+   M4 will add the geofence and impossible-travel rules in front of these.
+6. **Store** in one transaction: the `punches` row (method `face`, scores, challenge, model,
+   match mode). A **rejected** punch (not the "already punched" ones, not `FRAMES_INVALID`) or a
+   `needs_code` row also gets one 320 px photo made by the server from the first frontal frame,
+   encrypted like QR photos (`punch_snapshots`, reason `face_rejected` or `face_code`). **An
+   accepted face punch keeps no image.** There is no audit row per punch. Frames, crops and
+   embeddings are dropped from memory when the request ends; none is logged.
+7. **Code path.** For `needs_code` the answer carries a `code_entry` token and `tries_left`.
+   The unsure embedding **never goes back to the device**: it waits in `face_pending_matches`,
+   encrypted with `FACE_TEMPLATE_KEY` (90 s). The kiosk shows a code pad; the worker types the
+   employee code; the kiosk calls `POST /api/v1/punch/kiosk/code`. The server does a 1:1 match
+   of the waiting face against that one employee (own threshold). Matched at this plant: the
+   cool-down rule decides; matched at another plant: `WRONG_PLANT`. Not matched: one try used,
+   then `needs_code` again (`CODE_NOT_MATCHED`) or, after 2 tries, `FACE_NOT_RECOGNISED`
+   ("Please visit the plant office"). Every failure gives the same answer and takes at least
+   300 ms, so the screen never reveals whether a code exists. The final row points to the
+   `needs_code` row (`follows_punch_id`) and records whose code was typed
+   (`claimed_employee_id`).
 
 ## 5. Offline sync
 - When a punch call fails because there is no network:
@@ -163,7 +197,11 @@ Principles:
   setting shortens `expires_at` of the stored photos at once.
 - **Attendance processing:** live during the day for the dashboard, and a nightly full
   recompute of `attendance_days`.
-- **Face template removal:** when an employee is marked as left.
+- **Face cleanup** (built in M3, every 5 minutes and at start; safe to repeat): delete expired
+  `face_pending_matches`; mark enrolment sessions idle for 2 hours `expired` and delete their
+  `face_enrolment_shots`; delete `punch_challenges` older than 1 day. The job logs only counts.
+- **Face template removal** is not a job: the template is deleted in the same transaction that
+  marks an employee as left, withdraws consent or changes the punch method to QR.
 - **Kiosk health:** mark a kiosk offline when no heartbeat arrives for N minutes.
 
 ## 7. Data model (table dictionary)
@@ -191,16 +229,19 @@ Conventions:
 | | `sessions` | user_id, token_hash, expires_at, ip, user_agent |
 | | `contractors` | name, contact, is_active |
 | | `employees` | employee_code (company code, 1–12 chars), name, type (permanent/temporary), plant_id, category_id, department_id, contractor_id, punch_method (face/qr), phone_punch_enabled (M4b), hourly_rate, ot_rate_per_hour, status (active/left), joined_on, left_on |
-| Enrolment | `face_consents` | employee_id, text_version, language, given_at, recorded_by, withdrawn_at |
-| | `face_templates` | employee_id, model_id, ciphertext, nonce, key_id, created_at, deleted_at |
+| Enrolment (M3) | `face_consents` | employee_id, choice (agreed/declined), text_version, language, explained_language, text_sha256, given_at, recorded_by, withdrawn_at, withdrawn_by, withdraw_kind (withdrawn/left), withdraw_reason (one active agreed consent per employee) |
+| | `face_templates` | employee_id, consent_id, model_id, key_id, nonce, ciphertext (both NULL after deletion), shot_count, enrolled_by, enrolled_at, duplicate_override_reason, duplicate_of_employee_id, deleted_at, deleted_by, delete_kind (left/consent_withdrawn/re_enrolled/deleted_by_admin/method_changed), delete_reason (one active template per employee; the row is never deleted) |
+| | `face_enrolment_sessions` | employee_id, consent_id, started_by, started_at, expires_at (last shot + 2 hours), model_id, state (open/finished/cancelled/expired), finished_template_id, accepted_shots, refused_shots, straight_nose_ratio (one number, no face data) |
+| | `face_enrolment_shots` | session_id, pose (straight/left/right/up/down), nonce, ciphertext (the shot's embedding, encrypted); rows are deleted when the session ends |
+| | `face_pending_matches` | kiosk_id, origin_punch_id, token_sha256, model_id, nonce, ciphertext (the unsure embedding, encrypted), tries_left, last_try_client_punch_id, expires_at (90 s); deleted after the final answer |
 | | `qr_credentials` (M2) | kind (employee/test), employee_id?, label?, card_serial, key_id, valid_from, valid_until, issued_by/at, revoked_by/at, revoke_kind, revoke_reason, print_count, last_printed_at, printed_plant_id, last_used_at, note (one active card per employee) |
 | Kiosks | `kiosk_devices` | plant_id, name, public_key, status, last_seen_at, last_counter, app_version, sound_muted, last_self_test_at (M2) |
 | | `kiosk_notices` (M2) | plant_id? (empty = all plants), text, level, starts_at, ends_at, created_by, ended_at, ended_by |
 | | `kiosk_pairing_codes` | kiosk_id, code_hash, expires_at, used_at |
 | | `employee_phones` (M4b) | employee_id, public_key, status, registered_at, last_seen_at |
-| | `punch_challenges` | kiosk_id, nonce, challenge, expires_at, used_at |
-| Punches | `punches` | employee_id?, kiosk_id? or employee_phone_id? (M4b), plant_id, method, qr_credential_id?, client_punch_id (unique per kiosk), outside_plant (M4b), direction, server_received_at, device_claimed_at, was_offline, lat, lon, accuracy_m, ip, app_version, decision (accepted/rejected/flagged), reason_codes[], match_score, liveness_score (M3) |
-| | `punch_snapshots` (M2) | punch_id, storage_key (never sent to the browser), state (stored/upload_failed/purged), size_bytes, width, height, brightness, is_dark, taken_at, expires_at, purged_at |
+| | `punch_challenges` (M3) | kiosk_id, nonce_sha256 (only the hash), challenge (turn_left/turn_right; two-step values exist for the `face_challenge_steps` setting), issued_at, expires_at, used_at; rows older than 1 day are deleted |
+| Punches | `punches` | employee_id?, kiosk_id? or employee_phone_id? (M4b), plant_id, method, qr_credential_id?, client_punch_id (unique per kiosk), outside_plant (M4b), direction, server_received_at, device_claimed_at, was_offline, lat, lon, accuracy_m, ip, app_version, decision (accepted/rejected/flagged/needs_code), reason_codes[]; M3 face columns (all nullable): match_mode (one_to_many/code), match_score, second_best_score, antispoof_score, yaw_degrees, challenge, face_model_id, follows_punch_id (a code-path row points to its `needs_code` row), claimed_employee_id (whose code was typed) |
+| | `punch_snapshots` (M2) | punch_id, storage_key (never sent to the browser), state (stored/upload_failed/purged), size_bytes, width, height, brightness, is_dark, taken_at, expires_at, purged_at; M3: reason (qr_punch/face_rejected/face_code), face_found (null = not checked; set by the card-photo face check) |
 | Attendance | `attendance_days` | employee_id, date, shift_id, first_in, last_out, worked_min, late_min, early_exit_min, overtime_min, status (present/absent/half_day/leave/holiday/weekly_off), computed_at |
 | | `leave_records` | employee_id, from_date, to_date, kind, is_paid |
 | | `regularisations` | employee_id, date, requested_change, reason, requested_by, status, decided_by, decided_at |

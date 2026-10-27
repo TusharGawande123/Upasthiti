@@ -8,6 +8,7 @@ from app.modules.audit import models as audit_models
 from app.modules.auth import models as auth_models
 from app.modules.contractors import models as contractors_models
 from app.modules.employees import models as employees_models
+from app.modules.face import models as face_models
 from app.modules.kiosks import models as kiosks_models
 from app.modules.notices import models as notices_models
 from app.modules.org import models as org_models
@@ -22,6 +23,7 @@ __all__ = [
     "auth_models",
     "contractors_models",
     "employees_models",
+    "face_models",
     "kiosks_models",
     "notices_models",
     "org_models",

@@ -37,6 +37,20 @@ def get_int_setting(session: Session, key: str) -> int:
     return value
 
 
+def get_float_setting(session: Session, key: str) -> float:
+    value = get_setting(session, key)
+    if isinstance(value, bool) or not isinstance(value, int | float):
+        raise TypeError(f"Setting {key} is not a number")
+    return float(value)
+
+
+def get_text_setting(session: Session, key: str) -> str:
+    value = get_setting(session, key)
+    if not isinstance(value, str):
+        raise TypeError(f"Setting {key} is not text")
+    return value
+
+
 def list_settings(session: Session) -> list[CurrentSetting]:
     stored_values = {row.key: row.value for row in session.scalars(select(SettingValue))}
     return [
@@ -50,6 +64,7 @@ def update_settings(
 ) -> list[CurrentSetting]:
     """Check every value first, then save them all together with one audit entry each."""
     checked_values = {key: _check_value(key, value) for key, value in new_values.items()}
+    _check_face_floor(session, checked_values)
 
     for key, value in checked_values.items():
         stored = session.get(SettingValue, key)
@@ -93,6 +108,8 @@ def _check_value(key: str, value: Any) -> SettingValueType:
         if value not in definition.allowed_values:
             raise _out_of_range(definition)
         return value
+    if definition.is_text:
+        return _check_text(definition, value)
     if isinstance(value, bool) or not isinstance(value, int | float):
         raise _out_of_range(definition)
     if definition.is_whole_number and not float(value).is_integer():
@@ -102,6 +119,50 @@ def _check_value(key: str, value: Any) -> SettingValueType:
     if definition.maximum is not None and value > definition.maximum:
         raise _out_of_range(definition)
     return int(value) if definition.is_whole_number else float(value)
+
+
+def _check_text(definition: SettingDefinition, value: Any) -> str:
+    """A text setting: trimmed, and its length must be inside the allowed range."""
+    if not isinstance(value, str):
+        raise _out_of_range(definition)
+    text = value.strip()
+    if (
+        definition.minimum is not None
+        and len(text) < definition.minimum
+        or definition.maximum is not None
+        and len(text) > definition.maximum
+    ):
+        raise _out_of_range(definition)
+    return text
+
+
+def _check_face_floor(session: Session, new_values: dict[str, SettingValueType]) -> None:
+    """The code-entry floor must not be above the match threshold, or a face could be "unsure"
+    without ever being "matched" (spec M3 §7 rule 13). The 1:1 code threshold must not be below
+    the floor either: employee codes are not secret, so a lower bar would let a face that was
+    never "unsure" be accepted with a coworker's code. Checked on the values after this save."""
+    watched = ("face_code_offer_floor", "face_match_threshold", "face_code_match_threshold")
+    if not any(key in new_values for key in watched):
+        return
+
+    def after_save(key: str) -> float:
+        value = new_values.get(key)
+        return float(value) if isinstance(value, int | float) else get_float_setting(session, key)
+
+    if after_save("face_code_offer_floor") > after_save("face_match_threshold"):
+        raise ApiError(
+            "SETTING_INVALID",
+            "The code-entry floor must be lower than the match threshold.",
+            422,
+            {"key": "face_code_offer_floor"},
+        )
+    if after_save("face_code_match_threshold") < after_save("face_code_offer_floor"):
+        raise ApiError(
+            "SETTING_INVALID",
+            "The code threshold must not be lower than the code-entry floor.",
+            422,
+            {"key": "face_code_match_threshold"},
+        )
 
 
 def _out_of_range(definition: SettingDefinition) -> ApiError:

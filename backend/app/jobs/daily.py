@@ -3,6 +3,7 @@
 1. Future-dated plant transfers take effect on their day.
 2. Login sessions that ended more than 30 days ago are deleted (they are not audit records).
 3. Card-punch photos past their retention are deleted from storage (M2; the rows stay).
+A second job removes short-lived face data every 5 minutes (M3, app/modules/face/cleanup.py).
 
 Render's free backend sleeps, so the job also runs once at start-up and is safe to repeat:
 doing it twice changes nothing the second time.
@@ -20,6 +21,7 @@ from app.core.storage import Storage, StorageError, get_storage
 from app.core.time import IST, today_ist, utc_now
 from app.modules.auth.models import LoginSession
 from app.modules.employees.operations import apply_due_transfers
+from app.modules.face.cleanup import run_face_cleanup
 from app.modules.punches.retention import purge_expired_snapshots
 
 logger = logging.getLogger(__name__)
@@ -60,8 +62,22 @@ def run_daily_jobs_logged() -> None:
         logger.exception("Daily jobs failed")
 
 
+def run_face_cleanup_logged() -> None:
+    try:
+        with get_session_factory()() as session:
+            counts = run_face_cleanup(session)
+        if any(counts.values()):
+            logger.info("Face cleanup finished", extra={"fields": counts})
+    except Exception:
+        logger.exception("Face cleanup failed")
+
+
 def start_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone=IST)
     scheduler.add_job(run_daily_jobs_logged, "cron", hour=0, minute=5, id="daily")
+    # Runs at once (catch up after a sleep), then every 5 minutes.
+    scheduler.add_job(
+        run_face_cleanup_logged, "interval", minutes=5, id="face-cleanup", next_run_time=utc_now()
+    )
     scheduler.start()
     return scheduler

@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Upasthiti - M3 design gate C: index of every screen and state. MOCKUP ONLY. -->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>M3 gate C mockups</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .intro { color: var(--muted-foreground); max-width: 72ch; margin: 0 0 24px; }
+    section { margin-bottom: 16px; }
+    .card { padding: 18px 20px; }
+    .card h2 { margin: 0; font-size: 18px; }
+    .meta { margin: 2px 0 12px; font-size: 13px; color: var(--muted-foreground); }
+    .states { display: flex; flex-wrap: wrap; gap: 8px; }
+    .states a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--primary-soft-foreground); font-weight: 600; font-size: 13.5px; text-decoration: none; }
+    .states a:hover { background: var(--primary-soft); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>M3 design gate C: punch log, settings, dashboard, Ctrl+K, poster, privacy page</h1>
+  <p class="intro">Static mockups with made-up data, no photo of any person. Same "Steel &amp; Signal" tokens as M1, M2 and gates A and B (<code>tokens.css</code> unchanged), Inter, Lucide icons. Resize the browser to 1280, 768 or 360 px to see each size; add <code>?shot</code> before the <code>#</code> to hide the state tag. Screenshots are in <code>screenshots/</code>; decisions and open questions in <code>notes.md</code>.</p>
+  <section><div class="card"><h2>01 Punch log, face additions</h2><p class="meta">01-punch-log.html - spec 4.11, 5.5, AC-24, AC-37</p><div class="states">
+    <a href="01-punch-log.html#default">Super Admin, today</a><a href="01-punch-log.html#filter-asked">Chip: Asked for code</a><a href="01-punch-log.html#filter-no-face">Chip: No face in photo</a><a href="01-punch-log.html#filter-method">Method: Face</a><a href="01-punch-log.html#corporate-head">Corporate Head</a><a href="01-punch-log.html#plant-head">Plant Head</a><a href="01-punch-log.html#loading">Loading</a>
+    <a href="01-punch-log.html#detail-face">Detail: by face</a><a href="01-punch-log.html#detail-code">Detail: by code</a><a href="01-punch-log.html#detail-code-failed">Detail: code typed, no match</a><a href="01-punch-log.html#detail-needs-code">Detail: Asked for code</a><a href="01-punch-log.html#detail-qr-no-face">Detail: card, no face in photo</a><a href="01-punch-log.html#detail-ch">Detail: Corporate Head</a><a href="01-punch-log.html#detail-ph">Detail: Plant Head</a><a href="01-punch-log.html#detail-loading">Detail: loading</a></div></div></section>
+  <section><div class="card"><h2>02 Settings: Face recognition and Privacy cards</h2><p class="meta">02-settings.html - spec 4.12, 7 rule 13, 8.1, AC-30</p><div class="states">
+    <a href="02-settings.html#default">Report values shown</a><a href="02-settings.html#no-report">No report yet</a><a href="02-settings.html#threshold-lowered">Threshold lowered: warning</a><a href="02-settings.html#floor-error">Code floor above threshold</a><a href="02-settings.html#save-reason">Reason on save</a><a href="02-settings.html#privacy-empty">Company address empty</a><a href="02-settings.html#from-consent">Opened from the consent dialog</a><a href="02-settings.html#privacy-editing">Address being edited</a><a href="02-settings.html#corporate-head">Corporate Head</a><a href="02-settings.html#plant-head">Plant Head</a><a href="02-settings.html#loading">Loading</a></div></div></section>
+  <section><div class="card"><h2>03 Dashboard: Face enrolment card</h2><p class="meta">03-dashboard.html - spec 4.13, F-40, AC-36, AC-40</p><div class="states">
+    <a href="03-dashboard.html#default">212 of 300</a><a href="03-dashboard.html#empty">Nobody enrolled</a><a href="03-dashboard.html#plant-head">Plant Head</a><a href="03-dashboard.html#corporate-head">Corporate Head</a><a href="03-dashboard.html#engine-starting">Engine starting</a><a href="03-dashboard.html#engine-failed">Engine failed</a><a href="03-dashboard.html#loading">Loading</a><a href="03-dashboard.html#error">Error</a></div></div></section>
+  <section><div class="card"><h2>04 Ctrl+K entries</h2><p class="meta">04-palette.html - spec 4.13, AC-36</p><div class="states">
+    <a href="04-palette.html#default">Super Admin</a><a href="04-palette.html#typed">Typed "enrol"</a><a href="04-palette.html#picking">Enrol face... picker</a><a href="04-palette.html#picking-results">Picker results</a><a href="04-palette.html#plant-head">Plant Head</a><a href="04-palette.html#corporate-head">Corporate Head</a></div></div></section>
+  <section><div class="card"><h2>05 Gate poster (A4)</h2><p class="meta">05-poster.html - spec 4.14, 8.1, F-34</p><div class="states">
+    <a href="05-poster.html#k134">K134</a><a href="05-poster.html#long-name">Long plant name</a></div></div></section>
+  <section><div class="card"><h2>06 Privacy notice page (public)</h2><p class="meta">06-privacy.html - spec 8.1 (SPDI Rule 4)</p><div class="states">
+    <a href="06-privacy.html#default">Contact set</a><a href="06-privacy.html#contact-missing">Contact not set</a></div></div></section>
+</div>
+</body>
+</html>

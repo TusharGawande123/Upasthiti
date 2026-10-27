@@ -4,6 +4,7 @@ import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMe } from "@/features/auth/use-auth";
+import { FaceEnrolmentCard } from "@/features/face/enrolment-card";
 import { HealthStatus } from "@/features/health/health-status";
 import { useExpiringCount } from "@/features/qr-cards/use-qr-cards";
 
@@ -52,6 +53,7 @@ export function DashboardPage() {
         {t("dashboard.welcome", { name: me.data?.name })}
       </h1>
       {me.data?.role === "super_admin" ? <CardsEndingSoon /> : null}
+      {me.data ? <FaceEnrolmentCard /> : null}
       <Card>
         <CardHeader>
           <CardTitle>{t("dashboard.placeholderTitle")}</CardTitle>

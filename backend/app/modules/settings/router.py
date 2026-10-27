@@ -26,6 +26,8 @@ class SettingResponse(BaseModel):
     minimum: float | None
     maximum: float | None
     allowed_values: list[SettingValueType] | None
+    is_text: bool = False  # a text setting: minimum and maximum are its length
+    report_value: float | None = None  # suggested by the accuracy report (M3)
 
 
 class SettingsResponse(BaseModel):
@@ -53,6 +55,8 @@ def to_response(current: list[service.CurrentSetting]) -> SettingsResponse:
                 allowed_values=list(item.definition.allowed_values)
                 if item.definition.allowed_values
                 else None,
+                is_text=item.definition.is_text,
+                report_value=item.definition.report_value,
             )
             for item in current
         ]

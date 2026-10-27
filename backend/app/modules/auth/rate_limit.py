@@ -70,8 +70,16 @@ def _login_limit() -> int:
     return settings.e2e_login_limit if settings.app_env == "test" else LOGINS_PER_IP
 
 
+PAIRINGS_PER_IP = 10
+
+
+def _pairing_limit() -> int:
+    settings = get_settings()
+    return settings.e2e_pairing_limit if settings.app_env == "test" else PAIRINGS_PER_IP
+
+
 login_limiter = RateLimiter(max_attempts=_login_limit, window_seconds=TEN_MINUTES)
-pairing_limiter = RateLimiter(max_attempts=10, window_seconds=TEN_MINUTES)
+pairing_limiter = RateLimiter(max_attempts=_pairing_limit, window_seconds=TEN_MINUTES)
 # Wrong pairing codes from ANYONE (not per IP): the client IP can be faked when the
 # backend is reached directly, so a global cap stops guessing a 6-digit code.
 FAILED_PAIRINGS_ALL = "all"
@@ -81,3 +89,8 @@ failed_pairing_limiter = RateLimiter(max_attempts=30, window_seconds=TEN_MINUTES
 # per kiosk. The key is the kiosk id, which is known only after the signature was checked.
 punch_limiter = RateLimiter(max_attempts=60, window_seconds=60)
 report_limiter = RateLimiter(max_attempts=20, window_seconds=60 * 60)
+# Face enrolment (M3, spec §5.4): at most 60 shots a minute per Super Admin.
+enrolment_shot_limiter = RateLimiter(max_attempts=60, window_seconds=60)
+# Face punches (M3, spec §7 rule 7): 30 challenges and 10 code tries a minute per kiosk.
+challenge_limiter = RateLimiter(max_attempts=30, window_seconds=60)
+code_try_limiter = RateLimiter(max_attempts=10, window_seconds=60)

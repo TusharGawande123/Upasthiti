@@ -37,14 +37,16 @@ const ADMIN_PAGES = [
 
 /** The whole page must fit the screen width (a table may scroll inside its own card). */
 async function expectNoSidewaysScroll(page: Page, where: string) {
+  // clientWidth is the room for the page: a visible scrollbar (in a headed browser, on a long
+  // page) takes some of the screen, and that is fine.
   const widths = await page.evaluate(() => ({
     page: document.documentElement.scrollWidth,
-    screen: window.innerWidth,
+    screen: document.documentElement.clientWidth,
   }));
   expect(
     widths.page,
     `${where}: page is ${widths.page}px wide on a ${widths.screen}px screen`,
-  ).toBe(widths.screen);
+  ).toBeLessThanOrEqual(widths.screen);
 }
 
 async function settle(page: Page) {
@@ -154,5 +156,24 @@ test("the kiosk scanning and result screens fit a phone held upright", async ({ 
     expect(fits.content, "result screen is taller than the phone").toBeLessThanOrEqual(fits.screen);
   } finally {
     await close();
+  }
+});
+
+test("the public privacy notice fits a small phone, a phone and a tablet, without a login", async ({
+  browser,
+}) => {
+  for (const size of [SMALL_PHONE, PHONE, TABLET]) {
+    const context = await browser.newContext({
+      baseURL: FRONTEND_URL,
+      viewport: size,
+      locale: "en-IN",
+    });
+    const reader = await context.newPage();
+    await reader.goto("/privacy", { waitUntil: "networkidle" });
+    await expect(
+      reader.getByRole("heading", { name: "Face and photo attendance at Sheet Shapers" }),
+    ).toBeVisible();
+    await expectNoSidewaysScroll(reader, `privacy notice ${size.width}px`);
+    await context.close();
   }
 });

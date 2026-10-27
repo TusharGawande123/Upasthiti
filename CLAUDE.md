@@ -17,7 +17,8 @@
 - Solution: ONE website; the gate KIOSK is the main attendance channel.
   - Kiosk: a tablet/phone/laptop with camera fixed at each plant gate, running
     our kiosk screen in full-screen. All employees punch here (check-in/out).
-  - Permanent employees -> face recognition + liveness (blink / head turn).
+  - Permanent employees -> face recognition + liveness (server-chosen head turn + anti-spoof,
+    no blink check).
   - Temporary / hourly workers -> unique signed QR code on an ID card, shown to
     the kiosk camera. A photo snapshot is saved at each QR punch for admin review.
   - Phone punching is OPTIONAL per employee: the Super Admin switches it on when the
@@ -103,10 +104,13 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - Added in M2 (all free): barcode-detector 3.2.2 (QR reading, wasm served from our own site),
   Locust (load test, own `loadtest` group, never in CI or Docker), pypdfium2 + zxing-cpp
   (tests only: scan a printed card back).
-- Face (server): InsightFace buffalo_l (SCRFD det_10g + ArcFace w600k_r50,
-  512-d) via onnxruntime, anti-spoofing (MiniFASNet or a CelebA-Spoof model,
-  the better one chosen in M3),
-  opencv-python-headless.
+- Face (server, M3): InsightFace buffalo_s (SCRFD det_500m + ArcFace w600k_mbf, 512-d) via
+  onnxruntime. buffalo_l was measured and left out: it does not fit Render Free's 512 MB and 2 s
+  limit (decision 0016). Anti-spoofing = MiniFASNet V2 + V1SE; opencv-python-headless, numpy.
+  Models are downloaded (sha256 checked), never committed. Tests use a fake engine
+  (`FACE_ENGINE=fake`, honoured only with APP_ENV=test).
+- Added in M3 (all free): @fontsource/jetbrains-mono 5.3 (SIL OFL, code font of the gate screen),
+  onnxruntime (MIT), opencv-python-headless (Apache-2.0), numpy (BSD).
 - Tooling: uv, Ruff, pyright, pytest · Biome, Vitest, Playwright ·
   pre-commit, Dependabot, GitHub Actions.
 - M0 choices that differ from the first plan (docs/decisions/0003-dev-tooling.md):
@@ -127,6 +131,14 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - NEVER send face data to any outside AI service; store encrypted face
   templates, not raw photos. QR-punch snapshots are auto-deleted after the
   retention period set by admin.
+- Face templates are 512-number vectors sealed with AES-256-GCM (`FACE_TEMPLATE_KEY`), bound to
+  employee + model + key id. Enrolment pictures and gate frames are never stored (a photo is
+  kept only for a rejected or code-path face punch). Only the Super Admin enrols, and only after
+  the person's consent is recorded (decisions 0016, 0017). "Delete face data" removes the
+  template AND ends the consent; enrolling again asks for a new consent (decision 0023).
+- A face employee's QR card stays refused (`EMPLOYEE_NOT_QR`); a QR employee cannot punch by
+  face. Face refusal texts end with "Please visit the plant office."; short retry hints
+  ("Please try again.") are allowed for camera problems (decision 0022).
 - NEVER trust client time, kiosk location or client face-match result;
   the server verifies every punch.
 - NEVER hard-delete attendance, audit or employee records ("delete employee" means
@@ -211,11 +223,11 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
       satellite view on the geofence map (0014), demo removal tool (0015).
       Still open: the live load test (outside working hours) and the real-device check of
       the gate phone (rear camera for cards, front camera for the photo).
-- [ ] M3 Face enrolment + face/liveness attendance at the kiosk (next; start with the spec,
-      docs/specs/M3-face-attendance.md. Slice 1 = a small proof that the face models fit and run in
-      Render Free's 512 MB. Decide in the spec: model and liveness method, consent text, who enrols
-      a face, an employee with both card and face, retention. Face templates are stored encrypted,
-      never raw photos; nothing goes to an outside AI service.)
+- [x] M3 Face enrolment + face/liveness attendance at the kiosk (built on milestone/M3-face-attendance,
+      merged with its PR). Super Admin enrols five poses after on-screen consent; gate: "Punch
+      with face", server-chosen head turn + anti-spoof, 1:N match, employee-code fallback with a
+      1:1 match; face settings; duplicate-face check; accuracy tool; 512 MB container check in
+      CI (spec docs/specs/M3-face-attendance.md, decisions 0016 to 0023). Model: buffalo_s.
 - [ ] M4 Anti-proxy engine + kiosk geofence + offline kiosk sync
 - [ ] M4b Optional phone punching (admin-controlled per employee) + temp workers'
       phone scan of the gate QR
@@ -266,7 +278,8 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - Backend (from backend/):
   - `uv sync`: install dependencies.
   - `uv run fastapi dev app/main.py`: run the API locally (docs at /api/docs).
-  - `uv run pytest`: run the tests (coverage floor 75% since M2, raised each milestone).
+  - `uv run pytest`: run the tests (coverage floor 80% since M3, raised each milestone). Add
+    `-m face_models` for the tests that use the real face models.
   - `uv run ruff check . && uv run ruff format .`: lint and format.
   - `uv run pyright`: type check.
   - `uv run alembic upgrade head`: migrate the database.
@@ -284,11 +297,16 @@ The skeleton exists since M0; the README.md has the full first-time setup.
     after the first live demo.
   - `uv run python loadtest/prepare_data.py`, then Locust: load test of the kiosk punch
     (backend/loadtest/README.md). Added in M2.
-  - `uv run python scripts/download_models.py`: download the face models (sha256 checked);
-    added in M3.
+  - `uv run python scripts/download_models.py`: download the face models (sha256 checked) into
+    `FACE_MODELS_DIR` (M3).
+  - `uv run python -m app.scripts.make_face_key`: print a new `FACE_TEMPLATE_KEY` line (M3).
+  - `uv run python -m app.scripts.face_accuracy --faces <folder> [--spoof <folder>]`: false
+    accept / false reject report and threshold curve; data folders must be outside the repo (M3).
+  - `uv run python -m app.scripts.face_memory_check`: 20 signed face punches through the real
+    models; fails above 450 MB (also the CI `docker` job).
 - Frontend (from frontend/):
   - `npm install`, then `npm run dev` (Vite; proxies /api to the local backend).
-  - `npm test` (Vitest + coverage), `npm run lint` / `npm run lint:fix` (Biome),
+  - `npm test` (Vitest + coverage, floor 80 since M3), `npm run lint` / `npm run lint:fix` (Biome),
     `npm run typecheck`, `npm run build`.
   - `npm run i18n:check`: every text key used in code exists in
     `public/locales/en/common.json`, and every server error code has an `errors.<CODE>` text.
@@ -356,6 +374,16 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   `SUPABASE_SERVICE_KEY`; optional `SNAPSHOT_BUCKET` (default `punch-snapshots`),
   `QR_SIGNING_KEY_ID` (a letter, default A) and `STORAGE_LOCAL_DIR`. Lose a key and cards or
   photos are lost: keep both in the password manager.
+  From M3, required in production: `FACE_TEMPLATE_KEY` (lose it and every employee must be
+  enrolled again; keep it in the password manager); optional `FACE_MODEL_PACK` (default
+  buffalo_s; changing it means re-enrolling everyone), `FACE_DETECTOR_INPUT` (320, 480 or 640),
+  `FACE_MODELS_DIR`, `FACE_ENGINE` (`fake` only with APP_ENV=test) and `E2E_PAIRING_LIMIT`
+  (set by the e2e server only, honoured only with APP_ENV=test).
+- Face settings (Super Admin, groups "face" and "privacy"): match threshold, margin, ask-for-
+  code floor, code threshold (never below the floor), anti-spoof threshold, head-turn steps
+  (1 or 2), retry and code-entry times, re-enrol hints, `company_address` and `privacy_contact`
+  (both needed before a consent can be recorded; use a role mailbox for the contact). Each has a
+  `report_value` from the accuracy report (docs/reports/M3-face-accuracy.md).
 - Every error response: `{ "error": { "code", "message", "details" } }`.
   Server logs are JSON in UTC with an `X-Request-ID`; SQL parameter values are never
   logged (they can contain personal data).

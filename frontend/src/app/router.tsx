@@ -212,6 +212,14 @@ export const routes: RouteObject[] = [
           (m) => m.KioskPairingPage,
         ),
       },
+      {
+        // The public privacy notice: no login, no admin menu (SPDI Rule 4).
+        path: "/privacy",
+        lazy: page(
+          () => import("../features/privacy/privacy-page"),
+          (m) => m.PrivacyPage,
+        ),
+      },
       { path: "/kiosk", element: <OldGateAddress /> },
       { path: "*", element: <NotFoundPage /> },
     ],

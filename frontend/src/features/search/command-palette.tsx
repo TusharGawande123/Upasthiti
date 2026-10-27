@@ -9,6 +9,8 @@ import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { FaceStateBadge } from "@/features/face/face-badges";
+import type { FaceState } from "@/features/face/use-face";
 import { MIN_SEARCH_LENGTH, useQuickSearch } from "./use-search";
 
 export type PalettePage = { to: string; label: string };
@@ -183,6 +185,9 @@ export function CommandPalette({ open, onOpenChange, pages, commands = [] }: Pro
                     ) : null}
                     <span className="code font-bold text-foreground">{employee.employee_code}</span>
                     <span className="text-foreground">{employee.full_name}</span>
+                    {picking?.id === "enrol-face" && employee.face_state ? (
+                      <FaceStateBadge state={employee.face_state as FaceState} />
+                    ) : null}
                     <span className="ml-auto text-xs">
                       {employee.plant_code}
                       {employee.status === "left" ? ` · ${t("employees.status.left")}` : ""}

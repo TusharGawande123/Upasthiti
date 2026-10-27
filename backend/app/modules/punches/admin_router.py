@@ -42,6 +42,10 @@ def punch_filters(
     reason_code: str | None = Query(default=None, max_length=40),
     dark_only: bool = False,
     q: str | None = Query(default=None, max_length=60),
+    method: Literal["face", "qr"] | None = None,
+    match_mode: Literal["one_to_many", "code"] | None = None,
+    asked_for_code: bool = False,
+    no_face_photo: bool = False,
 ) -> queries.PunchFilters:
     return queries.PunchFilters(
         day=day or today_ist(),
@@ -52,6 +56,10 @@ def punch_filters(
         reason_code=reason_code,
         dark_only=dark_only,
         search=q or None,
+        method=method,
+        match_mode=match_mode,
+        asked_for_code=asked_for_code,
+        no_face_photo=no_face_photo,
     )
 
 
@@ -59,6 +67,7 @@ def _viewer(current_user: CurrentUser, capability: Capability) -> presenter.View
     return presenter.Viewer(
         only_plant_ids=plant_filter(current_user, capability),
         sees_dark_photos=current_user.access(Capability.VIEW_SNAPSHOTS) is not None,
+        sees_face_scores=current_user.access(Capability.VIEW_FACE_SCORES) is not None,
     )
 
 
@@ -71,6 +80,9 @@ def _scoped(
     # "Dark photos only" is a Super Admin filter; for others it is ignored.
     if filters.dark_only and not who.sees_dark_photos:
         filters = queries.PunchFilters(**{**filters.__dict__, "dark_only": False})
+    # So is "No face in photo" (F-30).
+    if filters.no_face_photo and not who.sees_dark_photos:
+        filters = queries.PunchFilters(**{**filters.__dict__, "no_face_photo": False})
     return filters, who
 
 
@@ -108,6 +120,10 @@ def punches_summary(
         rejected=summary.rejected,
         dark_photos=summary.dark_photos if who.sees_dark_photos else None,
         rejected_by_reason=summary.rejected_by_reason,
+        face_accepted=summary.face_accepted,
+        code_accepted=summary.code_accepted,
+        asked_for_code=summary.asked_for_code,
+        no_face_photos=summary.no_face_photos if who.sees_dark_photos else None,
     )
 
 
@@ -159,6 +175,10 @@ def get_punch_snapshot(
     session: Session = Depends(get_session),
 ) -> Response:
     punch = queries.get_punch_in_scope(session, punch_id, None)
+    # The last answer of a code path has no photo of its own: it shows the photo taken when
+    # the code was asked for (spec M3 §5.5), and that view is audited for that punch.
+    if punch.follows_punch_id is not None and not queries.has_snapshot(session, punch.id):
+        punch = queries.get_punch_in_scope(session, punch.follows_punch_id, None)
     jpeg = admin_service.read_snapshot(session, current_user.actor, punch)
     return Response(
         content=jpeg,

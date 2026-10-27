@@ -49,6 +49,44 @@ describe("employees list", () => {
     expect(within(ravi).getByText("Missing")).toBeInTheDocument();
   });
 
+  it("shows the face state of face employees and 'Card' for QR employees (M3 F-40)", async () => {
+    mockApi({
+      ...LAYOUT,
+      "GET /auth/me": { body: SUPER_ADMIN },
+      "GET /employees": page([
+        employee({ face_state: "enrolled" }),
+        employee({ id: "e-3", full_name: "Mohan Deshmukh", face_state: "old_model" }),
+        RAVI,
+      ]),
+    });
+
+    renderRoute("/admin/employees");
+
+    const row = (await screen.findByText("Ramesh Kulkarni")).closest("tr") as HTMLElement;
+    expect(within(row).getByText("Enrolled")).toBeInTheDocument();
+    const old = screen.getByText("Mohan Deshmukh").closest("tr") as HTMLElement;
+    expect(within(old).getByText("Old model")).toBeInTheDocument();
+    const ravi = screen.getByText("Ravi Patil").closest("tr") as HTMLElement;
+    expect(within(ravi).getByText("Card")).toBeInTheDocument();
+  });
+
+  it("filters by face state", async () => {
+    const calls = mockApi({
+      ...LAYOUT,
+      "GET /auth/me": { body: SUPER_ADMIN },
+      "GET /employees": page([employee()]),
+    });
+    const user = userEvent.setup();
+
+    renderRoute("/admin/employees");
+    await screen.findByText("Ramesh Kulkarni");
+    await user.selectOptions(screen.getByLabelText("Face"), "not_enrolled");
+
+    await vi.waitFor(() =>
+      expect(calls.some((call) => call.path.includes("face_state=not_enrolled"))).toBe(true),
+    );
+  });
+
   it("asks the server for the plant chosen in the top bar, and remembers it", async () => {
     const calls = mockApi({
       ...LAYOUT,

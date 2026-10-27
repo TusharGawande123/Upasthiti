@@ -1,0 +1,134 @@
+<!doctype html>
+<!--
+  Upasthiti - M3 design gate B - Screen 3: face enrolment wizard, a full-screen dialog (spec 4.9, 9).
+  States (URL hash): camera-check, camera-blocked, shot-current, shot-hold, shot-checking, shot-failed,
+  shot-failed-two-faces, shot-failed-spoof, last-shot, saving, success, duplicate, duplicate-filled, (no expired screen).
+  Desktop 1280, tablet 768, phone 360 (portrait). The camera is a neutral grey picture with a grey silhouette:
+  no photo of any person is used. MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti enrolment wizard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+</head>
+<body>
+<div class="wiz" role="dialog" aria-modal="true" aria-labelledby="wiz-t" id="wiz"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  const SILHOUETTE = `<svg class="person" viewBox="0 0 200 220" aria-hidden="true"><ellipse cx="100" cy="84" rx="46" ry="56" fill="#9aa3b2"/><path d="M10 220 C10 160 52 146 100 146 C148 146 190 160 190 220 Z" fill="#9aa3b2"/></svg>`;
+
+  function wizTop() {
+    return `<header class="wiz-top"><span style="display:grid;place-items:center;width:44px;height:44px;border-radius:12px;background:var(--primary-soft);color:var(--primary)"><i data-lucide="scan-face"></i></span>
+      <div style="min-width:0;flex:1"><h2 id="wiz-t">Enrol face</h2><div class="who">Sunita Jadhav · <span class="code">EMP-0312</span> · K134</div></div>
+      <button class="btn btn-outline" aria-label="Cancel enrolment"><i data-lucide="x"></i><span class="cancel-text">Cancel</span></button></header>`;
+  }
+
+  function cam(opts) {
+    opts = opts || {};
+    const cls = ["cam", opts.ring ? "is-" + opts.ring : ""].join(" ");
+    let inner = SILHOUETTE + (opts.noOval ? "" : '<div class="oval"></div>');
+    inner += `<span class="cam-tag"><i data-lucide="flip-horizontal-2"></i>Mirrored preview</span>`;
+    if (opts.badge) inner += `<div class="cam-badge ${opts.badge}"><i data-lucide="${opts.badge === "ok" ? "check" : "x"}"></i></div>`;
+    if (opts.checking) inner += `<div class="cam-dim" aria-live="polite"><div style="display:grid;place-items:center;gap:12px;color:#fff;font-weight:700;font-size:18px"><div class="spinner"></div>Checking the picture…</div></div>`;
+    if (opts.strip) inner += `<div class="cam-strip ${opts.strip[0]}" role="status"><i data-lucide="${opts.strip[1]}"></i>${opts.strip[2]}</div>`;
+    if (opts.hold) inner += `<div class="cam-hold" aria-hidden="true"><i></i></div>`;
+    return `<div class="${cls}">${inner}</div>`;
+  }
+
+  function dots(states) {
+    const icons = { ok: "check", failed: "x" };
+    const words = { ok: "done", failed: "retake needed", current: "now", pending: "waiting", checking: "checking" };
+    return `<ol class="dots" aria-label="Progress: ${states.filter(function (s) { return s === "ok"; }).length} of 5 shots done">${states.map(function (s, i) {
+      return `<li class="dot" data-state="${s}">${icons[s] ? `<i data-lucide="${icons[s]}"></i>` : i + 1}<span class="sr-only">Shot ${i + 1}: ${words[s]}</span></li>`;
+    }).join("")}</ol>
+    <div class="dots-legend" aria-hidden="true"><span><i data-lucide="check"></i>Accepted</span><span><i data-lucide="x"></i>Retake</span><span style="font-weight:700;color:var(--primary)">● Now</span></div>`;
+  }
+
+  function poseCard(index, ds, extra, actions) {
+    const p = window.POSES[index];
+    return `<section class="card shot-card anim-fade-up" aria-live="polite"><p class="shot-count">Shot ${index + 1} of 5</p>
+      <div class="pose-row"><div class="pose-pic">${window.poseSvg(p[0])}</div><div><p class="pose-line">${p[1]}</p></div></div>
+      ${extra || ""}${dots(ds)}${actions || ""}
+      <p class="privacy-line"><i data-lucide="lock"></i>Pictures stay in this browser only until they are sent. Nothing is saved on this device.</p></section>`;
+  }
+
+  const take = (disabled) => `<div class="shot-actions"><button class="btn btn-primary btn-xl" ${disabled ? 'aria-disabled="true" disabled' : ""}><i data-lucide="camera"></i>Take shot</button></div>`;
+  const hintChip = (icon, big, small) => `<div class="hint-chip" role="status"><i data-lucide="${icon}"></i><span>${big}<small>${small}</small></span></div>`;
+
+  function failedBox(title, text) {
+    return `<div class="reason-box" role="alert"><i data-lucide="circle-x"></i><div><b>${title}</b><span>${text}</span></div></div>`;
+  }
+  const retake = `<div class="shot-actions"><button class="btn btn-primary btn-xl"><i data-lucide="rotate-ccw"></i>Retake</button></div>`;
+
+  function body(state) {
+    const ok = (n) => Array(n).fill("ok");
+    const pend = (n) => Array(n).fill("pending");
+    switch (state) {
+      case "camera-check":
+        return `<div class="wiz-body"><div>${cam({ noOval: false, strip: ["warn", "sun", "Face the light. No window behind the person."] })}</div>
+          <section class="card shot-card anim-fade-up"><p class="shot-count">Step 1 of 2 · Camera check</p><h3 style="margin:0 0 14px;font-size:22px;letter-spacing:-.01em">Check the camera and the light</h3>
+          <label class="label" for="camsel">Camera</label><div class="select-wrap"><select id="camsel"><option>Front camera (built in)</option></select><i data-lucide="chevron-down"></i></div>
+          <ul class="light-list" style="margin-top:18px"><li><span class="ic"><i data-lucide="sun"></i></span>Face the light. Avoid a window behind the person.</li><li><span class="ic"><i data-lucide="user"></i></span>Only the employee in the picture.</li></ul>
+          <div class="shot-actions"><button class="btn btn-primary btn-xl"><i data-lucide="play"></i>Start</button></div>
+          <p class="privacy-line"><i data-lucide="lock"></i>Pictures stay in this browser only until they are sent. Nothing is saved on this device.</p></section></div>`;
+      case "camera-blocked":
+        return `<div class="wiz-body single"><section class="card center-card anim-fade-up"><div class="big-icon st-warning"><i data-lucide="camera-off"></i></div><h2>The camera is blocked</h2>
+          <p>Allow the camera for this website: tap the lock icon next to the address, choose Camera, then Allow. Then try again.</p>
+          <div class="row-wrap" style="justify-content:center;margin-top:22px"><button class="btn btn-primary btn-xl"><i data-lucide="refresh-cw"></i>Try again</button><button class="btn btn-outline btn-xl">Cancel</button></div></section></div>`;
+      case "shot-current":
+        return `<div class="wiz-body"><div>${cam({})}</div>${poseCard(0, ["current"].concat(pend(4)), "", take())}</div>`;
+      case "shot-hold":
+        return `<div class="wiz-body"><div>${cam({ ring: "hold", hold: true, strip: ["ok", "check", "Good. Hold still…"] })}</div>${poseCard(2, ok(2).concat(["current"], pend(2)), hintChip("move-right", "Holding the pose", "The shot is taken by itself after 1 second. Or tap Take shot."), take())}</div>`;
+      case "shot-hint":
+        return `<div class="wiz-body"><div>${cam({ strip: ["warn", "arrow-left", "A little more to the left"] })}</div>${poseCard(1, ok(1).concat(["current"], pend(3)), hintChip("scan-face", "A little more to the left", "Live hint from the camera. It only guides; the server decides if the shot counts."), take())}</div>`;
+      case "shot-checking":
+        return `<div class="wiz-body"><div>${cam({ checking: true })}</div>${poseCard(2, ok(2).concat(["checking"], pend(2)), `<div class="hint-chip" role="status"><i data-lucide="loader-circle"></i><span>Checking the picture…<small>This takes 1 to 2 seconds. Keep looking at the camera.</small></span></div>`, take(true))}</div>`;
+      case "shot-failed":
+        return `<div class="wiz-body"><div>${cam({ ring: "bad", badge: "bad", strip: ["bad", "circle-x", "Not accepted. Retake."] })}</div>${poseCard(2, ok(2).concat(["failed"], pend(2)), failedBox("The picture is blurry. Hold still.", "Shot 3 was not accepted. Nothing else is lost; the other shots stay."), retake)}</div>`;
+      case "shot-failed-two-faces":
+        return `<div class="wiz-body"><div>${cam({ ring: "bad", badge: "bad", strip: ["bad", "circle-x", "Not accepted. Retake."] })}</div>${poseCard(3, ok(3).concat(["failed"], pend(1)), failedBox("Only the employee should be in the picture.", "Shot 4 was not accepted. Ask the other person to step away."), retake)}</div>`;
+      case "shot-failed-spoof":
+        return `<div class="wiz-body"><div>${cam({ ring: "bad", badge: "bad", strip: ["bad", "circle-x", "Not accepted. Retake."] })}</div>${poseCard(4, ok(4).concat(["failed"], pend(0)), failedBox("This does not look like a live face. The employee must be present.", "A photo or a screen cannot be used. Shot 5 was not accepted."), retake)}</div>`;
+      case "shot-ok":
+        return `<div class="wiz-body"><div>${cam({ ring: "ok", badge: "ok", strip: ["ok", "check", "Accepted"] })}</div>${poseCard(3, ok(3).concat(["current"], pend(1)), `<div class="hint-chip" style="background:var(--success-soft);border-color:#bfe3d2;color:var(--success)" role="status"><i data-lucide="circle-check"></i><span>Shot 3 accepted<small style="color:var(--muted-foreground)">Next: shot 4.</small></span></div>`, take())}</div>`;
+      case "last-shot":
+        return `<div class="wiz-body"><div>${cam({})}</div>${poseCard(4, ok(4).concat(["current"]), "", take())}</div>`;
+      case "saving":
+        return `<div class="wiz-body single"><section class="card center-card anim-fade-up" aria-busy="true"><div class="big-icon st-info"><div class="spinner dark" style="width:44px;height:44px"></div></div><h2>Saving…</h2><p>Please wait. This takes a few seconds. Do not close this window.</p>
+          <ol class="step-list"><li><span class="si ok"><i data-lucide="check"></i></span>5 shots checked</li><li><span class="si ok"><i data-lucide="check"></i></span>Face template made</li><li><span class="si now"><i data-lucide="loader-circle"></i></span>Checking that this face is not enrolled twice</li><li><span class="si todo"><i data-lucide="circle-dashed"></i></span>Saving, encrypted</li></ol></section></div>`;
+      case "success":
+        return `<div class="wiz-body single"><section class="card center-card anim-fade-up" role="status"><div class="big-icon st-success"><i data-lucide="circle-check"></i></div><h2>Face enrolled for Sunita Jadhav (<span class="code">EMP-0312</span>)</h2>
+          <p>5 shots accepted. The pictures were deleted; only the encrypted face template is kept. She can now punch with her face at the attendance device.</p>
+          <div class="row-wrap" style="justify-content:center;margin-top:24px"><button class="btn btn-primary btn-xl"><i data-lucide="check"></i>Done</button></div></section></div>`;
+      case "duplicate":
+      case "duplicate-filled": {
+        const filled = state === "duplicate-filled";
+        return `<div class="wiz-body single"><section class="dup-card anim-fade-up" role="alertdialog" aria-labelledby="dup-t"><div class="dup-head"><i data-lucide="triangle-alert"></i><div><h2 id="dup-t">This face looks like <span class="code">EMP-0457</span> (Ramesh Patil, TP1). Enrol anyway?</h2><p>The same face may be enrolled twice. Check before you go on. No picture is shown, and none is kept.</p></div></div>
+          <div class="dup-body"><div class="dup-who"><span class="avatar" style="width:44px;height:44px">RP</span><div><b>Ramesh Patil</b><div class="muted" style="font-size:13px"><span class="code">EMP-0457</span> · TP1 · Permanent · Active</div></div><span class="badge badge-warning" style="margin-left:auto"><i data-lucide="triangle-alert"></i>Possible match</span></div>
+          <label class="label" for="why">Reason to enrol anyway (required)</label><textarea id="why" class="input" ${!filled && state === "duplicate" ? "" : ""} placeholder="For example: twins, checked at the plant office">${filled ? "Twin brothers, both checked with their ID cards at the plant office." : ""}</textarea>
+          <div class="field-row">${filled ? '<span class="help" style="color:var(--success);font-weight:600;display:flex;gap:6px;align-items:center"><i data-lucide="circle-check" style="width:16px;height:16px"></i>Reason is long enough.</span>' : '<span class="help">At least 10 characters. It is saved in the audit log.</span>'}<span class="counter">${filled ? "66" : "0"} / 10</span></div></div>
+          <div class="dup-foot"><button class="btn btn-outline btn-xl">Cancel</button><button class="btn btn-danger btn-xl" ${filled ? "" : 'aria-disabled="true"'} ${filled ? "" : "disabled"}><i data-lucide="user-check"></i>Enrol anyway</button></div></section></div>`;
+      }
+    }
+    return body("shot-current");
+  }
+
+  window.mockStart(function (state) {
+    state = state || "shot-current";
+    document.getElementById("wiz").innerHTML = wizTop() + body(state);
+    // Cancel is icon-only on phones
+    if (!document.getElementById("cancel-style")) {
+      const s = document.createElement("style"); s.id = "cancel-style";
+      s.textContent = "@media (max-width:640px){.cancel-text{display:none}.wiz-top .btn{width:44px;padding:0}}";
+      document.head.appendChild(s);
+    }
+  });
+</script>
+</body>
+</html>

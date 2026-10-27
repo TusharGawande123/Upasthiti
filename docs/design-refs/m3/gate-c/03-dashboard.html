@@ -1,0 +1,94 @@
+<!doctype html>
+<!--
+  Upasthiti - M3 design gate C - Screen 3: dashboard card "Face enrolment" (F-40, spec 4.13, 5.5, AC-36, AC-40).
+  States (URL hash): default (Super Admin, all plants) · empty (nobody enrolled yet) · plant-head (K134 only) · corporate-head ·
+  engine-starting · engine-failed · loading · error.
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Dashboard";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = ROLE === "sa" ? { name: "Asha Rao", role: "Super Admin" } : ROLE === "ch" ? { name: "Meera Joshi", role: "Corporate Head" } : { name: "Prakash Kale", role: "Plant Head · K134", plant: "K134" };
+  const ic = (n) => `<i data-lucide="${n}"></i>`;
+
+  /* code, name, face employees, enrolled, re-enrol suggested (fake numbers: 212 of 300 in total) */
+  const PLANTS = [
+    ["K134", "Sheet Shapers K-134", 60, 52, 2],
+    ["K135", "Sheet Shapers K-135", 30, 8, 0],
+    ["PC1", "Press shop 1", 45, 38, 1],
+    ["PC2", "Press shop 2", 42, 30, 0],
+    ["SPI", "Spinning unit", 35, 25, 1],
+    ["TP1", "Tool plant 1", 48, 41, 1],
+    ["X280", "Sheet Shapers X-280", 40, 18, 0],
+  ];
+  const pct = (a, b) => (b ? Math.round((a / b) * 100) : 0);
+  const meter = (a, b, label) => `<div class="meter ${a === b ? "full" : ""}" role="img" aria-label="${label}"><i style="width:${pct(a, b)}%"></i></div>`;
+
+  function faceCard() {
+    if (S === "loading") return `<section class="card" aria-busy="true"><div class="small-card-head"><span class="round-ic" style="background:var(--primary-soft);color:var(--primary)">${ic("scan-face")}</span><div><h2>Face enrolment</h2><div class="skeleton" style="height:14px;width:180px;margin-top:6px"></div></div></div><div style="padding:16px 20px 20px;display:grid;gap:12px"><div class="skeleton" style="height:40px;width:220px"></div><div class="skeleton" style="height:12px"></div>${'<div class="skeleton" style="height:28px"></div>'.repeat(4)}</div></section>`;
+    if (S === "error") return `<section class="card"><div class="small-card-head"><span class="round-ic" style="background:var(--primary-soft);color:var(--primary)">${ic("scan-face")}</span><div><h2>Face enrolment</h2></div></div><div class="alert alert-danger" style="margin:12px 20px 20px">${ic("circle-alert")}<span>The numbers could not be loaded.</span><button class="btn btn-outline" style="margin-left:auto">Try again</button></div></section>`;
+    const empty = S === "empty";
+    const rows = ROLE === "ph" ? PLANTS.filter((p) => p[0] === "K134") : PLANTS;
+    const data = empty ? rows.map((p) => [p[0], p[1], p[2], 0, 0]) : rows;
+    const total = data.reduce((s, p) => s + p[2], 0), done = data.reduce((s, p) => s + p[3], 0), re = data.reduce((s, p) => s + p[4], 0);
+    const where = ROLE === "ph" ? " at K134" : "";
+    const desc = ROLE === "ph" ? "Employees of your plant who punch with their face." : "Employees who punch with their face, all plants in your view.";
+    let engine = "";
+    if (S === "engine-starting") engine = `<div class="alert alert-info engine">${ic("loader-circle")}<span><b>The face engine is starting.</b> This takes about a minute after the server wakes up. Until then the attendance devices show “Face punch is starting…”; card punches work as usual.</span></div>`;
+    if (S === "engine-failed") engine = `<div class="alert alert-danger engine">${ic("server-crash")}<span><b>The face engine did not start.</b> Face punches are switched off at every gate and enrolment cannot start; card punches work. Ask the team to check the server.</span></div>`;
+    const head = `<div class="small-card-head"><span class="round-ic" style="background:var(--primary-soft);color:var(--primary)">${ic("scan-face")}</span><div><h2>Face enrolment${where}</h2><p>${desc}</p></div></div>`;
+    const top = `<div class="fe-top"><div><div class="hero">${done} <small>of ${total} enrolled</small></div><div class="hero-sub">${pct(done, total)}% · ${total - done} not enrolled yet</div></div>
+      <div class="mini-stats">${!empty ? `<a class="mini" href="#"><span class="round-ic" style="background:var(--warning-soft);color:var(--warning)">${ic("triangle-alert")}</span><span><b>${re}</b><span>Re-enrol suggested</span></span>${ic("chevron-right").replace("<i ", '<i class="chev" ')}</a>` : ""}</div></div>
+      <div class="overall">${meter(done, total, `${done} of ${total} enrolled`)}</div>`;
+    let body;
+    if (empty) {
+      body = `<div class="empty-fe"><span class="big">${ic("scan-face")}</span><div><h3>Nobody is enrolled yet</h3><p>Face punching starts at a plant as soon as its first employee is enrolled. Until then everyone punches with a card.</p>
+        <ol class="steps3"><li>${ic("map-pin")}Set the company address in Settings, Privacy</li><li>${ic("file-pen-line")}Open an employee and record their consent</li><li>${ic("camera")}Enrol the face: 5 pictures, about a minute</li></ol></div></div>`;
+    } else if (ROLE === "ph") {
+      body = "";
+    } else {
+      body = `<div class="plants-head"><span>Plant</span><span>Enrolled</span><span>Count</span></div><ul class="plants" aria-label="Face enrolment by plant">` + data.map((p) => `<li title="${p[0]}: ${p[3]} of ${p[2]} enrolled"><span class="pn"><b class="code">${p[0]}</b><span>${p[1]}</span></span>${meter(p[3], p[2], `${p[0]}: ${p[3]} of ${p[2]} enrolled`)}<span class="num"><b>${p[3]}</b> <span>of ${p[2]}</span><br><span>${pct(p[3], p[2])}%${p[4] ? ` · <span class="tag">${ic("triangle-alert")}${p[4]} re-enrol</span>` : ""}</span></span></li>`).join("") + `</ul>`;
+    }
+    const foot = `<div class="card-foot"><span>Updated when you open the page.</span><a class="btn btn-outline" href="#">${ic("users")}See employees not enrolled (${total - done})${ic("arrow-right")}</a></div>`;
+    return `<section class="card anim-fade-up" aria-labelledby="fe">${head.replace("<h2>", '<h2 id="fe">')}${engine}${top}${body}${foot}</section>`;
+  }
+
+  function cardsEndingSoon() {
+    return `<section class="card"><div class="small-card-head" style="padding-bottom:10px"><span class="round-ic" style="background:var(--warning-soft);color:var(--warning)">${ic("calendar-clock")}</span><div><h2>Cards ending soon</h2><p>12 QR cards end in the next 14 days. Extend them or let them end.</p></div></div><div class="card-foot" style="border-top:0;padding-top:0"><span class="hero" style="font-size:34px;color:var(--foreground)">12</span><a class="link" href="#">See these cards</a></div></section>`;
+  }
+  function health() {
+    const st = S === "engine-starting" ? `<span class="badge badge-info">${ic("loader-circle")}Face engine starting</span>` : S === "engine-failed" ? `<span class="badge badge-danger">${ic("circle-x")}Face engine not running</span>` : `<span class="badge badge-success">${ic("circle-check")}Face engine ready · buffalo_s</span>`;
+    return `<section class="card"><div class="small-card-head" style="padding-bottom:16px"><div><h2>Live headcount comes in M5</h2><p>Setup, people and attendance device screens arrive in the next updates.</p><div class="row-wrap" style="margin-top:10px"><span class="badge badge-success">${ic("circle-check")}Server online</span>${st}</div></div></div></section>`;
+  }
+
+  window.mockStart(function () {
+    const name = window.MOCK_USER.name;
+    document.getElementById("page").innerHTML = `<div class="page-narrow"><h1 class="page-title" style="margin-bottom:20px">Welcome, ${name}</h1><div class="dash-grid">${ROLE === "sa" ? cardsEndingSoon() : ""}${faceCard()}${health()}</div></div>`;
+    const tags = { default: "Super Admin, 212 of 300", empty: "nobody enrolled yet", "plant-head": "Plant Head, own plant only", "corporate-head": "Corporate Head, all plants", "engine-starting": "face engine loading (/health)", "engine-failed": "face engine failed (/health)", loading: "loading", error: "could not load" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>

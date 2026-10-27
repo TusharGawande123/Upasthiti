@@ -1,6 +1,7 @@
 // The admin shell: left menu, top bar (search, plant filter, user menu) and the page itself.
 // The menu shows only what the user's role may use; the server checks it again anyway.
 import {
+  CircleDashed,
   ClipboardCheck,
   Factory,
   FileSpreadsheet,
@@ -12,11 +13,13 @@ import {
   Megaphone,
   Printer,
   QrCode,
+  ScanFace,
   ScrollText,
   Search,
   Send,
   Settings,
   Tablet,
+  TriangleAlert,
   UserRound,
   Users,
 } from "lucide-react";
@@ -104,9 +107,38 @@ function AdminShell({ user }: { user: Me }) {
   };
 
   // Commands for the Ctrl+K palette. Only the Super Admin issues and prints cards.
+  // The two face lists are for every role (the server limits them to the user's plants); only the
+  // Super Admin enrols faces (decision 0016 item 3).
+  const faceListCommands: PaletteCommand[] = [
+    {
+      id: "not-enrolled",
+      kind: "go",
+      label: t("palette.command.notEnrolled.label"),
+      hint: t("palette.command.notEnrolled.hint"),
+      icon: CircleDashed,
+      to: "/admin/employees?face_state=not_enrolled",
+    },
+    {
+      id: "reenrol",
+      kind: "go",
+      label: t("palette.command.reenrol.label"),
+      hint: t("palette.command.reenrol.hint"),
+      icon: TriangleAlert,
+      to: "/admin/employees?face_state=reenrol_suggested",
+    },
+  ];
   const commands: PaletteCommand[] =
     user.role === "super_admin"
       ? [
+          {
+            id: "enrol-face",
+            kind: "pickEmployee",
+            label: t("palette.command.enrol.label"),
+            hint: t("palette.command.enrol.hint"),
+            placeholder: t("palette.command.enrol.placeholder"),
+            icon: ScanFace,
+            pathFor: (employeeId) => `/admin/employees/${employeeId}?face=enrol`,
+          },
           {
             id: "issue-card",
             kind: "pickEmployee",
@@ -126,6 +158,7 @@ function AdminShell({ user }: { user: Me }) {
           },
         ]
       : [];
+  commands.push(...faceListCommands);
 
   return (
     <div className="flex min-h-screen">

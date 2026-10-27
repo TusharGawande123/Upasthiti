@@ -12,16 +12,30 @@ from collections.abc import Callable
 from starlette.types import ASGIApp, Message, Receive, Scope, Send
 
 KIOSK_BODY_LIMIT = 64 * 1024  # a punch is a small JSON with one 15 KB photo
+# M3: a face punch carries 2-4 frames of at most 70 KB each, as base64 (spec §5.2).
+FACE_PUNCH_BODY_LIMIT = 384 * 1024
+CODE_TRY_BODY_LIMIT = 2 * 1024
+FACE_PUNCH_PATH = "/api/v1/punch/kiosk"
+CODE_TRY_PATH = "/api/v1/punch/kiosk/code"
 IMPORT_BODY_LIMIT = 3 * 1024 * 1024  # the Excel import allows 2 MB, plus the form's own overhead
 DEFAULT_BODY_LIMIT = 1024 * 1024  # every other JSON request
 
 _KIOSK_PATHS = ("/api/v1/punch/", "/api/v1/kiosk/")
+# One enrolment shot is a 150 KB JPEG as base64 inside JSON (spec M3 §5.4).
+ENROLMENT_SHOT_LIMIT = 256 * 1024
+_ENROLMENT_SESSIONS_PATH = "/api/v1/face/enrolment-sessions/"
 _IMPORT_PATH_SUFFIX = "/employees/import"
 
 
 def body_limit_for(path: str) -> int:
+    if path == FACE_PUNCH_PATH:
+        return FACE_PUNCH_BODY_LIMIT  # a card punch above 64 KB is refused by the route
+    if path == CODE_TRY_PATH:
+        return CODE_TRY_BODY_LIMIT
     if path.startswith(_KIOSK_PATHS):
         return KIOSK_BODY_LIMIT
+    if path.startswith(_ENROLMENT_SESSIONS_PATH) and path.endswith("/shots"):
+        return ENROLMENT_SHOT_LIMIT
     if path.startswith("/api/") and _IMPORT_PATH_SUFFIX in path:
         return IMPORT_BODY_LIMIT
     return DEFAULT_BODY_LIMIT

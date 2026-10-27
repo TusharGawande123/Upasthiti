@@ -86,3 +86,18 @@ the lead, 2026-10-12) forward; they wait for Tushar (decision 0009).
 - M2 · F-38 · "Issue and print cards" step after an Excel import · Approved · 2026-10-19
 - Later: F-28 "inside now" count on the kiosk (M5), F-30 face-in-photo check (M3), F-37 gentle
   late hint (M5, off by default), F-32 employee photo on the ID card (privacy risk) · 2026-10-19
+
+## M3 – Face attendance (docs/specs/M3-face-attendance.md)
+Chosen by the lead (Tushar Gawande) in chat on 2026-10-24 (decision 0016).
+
+- M3 · F-39 · Duplicate face check at enrolment (Super Admin override with reason, audited) · Approved · 2026-10-24
+- M3 · F-40 · Enrolment progress: dashboard card per plant, "Not enrolled" filter, Ctrl+K · Approved · 2026-10-24
+- M3 · F-30 · Face-in-photo check on QR punch photos (a mark only, never a rejection) · Approved · 2026-10-24
+- M3 · F-41 · "Re-enrol suggested" hint when match scores fall or code entry is frequent · Approved · 2026-10-24
+- M3 · S-30 · 512 MB memory test of the backend container in CI · Approved · 2026-10-24
+- M3 · S-31 · Face model state on the health check + model warm-up at start · Approved · 2026-10-24
+- M3 · S-32 · Face accuracy report tool (FAR/FRR, threshold curve) · Approved · 2026-10-24
+- M3 · F-43 · Two-step head-turn challenge as a setting (`face_challenge_steps`, default 1 = off) · Approved · 2026-10-24
+- M3 · S-33 · INT8-quantised models measured in slice 1 · Approved · 2026-10-24
+- Later: F-42 DPDP consent register export + "face data deleted" receipt PDF; F-44 office-verified
+  punch (M5, inside the regularisation flow) · 2026-10-24

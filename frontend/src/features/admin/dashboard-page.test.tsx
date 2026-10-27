@@ -92,3 +92,124 @@ describe("cards ending soon", () => {
     },
   );
 });
+
+// The dashboard card "Face enrolment" (spec M3 §4.13, F-40): every role, numbers from the server.
+const PROGRESS = {
+  plants: [
+    {
+      plant: { id: "p-1", code: "K134", name: "Sheet Shapers K-134" },
+      face_employees: 60,
+      enrolled: 52,
+      not_enrolled: 8,
+      old_model: 0,
+      reenrol_suggested: 2,
+    },
+    {
+      plant: { id: "p-2", code: "K135", name: "Sheet Shapers K-135" },
+      face_employees: 30,
+      enrolled: 8,
+      not_enrolled: 22,
+      old_model: 0,
+      reenrol_suggested: 0,
+    },
+  ],
+  totals: {
+    face_employees: 90,
+    enrolled: 60,
+    not_enrolled: 30,
+    old_model: 0,
+    reenrol_suggested: 2,
+  },
+};
+
+function health(state: string) {
+  return {
+    body: {
+      status: "ok",
+      version: "dev",
+      server_time: "2026-10-20T10:00:00Z",
+      face: { state, model_pack: "buffalo_s", antispoof_model: null },
+    },
+  };
+}
+
+describe("face enrolment card", () => {
+  it("shows the totals, one row per plant and the links to the lists", async () => {
+    mockApi({
+      ...LAYOUT,
+      "GET /health": health("ready"),
+      "GET /auth/me": { body: SUPER_ADMIN },
+      "GET /qr-cards/expiring-count": { body: { count: 0, days: 14 } },
+      "GET /face/enrolment-progress": { body: PROGRESS },
+    });
+
+    renderRoute("/admin");
+
+    expect(await screen.findByText("Face enrolment")).toBeInTheDocument();
+    expect(await screen.findByText("of 90 enrolled")).toBeInTheDocument();
+    expect(screen.getByText("67% · 30 not enrolled yet")).toBeInTheDocument();
+    const rows = screen.getAllByRole("listitem");
+    expect(rows.some((row) => within(row).queryByText("K135"))).toBe(true);
+    expect(screen.getByRole("link", { name: /See employees not enrolled \(30\)/ })).toHaveAttribute(
+      "href",
+      "/admin/employees?face_state=not_enrolled",
+    );
+    expect(screen.getByRole("link", { name: /Re-enrol suggested/ })).toHaveAttribute(
+      "href",
+      "/admin/employees?face_state=reenrol_suggested",
+    );
+  });
+
+  it("shows a Plant Head only their own plant, without a plant list", async () => {
+    const single = { plants: [PROGRESS.plants[0]], totals: PROGRESS.plants[0] };
+    mockApi({
+      ...LAYOUT,
+      "GET /health": health("ready"),
+      "GET /auth/me": { body: PLANT_HEAD },
+      "GET /face/enrolment-progress": { body: single },
+    });
+
+    renderRoute("/admin");
+
+    expect(await screen.findByText("Face enrolment at K134")).toBeInTheDocument();
+    expect(await screen.findByText("of 60 enrolled")).toBeInTheDocument();
+    expect(screen.queryByText("Sheet Shapers K-134")).not.toBeInTheDocument();
+  });
+
+  it("says what to do first when nobody is enrolled yet", async () => {
+    const empty = {
+      plants: [{ ...PROGRESS.plants[0], enrolled: 0, not_enrolled: 60, reenrol_suggested: 0 }],
+      totals: {
+        ...PROGRESS.totals,
+        enrolled: 0,
+        face_employees: 60,
+        not_enrolled: 60,
+        reenrol_suggested: 0,
+      },
+    };
+    mockApi({
+      ...LAYOUT,
+      "GET /health": health("ready"),
+      "GET /auth/me": { body: CORPORATE_HEAD },
+      "GET /face/enrolment-progress": { body: empty },
+    });
+
+    renderRoute("/admin");
+
+    expect(await screen.findByText("Nobody is enrolled yet")).toBeInTheDocument();
+    expect(screen.getByText("Take the 5 pictures.")).toBeInTheDocument();
+  });
+
+  it("says so when the face engine did not start", async () => {
+    mockApi({
+      ...LAYOUT,
+      "GET /health": health("failed"),
+      "GET /auth/me": { body: CORPORATE_HEAD },
+      "GET /face/enrolment-progress": { body: PROGRESS },
+    });
+
+    renderRoute("/admin");
+
+    expect(await screen.findByText(/The face engine did not start/)).toBeInTheDocument();
+  });
+});

@@ -141,3 +141,22 @@ def test_the_ids_in_a_plan_belong_to_the_demo_plant_only(
     assert other.employee_id not in plan.employee_ids
     assert other.card_id not in plan.card_ids
     assert uuid.UUID(demo.id) == plan.plant_id
+
+
+def test_face_consent_and_template_of_a_demo_employee_are_removed_too(
+    boss: TestClient, db_session: Session
+) -> None:
+    from app.modules.face.models import FaceConsent, FaceTemplate
+    from tests.face_helpers import enrol, new_employee, set_privacy
+
+    set_privacy(db_session)
+    demo = create_plant(boss, db_session, "DEMO3")
+    employee_id = new_employee(boss, demo, "9001")
+    assert enrol(boss, employee_id, person=3).status_code == 201
+    assert count(db_session, FaceTemplate) == 1 and count(db_session, FaceConsent) == 1
+
+    plan = build_plan(db_session, "DEMO3", include_test_cards=False)
+    remove(db_session, plan)
+    db_session.commit()
+
+    assert count(db_session, FaceTemplate) == 0 and count(db_session, FaceConsent) == 0

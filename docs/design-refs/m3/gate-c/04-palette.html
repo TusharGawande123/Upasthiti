@@ -1,0 +1,88 @@
+<!doctype html>
+<!--
+  Upasthiti - M3 design gate C - Screen 4: Ctrl+K palette entries for face enrolment (spec 4.13, AC-36).
+  States (URL hash): default (Super Admin, nothing typed) · typed ("enrol") · picking ("Enrol face..." waits for an employee) ·
+  picking-results (typed "sun") · plant-head · corporate-head.
+  The page behind is the dashboard mockup in an iframe. MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti search palette</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <style>
+    html, body { height: 100%; overflow: hidden; }
+    #behind { position: fixed; inset: 0; width: 100%; height: 100%; border: 0; }
+    body.shot .overlay { position: fixed; }
+  </style>
+</head>
+<body>
+<iframe id="behind" title="Dashboard behind the palette" tabindex="-1" aria-hidden="true"></iframe>
+<div class="overlay"></div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "plant-head" ? "ph" : S === "corporate-head" ? "ch" : "sa";
+  const ic = (n) => `<i data-lucide="${n}"></i>`;
+  document.getElementById("behind").src = "03-dashboard.html?shot#" + (ROLE === "ph" ? "plant-head" : ROLE === "ch" ? "corporate-head" : "default");
+  const NEW = `<span class="badge badge-info newt">New</span>`;
+
+  function item(icon, label, hint, selected, right) {
+    return `<div class="pal-item" role="option" aria-selected="${selected ? "true" : "false"}">${ic(icon)}<span class="t">${label}${hint ? `<span>${hint}</span>` : ""}</span>${right ? `<span class="r">${right}</span>` : ""}</div>`;
+  }
+  const grp = (h, items) => `<div role="group"><div class="pal-grp">${h}</div>${items}</div>`;
+
+  function commands(filter) {
+    const scope = ROLE === "ph" ? "Your plant K134" : "All plants in your view";
+    const nNot = ROLE === "ph" ? 8 : 88, nRe = ROLE === "ph" ? 2 : 5;
+    let list = [];
+    if (ROLE === "sa") list.push(["qr-code", "Issue QR card…", "Pick an employee, then issue their card", false, ""]);
+    if (ROLE === "sa") list.push(["scan-face", "Enrol face…", "Pick an employee, then record consent and enrol", true, NEW]);
+    list.push(["user-x", "Employees not enrolled", `Employees list, Face: Not enrolled · ${scope} · ${nNot}`, ROLE !== "sa", NEW]);
+    list.push(["triangle-alert", "Re-enrol suggested", `Employees list, Face: Re-enrol suggested · ${scope} · ${nRe}`, false, NEW]);
+    if (filter) list = list.filter((c) => c[1].toLowerCase().includes("enrol"));
+    return grp("Commands", list.map((c) => item(c[0], c[1], c[2], c[3], c[4])).join(""));
+  }
+  function pages() {
+    return grp("Pages", ["Dashboard", "Employees", "Punch log", "Settings"].map((p) => item("file", p, "", false, "")).join(""));
+  }
+
+  function palette() {
+    let input, list, foot = `<span>↑↓ to move</span><span>↵ to open</span><span class="k">Esc to close</span>`;
+    if (S === "picking" || S === "picking-results") {
+      input = S === "picking" ? `<span class="typed"><span class="ph">Type an employee code or name</span></span>` : `<span class="typed">sun<i></i></span>`;
+      const note = `<div class="pal-note">${ic("info")}<span>Only employees who punch with their face can be enrolled. A card employee opens on their page, where the method can be changed.</span></div>`;
+      const head = `<div class="pal-picking">${ic("scan-face")}Enrol face…</div>`;
+      if (S === "picking") list = head + note + `<p style="padding:14px;text-align:center;color:var(--muted-foreground);font-size:14px;margin:0">Type at least 2 letters of a code or name.</p>`;
+      else list = head + grp("Employees", [
+        item("user", `<span class="code">EMP-0388</span> Sunil More`, "", true, `<span class="badge badge-neutral">${ic("circle-dashed")}Not enrolled</span><span class="plant">PC1</span>`),
+        item("user", `<span class="code">EMP-0312</span> Sunita Jadhav`, "", false, `<span class="badge badge-success">${ic("scan-face")}Enrolled</span><span class="plant">K134</span>`),
+        item("user", `<span class="code">EMP-0420</span> Sunanda Pawar`, "", false, `<span class="badge badge-warning">${ic("triangle-alert")}Re-enrol</span><span class="plant">TP1</span>`),
+        item("user", `<span class="code">T-2077</span> <span class="dim">Sunny Kamble</span>`, "", false, `<span class="badge badge-outline">${ic("qr-code")}Card</span><span class="plant">K135</span>`),
+      ].join("")) + note;
+      foot = `<span>↑↓ to move</span><span>↵ to open</span><button class="btn btn-ghost">${ic("arrow-left")}Back</button>`;
+    } else if (S === "typed") {
+      input = `<span class="typed">enrol<i></i></span>`;
+      list = commands(true) + `<p style="padding:6px 10px;color:var(--muted-foreground);font-size:13px;margin:0">No employee, plant or device matches “enrol”.</p>`;
+    } else {
+      input = `<span class="typed"><span class="ph">Search employees, plants, pages…</span></span>`;
+      list = commands(false) + pages();
+    }
+    return `<div class="palette anim-scale-in" role="dialog" aria-modal="true" aria-label="Search"><div class="pal-in">${ic("search")}${input}<span class="kbd">Esc</span></div><div class="pal-list" role="listbox">${list}</div><div class="pal-foot">${foot}</div></div>`;
+  }
+
+  window.mockStart(function () {
+    document.getElementById("layer").innerHTML = palette();
+    const tags = { default: "Super Admin, nothing typed", typed: "typed: enrol", picking: "Enrol face… waits for an employee", "picking-results": "employee picker with face state", "plant-head": "Plant Head: no Enrol face…, own plant", "corporate-head": "Corporate Head: no Enrol face…, all plants" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>

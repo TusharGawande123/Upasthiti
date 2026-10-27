@@ -25,6 +25,8 @@ export const BACKEND_ENV: Record<string, string> = {
   RUN_SCHEDULER: "false",
   // One run logs in many times from one laptop (the limit is 20 per 10 minutes).
   E2E_LOGIN_LIMIT: "500",
+  // The gate tests pair many devices from one laptop (the limit is 10 per 10 minutes).
+  E2E_PAIRING_LIMIT: "200",
   DATABASE_URL: E2E_DATABASE_URL,
   // Fake values, used only by these tests.
   APP_SECRET_KEY: "e2e-only-secret-key-not-used-anywhere-else-0123",
@@ -32,6 +34,9 @@ export const BACKEND_ENV: Record<string, string> = {
   QR_SIGNING_KEY: testKey("upasthiti end-to-end tests: QR card signing"),
   QR_SIGNING_KEY_ID: "A",
   SNAPSHOT_ENCRYPTION_KEY: testKey("upasthiti end-to-end tests: snapshot encryption"),
+  // M3: a stand-in for the face models (test only) and a key for the face templates.
+  FACE_ENGINE: "fake",
+  FACE_TEMPLATE_KEY: testKey("upasthiti end-to-end tests: face template encryption"),
   STORAGE_BACKEND: "local",
   STORAGE_LOCAL_DIR: `${TMP_FOLDER}/storage`,
 };

@@ -52,6 +52,15 @@ jobs:
         run: uv run ruff format --check .
       - name: Type check (pyright)
         run: uv run pyright
+      # The real-model tests (marker face_models) need the small pack; the files are cached by
+      # the sha256 list, so they are downloaded again only when models.json changes.
+      - name: Cache the face models
+        uses: actions/cache@v4
+        with:
+          path: backend/models
+          key: face-models-${{ hashFiles('backend/scripts/models.json') }}
+      - name: Download the face models (sha256 checked)
+        run: uv run python scripts/download_models.py --dest models --only buffalo_s,minifasnet_v2,minifasnet_v1se,sample_faces
       - name: Tests with coverage (on a real Postgres test database)
         env:
           # The tests create this database themselves and wipe it on every run.
@@ -165,15 +174,37 @@ jobs:
   docker:
     name: docker
     runs-on: ubuntu-latest
+    # A throw-away database for the face memory check (S-30), reached with --network host.
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: upasthiti
+          POSTGRES_PASSWORD: upasthiti
+          POSTGRES_DB: upasthiti
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U upasthiti" --health-interval 5s
+          --health-timeout 3s --health-retries 10
     steps:
       - uses: actions/checkout@v7
         with:
           persist-credentials: false
-      - name: Build the backend image
-        run: docker build -t upasthiti-backend:ci backend
+      - uses: docker/setup-buildx-action@v3
+      # The layers (and so the downloaded face models) are kept in the GitHub Actions cache;
+      # they are downloaded again only when models.json, the lock file or the Dockerfile change.
+      - name: Build the backend image (face models are downloaded and sha256 checked here)
+        uses: docker/build-push-action@v6
+        with:
+          context: backend
+          load: true
+          tags: upasthiti-backend:ci
+          build-args: MAKE_INT8_MODELS=false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
       - name: Start it the way Render will (PORT set, production mode)
         run: |
-          # Two throw-away keys (32 random bytes, base64url), new on every run and never stored.
+          # Three throw-away keys (32 random bytes, base64url), new on every run and never stored.
           make_key() { head -c 32 /dev/urandom | base64 -w0 | tr '+/' '-_' | tr -d '='; }
           docker run -d --name backend -p 10000:10000 \
             -e PORT=10000 -e APP_ENV=production -e APP_VERSION="${GITHUB_SHA}" \
@@ -182,6 +213,7 @@ jobs:
             -e APP_PUBLIC_ORIGIN=https://ci.example.invalid \
             -e QR_SIGNING_KEY="$(make_key)" \
             -e SNAPSHOT_ENCRYPTION_KEY="$(make_key)" \
+            -e FACE_TEMPLATE_KEY="$(make_key)" \
             -e STORAGE_BACKEND=local \
             upasthiti-backend:ci
       - name: Health endpoint answers
@@ -198,6 +230,63 @@ jobs:
         run: |
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/docs)" = "404"
           test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:10000/api/v1/openapi.json)" = "404"
+      - name: Stop it
+        run: docker rm -f backend
+
+      # S-30 (spec AC-39): the real image with Render Free's 512 MB, 20 face punches through the
+      # real endpoints, and the container's peak memory must stay at or below 450 MB. The faces are
+      # the public InsightFace sample picture; the helper runs in its own containers, so only the
+      # backend's memory is counted (app/scripts/face_memory_check.py).
+      - name: Face memory check - throw-away keys and database
+        run: |
+          make_key() { head -c 32 /dev/urandom | base64 -w0 | tr '+/' '-_' | tr -d '='; }
+          for name in QR_SIGNING_KEY SNAPSHOT_ENCRYPTION_KEY FACE_TEMPLATE_KEY; do
+            key="$(make_key)"
+            echo "::add-mask::${key}"
+            echo "${name}=${key}" >> "$GITHUB_ENV"
+          done
+          echo "MEMCHECK_DATABASE_URL=postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_memcheck" >> "$GITHUB_ENV"
+          mkdir -m 777 "$RUNNER_TEMP/memcheck"
+      - name: Face memory check - prepare (one plant, one gate, the sample faces)
+        run: |
+          docker run --rm --network host -v "$RUNNER_TEMP/memcheck:/work" \
+            -e APP_ENV=test -e DATABASE_URL="$MEMCHECK_DATABASE_URL" \
+            -e APP_SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123 \
+            -e QR_SIGNING_KEY -e SNAPSHOT_ENCRYPTION_KEY -e FACE_TEMPLATE_KEY \
+            -e STORAGE_BACKEND=local \
+            upasthiti-backend:ci python -m app.scripts.face_memory_check prepare --fixture /work/fixture.json
+      - name: Face memory check - start the backend with 512 MB
+        run: |
+          docker run -d --name backend-memory --network host --memory=512m --memory-swap=512m \
+            -e PORT=10000 -e APP_ENV=production -e APP_VERSION="${GITHUB_SHA}" \
+            -e DATABASE_URL="$MEMCHECK_DATABASE_URL" -e RUN_SCHEDULER=false \
+            -e APP_SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123 \
+            -e APP_PUBLIC_ORIGIN=https://ci.example.invalid \
+            -e QR_SIGNING_KEY -e SNAPSHOT_ENCRYPTION_KEY -e FACE_TEMPLATE_KEY \
+            -e STORAGE_BACKEND=local \
+            upasthiti-backend:ci
+          for attempt in $(seq 1 120); do
+            if curl -fsS http://127.0.0.1:10000/api/v1/health | grep -q '"state":"ready"'; then exit 0; fi
+            sleep 1
+          done
+          docker logs backend-memory
+          exit 1
+      - name: Face memory check - 20 face punches
+        run: |
+          docker run --rm --network host -v "$RUNNER_TEMP/memcheck:/work" \
+            upasthiti-backend:ci python -m app.scripts.face_memory_check punch \
+              --fixture /work/fixture.json --url http://127.0.0.1:10000 \
+              --origin https://ci.example.invalid --count 20 | tee -a "$GITHUB_STEP_SUMMARY"
+          test "${PIPESTATUS[0]}" -eq 0
+      - name: Face memory check - peak memory at most 450 MB
+        run: |
+          peak_bytes="$(docker exec backend-memory cat /sys/fs/cgroup/memory.peak)"
+          peak_mb=$((peak_bytes / 1024 / 1024))
+          echo "Backend peak memory: ${peak_mb} MB (limit 450 MB)" | tee -a "$GITHUB_STEP_SUMMARY"
+          test "$peak_mb" -le 450
+      - name: Backend log when the memory check fails
+        if: failure()
+        run: docker logs backend-memory 2>&1 | tail -n 100
 
   hooks:
     name: hooks
@@ -220,6 +309,10 @@ jobs:
         run: npm ci
       # The gitleaks hook only looks at staged files, which CI does not have; the next step
       # scans the full history instead.
+      - name: No face model file is tracked by git (public repo, spec AC-2)
+        run: |
+          tracked="$(git ls-files '*.onnx' '*.task' '*.tflite' '*.pt' '*.pth')"
+          if [ -n "$tracked" ]; then echo "Model files must be downloaded, not committed:"; echo "$tracked"; exit 1; fi
       - name: Run every pre-commit hook on all files
         env:
           SKIP: gitleaks

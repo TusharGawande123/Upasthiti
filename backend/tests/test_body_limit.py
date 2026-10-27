@@ -10,7 +10,10 @@ import json
 from starlette.types import Message, Receive, Scope, Send
 
 from app.core.body_limit import (
+    CODE_TRY_BODY_LIMIT,
     DEFAULT_BODY_LIMIT,
+    ENROLMENT_SHOT_LIMIT,
+    FACE_PUNCH_BODY_LIMIT,
     IMPORT_BODY_LIMIT,
     KIOSK_BODY_LIMIT,
     BodyLimitMiddleware,
@@ -60,21 +63,25 @@ def call(path: str, chunks: int, declared: int | None = None) -> tuple[int, byte
 
 
 def test_each_kind_of_request_has_its_own_limit() -> None:
-    assert body_limit_for("/api/v1/punch/kiosk") == KIOSK_BODY_LIMIT
+    assert body_limit_for("/api/v1/punch/kiosk") == FACE_PUNCH_BODY_LIMIT  # M3: face frames
+    assert body_limit_for("/api/v1/punch/kiosk/code") == CODE_TRY_BODY_LIMIT
+    assert body_limit_for("/api/v1/punch/challenge") == KIOSK_BODY_LIMIT
+    assert body_limit_for("/api/v1/face/enrolment-sessions/abc/shots") == ENROLMENT_SHOT_LIMIT
+    assert body_limit_for("/api/v1/face/enrolment-sessions/abc/finish") == DEFAULT_BODY_LIMIT
     assert body_limit_for("/api/v1/kiosk/report") == KIOSK_BODY_LIMIT
     assert body_limit_for("/api/v1/employees/import") == IMPORT_BODY_LIMIT
     assert body_limit_for("/api/v1/auth/login") == DEFAULT_BODY_LIMIT
 
 
 def test_a_small_body_goes_through() -> None:
-    status, _, probe, _ = call("/api/v1/punch/kiosk", chunks=2)
+    status, _, probe, _ = call("/api/v1/kiosk/report", chunks=2)
 
     assert status == 200
     assert probe.bytes_read == 2 * CHUNK
 
 
 def test_a_declared_length_over_the_limit_is_refused_without_reading_anything() -> None:
-    status, body, probe, taken = call("/api/v1/punch/kiosk", chunks=1, declared=500_000_000)
+    status, body, probe, taken = call("/api/v1/kiosk/report", chunks=1, declared=500_000_000)
 
     assert status == 413
     assert json.loads(body)["error"] == {
@@ -87,7 +94,7 @@ def test_a_declared_length_over_the_limit_is_refused_without_reading_anything() 
 
 def test_a_body_without_a_length_is_cut_off_near_the_limit() -> None:
     # 100 pieces of 16 KB would be 1.6 MB. The kiosk limit is 64 KB = 4 pieces.
-    status, body, probe, taken = call("/api/v1/punch/kiosk", chunks=100)
+    status, body, probe, taken = call("/api/v1/kiosk/report", chunks=100)
 
     assert status == 413
     assert json.loads(body)["error"]["code"] == "PAYLOAD_TOO_LARGE"

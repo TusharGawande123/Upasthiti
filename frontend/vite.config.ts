@@ -62,8 +62,8 @@ export default defineConfig(({ mode }) => {
           "src/features/plants/geofence-map.tsx",
         ],
         reporter: ["text", "json-summary"],
-        // Coverage floor: 60% in M0, 70% from M1, 75% from M2; raised in each milestone (spec S-8).
-        thresholds: { lines: 75, functions: 75, branches: 75, statements: 75 },
+        // Coverage floor: 60% in M0, 70% from M1, 75% from M2, 80% from M3; raised in each milestone (spec S-8).
+        thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
       },
     },
   };

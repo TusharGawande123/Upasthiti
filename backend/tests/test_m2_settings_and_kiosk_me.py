@@ -74,7 +74,7 @@ def test_the_eleven_m2_settings_are_editable_with_their_defaults(boss: TestClien
 def test_settings_of_later_milestones_stay_locked(boss: TestClient) -> None:
     settings = listed(boss)
 
-    for key in ("face_match_threshold", "face_match_margin", "impossible_travel_kmh"):
+    for key in ("impossible_travel_kmh", "salary_day_basis"):
         assert settings[key]["editable"] is False
     assert change(boss, impossible_travel_kmh=80).json()["error"]["code"] == (
         "SETTING_NOT_EDITABLE_YET"
@@ -331,6 +331,16 @@ def test_the_heartbeat_keeps_the_old_fields_and_adds_settings(
         "photo_ready_seconds": 20,
         "snapshot_retention_days": 60,
         "dark_threshold": 40,
+        # M3: the gate shows "Punch with face" only when someone here is enrolled.
+        "face": {
+            "available": True,
+            "state": "ready",
+            "enabled_for_plant": False,
+            "challenge_seconds": 10,
+            "code_entry_seconds": 90,
+            "min_yaw_degrees": 18,
+            "code_prefixes": [],
+        },
     }
 
 

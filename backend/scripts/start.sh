@@ -15,6 +15,15 @@ case "$RUN_MIGRATIONS_ON_START" in
     ;;
 esac
 
+# Only for the M3 memory and speed measurement on a throw-away Render service (Render Free has
+# no shell): run the face benchmark once, print its result line to the log, then go on.
+case "$FACE_BENCHMARK_ON_START" in
+  true | TRUE | True | 1)
+    echo "Running the face benchmark..."
+    python -m app.scripts.face_benchmark || echo "Face benchmark failed"
+    ;;
+esac
+
 # exec: the server replaces this shell, so it receives Render's stop signal directly.
 # uvicorn directly (not `fastapi run`, which cannot switch the access log off): its access log
 # lines contain the query string (pairing code, search words). The app writes its own request

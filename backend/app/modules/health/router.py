@@ -6,13 +6,15 @@ never touch the database. /health/ready also checks the database.
 
 import logging
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
 from app.core.config import get_settings
 from app.core.db import check_database_connection
 from app.core.errors import ApiError
 from app.core.time import utc_now
-from app.modules.health.schemas import HealthResponse, ReadyResponse
+from app.face.engine import FaceEngine
+from app.modules.face.engine_provider import get_face_engine
+from app.modules.health.schemas import FaceHealth, HealthResponse, ReadyResponse
 
 logger = logging.getLogger(__name__)
 
@@ -20,8 +22,17 @@ router = APIRouter(prefix="/health", tags=["health"])
 
 
 @router.get("", response_model=HealthResponse)
-def get_health() -> HealthResponse:
-    return HealthResponse(status="ok", version=get_settings().app_version, server_time=utc_now())
+def get_health(engine: FaceEngine = Depends(get_face_engine)) -> HealthResponse:
+    return HealthResponse(
+        status="ok",
+        version=get_settings().app_version,
+        server_time=utc_now(),
+        face=FaceHealth(
+            state=engine.state.value,  # type: ignore[arg-type]
+            model_pack=engine.model_pack,
+            antispoof_model=engine.antispoof_id,
+        ),
+    )
 
 
 @router.get("/ready", response_model=ReadyResponse)

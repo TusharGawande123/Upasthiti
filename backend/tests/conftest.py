@@ -3,6 +3,7 @@
 import base64
 import os
 from collections.abc import Callable, Iterator
+from contextlib import nullcontext
 
 import pytest
 from fastapi import FastAPI
@@ -15,6 +16,8 @@ from sqlalchemy.orm import Session
 # imported.
 UNREACHABLE_DATABASE_URL = "postgresql+psycopg://test:test@127.0.0.1:1/upasthiti_test"
 os.environ["APP_ENV"] = "test"
+# The fake face engine reads painted test pictures; no model files are needed (spec M3 §11).
+os.environ["FACE_ENGINE"] = "fake"
 os.environ["RUN_SCHEDULER"] = "false"
 os.environ["DATABASE_URL"] = UNREACHABLE_DATABASE_URL
 # Test-only values, not secrets.
@@ -29,19 +32,30 @@ os.environ["QR_SIGNING_KEY"] = (
 os.environ["SNAPSHOT_ENCRYPTION_KEY"] = (
     base64.urlsafe_b64encode(b"test-snapshot-key-for-pytest-000").decode().rstrip("=")
 )
+os.environ["FACE_TEMPLATE_KEY"] = (
+    base64.urlsafe_b64encode(b"test-face-template-key-pytest-00").decode().rstrip("=")
+)
 os.environ["STORAGE_BACKEND"] = "local"
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.db import get_engine, get_session, get_session_factory  # noqa: E402
 from app.core.storage import get_storage  # noqa: E402
+from app.face.engine import FaceEngine  # noqa: E402
+from app.face.fake_engine import FakeFaceModels  # noqa: E402
 from app.main import create_app  # noqa: E402
 from app.modules.auth.rate_limit import (  # noqa: E402
+    challenge_limiter,
+    code_try_limiter,
+    enrolment_shot_limiter,
     failed_pairing_limiter,
     login_limiter,
     pairing_limiter,
     punch_limiter,
     report_limiter,
 )
+from app.modules.face.engine_provider import get_face_engine  # noqa: E402
+from app.modules.face.gallery_cache import clear_all_galleries  # noqa: E402
+from app.modules.punches.photo_check import get_task_sessions  # noqa: E402
 from tests.database import create_fresh_test_database, read_test_database_url  # noqa: E402
 
 
@@ -50,6 +64,7 @@ def clear_cached_settings() -> None:
     get_storage.cache_clear()
     get_engine.cache_clear()
     get_session_factory.cache_clear()
+    get_face_engine.cache_clear()
 
 
 @pytest.fixture(autouse=True)
@@ -116,8 +131,28 @@ def db_session(migrated_engine: Engine) -> Iterator[Session]:
 
 
 @pytest.fixture
-def db_app(build_app: Callable[..., FastAPI], db_session: Session) -> FastAPI:
+def face_engine() -> FaceEngine:
+    """A ready fake face engine (no model files); tests may replace it on the app."""
+    engine = FaceEngine(FakeFaceModels)
+    engine.load_now()
+    return engine
+
+
+@pytest.fixture(autouse=True)
+def fresh_face_galleries() -> Iterator[None]:
+    clear_all_galleries()
+    yield
+    clear_all_galleries()
+
+
+@pytest.fixture
+def db_app(
+    build_app: Callable[..., FastAPI], db_session: Session, face_engine: FaceEngine
+) -> FastAPI:
     app = build_app()
+    app.dependency_overrides[get_face_engine] = lambda: face_engine
+    # Background tasks (F-30) use the test's session, so they see its uncommitted data.
+    app.dependency_overrides[get_task_sessions] = lambda: lambda: nullcontext(db_session)
 
     # Like get_session: a failed request undoes what it had not committed.
     def test_session() -> Iterator[Session]:
@@ -145,4 +180,7 @@ def fresh_rate_limits() -> Iterator[None]:
     failed_pairing_limiter.reset()
     punch_limiter.reset()
     report_limiter.reset()
+    enrolment_shot_limiter.reset()
+    challenge_limiter.reset()
+    code_try_limiter.reset()
     yield

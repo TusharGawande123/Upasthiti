@@ -243,6 +243,114 @@
         "title": "This browser cannot read cards",
         "message": "Open this page in Google Chrome or Microsoft Edge.",
         "steps": ["Install or update Chrome or Edge.", "Open the attendance page again."]
+      },
+      "NEED_EMPLOYEE_CODE": {
+        "title": "Type your employee code",
+        "message": "We could not be sure it is you.",
+        "next": "",
+        "voice": "Please type your employee code."
+      },
+      "CODE_NOT_MATCHED": {
+        "title": "Type your employee code",
+        "message": "That code does not match your face. Check it and try once more.",
+        "next": "",
+        "voice": "That code does not match. Please try once more."
+      },
+      "NO_FACE": {
+        "title": "NOT ACCEPTED",
+        "message": "We could not see your face.",
+        "next": "Stand in front of the camera and try again.",
+        "voice": "Face not seen. Please try again."
+      },
+      "MULTIPLE_FACES": {
+        "title": "NOT ACCEPTED",
+        "message": "Only one person, please.",
+        "next": "Please try again.",
+        "voice": "Only one person, please."
+      },
+      "FACE_TOO_SMALL": {
+        "title": "NOT ACCEPTED",
+        "message": "Come a little closer.",
+        "next": "Please try again.",
+        "voice": "Please come closer and try again."
+      },
+      "FACE_QUALITY_LOW": {
+        "title": "NOT ACCEPTED",
+        "message": "The picture is too dark or blurry.",
+        "next": "Please switch on the gate light and hold still.",
+        "voice": "Too dark. Please try again."
+      },
+      "LIVENESS_FAILED": {
+        "title": "NOT ACCEPTED",
+        "message": "Please turn your head as the arrow shows, then look straight.",
+        "next": "Please try again.",
+        "voice": "Please turn your head as shown."
+      },
+      "FACE_INCONSISTENT": {
+        "title": "NOT ACCEPTED",
+        "message": "The check did not pass.",
+        "next": "Please try again.",
+        "voice": "The check did not pass. Please try again."
+      },
+      "CHALLENGE_EXPIRED": {
+        "title": "NOT ACCEPTED",
+        "message": "Too slow.",
+        "next": "Please try again.",
+        "voice": "Too slow. Please try again."
+      },
+      "SPOOF_SUSPECTED": {
+        "title": "NOT ACCEPTED",
+        "message": "The check did not pass.",
+        "next": "Please try again. If it repeats, please visit the plant office.",
+        "voice": "The check did not pass. Please visit the plant office."
+      },
+      "CHALLENGE_INVALID": {
+        "title": "NOT ACCEPTED",
+        "message": "Please try again.",
+        "next": "Please try again.",
+        "voice": "Please try again."
+      },
+      "FRAMES_INVALID": {
+        "title": "NOT ACCEPTED",
+        "message": "The pictures could not be read.",
+        "next": "Please try again.",
+        "voice": "Please try again."
+      },
+      "FACE_NOT_RECOGNISED": {
+        "title": "NOT ACCEPTED",
+        "message": "We could not recognise you.",
+        "next": "If you have an ID card, show it to the camera. Otherwise, please visit the plant office.",
+        "voice": "Not recognised. Please visit the plant office."
+      },
+      "CODE_ENTRY_EXPIRED": {
+        "title": "NOT ACCEPTED",
+        "message": "Time is up.",
+        "next": "Please try again.",
+        "voice": "Time is up. Please try again."
+      },
+      "WRONG_PLANT_FACE": {
+        "title": "NOT ACCEPTED",
+        "message": "You are registered at another plant.",
+        "next": "Please visit the plant office.",
+        "voice": "Registered at another plant. Please visit the plant office."
+      },
+      "FACE_SERVICE_UNAVAILABLE": {
+        "title": "PLEASE WAIT",
+        "message": "Face punch is starting.",
+        "next": "Please wait a minute.",
+        "voice": "Face punch is starting. Please wait a minute."
+      },
+      "FACE_SERVICE_BUSY": {
+        "title": "PLEASE WAIT",
+        "message": "Many people are punching.",
+        "next": "Please try again in a moment.",
+        "voice": "Many people are punching. Please try again in a moment."
+      },
+      "FACE_NOT_CONFIGURED": {
+        "title": "ERROR",
+        "message": "Face punch is not available here.",
+        "next": "Please visit the plant office.",
+        "voice": "Face punch is not available. Please visit the plant office."
       }
     },
     "attendance": {
@@ -257,7 +365,7 @@
       "notACard": "This is not an Upasthiti ID card.",
       "lowLight": "Too dark. Please switch on the gate light.",
       "startCamera": "Start camera",
-      "privacy": "A photo is taken at each card punch to stop card sharing. Kept for {{days}} days.",
+      "privacy": "Face punch: your face is checked against an encrypted record. A photo is kept for {{days}} days only if the punch fails or you type your code. Card punch: a photo is kept for {{days}} days and checked automatically to see that a face is present.",
       "help": "Need help? Ask the plant office.",
       "online": "Online",
       "offline": "No internet",
@@ -303,9 +411,46 @@
       "alreadyIn": "Already checked in.",
       "alreadyOut": "Already checked out.",
       "selfTest": "Device test passed.",
-      "getReady": "Card read. Get ready for your photo."
+      "getReady": "Card read. Get ready for your photo.",
+      "needCode": "Please type your employee code."
     },
-    "soundBanner": "Tap once to turn on sound and full screen. Tap again after every update."
+    "soundBanner": "Tap once to turn on sound and full screen. Tap again after every update.",
+    "face": {
+      "button": "Punch with face",
+      "or": "or",
+      "starting": "Face punch is starting…",
+      "unavailable": "Face punch is not available right now",
+      "cameraLabel": "Camera picture with an oval for your face",
+      "guideTitle": "Look at the camera. Keep your face inside the oval.",
+      "hintCloser": "Come closer",
+      "hintFarther": "Move a little back",
+      "hintOnePerson": "Only one person, please",
+      "hintCentre": "Keep your face inside the oval",
+      "hintLight": "More light needed",
+      "good": "Good. Hold still.",
+      "guideTimeout": "We could not see your face clearly. Try again.",
+      "cancel": "Cancel",
+      "turnLeft": "Turn your head to your",
+      "turnRight": "Turn your head to your",
+      "left": "LEFT",
+      "right": "RIGHT",
+      "straightAgain": "Now look straight again."
+    },
+    "codePad": {
+      "subtitle": "We could not be sure it is you.",
+      "typed": "Employee code typed so far",
+      "numbers": "123",
+      "letters": "ABC",
+      "delete": "Delete",
+      "deleteLong": "Delete last character",
+      "ok": "OK",
+      "keys": "Keypad",
+      "starts": "Common starts of employee codes",
+      "secondsLeft": "Time left: {{count}} seconds",
+      "triesLeft_one": "{{count}} try left",
+      "triesLeft_other": "{{count}} tries left",
+      "tryAgain": "Try again"
+    }
   },
   "health": {
     "checking": "Checking server…",
@@ -447,7 +592,35 @@
     "STORAGE_UNAVAILABLE": "The photo store cannot be reached. Try again later.",
     "NOTICE_TEXT_INVALID": "Write 1 to 200 characters on one line.",
     "NOTICE_DATES_INVALID": "The end must be after the start, at most 90 days later, and not in the past.",
-    "NOTICE_ENDED": "This notice has ended and cannot be changed."
+    "NOTICE_ENDED": "This notice has ended and cannot be changed.",
+    "COMPANY_ADDRESS_MISSING": "Set the company address in Settings first.",
+    "CONSENT_ALREADY_GIVEN": "Consent is already recorded.",
+    "CONSENT_NOT_ACTIVE": "There is no active consent to withdraw.",
+    "CONSENT_REQUIRED": "Record the employee's consent first.",
+    "CONSENT_TEXT_UNKNOWN": "This consent text does not exist. Reload the page.",
+    "EMPLOYEE_NOT_FACE": "This employee punches with a QR card. Change the punch method to face first.",
+    "ENROLMENT_INCOMPLETE": "All 5 shots are needed.",
+    "ENROLMENT_SESSION_CLOSED": "This enrolment has ended. Start again.",
+    "ENROLMENT_SESSION_EXPIRED": "Please start the enrolment again.",
+    "ENROLMENT_SESSION_NOT_FOUND": "This enrolment was not found. Start again.",
+    "ENROL_IMAGE_INVALID": "The picture could not be read. Try again.",
+    "ENROL_NO_FACE": "No face found.",
+    "ENROL_MULTIPLE_FACES": "Only the employee should be in the picture.",
+    "ENROL_FACE_TOO_SMALL": "Come closer to the camera.",
+    "ENROL_BLURRY": "The picture is blurry. Hold still.",
+    "ENROL_TOO_DARK": "Too dark. Face the light.",
+    "ENROL_TOO_BRIGHT": "Too bright. Move away from the window.",
+    "ENROL_POSE_WRONG": "Please follow the pose: {{pose}}",
+    "ENROL_SPOOF_SUSPECTED": "This does not look like a live face. The employee must be present.",
+    "ENROL_NOT_SAME_PERSON": "This looks like a different person. Retake with the same employee.",
+    "FACE_DUPLICATE_FOUND": "This face looks like another employee. Enrol anyway only if they are different people (for example twins), and give the reason.",
+    "FACE_NOT_CONFIGURED": "Face recognition is not set up on the server yet. Ask the person who runs the server.",
+    "FACE_NOT_ENROLLED": "This employee has no face data.",
+    "FACE_SERVICE_BUSY": "Face checks are busy. Try again in a moment.",
+    "FACE_SERVICE_UNAVAILABLE": "Face checks are not available right now. Try again in a minute.",
+    "PAYLOAD_TOO_LARGE": "The picture could not be read. Try again.",
+    "PRIVACY_CONTACT_MISSING": "Set the privacy contact in Settings first.",
+    "SETTING_INVALID": "The code-entry floor must be lower than the match threshold."
   },
   "nav": {
     "label": "Main menu",
@@ -486,7 +659,8 @@
     "show": "Show",
     "hide": "Hide",
     "submit": "Log in",
-    "forgot": "Forgot your password? Ask the Super Admin to reset it."
+    "forgot": "Forgot your password? Ask the Super Admin to reset it.",
+    "privacyLink": "Privacy notice"
   },
   "newPassword": {
     "title": "Set a new password",
@@ -515,6 +689,31 @@
       "text_other": "{{count}} QR cards end in the next {{days}} days. Extend them or let them end.",
       "link": "See these cards",
       "error": "The number could not be loaded."
+    },
+    "face": {
+      "title": "Face enrolment",
+      "titleAt": "Face enrolment at {{plant}}",
+      "description": "People who punch with their face.",
+      "enrolledOf": "of {{total}} enrolled",
+      "percent": "{{percent}}% · {{count}} not enrolled yet",
+      "reenrol": "Re-enrol suggested",
+      "perPlant": "Face enrolment per plant",
+      "plantCount": "of {{total}}",
+      "plantReenrol": "{{count}} re-enrol",
+      "updated": "Updated when you open the page.",
+      "seeNotEnrolled": "See employees not enrolled ({{count}})",
+      "empty": {
+        "title": "Nobody is enrolled yet",
+        "step1": "Set the company address and the privacy contact in Settings.",
+        "step2": "Open an employee and record the consent.",
+        "step3": "Take the 5 pictures."
+      },
+      "engine": {
+        "starting": "The face engine is starting. Face punches and enrolment work again in a minute.",
+        "failed": "The face engine did not start. Face punches are switched off at every gate and enrolment cannot start; card punches work."
+      },
+      "error": "The numbers could not be loaded.",
+      "retry": "Try again"
     }
   },
   "users": {
@@ -615,6 +814,10 @@
       "kiosk_screen": {
         "title": "Device sound and screen",
         "description": "What every gate attendance device plays and how long it shows a result."
+      },
+      "privacy": {
+        "title": "Privacy",
+        "description": "Printed in the face consent text and on the public privacy notice page."
       }
     },
     "items": {
@@ -709,6 +912,78 @@
       "kiosk_photo_ready_seconds": {
         "label": "Time to get ready for the photo",
         "help": "After a card is read, the worker gets this long to look at the camera (and switch the camera) before the photo is taken. Tapping \"I'm ready\" takes it sooner."
+      },
+      "face_code_offer_floor": {
+        "label": "Ask-for-code floor",
+        "help": "Below this score the face is simply not recognised. Between this score and the match threshold the gate asks for the employee code."
+      },
+      "face_code_match_threshold": {
+        "label": "Face threshold after a code",
+        "help": "When an employee types a code, the face must be at least this alike to the person with that code."
+      },
+      "face_duplicate_threshold": {
+        "label": "Duplicate face threshold",
+        "help": "At enrolment, a new face this alike to an enrolled face is held back as a possible duplicate."
+      },
+      "face_consistency_threshold": {
+        "label": "Same-person check",
+        "help": "The pictures of one face punch must show faces at least this alike."
+      },
+      "face_antispoof_threshold": {
+        "label": "Live-face check",
+        "help": "How sure the system must be that the face is real and not a photo or a screen. Higher is stricter."
+      },
+      "face_min_yaw_degrees": {
+        "label": "Head turn needed",
+        "help": "How far the head must turn at the gate, in degrees."
+      },
+      "face_frontal_max_yaw_degrees": {
+        "label": "Straight face limit",
+        "help": "The first and the last picture must be at least this straight, in degrees."
+      },
+      "face_challenge_steps": {
+        "label": "Head turns at the gate",
+        "help": "1 = one turn. 2 = two turns in a row (for example left, then right): harder to fake, a little slower."
+      },
+      "face_min_face_px": {
+        "label": "Smallest face",
+        "help": "A smaller face (in pixels, counted at 640 pixels picture width) asks the person to come closer."
+      },
+      "face_blur_min": {
+        "label": "Sharpness needed",
+        "help": "Blurry pictures are refused. A higher number is stricter."
+      },
+      "face_brightness_min": {
+        "label": "Brightness needed",
+        "help": "Darker pictures are refused (0 is black, 255 is white)."
+      },
+      "face_challenge_seconds": {
+        "label": "Time for the head turn",
+        "help": "How long the person has to turn the head after the device asks."
+      },
+      "face_code_entry_seconds": {
+        "label": "Time to type the code",
+        "help": "How long the employee code pad stays open."
+      },
+      "face_code_max_tries": {
+        "label": "Code tries",
+        "help": "How many times a wrong employee code can be typed before the punch is refused."
+      },
+      "face_reenrol_code_count": {
+        "label": "Re-enrol hint: codes typed",
+        "help": "Suggest enrolling a face again when this many code entries happen within 30 days."
+      },
+      "face_reenrol_score_margin": {
+        "label": "Re-enrol hint: falling score",
+        "help": "Suggest enrolling a face again when recent match scores fall this far below the older ones."
+      },
+      "company_address": {
+        "label": "Company address",
+        "help": "The registered address of Sheet Shapers. The consent text and the privacy notice name it."
+      },
+      "privacy_contact": {
+        "label": "Privacy contact (grievance officer)",
+        "help": "Who employees contact about their data: name, role and how to reach them (phone or email)."
       }
     },
     "units": {
@@ -729,10 +1004,57 @@
       "30": "30 days",
       "actual": "Actual days"
     },
+    "retentionRaise": {
+      "title": "Keeping photos for {{days}} days changes what the face consent text says.",
+      "text": "The consent text and the gate notice will say {{days}} days instead of {{current}}. Employees who already agreed read {{current}} days: tell them, and print the gate posters again after saving."
+    },
     "retentionWarning": {
       "title": "Lowering to {{days}} days also shortens the photos already stored.",
       "text": "Photos older than {{days}} days are deleted tonight at 00:05 IST and cannot be brought back. The gate posters say “kept for {{current}} days”: download and print them again after saving."
-    }
+    },
+    "subgroups": {
+      "matching": "Matching",
+      "liveness": "Liveness and anti-spoof",
+      "quality": "Picture quality",
+      "code": "Code entry and timing",
+      "hints": "Hints"
+    },
+    "settingsCount_one": "{{count}} setting",
+    "settingsCount_other": "{{count}} settings",
+    "changesCount_one": "{{count}} changed",
+    "changesCount_other": "{{count}} changed",
+    "reportValue": "Report value: {{value}}",
+    "noReport": "No report yet",
+    "useReport": "Use {{value}}",
+    "reportStrip": {
+      "none": "No accuracy report yet. These are starting values; the accuracy report of the team test replaces them.",
+      "found": "The report values come from the accuracy report. \"Use\" copies one into the field; you still save it with a reason."
+    },
+    "lowerThreshold": {
+      "title": "A lower threshold lets more strangers through.",
+      "text": "Change only after reading the accuracy report."
+    },
+    "floorError": "The code-entry floor must be lower than the match threshold.",
+    "changedBadge": "Changed",
+    "textLength": "A text of {{min}} to {{max}} characters",
+    "counter": "{{count}} / {{max}} · at least {{min}}",
+    "faceNote": "Changes apply to the next punch at every plant. A face setting never changes punches already decided.",
+    "privacy": {
+      "notSet": "Not set",
+      "setFirst": "Set this before the first enrolment:",
+      "setFirstWhy": "the consent text names it. Until it is set, the consent dialog cannot be opened.",
+      "previewTitle": "How the consent text will read",
+      "previewStart": "Sheet Shapers, ",
+      "previewMiddle": ", uses Upasthiti to record attendance at the plant gate. … Grievance officer and contact: ",
+      "previewEnd": ". We reply within 30 days.",
+      "addressMissing": "[company address not set]",
+      "contactMissing": "[privacy contact not set]",
+      "footer": "Employees read the full notice at"
+    },
+    "fromConsent": "You came from the consent dialog of {{name}}. Set the company address and the privacy contact, save, then go back.",
+    "backTo": "Back to {{name}}",
+    "textChanged": "(text changed)",
+    "changedTo": "changed to"
   },
   "audit": {
     "title": "Audit log",
@@ -1110,6 +1432,19 @@
       "print": {
         "label": "Print QR cards…",
         "hint": "Open the cards that are not printed yet"
+      },
+      "enrol": {
+        "label": "Enrol face…",
+        "hint": "Choose an employee, then record consent and take 5 pictures",
+        "placeholder": "Type an employee's code or name…"
+      },
+      "notEnrolled": {
+        "label": "Employees not enrolled",
+        "hint": "Open the employees who punch with their face but have no face yet"
+      },
+      "reenrol": {
+        "label": "Re-enrol suggested",
+        "hint": "Open the employees whose face should be enrolled again"
       }
     }
   },
@@ -1781,14 +2116,28 @@
     "EMPLOYEE_NOT_QR": "Employee punches by face",
     "WRONG_PLANT": "Card of another plant",
     "COOLDOWN_ACTIVE": "Already punched (scanned again too soon)",
-    "OUT_TOO_SOON": "Already IN (OUT not allowed yet)"
+    "OUT_TOO_SOON": "Already IN (OUT not allowed yet)",
+    "NO_FACE": "No face seen",
+    "MULTIPLE_FACES": "More than one person",
+    "FACE_TOO_SMALL": "Face too far from the camera",
+    "FACE_QUALITY_LOW": "Picture too dark or blurry",
+    "LIVENESS_FAILED": "Head did not turn as asked",
+    "FACE_INCONSISTENT": "Different faces in the pictures",
+    "CHALLENGE_EXPIRED": "Too slow",
+    "CHALLENGE_INVALID": "Challenge not valid",
+    "FRAMES_INVALID": "Pictures not readable",
+    "SPOOF_SUSPECTED": "Not a live face",
+    "FACE_NOT_RECOGNISED": "Face not recognised",
+    "CODE_ENTRY_EXPIRED": "Code pad timed out",
+    "NEED_EMPLOYEE_CODE": "Asked for the employee code",
+    "CODE_NOT_MATCHED": "Code did not match the face"
   },
   "punches": {
     "title": "Punch log",
-    "description": "Every card punch at the gate attendance devices, accepted or rejected. Times in IST.",
-    "descriptionOwnPlant": "Every card punch at your plant's gate, accepted or rejected. Times in IST.",
-    "readOnlyPlantHead": "Read-only, your plant only. Only the Super Admin can open punch photos; here you see whether a photo was saved.",
-    "readOnlyCorporateHead": "Read-only. Only the Super Admin can open punch photos; here you see whether a photo was saved.",
+    "description": "Every punch at the gate attendance devices, by card or by face, accepted or rejected. Times in IST.",
+    "descriptionOwnPlant": "Every punch at your plant's gate, by card or by face, accepted or rejected. Times in IST.",
+    "readOnlyPlantHead": "Read-only, your plant only. Only the Super Admin can open punch photos and the face scores; here you see whether a photo was saved.",
+    "readOnlyCorporateHead": "Read-only. Only the Super Admin can open punch photos and the face scores; here you see whether a photo was saved.",
     "noPhotosInFile": "No photos in the file",
     "export": "Export day (.xlsx)",
     "unknownCard": "Unknown card",
@@ -1810,7 +2159,10 @@
       "rejected": "Rejected",
       "dark": "Dark photos",
       "hint": "Press a number to show only those punches",
-      "because": "Rejected because:"
+      "because": "Rejected because:",
+      "asked": "Asked for code",
+      "noFace": "No face in photo",
+      "acceptedBy": "Accepted by:"
     },
     "filter": {
       "date": "Date",
@@ -1824,7 +2176,9 @@
       "kiosk": "Device",
       "anyKiosk": "Device: any",
       "reason": "Reason",
-      "anyReason": "Reason: any"
+      "anyReason": "Reason: any",
+      "method": "Method",
+      "anyMethod": "Method: any"
     },
     "columns": {
       "time": "Time",
@@ -1834,7 +2188,9 @@
       "reason": "Reason",
       "kiosk": "Device",
       "photo": "Photo",
-      "actions": "Actions"
+      "actions": "Actions",
+      "method": "Method",
+      "resultAndReason": "Result and reason"
     },
     "direction": {
       "in": "IN",
@@ -1842,7 +2198,8 @@
     },
     "result": {
       "accepted": "Accepted",
-      "rejected": "Rejected"
+      "rejected": "Rejected",
+      "needsCode": "Asked for code"
     },
     "photoState": {
       "stored": "Photo stored",
@@ -1879,6 +2236,64 @@
       "audited_other": "{{count}} photos shown. Each photo shown is recorded in the audit log.",
       "back": "Back to this photo",
       "openEmployee": "Open employee"
+    },
+    "method": {
+      "face": "Face",
+      "card": "Card",
+      "faceByCode": "Face, by code"
+    },
+    "how": {
+      "face": "By face",
+      "code": "By code",
+      "codeFailed": "Code typed, face did not match",
+      "faceShort": "face",
+      "codeShort": "code",
+      "cardShort": "card"
+    },
+    "link": {
+      "then": "Then: By code",
+      "after": "After: Asked for code"
+    },
+    "unknownFace": "Unknown face",
+    "faceNotMatched": "Face not matched",
+    "noFacePhoto": "No face in photo",
+    "photoOfAsked": "Photo of the Asked for code punch",
+    "noPhotoFace": "No photo · accepted face punch",
+    "detail": {
+      "title": "Punch details",
+      "loading": "Loading the punch…",
+      "button": "Details",
+      "openFor": "Details of the punch at {{time}}",
+      "punch": "Punch",
+      "serverTime": "Server time",
+      "openEmployee": "Open employee",
+      "notPunched": "Not punched. The code typed belongs to",
+      "steps": "Steps of this punch",
+      "openPunch": "Open this punch",
+      "face": "Face check",
+      "superOnly": "Super Admin only",
+      "matchScore": "Match score",
+      "secondBest": "Second-best score",
+      "notUsedCode": "Not used when a code is typed",
+      "antispoof": "Anti-spoof score (live face)",
+      "headTurn": "Head turn",
+      "todayLimit": "Today's limit: {{limit}} or more",
+      "passed": "Passed",
+      "tooLow": "Too low",
+      "notUsed": "Not used",
+      "degreesLeft": "{{degrees}}° left",
+      "degreesRight": "{{degrees}}° right",
+      "challenge": "Challenge",
+      "matchMode": "Match mode",
+      "oneToMany": "Whole plant (1:N)",
+      "codeMode": "Employee code (1:1)",
+      "model": "Model",
+      "codeTyped": "Code typed: {{code}} – face did not match",
+      "codeTypedOk": "Code typed: {{code}}",
+      "proxy": "Someone typed this employee's code, but the face was not alike enough. Check the photo: this can be a proxy attempt.",
+      "photo": "Photo",
+      "noPhotoKept": "No photo is kept for an accepted face punch.",
+      "notShown": "Scores, the typed code and photos are shown to the Super Admin only."
     }
   },
   "notices": {
@@ -1952,5 +2367,244 @@
       "tooLong": "A notice can show for at most 90 days.",
       "endPast": "The end is already past."
     }
+  },
+  "face": {
+    "column": "Face",
+    "filter": {
+      "label": "Face",
+      "any": "Face: any"
+    },
+    "state": {
+      "enrolled": "Enrolled",
+      "not_enrolled": "Not enrolled",
+      "reenrol_suggested": "Re-enrol suggested",
+      "old_model": "Old model",
+      "withdrawn": "Card",
+      "not_face_method": "Card"
+    },
+    "panel": {
+      "title": "Face recognition",
+      "enrolledLine": "Enrolled on {{date}} by {{name}} · model {{model}} · {{count}} shots.",
+      "oldModelLine": "Enrolled on {{date}} with the older model {{model}}.",
+      "oldModelText": "This face was enrolled with an older face model. Re-enrol so it matches the model now in use. Until then the employee types their employee code at the gate.",
+      "consentGiven": "Consent given on {{date}}. The face is not enrolled yet.",
+      "noConsent": "Consent not recorded yet.",
+      "reenrolReason": {
+        "code_entries": "Re-enrol suggested: the employee needed the employee code often in the last 30 days.",
+        "falling_scores": "Re-enrol suggested: the match scores are falling."
+      },
+      "enrol": "Enrol face",
+      "reenrol": "Re-enrol face",
+      "delete": "Delete face data",
+      "withdraw": "Withdraw consent",
+      "qrMethod": "This employee punches with a QR card.",
+      "nowQr": "This employee now punches with a QR card. Issue a card now?",
+      "issueCard": "Issue QR card",
+      "changeToFace": "Change to face",
+      "history": "Face history"
+    },
+    "history": {
+      "consent_given": "Consent given",
+      "consent_declined": "Chose a QR card",
+      "consent_withdrawn": "Consent withdrawn",
+      "enrolled": "Face enrolled",
+      "deleted": "Face data deleted",
+      "system": "System",
+      "detail": {
+        "withdrawn": "by the employee",
+        "left": "marked as left",
+        "consent_withdrawn": "consent withdrawn",
+        "re_enrolled": "re-enrolled",
+        "deleted_by_admin": "deleted by an admin",
+        "method_changed": "punch method changed to QR"
+      }
+    },
+    "withdraw": {
+      "title": "Withdraw face consent of {{name}}?",
+      "text": "The face data is deleted at once and the employee punches with a QR card from now on. Their attendance records are kept.",
+      "reason": "Reason (optional)",
+      "defaultReason": "Employee asked to withdraw consent.",
+      "submit": "Withdraw consent",
+      "done": "Consent withdrawn. {{name}} now punches with a QR card."
+    },
+    "delete": {
+      "title": "Delete the face data of {{name}}?",
+      "text": "The face template is deleted at once. The employee cannot punch with their face until they are enrolled again. Their attendance records are kept.",
+      "submit": "Delete face data",
+      "done": "Face data of {{name}} deleted."
+    },
+    "consent": {
+      "title": "Face attendance consent",
+      "for": "For {{name}} · text {{version}}",
+      "cameraOff": "Camera off",
+      "language": "Language of the text",
+      "languages": {
+        "en": "English",
+        "mr": "मराठी",
+        "hi": "हिन्दी",
+        "other": "Other"
+      },
+      "explained": "I explained this text to the employee in their language",
+      "explainedLanguage": "Language explained in",
+      "agree": "I agree",
+      "decline": "No, I prefer a QR card",
+      "openSettings": "Open Settings",
+      "declinedTitle": "QR card chosen",
+      "declinedText": "{{name}} chose a QR card. Their punch method is now QR card. Issue a card so they can punch at the gate.",
+      "loading": "Loading the consent text…",
+      "privacyLink": "Read the full privacy notice"
+    },
+    "pose": {
+      "straight": "Look straight at the camera",
+      "left": "Turn your head slightly to your left",
+      "right": "Turn your head slightly to your right",
+      "up": "Lift your chin slightly",
+      "down": "Lower your chin slightly"
+    },
+    "hint": {
+      "no_face": "No face found. Look at the camera.",
+      "two_faces": "Only one person, please.",
+      "closer": "Come a little closer.",
+      "farther": "Move a little back.",
+      "centre": "Bring your face into the oval.",
+      "turn_left": "A little more to your left.",
+      "turn_right": "A little more to your right.",
+      "less_turn": "A little less. Turn back slightly.",
+      "look_straight": "Look straight at the camera.",
+      "chin_up": "Lift your chin a little more.",
+      "chin_down": "Lower your chin a little more.",
+      "hold": "Good. Hold still…"
+    },
+    "wizard": {
+      "title": "Enrol face",
+      "cancel": "Cancel enrolment",
+      "mirrored": "Mirrored preview",
+      "cameraStep": "Step 1 of 2 · Camera check",
+      "cameraTitle": "Check the camera and the light",
+      "cameraChoice": "Camera",
+      "tipLight": "Face the light. Avoid a window behind the person.",
+      "tipAlone": "Only the employee in the picture.",
+      "lightTip": "Face the light. No window behind the person.",
+      "start": "Start",
+      "restarted": "The earlier enrolment was closed. Press Start to begin again.",
+      "camera": {
+        "CAMERA_BLOCKED": "The camera is blocked. Allow the camera for this site in the browser, then reload the page.",
+        "CAMERA_NOT_FOUND": "No camera found. Connect a camera or use a phone, then reload the page."
+      },
+      "shotOf": "Shot {{number}} of {{total}}",
+      "progress": "Progress: {{done}} of {{total}} shots done",
+      "dot": {
+        "ok": "Shot {{number}}: accepted",
+        "failed": "Shot {{number}}: retake needed",
+        "current": "Shot {{number}}: now",
+        "checking": "Shot {{number}}: checking",
+        "pending": "Shot {{number}}: waiting"
+      },
+      "takeShot": "Take shot",
+      "retake": "Retake",
+      "checking": "Checking the picture…",
+      "notAccepted": "Not accepted. Retake.",
+      "othersKept": "Shot {{number}} was not accepted. Nothing else is lost; the other shots stay.",
+      "saving": "Saving…",
+      "savingText": "Making the encrypted face template from the 5 shots.",
+      "doneTitle": "Face enrolled for {{name}}",
+      "doneText": "{{count}} shots accepted. The pictures were deleted; only the encrypted face template is kept.",
+      "done": "Done",
+      "privacyNote": "Pictures stay in this browser only until they are sent. Nothing is saved on this device.",
+      "duplicate": {
+        "title": "This face looks like {{code}} ({{name}}, {{plant}}). Enrol anyway?",
+        "text": "Enrol anyway only if they are different people, for example twins. The reason is saved in the audit log.",
+        "reason": "Reason to enrol anyway (required)",
+        "reasonHint": "At least 10 characters, for example: Twins, checked with HR.",
+        "confirm": "Enrol anyway"
+      }
+    }
+  },
+  "privacy": {
+    "topbar": "Upasthiti · Sheet Shapers · Smart Attendance",
+    "back": "Back",
+    "eyebrow": "Privacy notice",
+    "title": "Face and photo attendance at Sheet Shapers",
+    "lead": "How the gate attendance devices use your face and photos, why, for how long, and what you can do. In plain words.",
+    "version": "Version {{version}}",
+    "company": "Sheet Shapers, {{address}}",
+    "short": {
+      "title": "In short",
+      "purpose": {
+        "title": "Only for attendance",
+        "text": "Never shared, never sent to an AI company."
+      },
+      "template": {
+        "title": "Numbers, not pictures",
+        "text": "We keep an encrypted face template, not your photos."
+      },
+      "choice": {
+        "title": "Your choice",
+        "text": "Say no and punch with a QR card. Nothing else changes."
+      },
+      "questions": {
+        "title": "Questions?",
+        "text": "Ask the plant office, or the contact below."
+      }
+    },
+    "onThisPage": "On this page",
+    "collect": {
+      "title": "What we collect",
+      "faceLead": "If you punch with your face:",
+      "template": "A face template. At enrolment the camera takes 5 pictures of your face. The system turns them into a list of numbers that describes your face. The pictures are deleted at once. Only the template is kept, and it is encrypted.",
+      "pictures": "Pictures at each face punch. The device takes a few pictures. The server compares them with your template and then deletes them.",
+      "photo": "One small photo when a face punch fails or you type your employee code, so the plant office can check what happened.",
+      "cardLead": "If you punch with a QR card: one photo at each card punch, checked automatically to see that a face is present.",
+      "everyone": "For everyone: your name, employee code, plant, and the time and device of each punch."
+    },
+    "why": {
+      "title": "Why",
+      "text": "Only to record your attendance and to stop anyone else from marking attendance for you.",
+      "more": "Your face data is not used for anything else, is not shared, and is never sent to any AI company. Card photos are checked automatically only to see that a face is present."
+    },
+    "keep": {
+      "title": "How long we keep it",
+      "template": "Face template",
+      "templateWhen": "Until you leave or withdraw your consent",
+      "pictures": "Pictures taken at a face punch",
+      "picturesWhen": "Deleted after the check",
+      "failedPhoto": "Photo of a failed punch, or when you type your code",
+      "cardPhoto": "Photo of a card punch",
+      "days": "{{count}} days",
+      "punches": "Punch times (attendance records)",
+      "punchesWhen": "As labour law requires",
+      "consent": "Your consent record (proof of consent)",
+      "consentWhen": "With your employee record",
+      "after": "When you leave the company or withdraw your consent, your template is deleted at once."
+    },
+    "where": {
+      "title": "Where it is processed",
+      "text": "The pictures are checked in memory on our hosting provider's server in Singapore. The encrypted template and the photos are stored in Mumbai. The storage provider does not have the key to open them."
+    },
+    "see": {
+      "title": "Who can see it",
+      "text": "No person can see your template. Only the Super Admin can see the small photos of failed punches, and every view is recorded. The Plant Head and the Corporate Head see only whether, when and how you punched."
+    },
+    "choice": {
+      "title": "Your choice, and how to withdraw",
+      "text": "You do not have to agree to face attendance. If you do not agree, you get a QR ID card to punch with instead. Saying no, or withdrawing later, will not affect your job, pay, shift or treatment in any way.",
+      "withdraw": "To withdraw, tell the plant office. That is enough. Your template is then deleted and you get a QR card."
+    },
+    "rights": {
+      "title": "Your rights",
+      "text": "You can ask what data we keep about you, ask to correct or delete it, and raise a complaint. Your attendance records (punch times) are kept as labour law requires, even after your face data is deleted.",
+      "reply": "We reply within 30 days. If you are not satisfied with the answer, you can complain to the Data Protection Board of India."
+    },
+    "contact": {
+      "title": "Who to contact",
+      "grievance": "Grievance officer and contact",
+      "missing": "The contact is being set up. Until then, ask at your plant office.",
+      "orOffice": "Or ask at your plant office."
+    },
+    "print": "Print this page",
+    "adminLogin": "Admin login",
+    "loading": "Loading the notice…",
+    "error": "The notice could not be loaded. Please try again, or ask at your plant office.",
+    "footer": "Upasthiti · Sheet Shapers · Smart Attendance"
   }
 }

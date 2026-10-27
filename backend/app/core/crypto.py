@@ -1,8 +1,8 @@
-"""Cryptography helpers for QR cards (Ed25519 signatures) and snapshots (AES-256-GCM).
+"""Cryptography helpers for QR cards (Ed25519), snapshots and face vectors (AES-256-GCM).
 
 These functions are pure: they take the key as an argument and never read settings, so they are
 easy to test. Keys are 32 random bytes written as base64url text (the form kept in the
-environment variables QR_SIGNING_KEY and SNAPSHOT_ENCRYPTION_KEY).
+environment variables QR_SIGNING_KEY, SNAPSHOT_ENCRYPTION_KEY and FACE_TEMPLATE_KEY).
 """
 
 import base64
@@ -10,7 +10,9 @@ import binascii
 import os
 import secrets
 import uuid
+from dataclasses import dataclass
 
+import numpy as np
 from cryptography.exceptions import InvalidSignature, InvalidTag
 from cryptography.hazmat.primitives.asymmetric.ed25519 import (
     Ed25519PrivateKey,
@@ -115,3 +117,59 @@ def decrypt_snapshot(stored_bytes: bytes, punch_id: uuid.UUID, key: bytes) -> by
         return AESGCM(key).decrypt(nonce, stored_bytes[header_length:], _punch_binding(punch_id))
     except InvalidTag:
         raise SnapshotDecryptionError("wrong key or not this punch's file") from None
+
+
+# --- AES-256-GCM for face vectors (spec M3 §7 rule 10) ------------------------------------
+
+FACE_KEY_ID = "A"  # stored beside every sealed vector, so a later key change stays possible
+FACE_VECTOR_SIZE = 512  # numbers in a face template or embedding
+FACE_VECTOR_BYTES = FACE_VECTOR_SIZE * 4  # float32
+
+
+class FaceDecryptionError(Exception):
+    """A sealed face vector cannot be opened: wrong key, damaged data, or it belongs elsewhere."""
+
+
+@dataclass(frozen=True)
+class SealedVector:
+    """What the database stores: the random nonce and the ciphertext (with the GCM tag)."""
+
+    nonce: bytes
+    ciphertext: bytes
+
+
+# The "binding" (GCM additional authenticated data) ties a sealed vector to the one thing it
+# belongs to. A ciphertext copied to another employee, session or pending match, or read as
+# another model's template, fails to open.
+
+
+def template_binding(employee_id: uuid.UUID, model_id: str, key_id: str = FACE_KEY_ID) -> bytes:
+    return f"face-template:{employee_id}:{model_id}:{key_id}".encode()
+
+
+def enrolment_shot_binding(session_id: uuid.UUID, pose: str) -> bytes:
+    return f"face-shot:{session_id}:{pose}".encode()
+
+
+def pending_match_binding(pending_id: uuid.UUID, kiosk_id: uuid.UUID) -> bytes:
+    return f"face-pending:{pending_id}:{kiosk_id}".encode()
+
+
+def seal_vector(vector: np.ndarray, binding: bytes, key: bytes) -> SealedVector:
+    """Encrypt a 512-number vector (stored as float32)."""
+    as_bytes = np.asarray(vector, dtype="<f4").tobytes()
+    if len(as_bytes) != FACE_VECTOR_BYTES:
+        raise ValueError(f"a face vector has exactly {FACE_VECTOR_SIZE} numbers")
+    nonce = os.urandom(NONCE_LENGTH_BYTES)
+    return SealedVector(nonce, AESGCM(key).encrypt(nonce, as_bytes, binding))
+
+
+def open_vector(sealed: SealedVector, binding: bytes, key: bytes) -> np.ndarray:
+    """Give back the vector, or raise FaceDecryptionError."""
+    try:
+        as_bytes = AESGCM(key).decrypt(sealed.nonce, sealed.ciphertext, binding)
+    except InvalidTag, ValueError:
+        raise FaceDecryptionError("wrong key or not this record's vector") from None
+    if len(as_bytes) != FACE_VECTOR_BYTES:
+        raise FaceDecryptionError("unexpected vector size")
+    return np.frombuffer(as_bytes, dtype="<f4").astype(np.float32)
