@@ -162,3 +162,23 @@ Who ran it: the lead, on his laptop, `buffalo_s`, data outside the repo (deleted
 - **Still to do before real employees are enrolled:** a pilot with a few consenting people,
   more attacks at a real gate device, and, after go-live, the "asked for code" rate and the
   "Re-enrol suggested" hint in the punch log (plan, decision 0024).
+
+## 5. Live gate timing (AC-9), 28/10/2026
+One test enrolment on the live site (DEMO plant, the lead's own face, tablet at the gate screen,
+consent recorded, 5 shots). The test data was removed afterwards with `remove_demo_plant` and the
+face data was deleted (consent ended).
+
+- **Result: accepted by the lead on observation (Tushar Gawande, 28/10/2026), not measured.**
+  The punches were not timed properly: starting the stopwatch and tapping "Punch with face" at
+  the same moment by hand is not reliable. Only one value was remembered: a repeated face punch,
+  answered "already checked in", showed its result about **4.07 s** after the tap. The lead first
+  said 5.07 s and corrected it to 4.07 s the same day (28/10/2026). It is the lead's memory of
+  one hand-timed run (reaction error about 0.3 s), not a recording, so it is not a reliable
+  measurement. The lead watched the punches work and judged the speed good enough
+  for the gate. AC-9 is therefore "accepted by the lead, to be measured" below.
+- That time includes the person's own head turn, the camera start and "Checking…", so it is the
+  whole tap-to-result time, which is the AC-9 measure. It is **only just above the 5 s target**,
+  from one run, and the server was probably warm (health `ready`).
+- **To close AC-9:** at least 10 timed punches (tap to coloured result screen), three from a cold
+  server (after 15 minutes of no traffic), on the real gate device, written here as median and
+  worst. Phone screen recording of the tablet gives exact times.
