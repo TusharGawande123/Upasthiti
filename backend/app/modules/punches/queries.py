@@ -9,7 +9,7 @@ from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta
 
 from sqlalchemy import Select, exists, func, or_, select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, aliased
 
 from app.core.errors import ApiError
 from app.core.time import IST
@@ -19,7 +19,9 @@ from app.modules.punches.models import (
     MatchMode,
     Punch,
     PunchDecision,
+    PunchReview,
     PunchSnapshot,
+    ReviewAction,
     SnapshotState,
 )
 
@@ -41,6 +43,10 @@ class PunchFilters:
     match_mode: str | None = None
     asked_for_code: bool = False
     no_face_photo: bool = False  # Super Admin only (F-30)
+    # M4 (spec §5.4)
+    flagged: bool = False
+    was_offline: bool = False
+    review_state: str | None = None  # to_check / confirmed / not_accepted / approved
 
 
 def day_bounds(day: date) -> tuple[datetime, datetime]:
@@ -56,8 +62,9 @@ def punches_statement(
     start, end = day_bounds(filters.day)
     statement = (
         select(Punch)
-        .where(Punch.server_received_at >= start, Punch.server_received_at < end)
-        .order_by(Punch.server_received_at.desc(), Punch.id)
+        # M4: a day means the punch time (a punch saved offline belongs to the day it was made).
+        .where(Punch.punch_time >= start, Punch.punch_time < end)
+        .order_by(Punch.punch_time.desc(), Punch.id)
     )
     if only_plant_ids is not None:
         statement = statement.where(Punch.plant_id.in_(only_plant_ids))
@@ -87,6 +94,12 @@ def punches_statement(
         statement = statement.where(
             exists().where(PunchSnapshot.punch_id == Punch.id, PunchSnapshot.face_found.is_(False))
         )
+    if filters.flagged:
+        statement = statement.where(Punch.decision == PunchDecision.FLAGGED.value)
+    if filters.was_offline:
+        statement = statement.where(Punch.was_offline.is_(True))
+    if filters.review_state:
+        statement = _by_review_state(statement, filters.review_state)
     if filters.dark_only:
         statement = statement.join(PunchSnapshot, PunchSnapshot.punch_id == Punch.id).where(
             PunchSnapshot.is_dark.is_(True)
@@ -105,6 +118,32 @@ def punches_statement(
     return statement
 
 
+def _by_review_state(statement: Select[Punch], state: str) -> Select[Punch]:
+    """Flagged punches by what the Super Admin decided (the latest review of each punch)."""
+    latest = aliased(PunchReview, name="review_filter")
+    newer = aliased(PunchReview, name="review_newer")
+    has_latest = exists().where(
+        latest.punch_id == Punch.id, ~exists().where(newer.supersedes_review_id == latest.id)
+    )
+
+    def latest_is(action: str):  # noqa: ANN202 (a SQL condition)
+        return exists().where(
+            latest.punch_id == Punch.id,
+            latest.action == action,
+            ~exists().where(newer.supersedes_review_id == latest.id),
+        )
+
+    if state == "to_check":
+        return statement.where(Punch.decision == PunchDecision.FLAGGED.value, ~has_latest)
+    if state == "confirmed":
+        return statement.where(latest_is(ReviewAction.CONFIRMED.value))
+    if state == "not_accepted":
+        return statement.where(latest_is(ReviewAction.NOT_ACCEPTED.value))
+    if state == "approved":
+        return statement.where(latest_is(ReviewAction.APPROVED.value))
+    return statement
+
+
 @dataclass(frozen=True)
 class DaySummary:
     accepted_in: int
@@ -116,6 +155,9 @@ class DaySummary:
     code_accepted: int
     asked_for_code: int
     no_face_photos: int
+    flagged: int = 0
+    offline: int = 0
+    to_check: int = 0
 
 
 def day_summary(session: Session, statement: Select[Punch]) -> DaySummary:
@@ -127,15 +169,34 @@ def day_summary(session: Session, statement: Select[Punch]) -> DaySummary:
     ).all()
     by_kind = {(decision, direction): number for decision, direction, number in counts}
     accepted = PunchDecision.ACCEPTED.value
+    flagged = PunchDecision.FLAGGED.value
     needs_code = PunchDecision.NEEDS_CODE.value
-    # "Asked for code" is not a rejection: the person may still be accepted by the code.
+    # "Asked for code" is not a rejection: the person may still be accepted by the code. A flagged
+    # punch counts as IN or OUT like an accepted one (it also shows in the "flagged" chip).
     rejected = sum(
-        n for (decision, _), n in by_kind.items() if decision not in (accepted, needs_code)
+        n for (decision, _), n in by_kind.items() if decision not in (accepted, flagged, needs_code)
+    )
+    counted = {
+        direction: by_kind.get((accepted, direction), 0) + by_kind.get((flagged, direction), 0)
+        for direction in (Direction.IN.value, Direction.OUT.value)
+    }
+    flagged_total = sum(n for (decision, _), n in by_kind.items() if decision == flagged)
+    offline_total = session.scalar(
+        select(func.count()).select_from(matching).where(matching.c.was_offline.is_(True))
+    )
+    to_check = session.scalar(
+        select(func.count())
+        .select_from(Punch)
+        .where(
+            Punch.id.in_(select(matching.c.id)),
+            Punch.decision == flagged,
+            ~exists().where(PunchReview.punch_id == Punch.id),
+        )
     )
     # The first reason of each rejection, worked out once, then counted per reason.
     first_reasons = (
         select(matching.c.reason_codes[1].label("reason"))
-        .where(matching.c.decision.not_in([accepted, needs_code]))
+        .where(matching.c.decision.not_in([accepted, flagged, needs_code]))
         .subquery()
     )
     reasons = session.execute(
@@ -149,7 +210,7 @@ def day_summary(session: Session, statement: Select[Punch]) -> DaySummary:
     face_counts = dict(
         session.execute(
             select(matching.c.match_mode, func.count())
-            .where(matching.c.decision == accepted, matching.c.match_mode.is_not(None))
+            .where(matching.c.decision.in_([accepted, flagged]), matching.c.match_mode.is_not(None))
             .group_by(matching.c.match_mode)
         ).all()
     )
@@ -165,8 +226,11 @@ def day_summary(session: Session, statement: Select[Punch]) -> DaySummary:
         code_accepted=face_counts.get(MatchMode.CODE.value, 0),
         asked_for_code=sum(n for (decision, _), n in by_kind.items() if decision == needs_code),
         no_face_photos=no_face or 0,
-        accepted_in=by_kind.get((accepted, Direction.IN.value), 0),
-        accepted_out=by_kind.get((accepted, Direction.OUT.value), 0),
+        accepted_in=counted[Direction.IN.value],
+        accepted_out=counted[Direction.OUT.value],
+        flagged=flagged_total,
+        offline=offline_total or 0,
+        to_check=to_check or 0,
         rejected=rejected,
         dark_photos=dark or 0,
         rejected_by_reason={code: number for code, number in reasons if code},

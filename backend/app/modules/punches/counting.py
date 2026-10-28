@@ -10,6 +10,7 @@ A review only changes later decisions: a punch already decided keeps its stored 
 """
 
 import uuid
+from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime
 
@@ -101,6 +102,30 @@ def counted_between(
         .order_by(Punch.punch_time.asc())
     ).all()
     return [CountedPunch(row[0], row[1]) for row in rows]
+
+
+def latest_reviews(
+    session: Session, punch_ids: Sequence[uuid.UUID]
+) -> dict[uuid.UUID, PunchReview]:
+    """The latest review of each punch that has one, in one query (for a page of the log)."""
+    if not punch_ids:
+        return {}
+    rows = session.scalars(
+        select(_latest).where(_latest.punch_id.in_(punch_ids), _is_latest_review)
+    )
+    return {review.punch_id: review for review in rows}
+
+
+def review_state(punch: Punch, review: PunchReview | None) -> str | None:
+    """The review mark of a flagged or rejected punch: to_check / confirmed / not_accepted /
+    approved. Accepted and needs-code punches have none."""
+    if punch.decision == PunchDecision.FLAGGED.value:
+        if review is None:
+            return "to_check"
+        return "not_accepted" if review.action == ReviewAction.NOT_ACCEPTED.value else "confirmed"
+    if punch.decision == PunchDecision.REJECTED.value and review is not None:
+        return "approved"
+    return None
 
 
 def latest_review(session: Session, punch_id: uuid.UUID) -> PunchReview | None:

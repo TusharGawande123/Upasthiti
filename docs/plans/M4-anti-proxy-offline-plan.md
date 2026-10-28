@@ -314,5 +314,32 @@ suites). Manual: step 34 real-device check on the live site.
   - Outward (Tushar): make the live `OFFLINE_EVIDENCE_KEY` with
     `uv run python -m app.scripts.make_offline_key`, keep it in the password manager, set it on Render
     before the merge. Without it the live backend will not start (production requires it).
-- Next: slice C (device status and health). Design gate C first.
+- Done (2026-10-29): **slice C complete**: migrations 0017/0018, `POST /kiosk/heartbeat` (+ GET /kiosk/me
+  fallback in the gate), `kiosks/status.py` (state computed on read), `status_service.py`,
+  `GET /kiosks` new fields + `state` filter, `/kiosks/status-summary`, `/kiosks/{id}/health`,
+  readiness `device_online` / `location_good`, `last_punch_at` / `last_sync_at`, 7-day heartbeat purge
+  in the daily job; admin: state badges, drawer with health timeline, revoke warning, offline badge,
+  alert banner, readiness lines, dashboard devices card. Design gates A, B, C mockups are in
+  `docs/design-refs/m4/gate-{a,b,c}/` (not yet formally approved by the lead; build followed them).
+  Gap: no map in the device drawer yet.
+- IN PROGRESS (slice D, backend only, NOT TESTED, may not run): `punches/counting.py` got
+  `latest_reviews` + `review_state`; `punches/queries.py` got filters `flagged` / `was_offline` /
+  `review_state`, day = `punch_time`, summary counts flagged as IN/OUT and adds `flagged`, `offline`,
+  `to_check`. Run `uv run ruff check . && uv run pyright && uv run pytest` first and fix.
+- Next (slice D, steps 26-29): (1) finish punch log: add `punch_time`, `was_offline`, `review_state`,
+  `review_direction`, `time_proof` etc. to `PunchLogItem` / `PunchDetail` (schemas.py, presenter.py),
+  query params in `admin_router.punch_filters` (`flagged`, `was_offline`, `review_state`; decision may be
+  "flagged"), summary fields, Excel columns (Punch time, Saved offline, Flags, Review); (2) review
+  endpoints: capability `REVIEW_PUNCHES` (Super Admin), `GET /reviews`, `/reviews/summary`,
+  `/reviews/digest` (F-48), `GET /punches/{id}/review-context` (related punches, suggestion, nearby
+  counted, history, F-54 hints), `POST /punches/{id}/reviews` (confirm / not_accepted / approve,
+  `expected_latest_review_id` -> REVIEW_CHANGED, audit `punch_review.*`), spec section 5.3 and 7 rules 6, 7,
+  20; (3) frontend `/admin/review` page per the gate B mockups, punch log marks and filters (gate C
+  03-punch-log), dashboard "To check" and digest cards, sidebar entry + Ctrl+K; (4) tests (AC-24 to
+  AC-30, AC-42, AC-43), e2e `admin-review.spec.ts`, add `/admin/review` to `e2e/tests/responsive.spec.ts`.
+  Then slice E (steps 30-35): coverage floor 82%, docs (spec section 15; fix the spec example "2.4 km in
+  3 min = 48 km/h" which is under the 60 limit), `/review-milestone`, CLAUDE.md diff for the lead, then
+  `/ship`. Outward steps for Tushar: make `OFFLINE_EVIDENCE_KEY` (`uv run python -m
+  app.scripts.make_offline_key`), set it on Render before the merge; real-device checks (step 34).
+- Local setup: start Docker Desktop, `docker compose up -d`, `cd backend && uv run alembic upgrade head`.
 - Open questions: none.
