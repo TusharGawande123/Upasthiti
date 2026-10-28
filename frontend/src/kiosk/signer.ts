@@ -7,6 +7,7 @@
 import { apiSend } from "@/lib/api-client";
 import { bytesToBase64Url } from "./device-key";
 import { loadDevice, takeNextCounter } from "./device-store";
+import { rememberAnchor, type TimeAnchor } from "./offline/time-anchor";
 
 const API_PREFIX = "/api/v1";
 const NONCE_BYTES = 16;
@@ -60,6 +61,18 @@ export async function signRequest(
   };
 }
 
+/** Signs any text with the device key (M4: a queued punch is signed when it is made). */
+export async function signText(text: string): Promise<string> {
+  const device = await loadDevice();
+  if (!device) throw new Error("This device is not paired.");
+  const signature = await crypto.subtle.sign(
+    { name: "ECDSA", hash: "SHA-256" },
+    device.privateKey,
+    encoder.encode(text),
+  );
+  return bytesToBase64Url(new Uint8Array(signature));
+}
+
 /** Sends one signed request to the backend. `path` is relative to /api/v1. */
 export async function signedRequest<T>(
   method: "GET" | "POST" | "PUT" | "PATCH",
@@ -69,5 +82,8 @@ export async function signedRequest<T>(
   // The body text signed here must be exactly the text sent, so the server's hash matches.
   const bodyText = body === undefined ? "" : JSON.stringify(body);
   const headers = await signRequest(method, `${API_PREFIX}${path}`, bodyText);
-  return apiSend<T>({ method, path, body, headers });
+  const answer = await apiSend<T>({ method, path, body, headers });
+  // M4: every signed answer may carry the server's time anchor for offline punches.
+  rememberAnchor((answer as { time_anchor?: TimeAnchor } | null)?.time_anchor);
+  return answer;
 }

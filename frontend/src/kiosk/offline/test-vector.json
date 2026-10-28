@@ -1,0 +1,19 @@
+{
+  "note": "Made-up keys for tests only. The same file is read by the Vitest sealer test and by pytest.",
+  "kiosk_id": "11111111-2222-3333-4444-555555555555",
+  "client_punch_id": "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee",
+  "method": "qr",
+  "key_id": "A",
+  "server_private_key_pkcs8": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgAHNlcnZlci1rZXktZm9yLXRoZS1zaGFyZWQtdmVjdG-hRANCAAR5ZpT1H_04ujzS1400tb1bgNbmjydt2oTwMndJZpASZU7TimG2_DMTEu2jIGedw8XQ5KF0yRcjXfMbJuGm1kxo",
+  "server_public_key": "BHlmlPUf_Ti6PNLXjTS1vVuA1uaPJ23ahPAyd0lmkBJlTtOKYbb8MxMS7aMgZ53DxdDkoXTJFyNd8xsm4abWTGg",
+  "one_time_private_key_pkcs8": "MIGHAgEAMBMGByqGSM49AgEGCCqGSM49AwEHBG0wawIBAQQgAG9uZS10aW1lLWtleS1mb3ItdGhlLXNoYXJlZC12ZWOhRANCAAT9fZ9ZYaWHhtU5Pmbmm5c58DbizV5yZvpdkn0GpsCLDO2WslsqG7uk-GTJkokLo5JsbxPPO52oDMNThehyAu8k",
+  "one_time_public_key": "BP19n1lhpYeG1Tk-ZuablznwNuLNXnJm-l2SfQamwIsM7ZayWyobu6T4ZMmSiQujkmxvE887nagMw1OF6HIC7yQ",
+  "nonce": "MDEyMzQ1Njc4OWFi",
+  "plaintext": "{\"qr_payload\":\"UPS1.A.C000123.SIG\",\"snapshot_jpeg\":\"/9j/AA==\"}",
+  "evidence": {
+    "key_id": "A",
+    "ephemeral_public_key": "BP19n1lhpYeG1Tk-ZuablznwNuLNXnJm-l2SfQamwIsM7ZayWyobu6T4ZMmSiQujkmxvE887nagMw1OF6HIC7yQ",
+    "nonce": "MDEyMzQ1Njc4OWFi",
+    "ciphertext": "K4F8XCIX7ZjLOyIaukUwKZHrUeIOfSkjSb2jWpzHBUpsYcP93aC28U23mDoo3bDj34KsTyzj2nHzJ4e6cosx9QN-RZXh6G8nNqDNc8zj"
+  }
+}
