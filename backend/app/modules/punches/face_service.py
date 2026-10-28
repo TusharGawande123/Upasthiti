@@ -25,9 +25,16 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.antiproxy.context import Outcome, PunchContext, PunchLimits, RuleResult
-from app.antiproxy.engine import run_face_rules
+from app.antiproxy.engine import (
+    AFTER_IDENTITY_RULES,
+    LOCATION_RULES,
+    EngineDecision,
+    combine,
+    rejected_after,
+    run_face_rules,
+    run_rules,
+)
 from app.antiproxy.face_context import FaceFrame, FaceLimits, FacePunchContext
-from app.antiproxy.rules.cooldown import check_in_out
 from app.antiproxy.rules.face_challenge import nonce_hash
 from app.antiproxy.rules.face_frames import MAX_FRAME_BYTES
 from app.core.config import get_settings
@@ -50,10 +57,10 @@ from app.modules.face.engine_provider import face_key, ready_model_id, run_face_
 from app.modules.face.enrolment_service import open_template
 from app.modules.face.gallery_cache import plant_gallery
 from app.modules.face.template_service import active_template
+from app.modules.kiosks.location_check import Location
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches.answers import ALREADY_PUNCHED_CODES, punch_answer
 from app.modules.punches.models import (
-    Direction,
     FacePendingMatch,
     MatchMode,
     Punch,
@@ -77,6 +84,8 @@ from app.modules.punches.service import (
     delete_file_quietly,
     find_punch,
     load_limits,
+    metres,
+    reported_location,
     upload_snapshot,
 )
 from app.modules.punches.snapshots import CheckedSnapshot, SnapshotInvalidError, inspect_snapshot
@@ -189,14 +198,24 @@ def record_face_punch(
         )
         return run_face_rules(context), context
 
-    result, context = run_face_job(engine, job)
-    direction: Direction | None = None
-    if result.outcome is Outcome.ALLOW and context.employee is not None:
-        result, direction = _decide_in_out(session, kiosk, context.employee, now, limits)
+    # M4: the device must be at its plant; a device taken home is refused before any face work.
+    place = _place_context(session, kiosk, now, limits, reported_location(request), request)
+    place_decision = run_rules(place, LOCATION_RULES)
+    context: FacePunchContext | None = None
+    if place_decision.outcome is Outcome.REJECT:
+        decision = place_decision
+    else:
+        result, context = run_face_job(engine, job)
+        if result.outcome is Outcome.ALLOW and context.employee is not None:
+            place.employee = context.employee
+            decision = combine(place_decision, _after_identity(session, place))
+        else:
+            decision = rejected_after(place_decision, result.reason_code or "INTERNAL_ERROR")
 
-    punch = _face_punch_row(kiosk, request, client, context, result, direction, now, model_id)
-    snapshot = _face_snapshot(session, punch, frames, result, now, storage)
-    pending, token = _pending_match(session, kiosk, punch, context, result, now, model_id, key)
+    punch = _face_punch_row(kiosk, request, client, context, decision, place, now, model_id)
+    first_code = decision.reason_codes[0] if decision.outcome is Outcome.REJECT else None
+    snapshot = _face_snapshot(session, punch, frames, first_code, now, storage)
+    pending, token = _pending_match(session, kiosk, punch, context, first_code, now, model_id, key)
     try:
         session.add(punch)
         session.flush()  # the unique (kiosk, client_punch_id) rule is checked here
@@ -232,12 +251,16 @@ def _decode_frame(text: str) -> bytes:
         return b""
 
 
-def _decide_in_out(
-    session: Session, kiosk: KioskDevice, employee: Employee, now: datetime, limits: PunchLimits
-) -> tuple[RuleResult, Direction | None]:
-    """The M2 cool-down and IN/OUT rule, with the employee's row locked (two gates at once)."""
-    session.execute(select(Employee.id).where(Employee.id == employee.id).with_for_update())
-    context = PunchContext(
+def _place_context(
+    session: Session,
+    kiosk: KioskDevice,
+    now: datetime,
+    limits: PunchLimits,
+    location: Location | None,
+    request: KioskPunchRequest | None = None,
+) -> PunchContext:
+    """The card-free context the location rules and the IN/OUT + flag rules read."""
+    return PunchContext(
         session=session,
         app_settings=get_settings(),
         kiosk=kiosk,
@@ -245,10 +268,18 @@ def _decide_in_out(
         limits=limits,
         qr_text=None,
         snapshot_bytes=None,
-        employee=employee,
+        location=location,
+        location_age_s=request.location.age_s if request and request.location else None,
     )
-    result = check_in_out(context)
-    return result, context.direction if result.outcome is Outcome.ALLOW else None
+
+
+def _after_identity(session: Session, context: PunchContext) -> EngineDecision:
+    """IN/OUT and the flag rules, with the employee's row locked (two gates at once)."""
+    employee = context.employee
+    if employee is None:
+        raise RuntimeError("the face must be matched before IN/OUT is decided")
+    session.execute(select(Employee.id).where(Employee.id == employee.id).with_for_update())
+    return run_rules(context, AFTER_IDENTITY_RULES)
 
 
 def _score(value: float | None) -> Decimal | None:
@@ -259,21 +290,18 @@ def _face_punch_row(
     kiosk: KioskDevice,
     request: KioskPunchRequest,
     client: ClientInfo,
-    context: FacePunchContext,
-    result: RuleResult,
-    direction: Direction | None,
+    context: FacePunchContext | None,
+    decision: EngineDecision,
+    place: PunchContext,
     now: datetime,
     model_id: str,
 ) -> Punch:
-    accepted = result.outcome is Outcome.ALLOW
-    needs_code = result.reason_code == "NEED_EMPLOYEE_CODE"
-    if accepted:
-        decision = PunchDecision.ACCEPTED.value
-    elif needs_code:
-        decision = PunchDecision.NEEDS_CODE.value
+    counts = decision.outcome is Outcome.ALLOW
+    if decision.reason_codes[:1] == ["NEED_EMPLOYEE_CODE"]:
+        decision_value = PunchDecision.NEEDS_CODE.value
     else:
-        decision = PunchDecision.REJECTED.value
-    match = context.match
+        decision_value = decision.decision_value
+    match = context.match if context else None
     location = request.location
     return Punch(
         id=uuid.uuid4(),
@@ -281,38 +309,49 @@ def _face_punch_row(
         kiosk_id=kiosk.id,
         plant_id=kiosk.plant_id,
         # Set only when the face itself matched (accepted, or "already punched").
-        employee_id=context.employee.id if context.employee else None,
+        employee_id=context.employee.id if context and context.employee else None,
         method=PunchMethod.FACE.value,
-        direction=direction.value if accepted and direction else None,
-        decision=decision,
-        reason_codes=[] if accepted else [result.reason_code or "INTERNAL_ERROR"],
+        direction=decision.direction.value if counts and decision.direction else None,
+        decision=decision_value,
+        reason_codes=decision.reason_codes,
         server_received_at=now,
         device_claimed_at=request.device_time,
         lat=location.lat if location else None,
         lon=location.lon if location else None,
         accuracy_m=location.accuracy_m if location else None,
+        location_age_s=location.age_s if location else None,
+        geofence_id=place.geofence_id,
+        geofence_distance_m=metres(place.geofence_distance_m),
+        related_punch_id=place.related_punch_id,
         ip=client.ip,
         app_version=request.app_version,
         match_mode=MatchMode.ONE_TO_MANY.value if match is not None else None,
         match_score=_score(match.best_score if match else None),
         second_best_score=_score(match.second_best_score if match else None),
-        antispoof_score=_score(context.antispoof_score),
-        yaw_degrees=None if context.yaw_degrees is None else Decimal(f"{context.yaw_degrees:.1f}"),
-        challenge=context.challenge,
+        antispoof_score=_score(context.antispoof_score if context else None),
+        yaw_degrees=_yaw(context),
+        challenge=context.challenge if context else None,
         face_model_id=model_id,
     )
+
+
+def _yaw(context: FacePunchContext | None) -> Decimal | None:
+    if context is None or context.yaw_degrees is None:
+        return None
+    return Decimal(f"{context.yaw_degrees:.1f}")
 
 
 def _face_snapshot(
     session: Session,
     punch: Punch,
     frames: list[FaceFrame],
-    result: RuleResult,
+    first_code: str | None,
     now: datetime,
     storage: Storage | None,
 ) -> PunchSnapshot | None:
-    """A 320 px photo of a rejected or code-path face punch; never for an accepted one."""
-    if punch.decision == PunchDecision.ACCEPTED.value or result.reason_code in NO_PHOTO_CODES:
+    """A 320 px photo of a rejected or code-path face punch; never for one that counts."""
+    counts = punch.decision in (PunchDecision.ACCEPTED.value, PunchDecision.FLAGGED.value)
+    if counts or first_code in NO_PHOTO_CODES:
         return None
     checked = _small_photo(frames, get_int_setting(session, "snapshot_dark_threshold"))
     if checked is None:
@@ -365,14 +404,14 @@ def _pending_match(
     session: Session,
     kiosk: KioskDevice,
     punch: Punch,
-    context: FacePunchContext,
-    result: RuleResult,
+    context: FacePunchContext | None,
+    first_code: str | None,
     now: datetime,
     model_id: str,
     key: bytes,
 ) -> tuple[FacePendingMatch | None, str | None]:
     """For "needs code": the unsure embedding waits here, encrypted; the device gets a token."""
-    if result.reason_code != "NEED_EMPLOYEE_CODE" or context.embedding is None:
+    if first_code != "NEED_EMPLOYEE_CODE" or context is None or context.embedding is None:
         return None, None
     session.execute(
         delete(FacePendingMatch).where(
@@ -488,22 +527,9 @@ def record_code_try(
                     score=score,
                 ),
             )
-        result, direction = _decide_in_out(session, kiosk, claimed, now, limits)
-        if result.outcome is Outcome.ALLOW:
-            return _final_code_row(
-                session,
-                kiosk,
-                request,
-                client,
-                now,
-                pending,
-                None,
-                limits,
-                claimed=claimed,
-                employee=claimed,
-                score=score,
-                direction=direction,
-            )
+        place = _origin_place(session, kiosk, now, limits, pending)
+        place.employee = claimed
+        decision = combine(_origin_flags(session, pending), _after_identity(session, place))
         return _final_code_row(
             session,
             kiosk,
@@ -511,11 +537,13 @@ def record_code_try(
             client,
             now,
             pending,
-            result.reason_code,
+            decision.reason_codes[0] if decision.outcome is Outcome.REJECT else None,
             limits,
             claimed=claimed,
             employee=claimed,
             score=score,
+            decision=decision,
+            place=place,
         )
 
     # Not this person (or no such face employee): one try is used up.
@@ -605,11 +633,18 @@ def _final_code_row(
     claimed: Employee | None = None,
     employee: Employee | None = None,
     score: float | None = None,
-    direction: Direction | None = None,
+    decision: EngineDecision | None = None,
+    place: PunchContext | None = None,
 ) -> KioskPunchResponse:
     """The last answer of a code path: one punch row pointing to the punch that asked for the
-    code. The pending row (and its embedding) is deleted in the same transaction."""
-    accepted = reason_code is None
+    code. The pending row (and its embedding) is deleted in the same transaction. The place
+    (position, fence, edge flag) is the one of the punch that asked for the code (M4 §7 rule 4)."""
+    if decision is None:
+        decision = rejected_after(_origin_flags(session, pending), reason_code or "INTERNAL_ERROR")
+    if place is None:
+        place = _origin_place(session, kiosk, now, limits, pending)
+    counts = decision.outcome is Outcome.ALLOW
+    origin = session.get(Punch, pending.origin_punch_id) if pending else None
     punch = Punch(
         id=uuid.uuid4(),
         client_punch_id=request.client_punch_id,
@@ -617,10 +652,17 @@ def _final_code_row(
         plant_id=kiosk.plant_id,
         employee_id=employee.id if employee else None,
         method=PunchMethod.FACE.value,
-        direction=direction.value if accepted and direction else None,
-        decision=PunchDecision.ACCEPTED.value if accepted else PunchDecision.REJECTED.value,
-        reason_codes=[] if accepted else [reason_code],
+        direction=decision.direction.value if counts and decision.direction else None,
+        decision=decision.decision_value,
+        reason_codes=decision.reason_codes,
         server_received_at=now,
+        lat=origin.lat if origin else None,
+        lon=origin.lon if origin else None,
+        accuracy_m=origin.accuracy_m if origin else None,
+        location_age_s=origin.location_age_s if origin else None,
+        geofence_id=origin.geofence_id if origin else None,
+        geofence_distance_m=origin.geofence_distance_m if origin else None,
+        related_punch_id=place.related_punch_id,
         ip=client.ip,
         match_mode=MatchMode.CODE.value,
         match_score=_score(score),
@@ -640,6 +682,32 @@ def _final_code_row(
             raise
         punch = winner
     return punch_answer(session, punch, kiosk.name, limits)
+
+
+def _origin_place(
+    session: Session,
+    kiosk: KioskDevice,
+    now: datetime,
+    limits: PunchLimits,
+    pending: FacePendingMatch | None,
+) -> PunchContext:
+    """The place of the punch that asked for the code: no new reading is needed for the same
+    person seconds later (M4 spec §7 rule 4)."""
+    origin = session.get(Punch, pending.origin_punch_id) if pending else None
+    location = None
+    if origin is not None and origin.lat is not None and origin.lon is not None:
+        accuracy = float(origin.accuracy_m) if origin.accuracy_m is not None else 0.0
+        location = Location(float(origin.lat), float(origin.lon), accuracy)
+    return _place_context(session, kiosk, now, limits, location)
+
+
+def _origin_flags(session: Session, pending: FacePendingMatch | None) -> EngineDecision:
+    """The location flags of the punch that asked for the code, carried to the final row."""
+    origin = session.get(Punch, pending.origin_punch_id) if pending else None
+    flags = [
+        code for code in (origin.reason_codes if origin else []) if code.startswith("LOCATION_")
+    ]
+    return EngineDecision(Outcome.ALLOW, list(flags), None, flags)
 
 
 def _slow(started: float, answer: KioskPunchResponse) -> KioskPunchResponse:

@@ -35,7 +35,8 @@ def punch_answer(
     session: Session, punch: Punch, kiosk_name: str, limits: PunchLimits
 ) -> KioskPunchResponse:
     reason_code = punch.reason_codes[0] if punch.reason_codes else None
-    accepted = punch.decision == PunchDecision.ACCEPTED.value
+    # A flagged punch counts like an accepted one; the flag is for the Super Admin only (M4).
+    accepted = punch.decision in (PunchDecision.ACCEPTED.value, PunchDecision.FLAGGED.value)
     needs_code = punch.decision == PunchDecision.NEEDS_CODE.value
     already_punched = reason_code in ALREADY_PUNCHED_CODES
 
@@ -67,7 +68,9 @@ def punch_answer(
     )
 
 
-def self_test_answer(kiosk_name: str, server_time: datetime) -> KioskPunchResponse:
+def self_test_answer(
+    kiosk_name: str, server_time: datetime, location_check: str | None = None
+) -> KioskPunchResponse:
     return KioskPunchResponse(
         punch_id=None,
         decision="self_test",
@@ -77,7 +80,7 @@ def self_test_answer(kiosk_name: str, server_time: datetime) -> KioskPunchRespon
         reason_code=None,
         message_key="kiosk.punch.selfTest",
         voice_key="kiosk.voice.selfTest",
-        details=PunchDetails(kiosk_name=kiosk_name),
+        details=PunchDetails(kiosk_name=kiosk_name, location_check=location_check),
     )
 
 

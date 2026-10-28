@@ -17,12 +17,14 @@ from app.antiproxy.rules.qr_credential import check_qr_credential
 from app.antiproxy.rules.snapshot import check_snapshot
 from app.core.config import get_settings
 from app.core.time import IST, today_ist
+from app.modules.kiosks.location_check import Location
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches.models import Direction, Punch
 from app.modules.qr_cards.models import QrCredential
 from app.modules.qr_cards.payload import build_payload
 from app.modules.users.models import Role
 from tests.image_helpers import make_jpeg, make_png
+from tests.kiosk_helpers import GATE_LAT, GATE_LON, ensure_gate_fence
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body, temporary_body
 
 LIMITS = PunchLimits(
@@ -53,6 +55,7 @@ def tp1(boss: TestClient, db_session: Session) -> PlantIds:
 
 
 def make_kiosk(session: Session, plant: PlantIds) -> KioskDevice:
+    ensure_gate_fence(session, uuid.UUID(plant.id))
     device = KioskDevice(
         plant_id=uuid.UUID(plant.id), name=f"Gate {uuid.uuid4().hex[:4]}", status="active"
     )
@@ -94,6 +97,7 @@ def make_context(db_session: Session, kiosk: KioskDevice) -> Callable[..., Punch
             "limits": LIMITS,
             "qr_text": None,
             "snapshot_bytes": make_jpeg(),
+            "location": Location(GATE_LAT, GATE_LON, 12.0),
         }
         return PunchContext(**{**values, **changes})  # type: ignore[arg-type]
 

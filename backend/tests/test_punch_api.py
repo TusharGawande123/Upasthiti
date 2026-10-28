@@ -30,7 +30,7 @@ from app.modules.qr_cards.payload import build_payload
 from app.modules.users.models import Role
 from tests.conftest import clear_cached_settings
 from tests.image_helpers import make_jpeg
-from tests.kiosk_helpers import Device, make_active_kiosk
+from tests.kiosk_helpers import GATE_LOCATION, Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant, temporary_body
 
 PUNCH = "/api/v1/punch/kiosk"
@@ -108,6 +108,7 @@ def send(
         "snapshot_jpeg": photo_text() if snapshot == "default" else snapshot,
         "device_time": "2026-10-20T10:00:00+05:30",
         "app_version": "test",
+        "location": GATE_LOCATION,
         **extra,
     }
     raw = json.dumps(body).encode()

@@ -68,6 +68,7 @@ class PunchDetails(BaseModel):
     last_punch_at: datetime | None = None
     out_allowed_from: datetime | None = None
     retry_allowed: bool | None = None  # face rejections where trying again can help
+    location_check: str | None = None  # M4 self test: "ok" or the location rule's code
 
 
 class KioskPunchResponse(BaseModel):

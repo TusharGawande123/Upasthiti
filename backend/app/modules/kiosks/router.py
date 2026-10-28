@@ -31,6 +31,8 @@ from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.schemas import (
     CreateKioskRequest,
     KioskFaceSettings,
+    KioskFence,
+    KioskLocationSettings,
     KioskMeResponse,
     KioskNoticeItem,
     KioskReportRequest,
@@ -44,6 +46,7 @@ from app.modules.kiosks.schemas import (
     UpdateKioskRequest,
 )
 from app.modules.notices.queries import visible_notices
+from app.modules.org.geofence_service import current_geofence
 from app.modules.org.plants_service import get_plant
 from app.modules.settings.service import get_int_setting, get_setting
 
@@ -247,6 +250,25 @@ def _screen_settings(
             code_entry_seconds=get_int_setting(session, "face_code_entry_seconds"),
             min_yaw_degrees=get_int_setting(session, "face_min_yaw_degrees"),
             code_prefixes=common_code_prefixes(session, kiosk.plant_id, running_model_id()),
+        ),
+        location=_location_settings(session, kiosk),
+    )
+
+
+def _location_settings(session: Session, kiosk: KioskDevice) -> KioskLocationSettings:
+    fence = current_geofence(session, kiosk.plant_id)
+    return KioskLocationSettings(
+        accuracy_limit_m=get_int_setting(session, "gps_accuracy_limit_m"),
+        max_age_seconds=get_int_setting(session, "kiosk_location_max_age_seconds"),
+        refresh_seconds=get_int_setting(session, "kiosk_location_refresh_seconds"),
+        geofence=None
+        if fence is None
+        else KioskFence(
+            version_id=fence.id,
+            shape=fence.shape,  # type: ignore[arg-type]
+            geojson=fence.geojson,
+            radius_m=float(fence.radius_m) if fence.radius_m is not None else None,
+            buffer_m=fence.buffer_m,
         ),
     )
 

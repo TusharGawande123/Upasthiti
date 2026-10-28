@@ -104,6 +104,7 @@ def main() -> int:
     from app.modules.qr_cards.service import issue_card
     from app.modules.users.models import Role, User
     from app.scripts.e2e_seed import _create_database_if_missing, _wipe_and_migrate
+    from app.scripts.gate_fence_fixture import ensure_gate_fence
 
     print("Making the database (wiped and migrated)...")
     _create_database_if_missing(DATABASE_URL, "upasthiti_loadtest")
@@ -139,6 +140,7 @@ def main() -> int:
             spki = private_key.public_key().public_bytes(
                 serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
             )
+            ensure_gate_fence(session, plant.id)  # M4: punches report a place in the fence
             kiosk = KioskDevice(
                 plant_id=plant.id,
                 name=f"{plant.code} gate",

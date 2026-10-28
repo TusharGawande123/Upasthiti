@@ -3,7 +3,7 @@
 import uuid
 from datetime import datetime
 from decimal import Decimal
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, Field
 
@@ -58,6 +58,8 @@ class LocationReport(BaseModel):
     lat: float = Field(ge=-90, le=90, allow_inf_nan=False)
     lon: float = Field(ge=-180, le=180, allow_inf_nan=False)
     accuracy_m: float = Field(ge=0, le=99999, allow_inf_nan=False)
+    # M4: how old the reading is, in seconds (informational online; offline up to 7 days).
+    age_s: int | None = Field(default=None, ge=0, le=604_800)
 
 
 class RegisterKioskRequest(BaseModel):
@@ -99,6 +101,26 @@ class KioskFaceSettings(BaseModel):
     code_prefixes: list[str]  # up to 3 common starts of codes here, e.g. "EMP-" (decision 0019)
 
 
+class KioskFence(BaseModel):
+    """The plant's current fence, so the gate can tell by itself whether it is at the plant
+    (M4 spec §7 rule 3). Only a guide for the screen: the server checks every punch again."""
+
+    version_id: uuid.UUID
+    shape: Literal["polygon", "circle"]
+    geojson: dict[str, Any]
+    radius_m: float | None
+    buffer_m: int
+
+
+class KioskLocationSettings(BaseModel):
+    """How the gate judges its own location (M4 spec §5.1)."""
+
+    accuracy_limit_m: int
+    max_age_seconds: int
+    refresh_seconds: int
+    geofence: KioskFence | None
+
+
 class KioskScreenSettings(BaseModel):
     """What the kiosk screen needs from the server settings (spec §5.2)."""
 
@@ -110,6 +132,7 @@ class KioskScreenSettings(BaseModel):
     snapshot_retention_days: int  # shown in the privacy line on the idle screen
     dark_threshold: int  # below this brightness the low-light hint appears
     face: KioskFaceSettings | None = None  # M3
+    location: KioskLocationSettings | None = None  # M4
 
 
 class KioskMeResponse(BaseModel):
