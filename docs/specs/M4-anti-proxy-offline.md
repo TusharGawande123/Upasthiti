@@ -195,7 +195,7 @@ translation file, the word "attendance device" in every text people read. Design
 approved in the plan step like M2/M3): **Gate A** gate screens (§4.1–§4.6); **Gate B** "Needs
 review" list, detail panel, map, side-by-side, review dialogs (§4.8); **Gate C** attendance devices
 page status, readiness card, punch log additions, dashboard cards, settings cards (§4.7, §4.9–§4.12).
-Links are added here once approved.
+Gate A (approved 2026-10-28, decision 0026): [docs/design-refs/m4/gate-a/index.html](../design-refs/m4/gate-a/index.html). Gate B and Gate C links are added once approved.
 
 ### 4.1 Gate screen: location (`/attendance`)
 - **Starting:** after load the gate shows its normal scanning screen with a small chip
