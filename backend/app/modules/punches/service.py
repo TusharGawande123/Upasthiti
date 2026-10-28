@@ -22,7 +22,13 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.antiproxy.context import Outcome, PunchContext, PunchLimits
-from app.antiproxy.engine import QR_RULES, TEST_CARD_RULES, EngineDecision, run_qr_rules
+from app.antiproxy.engine import (
+    OFFLINE_QR_RULES,
+    QR_RULES,
+    TEST_CARD_RULES,
+    EngineDecision,
+    run_qr_rules,
+)
 from app.antiproxy.rules.read_card import read_card
 from app.core.config import Settings, get_settings
 from app.core.crypto import decode_key, encrypt_snapshot
@@ -44,6 +50,7 @@ from app.modules.punches.models import (
     PunchSnapshot,
     SnapshotState,
 )
+from app.modules.punches.offline_time import OfflinePunch
 from app.modules.punches.schemas import KioskPunchRequest, KioskPunchResponse
 from app.modules.punches.snapshots import CheckedSnapshot
 from app.modules.qr_cards.models import CardKind, QrCredential
@@ -90,15 +97,17 @@ def record_kiosk_punch(
     client: ClientInfo,
     storage: Storage | None = None,
     after_photo: Callable[[uuid.UUID, bytes], None] | None = None,
+    offline: OfflinePunch | None = None,
 ) -> KioskPunchResponse:
-    """`after_photo` gets the stored photo after the commit (M3 F-30: a face-in-photo check)."""
+    """`after_photo` gets the stored photo after the commit (M3 F-30: a face-in-photo check).
+    `offline` is set for a punch saved by the gate while offline and decided at sync (M4)."""
     limits = load_limits(session)
 
     already_stored = find_punch(session, kiosk, request.client_punch_id)
     if already_stored is not None:
         return punch_answer(session, already_stored, kiosk.name, limits)
 
-    now = utc_now()
+    now = offline.punch_time if offline else utc_now()
     _lock_employee_of_card(session, request.qr_payload or "")
     context = PunchContext(
         session=session,
@@ -110,10 +119,15 @@ def record_kiosk_punch(
         snapshot_bytes=_decode_photo(request.snapshot_jpeg),
         location=reported_location(request),
         location_age_s=request.location.age_s if request.location else None,
+        is_offline=offline is not None,
+        time_proof=offline.time_proof if offline else None,
+        received_at=offline.received_at if offline else None,
     )
     read_card(context)  # only reads which card it is; the chain below reads it again
     is_test_card = context.card is not None and context.card.kind == CardKind.TEST.value
-    decision = run_qr_rules(context, TEST_CARD_RULES if is_test_card else QR_RULES)
+    live_or_offline = OFFLINE_QR_RULES if offline else QR_RULES
+    rules = TEST_CARD_RULES if is_test_card else live_or_offline
+    decision = run_qr_rules(context, rules)
 
     if decision.outcome is Outcome.SELF_TEST:
         return _record_self_test(session, kiosk, context, client, now)
@@ -125,7 +139,7 @@ def record_kiosk_punch(
             session, kiosk, context, client, now, decision.reason_codes[0]
         )
 
-    punch = _build_punch(kiosk, request, client, context, decision, now)
+    punch = _build_punch(kiosk, request, client, context, decision, now, offline)
     snapshot = _store_snapshot(session, punch, context, decision, now, storage)
     try:
         session.add(punch)
@@ -240,6 +254,7 @@ def _build_punch(
     context: PunchContext,
     decision: EngineDecision,
     now: datetime,
+    offline: OfflinePunch | None = None,
 ) -> Punch:
     counts = decision.outcome is Outcome.ALLOW
     location = request.location
@@ -254,7 +269,7 @@ def _build_punch(
         direction=decision.direction.value if counts and decision.direction else None,
         decision=decision.decision_value,
         reason_codes=decision.reason_codes,
-        server_received_at=now,
+        **offline_columns(offline, now),
         device_claimed_at=request.device_time,
         lat=location.lat if location else None,
         lon=location.lon if location else None,
@@ -266,6 +281,19 @@ def _build_punch(
         ip=client.ip,
         app_version=request.app_version,
     )
+
+
+def offline_columns(offline: OfflinePunch | None, now: datetime) -> dict[str, object]:
+    """The time columns of a punch row: a live punch has only the server time."""
+    if offline is None:
+        return {"server_received_at": now}
+    return {
+        "server_received_at": offline.received_at,
+        "offline_punch_time": offline.punch_time,
+        "was_offline": True,
+        "time_proof": offline.time_proof,
+        "device_counter": offline.device_counter,
+    }
 
 
 def metres(value: float | None) -> Decimal | None:

@@ -25,6 +25,7 @@ from app.antiproxy.rules.face_liveness import check_liveness
 from app.antiproxy.rules.face_match import check_match
 from app.antiproxy.rules.impossible_travel import check_impossible_travel
 from app.antiproxy.rules.kiosk_location import check_kiosk_location, check_location_age
+from app.antiproxy.rules.offline_time import check_offline_age, check_time_proven
 from app.antiproxy.rules.qr_credential import check_qr_credential
 from app.antiproxy.rules.read_card import read_card
 from app.antiproxy.rules.snapshot import check_snapshot
@@ -37,6 +38,9 @@ LOCATION_RULES: tuple[Rule, ...] = (check_kiosk_location, check_location_age)
 # After the person is known: IN/OUT first, then the flag rules that need the decided time.
 AFTER_IDENTITY_RULES: tuple[Rule, ...] = (check_in_out, check_impossible_travel, check_two_devices)
 
+# M4 offline punches: the time flags come last (§7 rule 2); live punches pass them anyway.
+OFFLINE_TIME_RULES: tuple[Rule, ...] = (check_time_proven, check_offline_age)
+
 QR_RULES: tuple[Rule, ...] = (
     read_card,
     *LOCATION_RULES,
@@ -44,6 +48,7 @@ QR_RULES: tuple[Rule, ...] = (
     check_qr_credential,
     *AFTER_IDENTITY_RULES,
 )
+OFFLINE_QR_RULES: tuple[Rule, ...] = (*QR_RULES, *OFFLINE_TIME_RULES)
 
 # A test card proves the gate works; it never makes a punch, so the location rules do not refuse
 # it. The self-test answer reports the location verdict instead (M4 spec §5.1).
@@ -61,6 +66,16 @@ FACE_RULES: tuple[FaceRule, ...] = (
     check_antispoof,
     check_consistency,
     check_match,
+)
+
+
+# M4 offline face punch: the device chose the turn (checked by offline_face.py first), and the
+# 1:1 match against the typed code replaces the 1:N match.
+OFFLINE_FACE_RULES: tuple[FaceRule, ...] = (
+    check_frames,
+    check_liveness,
+    check_antispoof,
+    check_consistency,
 )
 
 

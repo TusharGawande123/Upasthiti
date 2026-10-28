@@ -182,7 +182,7 @@ def record_face_punch(
     model_id = ready_model_id(engine)
     face_limits = load_face_limits(session)
     frames = [
-        FaceFrame(role=frame.role, jpeg=_decode_frame(frame.jpeg)) for frame in request.frames or []
+        FaceFrame(role=frame.role, jpeg=decode_frame(frame.jpeg)) for frame in request.frames or []
     ]
 
     def job(models: FaceModels) -> tuple[RuleResult, FacePunchContext]:
@@ -199,7 +199,7 @@ def record_face_punch(
         return run_face_rules(context), context
 
     # M4: the device must be at its plant; a device taken home is refused before any face work.
-    place = _place_context(session, kiosk, now, limits, reported_location(request), request)
+    place = place_context(session, kiosk, now, limits, reported_location(request), request)
     place_decision = run_rules(place, LOCATION_RULES)
     context: FacePunchContext | None = None
     if place_decision.outcome is Outcome.REJECT:
@@ -243,7 +243,7 @@ def record_face_punch(
     return answer
 
 
-def _decode_frame(text: str) -> bytes:
+def decode_frame(text: str) -> bytes:
     """Bad base64 becomes empty bytes, which the frames rule refuses as FRAMES_INVALID."""
     try:
         return base64.b64decode(text, validate=True)
@@ -251,7 +251,7 @@ def _decode_frame(text: str) -> bytes:
         return b""
 
 
-def _place_context(
+def place_context(
     session: Session,
     kiosk: KioskDevice,
     now: datetime,
@@ -282,7 +282,7 @@ def _after_identity(session: Session, context: PunchContext) -> EngineDecision:
     return run_rules(context, AFTER_IDENTITY_RULES)
 
 
-def _score(value: float | None) -> Decimal | None:
+def score_decimal(value: float | None) -> Decimal | None:
     return None if value is None else Decimal(f"{value:.4f}")
 
 
@@ -326,9 +326,9 @@ def _face_punch_row(
         ip=client.ip,
         app_version=request.app_version,
         match_mode=MatchMode.ONE_TO_MANY.value if match is not None else None,
-        match_score=_score(match.best_score if match else None),
-        second_best_score=_score(match.second_best_score if match else None),
-        antispoof_score=_score(context.antispoof_score if context else None),
+        match_score=score_decimal(match.best_score if match else None),
+        second_best_score=score_decimal(match.second_best_score if match else None),
+        antispoof_score=score_decimal(context.antispoof_score if context else None),
         yaw_degrees=_yaw(context),
         challenge=context.challenge if context else None,
         face_model_id=model_id,
@@ -353,7 +353,7 @@ def _face_snapshot(
     counts = punch.decision in (PunchDecision.ACCEPTED.value, PunchDecision.FLAGGED.value)
     if counts or first_code in NO_PHOTO_CODES:
         return None
-    checked = _small_photo(frames, get_int_setting(session, "snapshot_dark_threshold"))
+    checked = small_photo(frames, get_int_setting(session, "snapshot_dark_threshold"))
     if checked is None:
         return None
     reason = (
@@ -378,7 +378,7 @@ def _face_snapshot(
     )
 
 
-def _small_photo(frames: list[FaceFrame], dark_threshold: int) -> CheckedSnapshot | None:
+def small_photo(frames: list[FaceFrame], dark_threshold: int) -> CheckedSnapshot | None:
     """The first frontal frame, made by the server: 320 px wide, re-encoded without metadata."""
     first = next((frame for frame in frames if frame.role == "frontal"), None)
     if first is None:
@@ -665,7 +665,7 @@ def _final_code_row(
         related_punch_id=place.related_punch_id,
         ip=client.ip,
         match_mode=MatchMode.CODE.value,
-        match_score=_score(score),
+        match_score=score_decimal(score),
         face_model_id=pending.model_id if pending else None,
         follows_punch_id=pending.origin_punch_id if pending else None,
         claimed_employee_id=claimed.id if claimed else None,
@@ -698,7 +698,7 @@ def _origin_place(
     if origin is not None and origin.lat is not None and origin.lon is not None:
         accuracy = float(origin.accuracy_m) if origin.accuracy_m is not None else 0.0
         location = Location(float(origin.lat), float(origin.lon), accuracy)
-    return _place_context(session, kiosk, now, limits, location)
+    return place_context(session, kiosk, now, limits, location)
 
 
 def _origin_flags(session: Session, pending: FacePendingMatch | None) -> EngineDecision:

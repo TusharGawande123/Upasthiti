@@ -323,6 +323,10 @@ def test_the_heartbeat_keeps_the_old_fields_and_adds_settings(
     assert answer["notices"] == []
     # M4 adds the location limits and the fence (tested in test_m4_location_and_flags.py).
     assert answer["kiosk_settings"].pop("location")["accuracy_limit_m"] == 50
+    offline = answer["kiosk_settings"].pop("offline")
+    assert offline["enabled"] is True and len(offline["evidence_public_key"]) == 87  # 65 bytes
+    assert offline["max_items"] == 2000 and offline["sync_max_items"] == 20
+    assert answer.pop("time_anchor")["token"]  # M4: every signed answer carries one
     assert answer["kiosk_settings"] == {
         "voice_enabled": True,
         "sound_enabled": True,

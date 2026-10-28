@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 from app.modules.kiosks.schemas import LocationReport
+from app.modules.kiosks.time_anchor import TimeAnchor
 
 # The whole request body may not be larger than this (spec §7 rule 5.2).
 MAX_BODY_BYTES = 64 * 1024
@@ -82,6 +83,7 @@ class KioskPunchResponse(BaseModel):
     voice_key: str
     details: PunchDetails
     code_entry: CodeEntry | None = None  # only with decision "needs_code"
+    time_anchor: TimeAnchor | None = None  # M4 §7 rule 8: set by the route
 
 
 class ChallengeRequest(BaseModel):
@@ -103,6 +105,7 @@ class ChallengeResponse(BaseModel):
     expires_at: datetime
     server_time: datetime
     capture: CaptureRules
+    time_anchor: TimeAnchor | None = None  # M4 §7 rule 8
 
 
 class CodeTryRequest(BaseModel):

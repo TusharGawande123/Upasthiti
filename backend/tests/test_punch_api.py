@@ -116,6 +116,10 @@ def send(
     return client.post(PUNCH, content=raw, headers=headers)
 
 
+def without_anchor(answer: dict) -> dict:
+    return {key: value for key, value in answer.items() if key != "time_anchor"}
+
+
 def punch_rows(session: Session) -> list[Punch]:
     return list(session.scalars(select(Punch).order_by(Punch.server_received_at)))
 
@@ -450,7 +454,8 @@ def test_a_retry_with_the_same_id_gets_the_same_answer_and_makes_nothing_new(
     again = send(db_client, device, worker.qr_text, client_punch_id=punch_id)
 
     assert again.status_code == 200
-    assert again.json() == first.json()
+    # The time anchor is new with every answer (M4); everything else repeats.
+    assert without_anchor(again.json()) == without_anchor(first.json())
     assert len(punch_rows(db_session)) == 1 and len(snapshot_rows(db_session)) == 1
 
 
@@ -464,7 +469,7 @@ def test_a_retry_of_a_cool_down_rejection_repeats_the_same_details(
     again = send(db_client, device, worker.qr_text, client_punch_id=punch_id).json()
 
     assert first["reason_code"] == "COOLDOWN_ACTIVE"
-    assert again == first
+    assert without_anchor(again) == without_anchor(first)
 
 
 def test_two_kiosks_may_use_the_same_scan_id(

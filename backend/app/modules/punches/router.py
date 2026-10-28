@@ -15,17 +15,20 @@ from sqlalchemy.orm import Session
 from app.core.body_limit import KIOSK_BODY_LIMIT
 from app.core.db import get_session
 from app.core.errors import ApiError
+from app.core.time import utc_now
 from app.face.engine import FaceEngine
 from app.modules.auth.rate_limit import (
     RateLimiter,
     challenge_limiter,
     code_try_limiter,
     punch_limiter,
+    sync_limiter,
 )
 from app.modules.face.engine_provider import get_face_engine
 from app.modules.kiosks.dependencies import require_kiosk
 from app.modules.kiosks.models import KioskDevice
-from app.modules.punches import face_service, service
+from app.modules.kiosks.time_anchor import anchor_for_request
+from app.modules.punches import face_service, service, sync_service
 from app.modules.punches.photo_check import SessionMaker, check_face_in_photo, get_task_sessions
 from app.modules.punches.schemas import (
     ChallengeRequest,
@@ -34,6 +37,7 @@ from app.modules.punches.schemas import (
     KioskPunchRequest,
     KioskPunchResponse,
 )
+from app.modules.punches.sync_schemas import SyncRequest, SyncResponse
 
 router = APIRouter(tags=["punches"])
 logger = logging.getLogger(__name__)
@@ -63,22 +67,48 @@ def punch_at_kiosk(
             # F-30, after the answer is sent: never slows the gate or changes the decision.
             background.add_task(check_face_in_photo, snapshot_id, jpeg, engine, task_sessions)
 
-        return service.record_kiosk_punch(
+        answer = service.record_kiosk_punch(
             session, kiosk, body, client, after_photo=check_photo_later
         )
-    return face_service.record_face_punch(session, kiosk, body, client, engine)
+    else:
+        answer = face_service.record_face_punch(session, kiosk, body, client, engine)
+    return _with_anchor(answer, request, kiosk)
+
+
+@router.post("/kiosk/sync", response_model=SyncResponse)
+def sync_offline_punches(
+    body: SyncRequest,
+    request: Request,
+    kiosk: KioskDevice = Depends(require_kiosk),
+    session: Session = Depends(get_session),
+    engine: FaceEngine = Depends(get_face_engine),
+) -> SyncResponse:
+    """Punches the gate saved while offline (M4 spec §5.2). Every item is decided here."""
+    _limit(sync_limiter, kiosk, "Too many sync requests. Wait a moment.")
+    client = service.ClientInfo(ip=_ip_or_none(getattr(request.state, "client_ip", None)))
+    counter = int(getattr(request.state, "kiosk_counter", 0))
+    results = sync_service.sync_items(session, kiosk, body, counter, client, engine)
+    now = utc_now()
+    return SyncResponse(
+        results=results,
+        server_time=now,
+        time_anchor=anchor_for_request(request, kiosk.id, now),
+    )
 
 
 @router.post("/punch/challenge", response_model=ChallengeResponse)
 def punch_challenge(
     body: ChallengeRequest,
+    request: Request,
     kiosk: KioskDevice = Depends(require_kiosk),
     session: Session = Depends(get_session),
     engine: FaceEngine = Depends(get_face_engine),
 ) -> ChallengeResponse:
     """The head turn for one face punch (spec M3 §5.1). The server chooses it, never the device."""
     _limit(challenge_limiter, kiosk, "Too many face punches. Wait a moment.")
-    return face_service.issue_challenge(session, kiosk, engine)
+    answer = face_service.issue_challenge(session, kiosk, engine)
+    answer.time_anchor = anchor_for_request(request, kiosk.id, utc_now())
+    return answer
 
 
 @router.post("/punch/kiosk/code", response_model=KioskPunchResponse)
@@ -91,7 +121,15 @@ def punch_code_try(
     """The typed employee code after a "needs code" answer (spec M3 §7 rule 7)."""
     _limit(code_try_limiter, kiosk, "Too many tries. Wait a moment.")
     client = service.ClientInfo(ip=_ip_or_none(getattr(request.state, "client_ip", None)))
-    return face_service.record_code_try(session, kiosk, body, client)
+    return _with_anchor(face_service.record_code_try(session, kiosk, body, client), request, kiosk)
+
+
+def _with_anchor(
+    answer: KioskPunchResponse, request: Request, kiosk: KioskDevice
+) -> KioskPunchResponse:
+    """Every signed answer refreshes the gate's time anchor (M4 §7 rule 8)."""
+    answer.time_anchor = anchor_for_request(request, kiosk.id, utc_now())
+    return answer
 
 
 def _limit(limiter: RateLimiter, kiosk: KioskDevice, message: str) -> None:

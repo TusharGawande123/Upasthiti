@@ -94,3 +94,5 @@ enrolment_shot_limiter = RateLimiter(max_attempts=60, window_seconds=60)
 # Face punches (M3, spec §7 rule 7): 30 challenges and 10 code tries a minute per kiosk.
 challenge_limiter = RateLimiter(max_attempts=30, window_seconds=60)
 code_try_limiter = RateLimiter(max_attempts=10, window_seconds=60)
+# Offline sync (M4, spec §5.2): at most 30 sync requests a minute per kiosk.
+sync_limiter = RateLimiter(max_attempts=30, window_seconds=60)

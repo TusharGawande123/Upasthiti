@@ -8,6 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field
 
 from app.modules.kiosks.models import KioskDevice
+from app.modules.kiosks.time_anchor import TimeAnchor
 
 
 class KioskResponse(BaseModel):
@@ -121,6 +122,20 @@ class KioskLocationSettings(BaseModel):
     geofence: KioskFence | None
 
 
+class KioskOfflineSettings(BaseModel):
+    """What the gate needs to save punches while offline (M4 spec §5.1). Only the PUBLIC key."""
+
+    enabled: bool  # false when OFFLINE_EVIDENCE_KEY is not set (development only)
+    evidence_key_id: str
+    evidence_public_key: str  # base64url, the 65-byte uncompressed P-256 point
+    max_items: int
+    max_mb: int
+    max_hours: int
+    cooldown_minutes: int
+    sync_max_items: int
+    sync_max_bytes: int
+
+
 class KioskScreenSettings(BaseModel):
     """What the kiosk screen needs from the server settings (spec §5.2)."""
 
@@ -133,6 +148,7 @@ class KioskScreenSettings(BaseModel):
     dark_threshold: int  # below this brightness the low-light hint appears
     face: KioskFaceSettings | None = None  # M3
     location: KioskLocationSettings | None = None  # M4
+    offline: KioskOfflineSettings | None = None  # M4
 
 
 class KioskMeResponse(BaseModel):
@@ -143,6 +159,7 @@ class KioskMeResponse(BaseModel):
     server_time: datetime
     notices: list[KioskNoticeItem]
     kiosk_settings: KioskScreenSettings
+    time_anchor: TimeAnchor | None = None  # M4 §7 rule 8
 
 
 class KioskReportRequest(BaseModel):

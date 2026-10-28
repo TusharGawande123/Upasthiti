@@ -17,6 +17,9 @@ FACE_PUNCH_BODY_LIMIT = 384 * 1024
 CODE_TRY_BODY_LIMIT = 2 * 1024
 FACE_PUNCH_PATH = "/api/v1/punch/kiosk"
 CODE_TRY_PATH = "/api/v1/punch/kiosk/code"
+# M4: one sync request carries up to 20 sealed offline punches (spec §5.2).
+SYNC_BODY_LIMIT = 1024 * 1024
+SYNC_PATH = "/api/v1/kiosk/sync"
 IMPORT_BODY_LIMIT = 3 * 1024 * 1024  # the Excel import allows 2 MB, plus the form's own overhead
 DEFAULT_BODY_LIMIT = 1024 * 1024  # every other JSON request
 
@@ -32,6 +35,8 @@ def body_limit_for(path: str) -> int:
         return FACE_PUNCH_BODY_LIMIT  # a card punch above 64 KB is refused by the route
     if path == CODE_TRY_PATH:
         return CODE_TRY_BODY_LIMIT
+    if path == SYNC_PATH:
+        return SYNC_BODY_LIMIT
     if path.startswith(_KIOSK_PATHS):
         return KIOSK_BODY_LIMIT
     if path.startswith(_ENROLMENT_SESSIONS_PATH) and path.endswith("/shots"):

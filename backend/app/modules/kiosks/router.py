@@ -13,10 +13,12 @@ import segno
 from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.orm import Session
 
+from app.core.body_limit import SYNC_BODY_LIMIT
 from app.core.client_ip import get_client_ip
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import ApiError
+from app.core.offline_crypto import b64url_encode, load_offline_key, public_point
 from app.core.time import utc_now
 from app.face.engine import FaceEngine
 from app.modules.auth.dependencies import CurrentUser, require
@@ -35,6 +37,7 @@ from app.modules.kiosks.schemas import (
     KioskLocationSettings,
     KioskMeResponse,
     KioskNoticeItem,
+    KioskOfflineSettings,
     KioskReportRequest,
     KioskResponse,
     KioskScreenSettings,
@@ -45,9 +48,11 @@ from app.modules.kiosks.schemas import (
     RegisterKioskResponse,
     UpdateKioskRequest,
 )
+from app.modules.kiosks.time_anchor import anchor_for_request
 from app.modules.notices.queries import visible_notices
 from app.modules.org.geofence_service import current_geofence
 from app.modules.org.plants_service import get_plant
+from app.modules.punches.sync_schemas import MAX_SYNC_ITEMS
 from app.modules.settings.service import get_int_setting, get_setting
 
 logger = logging.getLogger(__name__)
@@ -203,6 +208,7 @@ def register_kiosk(
 
 @router.get("/kiosk/me", response_model=KioskMeResponse)
 def kiosk_me(
+    request: Request,
     kiosk: KioskDevice = Depends(require_kiosk),
     session: Session = Depends(get_session),
     engine: FaceEngine = Depends(get_face_engine),
@@ -226,6 +232,7 @@ def kiosk_me(
             for notice in visible_notices(session, kiosk.plant_id, now)
         ],
         kiosk_settings=_screen_settings(session, kiosk, engine),
+        time_anchor=anchor_for_request(request, kiosk.id, now),
     )
 
 
@@ -252,6 +259,26 @@ def _screen_settings(
             code_prefixes=common_code_prefixes(session, kiosk.plant_id, running_model_id()),
         ),
         location=_location_settings(session, kiosk),
+        offline=_offline_settings(session),
+    )
+
+
+def _offline_settings(session: Session) -> KioskOfflineSettings:
+    settings = get_settings()
+    key = settings.offline_evidence_key
+    public_key = (
+        b64url_encode(public_point(load_offline_key(key.get_secret_value()))) if key else ""
+    )
+    return KioskOfflineSettings(
+        enabled=key is not None,
+        evidence_key_id=settings.offline_evidence_key_id,
+        evidence_public_key=public_key,
+        max_items=get_int_setting(session, "offline_queue_max_items"),
+        max_mb=get_int_setting(session, "offline_queue_max_mb"),
+        max_hours=get_int_setting(session, "offline_max_hours"),
+        cooldown_minutes=get_int_setting(session, "punch_cooldown_minutes"),
+        sync_max_items=MAX_SYNC_ITEMS,
+        sync_max_bytes=SYNC_BODY_LIMIT,
     )
 
 

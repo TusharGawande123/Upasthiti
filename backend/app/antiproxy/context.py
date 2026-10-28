@@ -71,6 +71,7 @@ class PunchLimits:
     impossible_travel_kmh: int = 60
     impossible_travel_min_distance_m: int = 500
     same_person_two_devices_minutes: int = 10
+    offline_max_hours: int = 72
 
 
 @dataclass
@@ -89,6 +90,8 @@ class PunchContext:
     location: Location | None = None
     location_age_s: int | None = None
     is_offline: bool = False  # M4: a queued punch decided at sync
+    time_proof: str | None = None  # offline only: "anchored" or "unproven" (§7 rule 8)
+    received_at: datetime | None = None  # offline only: when the sync request arrived
     # What the rules find out, in order.
     snapshot: CheckedSnapshot | None = None
     card: QrCredential | None = None
@@ -98,3 +101,8 @@ class PunchContext:
     geofence_id: uuid.UUID | None = None
     geofence_distance_m: float | None = None
     related_punch_id: uuid.UUID | None = None
+
+    @property
+    def judges_at_punch_time(self) -> bool:
+        """An offline punch with a proven time is judged as things were then (facts_at_time)."""
+        return self.is_offline and self.time_proof == "anchored"

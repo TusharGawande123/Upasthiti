@@ -68,6 +68,7 @@ class FacePunchContext:
     match: MatchResult | None = None
     employee: Employee | None = None
     embeddings: list[np.ndarray] = field(default_factory=list)
+    code_score: float | None = None  # M4 offline: the 1:1 score against the typed code
 
     @property
     def frontal_frames(self) -> list[FaceFrame]:

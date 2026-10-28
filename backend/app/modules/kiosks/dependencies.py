@@ -103,4 +103,5 @@ async def require_kiosk(request: Request, session: Session = Depends(get_session
         raise ApiError("NONCE_REUSED", "This request was already used.", 401)
     session.commit()
     request.state.client_ip = get_client_ip(request)
+    request.state.kiosk_counter = counter  # M4: the time anchor of the answer names it
     return kiosk
