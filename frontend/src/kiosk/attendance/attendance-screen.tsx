@@ -14,6 +14,8 @@ import { useTranslation } from "react-i18next";
 import { Frame } from "../components/frame";
 import { ProblemScreen } from "../components/problem-screen";
 import type { PairedKiosk } from "../device-store";
+import { DEFAULT_LOCATION_SETTINGS, useGateLocation } from "../location/gate-location";
+import { LocationChip, NeedsLocationScreen } from "../location/needs-location";
 import { CodePad } from "./code-pad";
 import { FaceView, showsFaceView } from "./face-view";
 import { type CodeEntry, canTryAgain, canTryAgainAfterFailure, type KioskMe } from "./punch-types";
@@ -78,12 +80,15 @@ export function AttendanceScreen({
   const { t } = useTranslation();
   const heartbeat = useHeartbeat(initialMe, initialOffsetMs, { onRevoked, onUnpaired });
   const report = useErrorReporter();
+  const locationSettings = heartbeat.settings.location ?? DEFAULT_LOCATION_SETTINGS;
+  const place = useGateLocation(locationSettings, heartbeat.online);
   const attendance = useAttendance({
     settings: heartbeat.settings,
     onOnline: heartbeat.setOnline,
     onRevoked,
     onUnpaired,
     onProblem: report,
+    location: place,
   });
   const sound = useSoundAndBanner(attendance.screen, heartbeat.settings, report);
   useSelfUpdate(attendance.screen);
@@ -98,12 +103,23 @@ export function AttendanceScreen({
         <div className="flex w-full flex-wrap items-center justify-between gap-x-5 gap-y-3 sm:w-auto sm:justify-end">
           {sound.bannerVisible ? <SoundBanner onTap={sound.onBannerTap} /> : null}
           <ConnectionChip online={heartbeat.online} />
+          <LocationChip place={place} />
           <TopClock offsetMs={heartbeat.serverOffsetMs} />
         </div>
       }
       footer={<Footer retentionDays={heartbeat.settings.snapshot_retention_days} />}
     >
-      <div className={screen.name === "camera-problem" ? "hidden" : undefined}>
+      {/* M4: while the location is not good the camera area is replaced; the camera keeps running. */}
+      {place.paused && screen.name === "scanning" ? (
+        <NeedsLocationScreen place={place} settings={locationSettings} />
+      ) : null}
+      <div
+        className={
+          screen.name === "camera-problem" || (place.paused && screen.name === "scanning")
+            ? "hidden"
+            : undefined
+        }
+      >
         <ScanningView
           screen={screen}
           videoRef={attendance.videoRef}
@@ -111,7 +127,11 @@ export function AttendanceScreen({
           lowLight={attendance.lowLight}
           camera={attendance.camera}
           getReady={attendance.getReady}
-          face={heartbeat.settings.face}
+          face={{
+            ...heartbeat.settings.face,
+            // No usable location: the face button hides, like the card scanning pauses.
+            enabled_for_plant: heartbeat.settings.face.enabled_for_plant && place.usable,
+          }}
           onStartFace={attendance.face.start}
           onStartCamera={attendance.startCameraAfterTap}
         />

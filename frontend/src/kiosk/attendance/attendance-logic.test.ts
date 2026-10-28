@@ -142,7 +142,7 @@ describe("punch client", () => {
     vi.useRealTimers();
   });
 
-  const input = { qrPayload: "UPS1.A.C000001.X", snapshotBase64: "AAAA" };
+  const input = { qrPayload: "UPS1.A.C000001.X", snapshotBase64: "AAAA", location: null };
 
   it("sends one punch with a fresh id and returns the answer", async () => {
     const sent: PunchBody[] = [];

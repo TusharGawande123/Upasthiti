@@ -9,6 +9,7 @@
 // picture; the server decides every punch.
 import { type Dispatch, useCallback, useEffect, useRef, useState } from "react";
 import { type FaceGuide, loadFaceGuide } from "@/lib/face-guide/landmarker";
+import type { LocationReport } from "../location/gate-location";
 import type { AttendanceEvent, AttendanceScreen } from "./attendance-machine";
 import { LowLightWatcher, measureVideoBrightness } from "./brightness";
 import { takeFaceFrame } from "./face-capture";
@@ -72,6 +73,7 @@ export function useFacePunch({
   onOutcome,
   onFailed,
   onCameraProblem,
+  getLocation,
 }: {
   screen: AttendanceScreen;
   dispatch: Dispatch<AttendanceEvent>;
@@ -84,6 +86,8 @@ export function useFacePunch({
   onFailed: (code: string) => void;
   /** MediaPipe could not load: a report for the server log (the punch still works, timed). */
   onCameraProblem: (message: string) => void;
+  /** M4: the gate's current reading, sent with the pictures. */
+  getLocation: () => LocationReport | null;
 }) {
   // 0 means no run; each start or retry takes the next number and cancels the run before it.
   const [attempt, setAttempt] = useState(0);
@@ -92,8 +96,8 @@ export function useFacePunch({
   const guideLoading = useRef<Promise<void> | null>(null);
   const cameraReadyRef = useRef(cameraReady);
   cameraReadyRef.current = cameraReady;
-  const latest = useRef({ face, darkThreshold, onOutcome, onFailed, onCameraProblem });
-  latest.current = { face, darkThreshold, onOutcome, onFailed, onCameraProblem };
+  const latest = useRef({ face, darkThreshold, onOutcome, onFailed, onCameraProblem, getLocation });
+  latest.current = { face, darkThreshold, onOutcome, onFailed, onCameraProblem, getLocation };
 
   // MediaPipe loads in the background once the gate shows the button, so the first tap is quick.
   const wantsGuide = face.enabled_for_plant && face.available;
@@ -137,7 +141,11 @@ export function useFacePunch({
         if (taken.kind === "frames") {
           dispatch({ type: "face-sent" });
           const outcome = await sendFacePunch(
-            { challengeNonce: given.challenge.challenge_nonce, frames: taken.frames },
+            {
+              challengeNonce: given.challenge.challenge_nonce,
+              frames: taken.frames,
+              location: latest.current.getLocation(),
+            },
             { onSlow: () => dispatch({ type: "slow" }) },
           );
           return latest.current.onOutcome(outcome);

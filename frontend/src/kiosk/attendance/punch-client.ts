@@ -9,6 +9,7 @@
 //   after 60 seconds the kiosk gives up. It cannot know whether the server saved the punch
 //   meanwhile, so it says "not sure": a new scan then answers "already punched" if it was saved.
 import { ApiError } from "@/lib/api-client";
+import type { LocationReport } from "../location/gate-location";
 import { signedRequest } from "../signer";
 import type { PunchAnswer } from "./punch-types";
 
@@ -23,6 +24,8 @@ export type PunchBody = {
   snapshot_jpeg: string;
   device_time: string;
   app_version: string;
+  /** M4: the gate's reading; the server checks it against the fence on every punch. */
+  location: LocationReport | null;
 };
 
 /** One picture of the face punch: the first is "frontal", the others "turn" or "frontal". */
@@ -35,6 +38,7 @@ export type FacePunchBody = {
   frames: FaceFrame[];
   device_time: string;
   app_version: string;
+  location: LocationReport | null;
 };
 
 export type CodeBody = {
@@ -140,7 +144,7 @@ async function deliver<Answer>(
 }
 
 export async function sendPunch(
-  input: { qrPayload: string; snapshotBase64: string },
+  input: { qrPayload: string; snapshotBase64: string; location: LocationReport | null },
   options: { onSlow?: () => void; send?: SendPunch } = {},
 ): Promise<PunchOutcome> {
   const send = options.send ?? sendSigned;
@@ -151,6 +155,7 @@ export async function sendPunch(
     snapshot_jpeg: input.snapshotBase64,
     device_time: new Date().toISOString(),
     app_version: APP_VERSION,
+    location: input.location,
   };
   return deliver(() => send(body), options);
 }
@@ -169,7 +174,7 @@ export async function requestChallenge(
 }
 
 export async function sendFacePunch(
-  input: { challengeNonce: string; frames: FaceFrame[] },
+  input: { challengeNonce: string; frames: FaceFrame[]; location: LocationReport | null },
   options: { onSlow?: () => void; send?: (body: FacePunchBody) => Promise<PunchAnswer> } = {},
 ): Promise<PunchOutcome> {
   const send =
@@ -182,6 +187,7 @@ export async function sendFacePunch(
     frames: input.frames,
     device_time: new Date().toISOString(),
     app_version: APP_VERSION,
+    location: input.location,
   };
   return deliver(() => send(body), options);
 }

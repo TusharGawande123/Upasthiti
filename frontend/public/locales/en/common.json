@@ -351,6 +351,30 @@
         "message": "Face punch is not available here.",
         "next": "Please visit the plant office.",
         "voice": "Face punch is not available. Please visit the plant office."
+      },
+      "LOCATION_REQUIRED": {
+        "title": "NOT ACCEPTED",
+        "message": "This attendance device did not send its location.",
+        "next": "Please visit the plant office.",
+        "voice": "Not accepted. Please visit the plant office."
+      },
+      "GPS_ACCURACY_TOO_LOW": {
+        "title": "NOT ACCEPTED",
+        "message": "The location of this attendance device is not exact enough.",
+        "next": "Please visit the plant office.",
+        "voice": "Not accepted. Please visit the plant office."
+      },
+      "OUTSIDE_GEOFENCE": {
+        "title": "NOT ACCEPTED",
+        "message": "This attendance device is not at the plant gate.",
+        "next": "Please visit the plant office.",
+        "voice": "Not accepted. Please visit the plant office."
+      },
+      "GEOFENCE_NOT_SET": {
+        "title": "NOT ACCEPTED",
+        "message": "This plant has no fence on the map yet.",
+        "next": "Please visit the plant office.",
+        "voice": "Not accepted. Please visit the plant office."
       }
     },
     "attendance": {
@@ -403,6 +427,7 @@
       "alreadyOutAt": "Already OUT at {{time}}. No need to punch again.",
       "outAfter": "Already IN at {{time}}. You can punch OUT after {{outTime}}.",
       "selfTestChecks": "Camera ✓ · Server ✓ · Clock ✓ (server time {{time}})",
+      "selfTestChecksLocation": "Camera ✓ · Server ✓ · Clock ✓ · {{location}} (server time {{time}})",
       "noAttendance": "No attendance was recorded."
     },
     "voice": {
@@ -450,6 +475,37 @@
       "triesLeft_one": "{{count}} try left",
       "triesLeft_other": "{{count}} tries left",
       "tryAgain": "Try again"
+    },
+    "location": {
+      "chip": {
+        "finding": "Finding location…",
+        "good": "Location good (±{{metres}} m)",
+        "weak": "Location weak (±{{metres}} m)",
+        "none": "No location",
+        "stale": "Last location (offline)"
+      },
+      "title": "This attendance device needs its location",
+      "message": "Punching is paused. Please wait a moment. If this stays, please visit the plant office.",
+      "cause": {
+        "LOCATION_DENIED": "Location is blocked for this website. Ask the plant office to allow it.",
+        "LOCATION_UNAVAILABLE": "Location is switched off or not available on this attendance device.",
+        "LOCATION_WEAK": "Waiting for a better location signal (now ±{{now}} m, needed ±{{needed}} m).",
+        "LOCATION_OUTSIDE": "This attendance device does not seem to be at the plant gate."
+      },
+      "checkingAgain": "Checking again…",
+      "selfTestLocation": {
+        "ok": "Location ✓",
+        "bad": "Location ✗ ({{code}})"
+      },
+      "sketch": {
+        "title": "Why paused?",
+        "weakLine": "±{{now}} m now, ±{{needed}} m needed",
+        "outsideLine": "About {{metres}} m outside the fence",
+        "fence": "Plant fence (blue)",
+        "margin": "Allowed margin (dashed)",
+        "device": "This device and its accuracy (dot and circle)",
+        "needed": "Accuracy needed (dotted circle)"
+      }
     }
   },
   "health": {
@@ -2186,7 +2242,27 @@
     "FACE_NOT_RECOGNISED": "Face not recognised",
     "CODE_ENTRY_EXPIRED": "Code pad timed out",
     "NEED_EMPLOYEE_CODE": "Asked for the employee code",
-    "CODE_NOT_MATCHED": "Code did not match the face"
+    "CODE_NOT_MATCHED": "Code did not match the face",
+    "LOCATION_REQUIRED": "Device sent no location",
+    "GPS_ACCURACY_TOO_LOW": "Device location not exact enough",
+    "OUTSIDE_GEOFENCE": "Device outside the plant fence",
+    "GEOFENCE_NOT_SET": "Plant has no fence",
+    "OFFLINE_CHALLENGE_INVALID": "Offline face check not valid",
+    "OFFLINE_EVIDENCE_UNREADABLE": "Saved punch could not be opened",
+    "LOCATION_AT_EDGE": "At the edge of the fence",
+    "LOCATION_AT_EDGE_help": "The device was outside the drawn fence but inside the allowed margin. Usually GPS jitter; check the map.",
+    "LOCATION_STALE": "Last known location reused (offline)",
+    "LOCATION_STALE_help": "The device had no internet and no fresh location, so it reused its last good reading of the same session.",
+    "IMPOSSIBLE_TRAVEL": "Impossible travel",
+    "IMPOSSIBLE_TRAVEL_help": "The same person punched at another attendance device too far away for the time between the two punches.",
+    "TWO_DEVICES_SOON": "Same person at two devices",
+    "TWO_DEVICES_SOON_help": "The same card or person was used at another attendance device a few minutes before or after. A copied card shows up like this.",
+    "OFFLINE_TIME_UNPROVEN": "Time not proven (offline)",
+    "OFFLINE_TIME_UNPROVEN_help": "The device restarted or its clocks disagreed while offline, so the punch time is the device's own estimate.",
+    "OFFLINE_TOO_OLD": "Saved offline for too long",
+    "OFFLINE_TOO_OLD_help": "The punch was saved on the device longer than the allowed offline time before it was sent.",
+    "SYNC_ORDER_CONFLICT": "Arrived after a later punch",
+    "SYNC_ORDER_CONFLICT_help": "This offline punch arrived after a later punch of the same person was already counted, so IN and OUT may not alternate."
   },
   "punches": {
     "title": "Punch log",

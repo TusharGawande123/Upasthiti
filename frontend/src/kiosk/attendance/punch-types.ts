@@ -1,4 +1,5 @@
-// The server's answers that the kiosk attendance screens use (spec M2 §5.2, M3 §5.2).
+// The server's answers that the kiosk attendance screens use (spec M2 §5.2, M3 §5.2, M4 §5.1).
+import type { KioskLocationSettings } from "../location/gate-location";
 
 /** After a face punch the server may ask for the employee code (`needs_code`, spec M3 §4.5). */
 export type CodeEntry = { token: string; expires_at: string; tries_left: number };
@@ -19,6 +20,8 @@ export type PunchAnswer = {
     out_allowed_from?: string | null;
     /** Face rejections where trying again can help (spec M3 §4.6). */
     retry_allowed?: boolean | null;
+    /** M4 self test: "ok", or the location rule's code ("Location ✓" / "Location ✗"). */
+    location_check?: string | null;
   };
   code_entry?: CodeEntry | null;
 };
@@ -53,6 +56,8 @@ export type KioskScreenSettings = {
   snapshot_retention_days: number;
   dark_threshold: number;
   face: KioskFaceSettings;
+  /** M4: how the gate judges its location, and the plant's fence (absent on an older server). */
+  location?: KioskLocationSettings;
 };
 
 /** GET /kiosk/me: the heartbeat answer. */

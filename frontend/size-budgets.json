@@ -12,7 +12,7 @@
   {
     "name": "Kiosk screen (loaded only on /kiosk)",
     "pattern": "^kiosk-pairing-page-.*.js$",
-    "maxGzipBytes": 57000
+    "maxGzipBytes": 61000
   },
   {
     "name": "QR decoder, JavaScript (kiosk only)",

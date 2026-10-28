@@ -2,10 +2,12 @@
 // The camera, the QR decoder, MediaPipe and the pictures are fakes; the screens, the timers, the
 // signed requests and the texts are the real ones. The fake MediaPipe reports the faces the test
 // sets, so the test "turns its head" by changing them.
+
 import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { Measure } from "@/lib/face-guide/pose-estimate";
+import { fakeGeolocation, resetFakeReading } from "@/test/fake-geolocation";
 import { apiError, mockApi } from "../../test/mock-api";
 import { renderRoute } from "../../test/render";
 import { createDeviceKey } from "../device-key";
@@ -152,7 +154,8 @@ beforeEach(async () => {
   fakes.faces = [];
   fakes.guideLoads = true;
   localStorage.clear();
-  vi.stubGlobal("navigator", { ...navigator, geolocation: {} });
+  resetFakeReading();
+  vi.stubGlobal("navigator", { ...navigator, geolocation: fakeGeolocation });
 });
 
 afterEach(() => {

@@ -238,7 +238,7 @@ function describeAnswer(answer: PunchAnswer, t: TFunction, viaFace: boolean): Sh
       lead: t("kiosk.result.noAttendance"),
       card: {
         icon: Wrench,
-        main: t("kiosk.result.selfTestChecks", { time: hhmm(answer.server_time, true) }),
+        main: selfTestLine(answer, t),
         sub: answer.details.kiosk_name,
       },
       time,
@@ -246,6 +246,18 @@ function describeAnswer(answer: PunchAnswer, t: TFunction, viaFace: boolean): Sh
   }
   const reason = answer.reason_code ?? "INTERNAL_ERROR";
   return stoppedLook(reason, textCode(rejectionTextCode(reason, viaFace)), time, t);
+}
+
+// M4: the test card also shows whether the device's location would pass (nothing is stored).
+function selfTestLine(answer: PunchAnswer, t: TFunction): string {
+  const time = hhmm(answer.server_time, true);
+  const check = answer.details.location_check;
+  if (!check) return t("kiosk.result.selfTestChecks", { time });
+  const location =
+    check === "ok"
+      ? t("kiosk.location.selfTestLocation.ok")
+      : t("kiosk.location.selfTestLocation.bad", { code: check });
+  return t("kiosk.result.selfTestChecksLocation", { time, location });
 }
 
 function describeFailure(code: string, time: string, t: TFunction): Shown {

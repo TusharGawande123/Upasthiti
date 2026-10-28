@@ -17,3 +17,12 @@ sideways scroll). Changes spec §4.1–§4.6.
    card rows say "Working" / "Not working", the result clock box says "Time (offline)", a legend under
    the F-53 sketch, long admin codes break after an underscore. The "Switched off" screen is a redraw
    from the M1 words: compare with the live screen when slice B builds the revoked-with-queue text.
+
+## Build notes (slice A, 2026-10-28)
+7. **Gate size budget** in `frontend/size-budgets.json` went from 57,000 to 61,000 bytes gzip: the
+   location watcher, the on-device fence distance, the F-53 sketch and the needs-location screen add
+   about 1 kB; the rest is headroom for slice B (offline queue) before the service worker is split out.
+8. **Prefix keys on the online code pad** already existed since M3 (decision 0019); no change needed.
+9. **A test card is never refused for the device's place**: it skips the location rules and the
+   self-test answer says "Location ✓" or "Location ✗ (CODE)" instead (spec §5.1), so a guard can test
+   a device whose location is wrong.

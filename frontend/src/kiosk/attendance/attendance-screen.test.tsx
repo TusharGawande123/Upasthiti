@@ -1,9 +1,11 @@
 // The attendance screen of a paired kiosk (spec M2 §4.1 to §4.5, design gate B; AC-7, AC-10,
 // AC-31, AC-32). The camera, the QR decoder and the photo are fakes; the screens, the timers,
 // the signed requests and the texts are the real ones.
+
 import { act, screen, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fakeGeolocation, fakeReading, resetFakeReading } from "@/test/fake-geolocation";
 import { apiError, mockApi } from "../../test/mock-api";
 import { renderRoute } from "../../test/render";
 import { createDeviceKey } from "../device-key";
@@ -138,7 +140,8 @@ beforeEach(async () => {
   fakes.cameraCount = 1;
   fakes.started = [];
   localStorage.clear();
-  vi.stubGlobal("navigator", { ...navigator, geolocation: {} });
+  resetFakeReading();
+  vi.stubGlobal("navigator", { ...navigator, geolocation: fakeGeolocation });
 });
 
 afterEach(() => {
@@ -571,5 +574,39 @@ describe("switching between the front and the back camera", () => {
     await screen.findByText("Show your ID card to the camera");
 
     expect(fakes.started[0]).toBe("environment");
+  });
+});
+
+describe("the gate's location (M4)", () => {
+  it("sends its location with every card punch and shows it in the top bar", async () => {
+    const calls = mockApi({
+      "GET /kiosk/me": { body: me() },
+      "POST /punch/kiosk": { body: answer() },
+    });
+    await openPairedKiosk();
+
+    expect(await screen.findByText("Location good (±10 m)")).toBeInTheDocument();
+    await showCard();
+
+    expect(await screen.findByText("IN")).toBeInTheDocument();
+    const sent = calls.find((call) => call.path === "/punch/kiosk")?.body as Record<
+      string,
+      unknown
+    >;
+    expect(sent.location).toMatchObject({ lat: 19.85, lon: 75.25, accuracy_m: 10 });
+    expect((sent.location as { age_s: number }).age_s).toBeGreaterThanOrEqual(0);
+  });
+
+  it("does not read cards while the location is too weak", async () => {
+    fakeReading.accuracy = 140;
+    const calls = mockApi({ "GET /kiosk/me": { body: me() } });
+    await openPairedKiosk();
+
+    expect(await screen.findByText("Location weak (±140 m)")).toBeInTheDocument();
+    fakes.qrText = CARD;
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    expect(screen.queryByText(/Get ready for your photo/)).not.toBeInTheDocument();
+    expect(calls.some((call) => call.path === "/punch/kiosk")).toBe(false);
   });
 });

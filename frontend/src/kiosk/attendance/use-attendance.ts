@@ -5,6 +5,7 @@
 // ("Punch with face") runs in use-face-punch.ts and shares the result handling below.
 // The screens only show `screen` and call the actions; all timing lives here.
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import type { LocationReport } from "../location/gate-location";
 import { INITIAL_SCREEN, isFaceScreen, nextScreen, secondsOnScreen } from "./attendance-machine";
 import { LowLightWatcher, measureVideoBrightness } from "./brightness";
 import {
@@ -33,6 +34,7 @@ export function useAttendance({
   onRevoked,
   onUnpaired,
   onProblem,
+  location,
 }: {
   settings: KioskScreenSettings;
   onOnline: (online: boolean) => void;
@@ -40,6 +42,8 @@ export function useAttendance({
   onUnpaired: () => void;
   /** A problem worth a report to the server log (S-26): camera errors, the slower decoder. */
   onProblem: (kind: "camera_error" | "decoder_fallback", message: string) => void;
+  /** M4: card scanning waits while the gate has no usable location; each punch sends it. */
+  location: { usable: boolean; report: () => LocationReport | null };
 }) {
   const [screen, dispatch] = useReducer(nextScreen, INITIAL_SCREEN);
   const [lowLight, setLowLight] = useState(false);
@@ -58,8 +62,8 @@ export function useAttendance({
   const detectorRef = useRef<QrDetector | null>(null);
   const sameCard = useRef(new SameCardFilter());
   // Kept in a ref: a new function from the parent must never restart a punch in progress.
-  const handlers = useRef({ onOnline, onRevoked, onUnpaired, onProblem });
-  handlers.current = { onOnline, onRevoked, onUnpaired, onProblem };
+  const handlers = useRef({ onOnline, onRevoked, onUnpaired, onProblem, location });
+  handlers.current = { onOnline, onRevoked, onUnpaired, onProblem, location };
 
   // 1. Start the camera and the QR decoder as soon as the screen opens.
   useEffect(() => {
@@ -147,7 +151,7 @@ export function useAttendance({
   }, [cameraStarted, wantedFacing]);
 
   // 2. While scanning: look for a card about 6 times a second.
-  const scanning = screen.name === "scanning";
+  const scanning = screen.name === "scanning" && location.usable;
   const showingNotACard = screen.name === "scanning" && screen.notACard;
   useEffect(() => {
     if (!scanning) return;
@@ -215,7 +219,7 @@ export function useAttendance({
       const snapshotBase64 = video ? await takeSnapshot(video).catch(() => "") : "";
       dispatch({ type: "photo-taken" });
       const outcome = await sendPunch(
-        { qrPayload: payload, snapshotBase64 },
+        { qrPayload: payload, snapshotBase64, location: handlers.current.location.report() },
         { onSlow: () => dispatch({ type: "slow" }) },
       );
       sameCard.current.remember(payload, Date.now());
@@ -268,6 +272,7 @@ export function useAttendance({
     onOutcome: finishPunch,
     onFailed: (code) => finishPunch({ kind: "failed", code }),
     onCameraProblem: (message) => handlers.current.onProblem("decoder_fallback", message),
+    getLocation: () => handlers.current.location.report(),
   });
 
   // 4. A result or failure stays a few seconds, then the kiosk scans again.
