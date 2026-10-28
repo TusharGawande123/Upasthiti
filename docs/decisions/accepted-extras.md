@@ -101,3 +101,21 @@ Chosen by the lead (Tushar Gawande) in chat on 2026-10-24 (decision 0016).
 - M3 · S-33 · INT8-quantised models measured in slice 1 · Approved · 2026-10-24
 - Later: F-42 DPDP consent register export + "face data deleted" receipt PDF; F-44 office-verified
   punch (M5, inside the regularisation flow) · 2026-10-24
+
+## M4 – Anti-proxy engine + offline (docs/specs/M4-anti-proxy-offline.md)
+Chosen by the lead (Tushar Gawande) in chat on 2026-10-28 (decision 0025).
+
+- M4 · F-36 · "Attendance device offline" badge in the admin top bar and sidebar · Approved · 2026-10-28
+- M4 · F-46 · In-app alert when an attendance device is offline > 10 min during a shift (email later with F-7) · Approved · 2026-10-28
+- M4 · F-55 · Gate "last sync" line ("All punches sent" / "N waiting since …") · Approved · 2026-10-28
+- M4 · F-53 · "Why paused?" fence sketch on the gate's needs-location screen (no map tiles) · Approved · 2026-10-28
+- M4 · F-3 · Attendance device health monitor+ (battery, camera, storage, 7-day online/offline timeline) · Approved · 2026-10-28
+- M4 · F-48 · Daily review digest card on the dashboard · Approved · 2026-10-28
+- M4 · F-54 · Repeat-pattern hints on the review screen · Approved · 2026-10-28
+- M4 · S-38 · Gate storage self-check (quota at start, reported in the heartbeat) · Approved · 2026-10-28
+- Rejected: F-51 "Retire after sync" (a revoked device deletes its queue at once; the revoke dialog
+  warns about waiting punches) · 2026-10-28
+- Later: F-45 offline drill mode, F-47 location drift chart, F-49 review shortcuts + bulk confirm,
+  F-50 sync history per device, F-52 flag every offline face punch, S-34 outage simulation helper,
+  S-35 spoof-test suite tool (the attack tests themselves stay core), S-36 property tests,
+  S-37 sync load test · 2026-10-28
