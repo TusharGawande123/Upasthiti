@@ -85,6 +85,7 @@ from app.modules.punches.service import (
     find_punch,
     load_limits,
     metres,
+    note_last_punch,
     reported_location,
     upload_snapshot,
 )
@@ -223,6 +224,7 @@ def record_face_punch(
             session.add(snapshot)
         if pending is not None:
             session.add(pending)
+        note_last_punch(kiosk, punch)
         session.commit()
     except IntegrityError:
         session.rollback()
@@ -674,6 +676,7 @@ def _final_code_row(
         session.add(punch)
         if pending is not None:
             session.delete(pending)
+        note_last_punch(kiosk, punch)
         session.commit()
     except IntegrityError:
         session.rollback()

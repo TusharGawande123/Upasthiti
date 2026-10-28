@@ -10,7 +10,7 @@ import {
   ShieldCheck,
   Volume2,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { Frame } from "../components/frame";
@@ -22,6 +22,7 @@ import { LocationChip, NeedsLocationScreen } from "../location/needs-location";
 import { useOfflineGate } from "../offline/use-offline";
 import { CodePad } from "./code-pad";
 import { FaceView, showsFaceView } from "./face-view";
+import { buildHeartbeat, emptyFacts, type HeartbeatFacts } from "./heartbeat-report";
 import { type CodeEntry, canTryAgain, canTryAgainAfterFailure, type KioskMe } from "./punch-types";
 import { ResultView } from "./result-view";
 import { ScanningView } from "./scanning-view";
@@ -142,7 +143,13 @@ export function AttendanceScreen({
   onUnpaired: () => void;
 }) {
   const { t } = useTranslation();
-  const heartbeat = useHeartbeat(initialMe, initialOffsetMs, { onRevoked, onUnpaired });
+  // What the heartbeat reports is known only after the hooks below exist: it reads this ref.
+  const facts = useRef<HeartbeatFacts | null>(null);
+  const heartbeat = useHeartbeat(initialMe, initialOffsetMs, {
+    onRevoked,
+    onUnpaired,
+    getReport: () => buildHeartbeat(facts.current ?? emptyFacts()),
+  });
   const report = useErrorReporter();
   const locationSettings = heartbeat.settings.location ?? DEFAULT_LOCATION_SETTINGS;
   const place = useGateLocation(locationSettings, heartbeat.online);
@@ -164,6 +171,13 @@ export function AttendanceScreen({
     offline,
     serverOffsetMs: heartbeat.serverOffsetMs,
   });
+  facts.current = {
+    queue: offline.queue,
+    place,
+    storage: offline.storage,
+    offlineReady: offline.ready,
+    cameraReady: attendance.camera.ready,
+  };
   const idleScreen = attendance.screen.name === "scanning" || attendance.screen.name === "starting";
   useEffect(() => setPunching(!idleScreen), [idleScreen]);
   const sound = useSoundAndBanner(attendance.screen, heartbeat.settings, report);

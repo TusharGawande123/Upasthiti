@@ -64,6 +64,10 @@ class ReadinessResponse(BaseModel):
     active_kiosks: int
     active_employees: int
     ready: bool
+    # M4 (additive, spec §5.4): is a gate device of this plant working right now, and does its
+    # last heartbeat say the location is good?
+    device_online: bool = False
+    location_good: bool = False
 
 
 class GeofenceRequest(BaseModel):

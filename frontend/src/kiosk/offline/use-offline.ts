@@ -23,18 +23,24 @@ const RETRY_SYNC_MS = 15_000;
 
 const EMPTY: QueueSummary = { count: 0, bytes: 0, oldestSavedWallMs: null };
 
+export type StorageCheck = {
+  ready: boolean;
+  persisted: boolean | null;
+  quotaMb: number | null;
+  usageMb: number | null;
+};
+
 /** Is there room for a full queue? Also asks the browser not to evict our data (best effort). */
-export async function checkStorage(
-  maxMb: number,
-): Promise<{ ready: boolean; persisted: boolean | null }> {
+export async function checkStorage(maxMb: number): Promise<StorageCheck> {
   try {
     const persisted = (await navigator.storage?.persist?.()) ?? null;
     const estimate = await navigator.storage?.estimate?.();
-    if (!estimate?.quota) return { ready: false, persisted };
-    const freeMb = (estimate.quota - (estimate.usage ?? 0)) / (1024 * 1024);
-    return { ready: freeMb >= maxMb + STORAGE_HEADROOM_MB, persisted };
+    if (!estimate?.quota) return { ready: false, persisted, quotaMb: null, usageMb: null };
+    const quotaMb = Math.round(estimate.quota / (1024 * 1024));
+    const usageMb = Math.round((estimate.usage ?? 0) / (1024 * 1024));
+    return { ready: quotaMb - usageMb >= maxMb + STORAGE_HEADROOM_MB, persisted, quotaMb, usageMb };
   } catch {
-    return { ready: false, persisted: null };
+    return { ready: false, persisted: null, quotaMb: null, usageMb: null };
   }
 }
 
@@ -46,6 +52,8 @@ export type OfflineGate = {
   canSave: boolean;
   /** When the last batch was sent (device clock; shown as a time only). */
   lastSentAtMs: number | null;
+  /** What the browser says about its storage (for the heartbeat and the devices page). */
+  storage: StorageCheck | null;
   save: (input: {
     clientPunchId: string;
     method: "qr" | "face";
@@ -68,7 +76,8 @@ export function useOfflineGate({
   onRevoked: (waiting: number) => void;
 }): OfflineGate {
   const [queue, setQueue] = useState<QueueSummary>(EMPTY);
-  const [storageReady, setStorageReady] = useState(false);
+  const [storage, setStorage] = useState<StorageCheck | null>(null);
+  const storageReady = storage?.ready === true;
   const [lastSentAtMs, setLastSentAtMs] = useState<number | null>(null);
   const sending = useRef(false);
   const latest = useRef({ busy, onRevoked });
@@ -83,7 +92,7 @@ export function useOfflineGate({
   const maxMb = settings?.max_mb;
   useEffect(() => {
     if (maxMb === undefined) return;
-    void checkStorage(maxMb).then((storage) => setStorageReady(storage.ready));
+    void checkStorage(maxMb).then(setStorage);
   }, [maxMb]);
 
   // Online with saved punches: send them. A failed batch (still no internet) tries again soon.
@@ -137,5 +146,12 @@ export function useOfflineGate({
     [settings, storageReady, refresh],
   );
 
-  return { queue, ready, canSave: !online && settings?.enabled === true, lastSentAtMs, save };
+  return {
+    queue,
+    ready,
+    canSave: !online && settings?.enabled === true,
+    lastSentAtMs,
+    storage,
+    save,
+  };
 }

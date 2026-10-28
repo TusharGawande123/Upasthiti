@@ -12,8 +12,10 @@ from dataclasses import dataclass
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
+from app.core.time import utc_now
 from app.modules.employees.models import Employee, EmployeeStatus
-from app.modules.kiosks.models import KioskDevice, KioskStatus
+from app.modules.kiosks.models import KioskDevice, KioskStatus, LocationState
+from app.modules.kiosks.status import device_state, is_working, offline_after_minutes
 from app.modules.org.models import EmployeeCategory, Geofence, Plant, Shift
 
 
@@ -25,6 +27,9 @@ class PlantReadiness:
     active_categories: int
     active_kiosks: int
     active_employees: int
+    # M4 (spec §7 rule 15): worked out from the heartbeat when asked, never stored.
+    device_online: bool = False
+    location_good: bool = False
 
     @property
     def ready(self) -> bool:
@@ -43,8 +48,25 @@ class SetupStep:
     done: bool
 
 
+def _device_lines(session: Session, plant_id: uuid.UUID) -> tuple[bool, bool]:
+    """(an active device works right now, and its location is good)."""
+    now = utc_now()
+    after = offline_after_minutes(session)
+    for kiosk in session.scalars(
+        select(KioskDevice).where(
+            KioskDevice.plant_id == plant_id, KioskDevice.status == KioskStatus.ACTIVE.value
+        )
+    ):
+        if is_working(device_state(kiosk, now, after)):
+            return True, kiosk.location_state == LocationState.GOOD.value
+    return False, False
+
+
 def plant_readiness(session: Session, plant_id: uuid.UUID) -> PlantReadiness:
+    device_online, location_good = _device_lines(session, plant_id)
     return PlantReadiness(
+        device_online=device_online,
+        location_good=location_good,
         plant_id=plant_id,
         geofence=_has_geofence(session, plant_id),
         active_shifts=_count_active(session, Shift, plant_id),

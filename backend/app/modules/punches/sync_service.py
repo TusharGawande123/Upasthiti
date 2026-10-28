@@ -144,6 +144,8 @@ def sync_items(
         results[entry.index] = _decide(session, kiosk, entry.item, offline, client, engine, storage)
 
     final = [result or _result(None, "retry_later") for result in results]
+    if any(result.result in ("saved", "already_saved") for result in final):
+        kiosk.last_sync_at = received_at  # for the devices page (M4 spec §7 rule 15)
     _audit_sync(session, kiosk, client, final)
     return final
 

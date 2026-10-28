@@ -146,6 +146,7 @@ def record_kiosk_punch(
         session.flush()  # the unique (kiosk, client_punch_id) rule is checked here
         if snapshot is not None:
             session.add(snapshot)
+        note_last_punch(kiosk, punch)
         session.commit()
     except IntegrityError:
         # Another request with the same id won the race: undo and give its answer.
@@ -281,6 +282,14 @@ def _build_punch(
         ip=client.ip,
         app_version=request.app_version,
     )
+
+
+def note_last_punch(kiosk: KioskDevice, punch: Punch) -> None:
+    """The device's newest punch time, for the devices page (M4 spec §7 rule 15). Kept in the
+    same transaction as the punch row, so the two never disagree."""
+    moment = punch.offline_punch_time or punch.server_received_at
+    if kiosk.last_punch_at is None or kiosk.last_punch_at < moment:
+        kiosk.last_punch_at = moment
 
 
 def offline_columns(offline: OfflinePunch | None, now: datetime) -> dict[str, object]:

@@ -181,6 +181,8 @@ def plant_readiness(
         active_kiosks=readiness.active_kiosks,
         active_employees=readiness.active_employees,
         ready=readiness.ready,
+        device_online=readiness.device_online,
+        location_good=readiness.location_good,
     )
 
 

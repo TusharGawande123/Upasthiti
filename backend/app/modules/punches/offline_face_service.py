@@ -75,6 +75,7 @@ from app.modules.punches.service import (
     find_punch,
     load_limits,
     metres,
+    note_last_punch,
     offline_columns,
     upload_snapshot,
 )
@@ -179,6 +180,7 @@ def record_offline_face_punch(
         session.flush()
         if snapshot is not None:
             session.add(snapshot)
+        note_last_punch(kiosk, punch)
         session.commit()
     except IntegrityError:
         session.rollback()

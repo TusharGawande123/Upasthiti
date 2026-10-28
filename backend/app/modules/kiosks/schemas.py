@@ -11,6 +11,37 @@ from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.time_anchor import TimeAnchor
 
 
+class QueueInfo(BaseModel):
+    """Saved punches waiting on the device, from its last heartbeat (counts and times only)."""
+
+    count: int
+    bytes: int
+    oldest_punch_at: datetime | None
+
+
+class LocationInfo(BaseModel):
+    state: str | None
+    accuracy_m: float | None
+    at: datetime | None
+    # "inside" / "edge" / "outside" against the plant's fence; None when unknown.
+    inside: Literal["inside", "edge", "outside"] | None
+    # Only the Super Admin and the plant's own Plant Head get the position (spec §7 rule 1).
+    lat: float | None = None
+    lon: float | None = None
+
+
+class StorageInfo(BaseModel):
+    persisted: bool | None
+    quota_mb: int | None
+    usage_mb: int | None
+    offline_ready: bool | None
+
+
+class BatteryInfo(BaseModel):
+    level: float
+    charging: bool | None
+
+
 class KioskResponse(BaseModel):
     id: uuid.UUID
     plant_id: uuid.UUID
@@ -25,10 +56,63 @@ class KioskResponse(BaseModel):
     # M2 (additive): the gate's sound switch (F-1) and the last test card scan (F-27).
     sound_muted: bool
     last_self_test_at: datetime | None
+    # M4 (additive, spec §5.4): the state is worked out when read, never stored.
+    state: str = "pending"
+    last_contact_at: datetime | None = None
+    last_punch_at: datetime | None = None
+    last_sync_at: datetime | None = None
+    queue: QueueInfo | None = None
+    location: LocationInfo | None = None
+    storage: StorageInfo | None = None
+    battery: BatteryInfo | None = None
+    camera_ok: bool | None = None
 
     @classmethod
     def from_model(cls, kiosk: KioskDevice) -> KioskResponse:
         return cls.model_validate(kiosk, from_attributes=True)
+
+
+class OfflineAlertItem(BaseModel):
+    kiosk: dict[str, Any]  # {"id", "name"}
+    plant: dict[str, Any]  # {"id", "code", "name"}
+    offline_since: datetime
+
+
+class StatusSummaryResponse(BaseModel):
+    """Counts for the admin badge and dashboard card, and the offline alerts (F-36, F-46)."""
+
+    online: int
+    offline: int
+    needs_location: int
+    sending: int
+    alerts: list[OfflineAlertItem]
+
+
+class HealthStretch(BaseModel):
+    start: datetime
+    end: datetime
+    state: Literal["online", "offline"]
+
+
+class HealthDay(BaseModel):
+    date: str  # the IST day, DD/MM/YYYY is made by the screen
+    online_minutes: int
+    offline_minutes: int
+    shift_minutes: int
+    stretches: list[HealthStretch]
+
+
+class HealthLatest(BaseModel):
+    battery: BatteryInfo | None
+    camera_ok: bool | None
+    storage: StorageInfo | None
+    app_version: str | None
+    at: datetime | None
+
+
+class HealthResponse(BaseModel):
+    days: list[HealthDay]
+    latest: HealthLatest
 
 
 class CreateKioskRequest(BaseModel):
