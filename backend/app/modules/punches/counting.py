@@ -118,13 +118,15 @@ def latest_reviews(
 
 def review_state(punch: Punch, review: PunchReview | None) -> str | None:
     """The review mark of a flagged or rejected punch: to_check / confirmed / not_accepted /
-    approved. Accepted and needs-code punches have none."""
+    approved. Accepted and needs-code punches have none; neither has a rejected punch that
+    nobody reviewed (it does not count, so there is nothing to check)."""
     if punch.decision == PunchDecision.FLAGGED.value:
         if review is None:
             return "to_check"
         return "not_accepted" if review.action == ReviewAction.NOT_ACCEPTED.value else "confirmed"
     if punch.decision == PunchDecision.REJECTED.value and review is not None:
-        return "approved"
+        # An approval can be withdrawn by a later "not accepted" review (decision 0027).
+        return "approved" if review.action == ReviewAction.APPROVED.value else "not_accepted"
     return None
 
 

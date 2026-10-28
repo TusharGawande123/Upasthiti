@@ -36,7 +36,7 @@ photo_viewer = require(Capability.VIEW_SNAPSHOTS)
 def punch_filters(
     day: date | None = Query(default=None, alias="date"),
     plant_id: uuid.UUID | None = None,
-    decision: Literal["accepted", "rejected"] | None = None,
+    decision: Literal["accepted", "rejected", "flagged"] | None = None,
     kiosk_id: uuid.UUID | None = None,
     employee_id: uuid.UUID | None = None,
     reason_code: str | None = Query(default=None, max_length=40),
@@ -46,6 +46,9 @@ def punch_filters(
     match_mode: Literal["one_to_many", "code"] | None = None,
     asked_for_code: bool = False,
     no_face_photo: bool = False,
+    flagged: bool = False,
+    was_offline: bool = False,
+    review_state: Literal["to_check", "confirmed", "not_accepted", "approved"] | None = None,
 ) -> queries.PunchFilters:
     return queries.PunchFilters(
         day=day or today_ist(),
@@ -60,6 +63,9 @@ def punch_filters(
         match_mode=match_mode,
         asked_for_code=asked_for_code,
         no_face_photo=no_face_photo,
+        flagged=flagged,
+        was_offline=was_offline,
+        review_state=review_state,
     )
 
 
@@ -68,6 +74,7 @@ def _viewer(current_user: CurrentUser, capability: Capability) -> presenter.View
         only_plant_ids=plant_filter(current_user, capability),
         sees_dark_photos=current_user.access(Capability.VIEW_SNAPSHOTS) is not None,
         sees_face_scores=current_user.access(Capability.VIEW_FACE_SCORES) is not None,
+        sees_review_reasons=current_user.access(Capability.REVIEW_PUNCHES) is not None,
     )
 
 
@@ -124,6 +131,9 @@ def punches_summary(
         code_accepted=summary.code_accepted,
         asked_for_code=summary.asked_for_code,
         no_face_photos=summary.no_face_photos if who.sees_dark_photos else None,
+        flagged=summary.flagged,
+        offline=summary.offline,
+        to_check=summary.to_check if who.sees_review_reasons else None,
     )
 
 
