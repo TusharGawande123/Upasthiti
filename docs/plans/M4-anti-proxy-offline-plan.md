@@ -290,5 +290,29 @@ suites). Manual: step 34 real-device check on the live site.
     shows Location ✓/✗. Gate size budget 57,000 -> 61,000 bytes (decision 0026 item 7).
   - Tests: `test_m4_location_and_flags.py` (20), face location tests (3), `gate-location.test.ts`,
     `needs-location.test.tsx`, gate screen location tests, e2e `kiosk-location.spec.ts` (2).
-- Next: slice B step 11 (offline evidence key, sealing, time anchor, sync, gate queue, service worker).
+- Done (2026-10-28/29): **slice B complete** (steps 11-18).
+  - Server: `OFFLINE_EVIDENCE_KEY` (+ `_KEY_ID`) in config, `make_offline_key`, `core/offline_crypto.py`
+    (ECDH P-256 + HKDF + AES-GCM, bound to kiosk|punch|method|key id), `kiosks/time_anchor.py` (HMAC,
+    on every signed answer), `punches/offline_time.py` (proven vs unproven time), rules
+    `offline_time.py` / `offline_face.py`, `facts_at_time.py` (card and employee judged at the punch
+    time), `POST /kiosk/sync` (`sync_service.py`, `offline_face_service.py`, `sync_schemas.py`; 20 items,
+    1 MB, 30 requests a minute, 20 s budget, per-item results), `/kiosk/me` sends
+    `kiosk_settings.offline` (public key, limits, `challenge_steps`).
+  - Gate: `src/kiosk/offline/` (`sealer`, `time-anchor`, `offline-queue`, `sync-runner`, `use-offline`
+    with the S-38 storage check, `register-sw`, shared `test-vector.json`), Dexie version 2 `queue`,
+    offline card punch (saved with the SAME id after a failed send), offline face punch (code pad
+    first, device-chosen turn, switches by itself when the internet goes during the punch), SAVED
+    screen (slate blue), queue chip, F-55 last-sync line, phone privacy fold, service worker
+    (vite-plugin-pwa 2.0.0, MIT; scope /attendance; `scripts/check-service-worker.mjs` in `npm run
+    size`; `Service-Worker-Allowed` header in vercel.json). Gate size budget 65,000 bytes.
+  - Tests: sync 23 + face sync 9 + crypto/time 14 + spoof attempts (AC-34) 7 + shared vector on both
+    sides; Vitest offline 24 + screens; e2e `kiosk-offline.spec.ts` (network cut in a real browser).
+  - Known gaps: AC-21 (reload while offline) needs a production build with the service worker: it is
+    covered by the build check and left for the real-device check (step 34). The revoked screen does
+    not show "N saved punches could not be sent" yet (the queue IS deleted); the revoked-with-queue
+    text and the "storage almost full" warning line are texts only so far.
+  - Outward (Tushar): make the live `OFFLINE_EVIDENCE_KEY` with
+    `uv run python -m app.scripts.make_offline_key`, keep it in the password manager, set it on Render
+    before the merge. Without it the live backend will not start (production requires it).
+- Next: slice C (device status and health). Design gate C first.
 - Open questions: none.
