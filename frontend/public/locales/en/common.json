@@ -818,16 +818,24 @@
       "privacy": {
         "title": "Privacy",
         "description": "Printed in the face consent text and on the public privacy notice page."
+      },
+      "antiproxy": {
+        "title": "Anti-proxy checks",
+        "description": "Flags for punches that need a second look: impossible trips, two devices, review hints."
+      },
+      "offline": {
+        "title": "Offline attendance devices",
+        "description": "How long a gate device may work without internet, and when it counts as offline."
       }
     },
     "items": {
       "gps_accuracy_limit_m": {
         "label": "GPS accuracy limit",
-        "help": "A device must report its location at least this precisely to pair."
+        "help": "A device must report its location at least this precisely to pair and to punch. Plants in MIDC Waluj are close together: a larger value may let a device at a neighbouring plant punch here."
       },
       "geofence_default_buffer_m": {
         "label": "Default geofence margin",
-        "help": "Extra metres around a drawn geofence, so GPS jitter at the edge does not refuse a device."
+        "help": "Extra metres around a drawn geofence, so GPS jitter at the edge does not refuse a device. A punch inside this margin is accepted but flagged for review."
       },
       "pairing_code_minutes": {
         "label": "Pairing code life",
@@ -867,7 +875,7 @@
       },
       "impossible_travel_kmh": {
         "label": "Impossible travel speed",
-        "help": "Punches at two plants that would need a faster trip are flagged."
+        "help": "A punch that would need a faster trip from the same person's punch at another attendance device is flagged for review."
       },
       "salary_day_basis": {
         "label": "Salary day basis",
@@ -984,6 +992,54 @@
       "privacy_contact": {
         "label": "Privacy contact (grievance officer)",
         "help": "Who employees contact about their data: name, role and how to reach them (phone or email)."
+      },
+      "impossible_travel_min_distance_m": {
+        "label": "Impossible travel: shortest distance",
+        "help": "Closer punches are never flagged as impossible travel (GPS jitter, gates of one plant)."
+      },
+      "same_person_two_devices_minutes": {
+        "label": "Same person at two devices",
+        "help": "The same card or person at another attendance device within this time is flagged for review."
+      },
+      "review_hint_employee_rejections": {
+        "label": "Hint: rejections of one person",
+        "help": "The review screen points out a person rejected this often in 7 days."
+      },
+      "review_hint_device_edge_flags": {
+        "label": "Hint: edge flags of one device",
+        "help": "The review screen points out a device with this many fence-edge flags in 7 days."
+      },
+      "kiosk_location_max_age_seconds": {
+        "label": "Oldest location reading",
+        "help": "A gate device pauses punching when its last good reading is older than this."
+      },
+      "kiosk_location_refresh_seconds": {
+        "label": "Location refresh",
+        "help": "How often a gate device asks for a fresh reading. Must be shorter than the oldest reading."
+      },
+      "kiosk_offline_after_minutes": {
+        "label": "Offline after",
+        "help": "A device that has not been heard from for this long shows as offline."
+      },
+      "kiosk_offline_alert_minutes": {
+        "label": "Offline alert after",
+        "help": "During a shift, an alert is shown when a device has been offline this long. Not shorter than “Offline after”."
+      },
+      "offline_max_hours": {
+        "label": "Longest offline time",
+        "help": "Punches saved offline for longer than this are flagged for review when they arrive."
+      },
+      "offline_queue_max_items": {
+        "label": "Saved punches per device",
+        "help": "The most punches one device keeps while offline."
+      },
+      "offline_queue_max_mb": {
+        "label": "Offline storage per device",
+        "help": "The most storage saved punches may use on one device."
+      },
+      "offline_clock_drift_seconds": {
+        "label": "Allowed clock difference",
+        "help": "If the device's two clocks disagree by more than this, the time of an offline punch is marked as not proven."
       }
     },
     "units": {

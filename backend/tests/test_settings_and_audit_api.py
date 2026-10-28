@@ -41,9 +41,7 @@ def test_values_outside_the_range_are_refused(db_client: TestClient, db_session:
     too_small = db_client.put(
         SETTINGS, json={"values": {"gps_accuracy_limit_m": 5}, "reason": "try"}
     )
-    not_yet = db_client.put(
-        SETTINGS, json={"values": {"impossible_travel_kmh": 80}, "reason": "try"}
-    )
+    not_yet = db_client.put(SETTINGS, json={"values": {"salary_day_basis": 26}, "reason": "try"})
     unknown = db_client.put(SETTINGS, json={"values": {"colour": "blue"}, "reason": "try"})
 
     assert too_small.json()["error"]["code"] == "SETTING_OUT_OF_RANGE"
@@ -58,7 +56,7 @@ def test_defaults_and_later_settings_are_listed(db_client: TestClient, db_sessio
     settings = settings_by_key(db_client)
 
     assert settings["session_idle_minutes"]["value"] == 60
-    assert settings["impossible_travel_kmh"]["editable"] is False
+    assert settings["salary_day_basis"]["editable"] is False
     assert settings["salary_day_basis"]["allowed_values"] == [26, 30, "actual"]
 
 

@@ -65,6 +65,7 @@ def update_settings(
     """Check every value first, then save them all together with one audit entry each."""
     checked_values = {key: _check_value(key, value) for key, value in new_values.items()}
     _check_face_floor(session, checked_values)
+    _check_m4_pairs(session, checked_values)
 
     for key, value in checked_values.items():
         stored = session.get(SettingValue, key)
@@ -163,6 +164,39 @@ def _check_face_floor(session: Session, new_values: dict[str, SettingValueType])
             422,
             {"key": "face_code_match_threshold"},
         )
+
+
+# (smaller, larger, message): after a save, `smaller` must stay below (or at) `larger`.
+_M4_ORDERED_PAIRS = (
+    (
+        "kiosk_offline_after_minutes",
+        "kiosk_offline_alert_minutes",
+        "The alert time cannot be shorter than the offline time.",
+    ),
+    (
+        "kiosk_location_refresh_seconds",
+        "kiosk_location_max_age_seconds",
+        "The refresh time must be shorter than the maximum age.",
+    ),
+)
+
+
+def _check_m4_pairs(session: Session, new_values: dict[str, SettingValueType]) -> None:
+    """Two M4 settings only make sense in order (spec M4 §7 rule 17): the offline alert comes
+    after a device counts as offline, and the location is refreshed before it gets too old."""
+    for smaller_key, larger_key, message in _M4_ORDERED_PAIRS:
+        if smaller_key not in new_values and larger_key not in new_values:
+            continue
+        smaller = _int_after_save(session, new_values, smaller_key)
+        larger = _int_after_save(session, new_values, larger_key)
+        too_close = smaller >= larger if "refresh" in smaller_key else smaller > larger
+        if too_close:
+            raise ApiError("SETTING_INVALID", message, 422, {"key": larger_key})
+
+
+def _int_after_save(session: Session, new_values: dict[str, SettingValueType], key: str) -> int:
+    value = new_values.get(key)
+    return int(value) if isinstance(value, int | float) else get_int_setting(session, key)
 
 
 def _out_of_range(definition: SettingDefinition) -> ApiError:

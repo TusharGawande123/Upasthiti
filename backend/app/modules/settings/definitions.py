@@ -8,7 +8,7 @@ screen shows it read-only, because changing it would have no effect yet.
 from dataclasses import dataclass
 
 # Bump this in each milestone, so its settings become editable.
-CURRENT_MILESTONE = 3
+CURRENT_MILESTONE = 4
 
 SettingValueType = int | float | str | None
 
@@ -16,7 +16,8 @@ SettingValueType = int | float | str | None
 @dataclass(frozen=True)
 class SettingDefinition:
     key: str
-    # screen card: kiosk, kiosk_screen, punch, face, privacy, snapshots, cards, salary, security
+    # screen card: kiosk, kiosk_screen, punch, antiproxy, offline, face, privacy, snapshots,
+    # cards, salary, security
     group: str
     default: SettingValueType
     unit: str
@@ -118,7 +119,20 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     # the contact is filled with the first Super Admin when the system is set up (spec §7 rule 13).
     SettingDefinition("company_address", "privacy", "", "", 3, 5, 300, is_text=True),
     SettingDefinition("privacy_contact", "privacy", "", "", 3, 5, 200, is_text=True),
-    SettingDefinition("impossible_travel_kmh", "punch", 60, "km/h", 4, 10, 200),
+    # M4 (spec §7 rule 17): location on every punch, flag rules, offline gate devices.
+    SettingDefinition("impossible_travel_kmh", "antiproxy", 60, "km/h", 4, 10, 200),
+    SettingDefinition("impossible_travel_min_distance_m", "antiproxy", 500, "m", 4, 100, 5000),
+    SettingDefinition("same_person_two_devices_minutes", "antiproxy", 10, "min", 4, 1, 60),
+    SettingDefinition("review_hint_employee_rejections", "antiproxy", 3, "in 7 days", 4, 2, 20),
+    SettingDefinition("review_hint_device_edge_flags", "antiproxy", 20, "in 7 days", 4, 5, 200),
+    SettingDefinition("kiosk_location_max_age_seconds", "kiosk", 120, "s", 4, 30, 600),
+    SettingDefinition("kiosk_location_refresh_seconds", "kiosk", 30, "s", 4, 10, 120),
+    SettingDefinition("kiosk_offline_after_minutes", "offline", 3, "min", 4, 2, 30),
+    SettingDefinition("kiosk_offline_alert_minutes", "offline", 10, "min", 4, 5, 120),
+    SettingDefinition("offline_max_hours", "offline", 72, "h", 4, 24, 168),
+    SettingDefinition("offline_queue_max_items", "offline", 2000, "punches", 4, 200, 10000),
+    SettingDefinition("offline_queue_max_mb", "offline", 200, "MB", 4, 20, 1000),
+    SettingDefinition("offline_clock_drift_seconds", "offline", 120, "s", 4, 30, 600),
     SettingDefinition(
         "salary_day_basis", "salary", 30, "days", 7, allowed_values=(26, 30, "actual")
     ),
