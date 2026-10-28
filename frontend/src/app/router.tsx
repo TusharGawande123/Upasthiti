@@ -111,6 +111,13 @@ const adminPages: RouteObject[] = [
     ),
   },
   {
+    path: "/admin/review",
+    lazy: page(
+      () => import("../features/review/review-page"),
+      (m) => m.ReviewPage,
+    ),
+  },
+  {
     path: "/admin/qr-cards",
     lazy: page(
       () => import("../features/qr-cards/qr-cards-page"),

@@ -15,20 +15,20 @@ REASON_TEXTS: dict[str, str] = {
     "COOLDOWN_ACTIVE": "Already punched (scanned again too soon)",
     "OUT_TOO_SOON": "Already IN (OUT not allowed yet)",
     # M4 rejections (spec §7 rule 18)
-    "LOCATION_REQUIRED": "No location sent",
-    "GPS_ACCURACY_TOO_LOW": "Location not accurate enough",
-    "OUTSIDE_GEOFENCE": "Outside the plant fence",
-    "GEOFENCE_NOT_SET": "The plant has no fence",
-    "OFFLINE_CHALLENGE_INVALID": "Saved face punch had no valid head turn",
-    "OFFLINE_EVIDENCE_UNREADABLE": "Saved punch could not be read",
+    "LOCATION_REQUIRED": "Device sent no location",
+    "GPS_ACCURACY_TOO_LOW": "Device location not exact enough",
+    "OUTSIDE_GEOFENCE": "Device outside the plant fence",
+    "GEOFENCE_NOT_SET": "Plant has no fence",
+    "OFFLINE_CHALLENGE_INVALID": "Offline face check not valid",
+    "OFFLINE_EVIDENCE_UNREADABLE": "Saved punch could not be opened",
     # M4 flags: the punch counts, the Super Admin checks it later
     "LOCATION_AT_EDGE": "At the edge of the fence",
-    "LOCATION_STALE": "Location reading was old",
+    "LOCATION_STALE": "Last known location reused (offline)",
     "IMPOSSIBLE_TRAVEL": "Impossible travel",
-    "TWO_DEVICES_SOON": "Two attendance devices, minutes apart",
-    "OFFLINE_TIME_UNPROVEN": "Time not proven",
+    "TWO_DEVICES_SOON": "Same person at two devices",
+    "OFFLINE_TIME_UNPROVEN": "Time not proven (offline)",
     "OFFLINE_TOO_OLD": "Saved offline for too long",
-    "SYNC_ORDER_CONFLICT": "Order changed after sending",
+    "SYNC_ORDER_CONFLICT": "Arrived after a later punch",
 }
 
 

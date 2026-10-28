@@ -1,5 +1,7 @@
 // Small pieces of the punch log table and dialogs: who, what happened, and the photo state.
 // Status is never colour alone: every badge has an icon AND a word (design gate C).
+
+import type { TFunction } from "i18next";
 import {
   ArrowDown,
   ArrowUp,
@@ -8,6 +10,8 @@ import {
   CircleHelp,
   CircleX,
   EyeOff,
+  Flag,
+  Hourglass,
   IdCard,
   ImageOff,
   ImagePlus,
@@ -20,7 +24,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatTime } from "@/lib/format";
 import type { PunchItem } from "./use-punches";
 
 /** The words for a reason code; an unknown code is shown as it is. */
@@ -108,6 +112,15 @@ export function ResultBadge({ decision }: { decision: PunchItem["decision"] }) {
       </Badge>
     );
   }
+  // M4: counts as IN/OUT at once, and the Super Admin checks it later (decision 0025 item 3).
+  if (decision === "flagged") {
+    return (
+      <Badge tone="warning">
+        <Flag aria-hidden />
+        {t("punches.result.flagged")}
+      </Badge>
+    );
+  }
   return decision === "accepted" ? (
     <Badge tone="success">
       <CircleCheck aria-hidden />
@@ -125,10 +138,13 @@ export function ResultBadge({ decision }: { decision: PunchItem["decision"] }) {
 export function PunchResultText({ punch, small = false }: { punch: PunchItem; small?: boolean }) {
   const { t } = useTranslation();
   const reasonText = useReasonText();
+  const direction = t(`punches.direction.${punch.direction ?? "in"}`);
   const text =
     punch.decision === "accepted"
-      ? `${t("punches.result.accepted")} ${t(`punches.direction.${punch.direction ?? "in"}`)}`
-      : `${t("punches.result.rejected")} · ${reasonText(punch.reason_codes[0] ?? "")}`;
+      ? `${t("punches.result.accepted")} ${direction}`
+      : punch.decision === "flagged"
+        ? `${t("punches.result.flagged")} ${direction} · ${reasonText(punch.reason_codes[0] ?? "")}`
+        : `${t("punches.result.rejected")} · ${reasonText(punch.reason_codes[0] ?? "")}`;
   return <span className={small ? "text-xs text-muted-foreground" : "text-sm"}>{text}</span>;
 }
 
@@ -158,17 +174,20 @@ export function ResultCell({
   const { t } = useTranslation();
   const reasonText = useReasonText();
   const how = howText(punch, t);
-  const code = punch.reason_codes[0];
+  // A flagged punch shows every flag; a rejection its reason (the flags after it are for review).
+  const codes = punch.decision === "flagged" ? punch.reason_codes : punch.reason_codes.slice(0, 1);
   return (
     <span className="block space-y-1">
       <ResultBadge decision={punch.decision} />
       {how ? <span className="block text-sm">{how}</span> : null}
-      {code ? (
-        <span className="block">
+      {codes.map((code) => (
+        <span key={code} className="block">
           <span className="block text-sm">{reasonText(code)}</span>
           <span className="code text-xs text-muted-foreground">{code}</span>
         </span>
-      ) : null}
+      ))}
+      <ReviewMark punch={punch} />
+      <OfflineMark punch={punch} />
       {punch.followed_by_punch_id ? (
         <button
           type="button"
@@ -191,6 +210,72 @@ export function ResultCell({
       ) : null}
     </span>
   );
+}
+
+/**
+ * The Super Admin's review of a flagged or rejected punch, as text (spec M4 §4.9). Every role
+ * sees it; only the Super Admin can open the review panel and change it.
+ */
+export function ReviewMark({ punch }: { punch: PunchItem }) {
+  const { t } = useTranslation();
+  switch (punch.review_state) {
+    case "to_check":
+      return (
+        <span className="block text-xs font-semibold text-warning">
+          {t("punches.review.toCheck")}
+        </span>
+      );
+    case "confirmed":
+      return (
+        <span className="flex items-center gap-1 text-xs font-semibold text-success">
+          <CircleCheck className="size-3.5" aria-hidden />
+          {t("punches.review.confirmed")}
+        </span>
+      );
+    case "not_accepted":
+      return (
+        <span className="flex items-center gap-1 text-xs font-semibold text-destructive">
+          <CircleX className="size-3.5" aria-hidden />
+          {t("punches.review.notAccepted")}
+        </span>
+      );
+    case "approved":
+      return (
+        <span className="flex items-center gap-1 text-xs font-semibold text-primary">
+          <CircleCheck className="size-3.5" aria-hidden />
+          {t("punches.review.approvedAs", {
+            direction: t(`punches.direction.${punch.review_direction ?? "in"}`),
+          })}
+        </span>
+      );
+    default:
+      return null;
+  }
+}
+
+/** "⏳ Offline, sent 09:02": a punch saved on the gate device and sent later. */
+export function OfflineMark({ punch }: { punch: PunchItem }) {
+  const { t } = useTranslation();
+  if (!punch.was_offline) return null;
+  return (
+    <span className="flex items-center gap-1 text-xs text-muted-foreground">
+      <Hourglass className="size-3.5" aria-hidden />
+      {t("punches.offlineSent", { time: formatTime(punch.server_received_at) })}
+    </span>
+  );
+}
+
+type Translate = TFunction;
+
+/** "0 min", "52 min" or "2 h 10 min". */
+export function formatMinutes(minutes: number, t: Translate) {
+  if (minutes < 60) return t("review.duration.minutes", { minutes });
+  return t("review.duration.hours", { hours: Math.floor(minutes / 60), minutes: minutes % 60 });
+}
+
+/** How long a saved punch waited on the gate device (at least "1 min"). */
+export function formatDelay(seconds: number, t: Translate) {
+  return formatMinutes(Math.max(1, Math.round(seconds / 60)), t);
 }
 
 export function ReasonCell({ punch }: { punch: PunchItem }) {

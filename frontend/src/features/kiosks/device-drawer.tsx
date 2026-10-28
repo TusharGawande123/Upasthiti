@@ -2,14 +2,22 @@
 // the health monitor (F-3): battery, camera, storage, app version and a 7-day timeline of online
 // and offline stretches. Read-only; everyone who may see the device sees this.
 import { BatteryCharging, BatteryFull, Camera, HardDrive, MapPin, Smartphone } from "lucide-react";
+import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
 import { Alert } from "@/components/ui/alert";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { describeError } from "@/features/auth/error-message";
+import { useGeofenceVersions } from "@/features/plants/use-plants";
+import type { MapPoint } from "@/features/review/review-map";
 import { formatDate, formatTime } from "@/lib/format";
 import { DeviceStateBadge } from "./device-state";
 import { type HealthDay, type Kiosk, useKioskHealth } from "./use-kiosks";
+
+// Leaflet is big: loaded only when a drawer with a position opens.
+const ReviewMap = lazy(() =>
+  import("@/features/review/review-map").then((m) => ({ default: m.ReviewMap })),
+);
 
 const DAY_MINUTES = 24 * 60;
 
@@ -85,6 +93,36 @@ function Fact({
   );
 }
 
+/**
+ * The device's last position against the plant's current fence. The server sends the position
+ * only to the Super Admin and the plant's own Plant Head, so the map shows only for them.
+ */
+function LastPositionMap({ plantId, point }: { plantId: string; point: MapPoint }) {
+  const { t } = useTranslation();
+  const versions = useGeofenceVersions(plantId);
+  const fence = versions.data?.find((version) => version.is_current) ?? null;
+  return (
+    <div className="py-2">
+      <Suspense fallback={<Skeleton className="h-72 w-full" />}>
+        <ReviewMap
+          fence={
+            fence
+              ? {
+                  shape: fence.shape,
+                  geojson: fence.geojson,
+                  radius_m: fence.radius_m ? Number(fence.radius_m) : undefined,
+                }
+              : null
+          }
+          marginM={fence?.buffer_m ?? 0}
+          points={[point]}
+          label={t("kiosks.drawer.mapLabel")}
+        />
+      </Suspense>
+    </div>
+  );
+}
+
 export function DeviceDrawer({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => void }) {
   const { t } = useTranslation();
   const health = useKioskHealth(kiosk.id);
@@ -138,6 +176,12 @@ export function DeviceDrawer({ kiosk, onClose }: { kiosk: Kiosk; onClose: () => 
               </span>
             ) : null}
           </Fact>
+          {location?.lat != null && location.lon != null ? (
+            <LastPositionMap
+              plantId={kiosk.plant_id}
+              point={{ lat: location.lat, lon: location.lon, accuracy_m: location.accuracy_m }}
+            />
+          ) : null}
           <Fact
             icon={battery?.charging ? BatteryCharging : BatteryFull}
             label={t("kiosks.health.battery")}

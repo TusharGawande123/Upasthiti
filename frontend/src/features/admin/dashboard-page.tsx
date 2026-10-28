@@ -8,6 +8,7 @@ import { FaceEnrolmentCard } from "@/features/face/enrolment-card";
 import { HealthStatus } from "@/features/health/health-status";
 import { useStatusSummary } from "@/features/kiosks/use-kiosks";
 import { useExpiringCount } from "@/features/qr-cards/use-qr-cards";
+import { DigestCard, ToCheckCard } from "@/features/review/review-cards";
 
 // F-33: how many QR cards end soon, with a link to exactly those cards. Super Admin only,
 // because only the Super Admin extends or ends cards (by hand).
@@ -94,6 +95,8 @@ export function DashboardPage() {
         {t("dashboard.welcome", { name: me.data?.name })}
       </h1>
       {me.data ? <DevicesCard /> : null}
+      {me.data?.role === "super_admin" ? <ToCheckCard /> : null}
+      {me.data?.role === "super_admin" ? <DigestCard /> : null}
       {me.data?.role === "super_admin" ? <CardsEndingSoon /> : null}
       {me.data ? <FaceEnrolmentCard /> : null}
       <Card>

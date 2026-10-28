@@ -11,6 +11,8 @@ import {
   Columns2,
   Eye,
   FileSpreadsheet,
+  Flag,
+  Hourglass,
   ImageOff,
   Keyboard,
   LogIn,
@@ -59,13 +61,23 @@ import {
   type PunchDetail,
   type PunchFilters,
   type PunchItem,
+  type ReviewState,
   usePunches,
   usePunchSummary,
 } from "./use-punches";
 
 const PAGE_SIZE = 50;
 // What the day's chips and the reason chips can show.
-type Focus = "all" | "in" | "out" | "rejected" | "dark" | "asked" | "noFace";
+type Focus =
+  | "all"
+  | "in"
+  | "out"
+  | "rejected"
+  | "dark"
+  | "asked"
+  | "noFace"
+  | "flagged"
+  | "offline";
 // The Method filter: any, face, face punches decided by a typed code, or card.
 type MethodFilter = "" | "face" | "code" | "qr";
 
@@ -82,13 +94,14 @@ function Chip({
   label: string;
   active: boolean;
   onClick: () => void;
-  tone: "success" | "primary" | "danger" | "neutral";
+  tone: "success" | "primary" | "danger" | "neutral" | "warning";
 }) {
   const colours = {
     success: "bg-success-soft text-success",
     primary: "bg-primary-soft text-primary-soft-foreground",
     danger: "bg-destructive-soft text-destructive",
     neutral: "bg-muted text-muted-foreground",
+    warning: "bg-warning-soft text-warning",
   }[tone];
   return (
     <button
@@ -124,7 +137,9 @@ export function PunchesPage() {
   const [date, setDate] = useState(todayIst());
   const [search, setSearch] = useState("");
   const [typedSearch, setTypedSearch] = useState("");
-  const [result, setResult] = useState<"" | "accepted" | "rejected">("");
+  const [result, setResult] = useState<"" | "accepted" | "rejected" | "flagged">("");
+  const [offlineOnly, setOfflineOnly] = useState(false);
+  const [reviewState, setReviewState] = useState<"" | ReviewState>("");
   const [method, setMethod] = useState<MethodFilter>("");
   const [askedOnly, setAskedOnly] = useState(false);
   const [noFaceOnly, setNoFaceOnly] = useState(false);
@@ -163,6 +178,8 @@ export function PunchesPage() {
     match_mode: method === "code" ? "code" : undefined,
     asked_for_code: askedOnly || undefined,
     no_face_photo: noFaceOnly || undefined,
+    was_offline: offlineOnly || undefined,
+    review_state: reviewState || undefined,
     kiosk_id: kioskId || undefined,
     reason_code: reason || undefined,
     dark_only: darkOnly || undefined,
@@ -178,7 +195,16 @@ export function PunchesPage() {
   const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const today = isToday(date);
   const filtered = Boolean(
-    typedSearch || result || kioskId || reason || darkOnly || method || askedOnly || noFaceOnly,
+    typedSearch ||
+      result ||
+      kioskId ||
+      reason ||
+      darkOnly ||
+      method ||
+      askedOnly ||
+      noFaceOnly ||
+      offlineOnly ||
+      reviewState,
   );
   const withPhoto = rows.filter((row) => row.snapshot.state === "stored");
 
@@ -193,12 +219,13 @@ export function PunchesPage() {
       const chosen = focus === next ? "all" : next;
       setFocus(chosen);
       setResult(
-        chosen === "rejected"
-          ? "rejected"
-          : chosen === "all" || chosen === "dark" || chosen === "asked" || chosen === "noFace"
-            ? ""
-            : "accepted",
+        chosen === "rejected" || chosen === "flagged"
+          ? chosen
+          : chosen === "in" || chosen === "out"
+            ? "accepted"
+            : "",
       );
+      setOfflineOnly(chosen === "offline");
       setDarkOnly(chosen === "dark");
       setAskedOnly(chosen === "asked");
       setNoFaceOnly(chosen === "noFace");
@@ -287,6 +314,26 @@ export function PunchesPage() {
             active={focus === "rejected"}
             onClick={() => pressChip("rejected")}
           />
+          {(data?.flagged ?? 0) > 0 ? (
+            <Chip
+              icon={Flag}
+              tone="warning"
+              count={data?.flagged ?? 0}
+              label={t("punches.summary.flagged")}
+              active={focus === "flagged"}
+              onClick={() => pressChip("flagged")}
+            />
+          ) : null}
+          {(data?.offline ?? 0) > 0 ? (
+            <Chip
+              icon={Hourglass}
+              tone="neutral"
+              count={data?.offline ?? 0}
+              label={t("punches.summary.offline")}
+              active={focus === "offline"}
+              onClick={() => pressChip("offline")}
+            />
+          ) : null}
           {isSuperAdmin && data?.dark_photos !== null && data?.dark_photos !== undefined ? (
             <Chip
               icon={Moon}
@@ -432,8 +479,32 @@ export function PunchesPage() {
           >
             <option value="">{t("punches.filter.anyResult")}</option>
             <option value="accepted">{t("punches.result.accepted")}</option>
+            <option value="flagged">{t("punches.result.flagged")}</option>
             <option value="rejected">{t("punches.result.rejected")}</option>
             <option value="asked">{t("punches.result.needsCode")}</option>
+          </Select>
+          <Select
+            aria-label={t("punches.filter.offline")}
+            value={offlineOnly ? "yes" : ""}
+            onChange={(event) => apply(() => setOfflineOnly(event.target.value === "yes"))}
+            className="w-auto"
+          >
+            <option value="">{t("punches.filter.anyOffline")}</option>
+            <option value="yes">{t("punches.filter.savedOffline")}</option>
+          </Select>
+          <Select
+            aria-label={t("punches.filter.review")}
+            value={reviewState}
+            onChange={(event) =>
+              apply(() => setReviewState(event.target.value as typeof reviewState))
+            }
+            className="w-auto"
+          >
+            <option value="">{t("punches.filter.anyReview")}</option>
+            <option value="to_check">{t("punches.review.toCheck")}</option>
+            <option value="confirmed">{t("punches.review.confirmed")}</option>
+            <option value="not_accepted">{t("punches.review.notAccepted")}</option>
+            <option value="approved">{t("punches.review.approved")}</option>
           </Select>
           <Select
             aria-label={t("punches.filter.method")}
@@ -629,11 +700,12 @@ function PunchRow({
     <TableRow
       className={cn(
         punch.decision === "rejected" && "border-l-4 border-l-destructive",
-        punch.decision === "needs_code" && "border-l-4 border-l-warning",
+        (punch.decision === "needs_code" || punch.decision === "flagged") &&
+          "border-l-4 border-l-warning",
       )}
     >
       <TableCell className="tnum font-semibold">
-        {formatTimeWithSeconds(punch.server_received_at)}
+        {formatTimeWithSeconds(punch.punch_time ?? punch.server_received_at)}
       </TableCell>
       <TableCell>
         <EmployeeCell punch={punch} />

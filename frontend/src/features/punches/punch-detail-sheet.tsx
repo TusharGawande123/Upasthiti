@@ -23,7 +23,7 @@ import { describeError } from "@/features/auth/error-message";
 import { useSettings } from "@/features/settings/use-settings";
 import { formatDate, formatTimeWithSeconds } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { howText, MethodBadge, ResultBadge, useReasonText } from "./punch-cells";
+import { howText, MethodBadge, ResultBadge, ReviewMark, useReasonText } from "./punch-cells";
 import { type PunchDetail, type PunchFaceDetail, usePunchDetail } from "./use-punches";
 
 type Verdict = "passed" | "tooLow" | "notUsed";
@@ -289,6 +289,40 @@ export function PunchDetailSheet({
                         {formatTimeWithSeconds(punch.server_received_at)}
                       </span>
                     </Row>
+                    {punch.was_offline && punch.punch_time ? (
+                      <Row label={t("punches.detail.punchTime")}>
+                        <span className="tnum">
+                          {formatDate(punch.punch_time)} {formatTimeWithSeconds(punch.punch_time)}
+                        </span>
+                        <span className="block text-xs text-muted-foreground">
+                          {punch.time_proof === "anchored"
+                            ? t("review.sheet.timeAnchored")
+                            : t("review.sheet.timeUnproven")}
+                        </span>
+                      </Row>
+                    ) : null}
+                    {punch.review_state ? (
+                      <Row label={t("punches.detail.review")}>
+                        <ReviewMark punch={punch} />
+                        {isSuperAdmin ? (
+                          <Link
+                            to={`/admin/review?punch=${punch.id}`}
+                            className="mt-1 inline-block text-xs font-semibold text-primary underline"
+                          >
+                            {t("punches.detail.openReview")}
+                          </Link>
+                        ) : null}
+                      </Row>
+                    ) : isSuperAdmin && punch.decision === "rejected" ? (
+                      <Row label={t("punches.detail.review")}>
+                        <Link
+                          to={`/admin/review?punch=${punch.id}&tab=rejected`}
+                          className="text-xs font-semibold text-primary underline"
+                        >
+                          {t("punches.detail.openReview")}
+                        </Link>
+                      </Row>
+                    ) : null}
                     <Row label={t("punches.columns.kiosk")}>
                       {punch.kiosk.name} · <span className="code">{punch.plant.code}</span>
                     </Row>

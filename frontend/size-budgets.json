@@ -37,6 +37,6 @@
   {
     "name": "Styles",
     "pattern": "^index-.*.css$",
-    "maxGzipBytes": 12400
+    "maxGzipBytes": 13000
   }
 ]

@@ -13,7 +13,7 @@ export type NavItem = {
   roles: Role[];
   end?: boolean;
   // A small number next to the label (the approvals waiting for the Super Admin).
-  badge?: "pendingApprovals" | "expiringCards" | "offlineDevices";
+  badge?: "pendingApprovals" | "expiringCards" | "offlineDevices" | "toCheck";
 };
 
 type NavLinksProps = {
@@ -30,6 +30,7 @@ const BADGE_WORDS = {
   pendingApprovals: "nav.waiting",
   expiringCards: "nav.endingSoon",
   offlineDevices: "nav.offline",
+  toCheck: "nav.toCheck",
 } as const;
 
 export function NavLinks({ items, badgeFor, alwaysShowLabels, onNavigate }: NavLinksProps) {

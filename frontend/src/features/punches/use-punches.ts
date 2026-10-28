@@ -29,13 +29,32 @@ export type PunchItem = {
   kiosk: { id: string; name: string };
   method: string; // "qr" (card) or "face"
   direction: "in" | "out" | null;
-  decision: "accepted" | "rejected" | "needs_code";
+  decision: "accepted" | "rejected" | "needs_code" | "flagged";
   reason_codes: string[];
   snapshot: PunchSnapshotInfo;
   // M3: how a face punch was decided, and the two rows of a code entry.
   match_mode?: "one_to_many" | "code" | null;
   follows_punch_id?: string | null;
   followed_by_punch_id?: string | null;
+  // M4: when the punch was made (a punch saved offline arrives later), and the review mark.
+  punch_time?: string | null;
+  was_offline?: boolean;
+  offline_delay_seconds?: number | null;
+  review_state?: ReviewState | null;
+  review_direction?: "in" | "out" | null;
+};
+
+export type ReviewState = "to_check" | "confirmed" | "not_accepted" | "approved";
+
+/** One review of a punch. Other roles get the action and direction only (no reason, no name). */
+export type PunchReview = {
+  id: string | null;
+  action: "confirmed" | "not_accepted" | "approved";
+  direction: "in" | "out" | null;
+  reason: string | null;
+  reviewed_by: { id: string; name: string } | null;
+  reviewed_at: string | null;
+  supersedes_review_id: string | null;
 };
 
 /** What the face check measured. Super Admin only; other roles get no such object (AC-24). */
@@ -53,6 +72,13 @@ export type PunchFaceDetail = {
 export type PunchDetail = PunchItem & {
   app_version: string | null;
   face: PunchFaceDetail | null;
+  // M4
+  location?: { lat: number; lon: number; accuracy_m: number | null } | null;
+  time_proof?: "anchored" | "unproven" | null;
+  geofence_distance_m?: number | null;
+  location_age_s?: number | null;
+  related_punch_id?: string | null;
+  reviews?: PunchReview[];
 };
 
 export type PunchSummary = {
@@ -66,12 +92,19 @@ export type PunchSummary = {
   code_accepted?: number;
   asked_for_code?: number;
   no_face_photos?: number | null; // Super Admin only
+  // M4: flagged punches (they also count above), punches saved offline, flagged and not reviewed.
+  flagged?: number;
+  offline?: number;
+  to_check?: number | null; // Super Admin only
 };
 
 export type PunchFilters = {
   date: string;
   plant_id?: string;
-  decision?: "accepted" | "rejected";
+  decision?: "accepted" | "rejected" | "flagged";
+  flagged?: boolean;
+  was_offline?: boolean;
+  review_state?: ReviewState;
   method?: "face" | "qr";
   match_mode?: "code";
   asked_for_code?: boolean;
