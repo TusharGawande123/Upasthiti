@@ -172,7 +172,7 @@ def test_the_tabs_list_the_right_punches_and_the_badge_equals_to_check(
         worker,
         age=timedelta(minutes=30),
         decision="rejected",
-        codes=("QR_EXPIRED",),
+        codes=("WRONG_PLANT",),
     )
     repeat = add_punch(
         db_session,
@@ -234,7 +234,7 @@ def test_a_list_row_says_what_the_screen_needs(
         worker,
         age=timedelta(minutes=1),
         decision="rejected",
-        codes=("QR_EXPIRED",),
+        codes=("WRONG_PLANT",),
     )
 
     (row,) = boss.get(REVIEWS).json()["items"]
@@ -508,7 +508,7 @@ def test_what_may_not_be_approved_or_confirmed(
         worker,
         age=timedelta(minutes=4),
         decision="rejected",
-        codes=("QR_EXPIRED",),
+        codes=("WRONG_PLANT",),
     )
 
     def code(punch: Punch, action: str) -> str:
@@ -524,7 +524,7 @@ def test_what_may_not_be_approved_or_confirmed(
     assert code(expired, "confirm") == "REVIEW_NOT_ALLOWED"
     assert code(expired, "not_accepted") == "REVIEW_NOT_ALLOWED"  # nothing to withdraw yet
     assert (
-        review(boss, boss_punch := expired, "approve", "Card renewal late", "in").status_code == 201
+        review(boss, boss_punch := expired, "approve", "Sent to the other plant", "in").status_code == 201
     )
     assert boss_punch.id == expired.id
     assert db_session.scalars(select(PunchReview)).all() != []
@@ -539,9 +539,9 @@ def test_an_approval_can_be_withdrawn(
         worker,
         age=timedelta(minutes=4),
         decision="rejected",
-        codes=("QR_EXPIRED",),
+        codes=("WRONG_PLANT",),
     )
-    first = review(boss, expired, "approve", "Card renewal late", "in").json()["review"]
+    first = review(boss, expired, "approve", "Sent to the other plant", "in").json()["review"]
 
     second = review(boss, expired, "not_accepted", "Wrong person", expected=first["id"])
 
@@ -667,7 +667,7 @@ def test_the_approve_warning_lists_counted_punches_within_the_cooldown(
         worker,
         age=timedelta(minutes=10),
         decision="rejected",
-        codes=("QR_EXPIRED",),
+        codes=("WRONG_PLANT",),
     )
 
     context = boss.get(f"{PUNCHES}/{expired.id}/review-context").json()
@@ -694,7 +694,7 @@ def test_hints_show_from_the_thresholds_on(
             worker,
             age=timedelta(minutes=minutes),
             decision="rejected",
-            codes=("QR_EXPIRED",),
+            codes=("WRONG_PLANT",),
         )
     third = add_punch(
         db_session,
@@ -702,7 +702,7 @@ def test_hints_show_from_the_thresholds_on(
         worker,
         age=timedelta(minutes=30),
         decision="rejected",
-        codes=("QR_EXPIRED",),
+        codes=("WRONG_PLANT",),
     )
     two = boss.get(f"{PUNCHES}/{third.id}/review-context").json()
     assert [h["kind"] for h in two["hints"]] == ["employee_rejections"]  # 3 = the threshold
@@ -748,7 +748,7 @@ def test_the_digest_counts_yesterday_per_plant_with_offline_minutes_in_shifts(
 
     flagged = at_nine("flagged", ("LOCATION_AT_EDGE",), worker)
     at_nine("flagged", ("LOCATION_AT_EDGE",), worker)
-    at_nine("rejected", ("QR_EXPIRED",), worker)
+    at_nine("rejected", ("WRONG_PLANT",), worker)
     at_nine("rejected", ("QR_SIGNATURE_INVALID",), None)  # names nobody
     at_nine("rejected", ("COOLDOWN_ACTIVE",), worker)  # nothing to approve
     review(boss, flagged, "confirm")
