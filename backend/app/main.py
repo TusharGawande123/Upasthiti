@@ -30,6 +30,7 @@ from app.modules.notices.router import router as notices_router
 from app.modules.org.router import router as org_router
 from app.modules.printing.router import router as printing_router
 from app.modules.punches.admin_router import router as punch_log_router
+from app.modules.punches.review_router import router as review_router
 from app.modules.punches.router import router as punches_router
 from app.modules.qr_cards.router import router as qr_cards_router
 from app.modules.settings.privacy_router import router as privacy_router
@@ -99,6 +100,7 @@ def create_app() -> FastAPI:
     api_router.include_router(printing_router)
     api_router.include_router(punches_router)
     api_router.include_router(punch_log_router)
+    api_router.include_router(review_router)
     api_router.include_router(notices_router)
     api_router.include_router(approvals_router)
     api_router.include_router(search_router)
