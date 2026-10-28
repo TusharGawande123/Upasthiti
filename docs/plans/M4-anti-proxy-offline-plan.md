@@ -270,8 +270,25 @@ suites). Manual: step 34 real-device check on the live site.
   `punch_time`, `PunchReview`, `ReviewAction`, snapshot reason `face_offline`), tests
   `tests/test_m4_punch_tables.py` (AC-5). The test found that `length(trim(NULL)) >= 3` passes a
   CHECK: `reason_required` now also says `reason IS NOT NULL`.
-- Next: step 4 (FLAG outcome, `punches/counting.py`, `check_in_out` on punch time, decision mapping,
-  flagged -> "accepted" at the gate). Opus, high effort. Local Postgres: start Docker Desktop, then
-  `docker compose up -d`.
-- Test results (2026-10-28, after step 3): backend 1007 passed, coverage 89.8%.
+- Done (2026-10-28): **slice A complete** (steps 4-9).
+  - Engine: `Outcome.FLAG`, `run_rules` collects flags (rejection code first, then flags), decision
+    `flagged` counts and answers "accepted" at the gate. `punches/counting.py` = what counts (accepted,
+    flagged unless "not accepted", rejected only when approved). `check_in_out` uses `punch_time`
+    (offline: next punch within cool-down -> COOLDOWN_ACTIVE, else SYNC_ORDER_CONFLICT flag).
+  - Rules: `kiosk_location.py` (location + LOCATION_STALE offline), `impossible_travel.py`,
+    `two_devices.py` (shared `antiproxy/nearby_punches.py`); QR order read_card -> location -> photo ->
+    card -> IN/OUT -> travel -> two devices; a test card skips location and reports
+    `details.location_check`. Face: location before the face worker, IN/OUT + flags after; the code
+    path reuses the place and LOCATION_* flags of its needs_code row.
+  - Settings: 13 M4 keys (groups `antiproxy`, `offline`, `kiosk`), two order cross-checks,
+    `CURRENT_MILESTONE = 4`. `/kiosk/me` sends `kiosk_settings.location` (limits + current fence).
+  - Tools: `app/scripts/gate_fence_fixture.py` gives tests, the CI memory check and Locust a fence
+    and a matching location.
+  - Gate: `src/kiosk/location/` (`gate-location.ts` watcher + pure `judgeLocation`,
+    `fence-distance.ts`, `fence-sketch.tsx` F-53, `needs-location.tsx` chip + screen); scanning and
+    the face button wait for a usable reading; every punch sends `location` with `age_s`; self-test
+    shows Location ✓/✗. Gate size budget 57,000 -> 61,000 bytes (decision 0026 item 7).
+  - Tests: `test_m4_location_and_flags.py` (20), face location tests (3), `gate-location.test.ts`,
+    `needs-location.test.tsx`, gate screen location tests, e2e `kiosk-location.spec.ts` (2).
+- Next: slice B step 11 (offline evidence key, sealing, time anchor, sync, gate queue, service worker).
 - Open questions: none.
