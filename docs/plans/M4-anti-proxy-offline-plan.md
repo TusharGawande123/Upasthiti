@@ -263,6 +263,15 @@ suites). Manual: step 34 real-device check on the live site.
 ## Status
 - Done: spec approved (2026-10-28), decision 0025, accepted extras logged, plan written.
 - Done: step 0 (plan saved, 2026-10-28).
-- Next: slice A step 1 (design gate A). Ask the lead for model/effort first (Opus, high).
-- Test results: –
+- Done (2026-10-28): slice A step 1, design gate A approved (decision 0026; mockups
+  `docs/design-refs/m4/gate-a/`). Note for step 8: the online M3 code pad also gets the prefix-key row.
+- Done: step 2 `kiosks/location_check.py` (`check_location`, `geofence_at`, `LocationVerdict`;
+  pairing unchanged). Step 3 migrations 0015 + 0016, models (`Punch` M4 columns, generated
+  `punch_time`, `PunchReview`, `ReviewAction`, snapshot reason `face_offline`), tests
+  `tests/test_m4_punch_tables.py` (AC-5). The test found that `length(trim(NULL)) >= 3` passes a
+  CHECK: `reason_required` now also says `reason IS NOT NULL`.
+- Next: step 4 (FLAG outcome, `punches/counting.py`, `check_in_out` on punch time, decision mapping,
+  flagged -> "accepted" at the gate). Opus, high effort. Local Postgres: start Docker Desktop, then
+  `docker compose up -d`.
+- Test results (2026-10-28, after step 3): backend 1007 passed, coverage 89.8%.
 - Open questions: none.
