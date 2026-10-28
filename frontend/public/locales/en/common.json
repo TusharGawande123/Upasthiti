@@ -742,7 +742,8 @@
     "qrCards": "QR cards",
     "endingSoon": "cards end soon",
     "punches": "Punch log",
-    "notices": "Gate notices"
+    "notices": "Gate notices",
+    "offline": "offline"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -815,6 +816,13 @@
       },
       "error": "The numbers could not be loaded.",
       "retry": "Try again"
+    },
+    "devices": {
+      "title": "Attendance devices",
+      "text": "{{online}} online · {{offline}} offline · {{needsLocation}} need location",
+      "loading": "Loading…",
+      "error": "The device list could not be loaded.",
+      "link": "View devices"
     }
   },
   "users": {
@@ -1390,7 +1398,9 @@
         "shifts": "Shifts",
         "categories": "Employee categories",
         "kiosk": "Attendance device at the gate",
-        "employees": "Employees"
+        "employees": "Employees",
+        "deviceOnline": "Attendance device online",
+        "locationGood": "Location good"
       },
       "geofenceOk": "A geofence is set.",
       "geofenceNo": "No geofence. Draw it on the Geofence tab.",
@@ -1402,7 +1412,11 @@
       "kioskCount_other": "{{count}} active devices",
       "kioskNo": "No active attendance device. Pair a phone, tablet or PC at the gate.",
       "employeesCount_one": "{{count}} active employee",
-      "employeesCount_other": "{{count}} active employees"
+      "employeesCount_other": "{{count}} active employees",
+      "deviceOnlineYes": "At least one device is in contact now.",
+      "deviceOnlineNo": "No device has been in contact in the last minutes.",
+      "locationGoodYes": "The device's last location was inside the fence.",
+      "locationGoodNo": "The device's last location is not good."
     },
     "departments": {
       "description": "Departments of this plant (for example Press shop or Stores).",
@@ -1488,7 +1502,9 @@
     "newCode": "New code",
     "filter": {
       "allPlants": "All plants",
-      "anyStatus": "Any status"
+      "anyStatus": "Any status",
+      "stateLabel": "State",
+      "anyState": "Any state"
     },
     "columns": {
       "kiosk": "Device",
@@ -1497,7 +1513,10 @@
       "accuracy": "Location at pairing",
       "lastSeen": "Last seen",
       "lastSelfTest": "Last self-test",
-      "sound": "Sound"
+      "sound": "Sound",
+      "waiting": "Saved punches waiting",
+      "lastPunch": "Last punch",
+      "version": "App version"
     },
     "status": {
       "active": "Active",
@@ -1554,6 +1573,59 @@
     },
     "selfTest": {
       "never": "Never tested"
+    },
+    "state": {
+      "online": "Online",
+      "offline": "Offline",
+      "offlineSince": "Offline since {{time}}",
+      "needsLocation": "Needs location",
+      "sending": "Sending saved punches ({{count}})",
+      "revoked": "Switched off",
+      "pending": "Waiting for pairing"
+    },
+    "stateName": {
+      "online": "Online",
+      "offline": "Offline",
+      "needs_location": "Needs location",
+      "sending": "Sending saved punches"
+    },
+    "offlineBadge": "{{count}} attendance device offline",
+    "offlineBadge_other": "{{count}} attendance devices offline",
+    "offlineAlert": "Attendance device “{{name}}” has been offline since {{time}} ({{minutes}} min). Check its power and internet.",
+    "offlineAlertView": "View",
+    "offlineAlertHide": "Hide",
+    "revokeQueueWarning": "{{count}} punches are still waiting on this attendance device. If you switch it off now, they are lost. Wait until it shows 0 if you can.",
+    "drawer": {
+      "lastContact": "Last contact",
+      "lastPunch": "Last punch",
+      "waiting": "Saved punches waiting",
+      "waitingSince": "{{count}} waiting since {{time}}",
+      "location": "Location",
+      "locationState": {
+        "inside": "Inside the fence (±{{metres}} m)",
+        "edge": "At the edge of the fence (±{{metres}} m)",
+        "outside": "Outside the fence (±{{metres}} m)",
+        "unknown": "Not known (±{{metres}} m)"
+      }
+    },
+    "health": {
+      "battery": "Battery",
+      "batteryLevel": "{{percent}}%",
+      "batteryCharging": "{{percent}}% (charging)",
+      "notReported": "Not reported",
+      "camera": "Camera",
+      "cameraWorking": "Working",
+      "cameraNotWorking": "Not working",
+      "storage": "Storage",
+      "storageLine": "{{used}} MB used, {{free}} MB free",
+      "offlineReady": "Offline saving ready",
+      "offlineOff": "Offline saving off: not enough storage",
+      "notPersisted": "the browser may clear it",
+      "timeline": "Last 7 days",
+      "timelineHelp": "Green: the device was in contact. Grey: no contact.",
+      "noData": "No data",
+      "dayLine": "Online {{online}}% of the time",
+      "dayLabel": "Online {{online}} minutes, offline {{offline}} minutes"
     }
   },
   "plantFilter": {

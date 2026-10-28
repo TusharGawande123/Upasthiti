@@ -29,6 +29,11 @@ import { Outlet } from "react-router";
 import { usePendingCount } from "@/features/approvals/use-approvals";
 import { BrandMark } from "@/features/auth/brand-mark";
 import { type Me, type Role, useMe } from "@/features/auth/use-auth";
+import {
+  OfflineAlertBanner,
+  OfflineBadge,
+  useOfflineSummary,
+} from "@/features/kiosks/offline-alert";
 import { useExpiringCount } from "@/features/qr-cards/use-qr-cards";
 import { CommandPalette, type PaletteCommand } from "@/features/search/command-palette";
 import { MobileMenu } from "./mobile-menu";
@@ -51,7 +56,13 @@ const NAV_ITEMS: NavItem[] = [
   },
   { to: "/admin/my-requests", labelKey: "nav.myRequests", icon: Send, roles: ["corporate_head"] },
   { to: "/admin/plants", labelKey: "nav.plants", icon: Factory, roles: ALL_ROLES },
-  { to: "/admin/kiosks", labelKey: "nav.kiosks", icon: Tablet, roles: ALL_ROLES },
+  {
+    to: "/admin/kiosks",
+    labelKey: "nav.kiosks",
+    icon: Tablet,
+    roles: ALL_ROLES,
+    badge: "offlineDevices", // attendance devices that are offline now (M4 F-36)
+  },
   // The punch log: every role reads it (the server limits a Plant Head to their own plant).
   { to: "/admin/punches", labelKey: "nav.punches", icon: History, roles: ALL_ROLES },
   // Everyone reads gate notices; the Super Admin and the Plant Head write them (the server decides).
@@ -87,6 +98,7 @@ function AdminShell({ user }: { user: Me }) {
   const items = visibleNavItems(user.role);
   const pending = usePendingCount(user.role === "super_admin");
   const expiring = useExpiringCount(user.role === "super_admin");
+  const deviceSummary = useOfflineSummary();
 
   // Ctrl+K (or Cmd+K on a Mac) opens the palette from anywhere in the admin area.
   useEffect(() => {
@@ -103,6 +115,7 @@ function AdminShell({ user }: { user: Me }) {
   const badgeFor = (item: NavItem): number => {
     if (item.badge === "pendingApprovals") return pending.data?.count ?? 0;
     if (item.badge === "expiringCards") return expiring.data?.count ?? 0;
+    if (item.badge === "offlineDevices") return deviceSummary?.offline ?? 0;
     return 0;
   };
 
@@ -205,10 +218,12 @@ function AdminShell({ user }: { user: Me }) {
             <Search className="size-4" aria-hidden />
           </button>
           <PlantFilterSelect />
-          <div className="ml-auto shrink-0">
+          <div className="ml-auto flex shrink-0 items-center gap-2">
+            <OfflineBadge summary={deviceSummary} />
             <UserMenu user={user} />
           </div>
         </header>
+        <OfflineAlertBanner summary={deviceSummary} />
         <main className="min-w-0 flex-1 p-4 sm:p-5 lg:p-8">
           <Outlet />
         </main>

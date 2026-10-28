@@ -50,6 +50,8 @@ function CheckRow({ state, title, detail }: { state: CheckState; title: string; 
   );
 }
 
+const DEVICE_LINES = new Set(["deviceOnline", "locationGood"]);
+
 export function ReadinessCard({ readiness }: { readiness: Readiness }) {
   const { t } = useTranslation();
   const checks: { key: string; state: CheckState; detail: string }[] = [
@@ -76,13 +78,38 @@ export function ReadinessCard({ readiness }: { readiness: Readiness }) {
           ? t("plants.readiness.kioskCount", { count: readiness.active_kiosks })
           : t("plants.readiness.kioskNo"),
     },
+    // M4: lines from the gate device's heartbeat; only shown once the plant has a device.
+    ...(readiness.active_kiosks > 0
+      ? [
+          {
+            key: "deviceOnline",
+            state: (readiness.device_online ? "done" : "missing") as CheckState,
+            detail: t(
+              readiness.device_online
+                ? "plants.readiness.deviceOnlineYes"
+                : "plants.readiness.deviceOnlineNo",
+            ),
+          },
+          {
+            key: "locationGood",
+            state: (readiness.location_good ? "done" : "missing") as CheckState,
+            detail: t(
+              readiness.location_good
+                ? "plants.readiness.locationGoodYes"
+                : "plants.readiness.locationGoodNo",
+            ),
+          },
+        ]
+      : []),
     {
       key: "employees",
       state: readiness.active_employees > 0 ? "done" : "none",
       detail: t("plants.readiness.employeesCount", { count: readiness.active_employees }),
     },
   ];
-  const doneCount = checks.filter((check) => check.state === "done").length;
+  // The two device lines are information only: they never count towards "ready for attendance".
+  const required = checks.filter((check) => !DEVICE_LINES.has(check.key));
+  const doneCount = required.filter((check) => check.state === "done").length;
 
   return (
     <Card>
@@ -98,7 +125,7 @@ export function ReadinessCard({ readiness }: { readiness: Readiness }) {
           </Badge>
         ) : (
           <Badge tone="warning">
-            {t("plants.readiness.notReady", { count: checks.length - doneCount })}
+            {t("plants.readiness.notReady", { count: required.length - doneCount })}
           </Badge>
         )}
       </CardHeader>
