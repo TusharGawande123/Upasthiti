@@ -1,0 +1,48 @@
+<!doctype html>
+<!-- Upasthiti - M4 design gate B - screen 1: the list (spec 4.8). MOCKUP ONLY: static HTML, fake data (made-up names and codes; no photo of any person). State = URL hash. -->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti needs review</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4b.css" />
+</head>
+<body>
+<div class="app"><aside id="sidebar" class="sidebar"></aside><div class="main"><header id="topbar" class="topbar"></header><main class="page" id="page"></main></div></div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="rv.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Needs review";
+  window.MOCK_USER = { name: "Asha Rao", role: "Super Admin" };
+  const S = location.hash.replace("#", "") || "default";
+  /* state -> list config */
+  const CFG = {
+    "default": { tab: "check" },
+    "filters-open": { tab: "check", filtersOpen: true },
+    "filtered": { tab: "check", filtersOpen: true, filtered: { plant: "K134", offline: true } },
+    "filtered-empty": { tab: "check", filtersOpen: true, filtered: { plant: "X280", offline: true }, state: "empty-filter" },
+    "loading": { tab: "check", state: "loading" },
+    "error": { tab: "check", state: "error" },
+    "empty-check": { tab: "check", state: "empty-check" },
+    "rejected": { tab: "rejected" },
+    "rejected-filters": { tab: "rejected", filtersOpen: true },
+    "rejected-cooldown": { tab: "rejected", filtersOpen: true, showCooldown: true },
+    "rejected-nobody": { tab: "rejected", filtersOpen: true, filtered: { names: "nobody" } },
+    "rejected-empty": { tab: "rejected", state: "empty-rejected" },
+    "reviewed": { tab: "reviewed" },
+  }[S] || { tab: "check" };
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = listPage(CFG);
+    const tags = { "default": "To check, 7 flagged punches", "filters-open": "To check, filters open", filtered: "To check, filters: plant K134 + saved offline", "filtered-empty": "filters match nothing", loading: "loading", error: "error loading", "empty-check": "empty: nothing to check", rejected: "Rejected tab", "rejected-filters": "Rejected, filters open (checkbox off)", "rejected-cooldown": "Rejected, Show already-punched ticked", "rejected-nobody": "Rejected, filter: names nobody", "rejected-empty": "empty: no rejected punches", reviewed: "Reviewed tab" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>
