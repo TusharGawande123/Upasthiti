@@ -1,0 +1,107 @@
+<!doctype html>
+<!--
+  Upasthiti - M4 design gate C - Screen 4: dashboard cards (spec 4.10): "To check", "Attendance devices", daily review digest (F-48).
+  States (URL hash): default · attention · all-clear · digest-earlier · digest-oldest · plant-head · corporate-head · loading · error.
+  "Today" is Wednesday 28/10/2026 08:26; the digest opens on "Yesterday (27/10/2026)".
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Dashboard";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = ROLE === "sa" ? { name: "Asha Rao", role: "Super Admin" } : ROLE === "ch" ? { name: "Meera Joshi", role: "Corporate Head" } : { name: "Prakash Kale", role: "Plant Head · K134", plant: "K134" };
+
+  /* Devices in the user's scope: online, offline, needs location. "attention" shows a worse morning. */
+  const D = ROLE === "ph" ? { on: 0, off: 1, loc: 0, offNames: [["Main gate phone", "K134", "08:12"]] }
+    : S === "attention" ? { on: 4, off: 2, loc: 1, offNames: [["TP1 Gate", "TP1", "08:12"], ["X280 Gate PC", "X280", "08:20"]], locNames: [["Press shop gate", "PC1"]] }
+    : S === "all-clear" ? { on: 7, off: 0, loc: 0, offNames: [] }
+    : { on: 6, off: 1, loc: 0, offNames: [["TP1 Gate", "TP1", "08:12"]] };
+  const TO_CHECK = S === "all-clear" ? 0 : 7;
+  window.MOCK_SHELL = { offline: S === "loading" || S === "error" ? 0 : D.off, review: TO_CHECK,
+    banner: ROLE === "ch" || !D.off || S === "loading" || S === "error" ? null : { name: D.offNames[0][0], since: D.offNames[0][2], minutes: 14, more: D.off - 1 || 0 } };
+
+  /* Digest: [plant code, name, flagged, rejected with an employee, still to check, device offline during shifts] */
+  const DIGEST = {
+    "27/10/2026": { label: "Yesterday (27/10/2026)", rows: [["K134", "Sheet Shapers K-134", 3, 2, 2, "–"], ["K135", "Sheet Shapers K-135", 0, 0, 0, "–"], ["PC1", "Press shop 1", 1, 1, 1, "0 h 35 min"], ["PC2", "Press shop 2", 0, 1, 0, "–"], ["SPI", "Spinning unit", 0, 0, 0, "–"], ["TP1", "Tool plant 1", 4, 2, 2, "2 h 10 min"], ["X280", "Sheet Shapers X-280", 0, 0, 0, "–"]] },
+    "26/10/2026": { label: "Monday 26/10/2026", rows: [["K134", "Sheet Shapers K-134", 1, 0, 0, "–"], ["K135", "Sheet Shapers K-135", 0, 0, 0, "–"], ["PC1", "Press shop 1", 0, 0, 0, "–"], ["PC2", "Press shop 2", 2, 1, 0, "0 h 20 min"], ["SPI", "Spinning unit", 0, 0, 0, "–"], ["TP1", "Tool plant 1", 1, 0, 0, "–"], ["X280", "Sheet Shapers X-280", 0, 0, 0, "–"]] },
+    "21/10/2026": { label: "Wednesday 21/10/2026", rows: [["K134", "Sheet Shapers K-134", 0, 1, 0, "–"], ["K135", "Sheet Shapers K-135", 0, 0, 0, "–"], ["PC1", "Press shop 1", 0, 0, 0, "–"], ["PC2", "Press shop 2", 0, 0, 0, "–"], ["SPI", "Spinning unit", 0, 0, 0, "–"], ["TP1", "Tool plant 1", 2, 0, 0, "1 h 05 min"], ["X280", "Sheet Shapers X-280", 0, 0, 0, "–"]] },
+  };
+  const dayKey = S === "digest-earlier" ? "26/10/2026" : S === "digest-oldest" ? "21/10/2026" : "27/10/2026";
+  let dg = DIGEST[dayKey];
+  if (S === "all-clear") dg = { label: "Yesterday (27/10/2026)", rows: DIGEST["27/10/2026"].rows.map((r) => [r[0], r[1], 0, 0, 0, "–"]) };
+
+  const num = (v, link) => v === 0 ? `<span class="zero">0</span>` : link ? `<a class="cell" href="#" aria-label="${v}, open in Needs review">${v}</a>` : `<span class="num">${v}</span>`;
+
+  function toCheckCard() {
+    if (S === "loading") return `<section class="card tocheck" aria-busy="true"><div class="skeleton" style="width:44px;height:44px;border-radius:99px"></div><div style="display:grid;gap:8px"><div class="skeleton" style="height:18px;width:220px"></div><div class="skeleton" style="height:14px;width:160px"></div></div></section>`;
+    if (S === "error") return `<section class="card tocheck"><span class="round-ic" style="background:var(--danger-soft);color:var(--danger)">${ic("circle-alert")}</span><div><h2>To check</h2><p>The count could not be loaded.</p></div><button class="btn btn-outline">Try again</button></section>`;
+    if (!TO_CHECK) return `<section class="card tocheck is-clear"><span class="round-ic">${ic("circle-check")}</span><div><h2>To check: nothing</h2><p>Every flagged punch has been looked at. Well done.</p></div><a class="btn btn-outline btn-lg" href="#">${ic("flag")}Open Needs review</a></section>`;
+    return `<section class="card tocheck anim-fade-up"><span class="hero" style="color:var(--warning)">${TO_CHECK}</span><div><h2>To check: ${TO_CHECK} flagged punches</h2><p>Flagged punches that nobody has looked at yet. The oldest is from 25/10/2026.</p></div><a class="btn btn-primary btn-lg" href="#">${ic("flag")}Open Needs review${ic("arrow-right")}</a></section>`;
+  }
+
+  function devicesCard() {
+    const head = `<div class="small-card-head"><span class="round-ic" style="background:var(--primary-soft);color:var(--primary)">${ic("tablet-smartphone")}</span><div><h2>Attendance devices${ROLE === "ph" ? " at K134" : ""}</h2><p>${ROLE === "sa" ? "All plants" : ROLE === "ph" ? "Your plant" : "All plants, read-only"} · updates every 30 s</p></div></div>`;
+    if (S === "loading") return `<section class="card" aria-busy="true">${head}<div class="devstat">${'<div class="skeleton" style="height:88px"></div>'.repeat(3)}</div><div style="height:16px"></div></section>`;
+    if (S === "error") return `<section class="card">${head}<div class="alert alert-danger" style="margin:12px 20px 20px">${ic("circle-alert")}<span>The state of the attendance devices could not be loaded.</span><button class="btn btn-outline" style="margin-left:auto">Try again</button></div></section>`;
+    const summary = `${D.on} online · ${D.off} offline · ${D.loc} need location`;
+    const tile = (cls, icon, label, n, extra) => `<a class="dstat ${cls} ${n ? "has" : "zero"}" href="#" aria-label="${n} ${label}. Open the list."><span class="top">${ic(icon)}${label}</span><span class="n">${n}</span></a>`;
+    const lines = D.offNames.map((o) => `<li><span class="stchip is-offline">${ic("wifi-off")}Offline since ${o[2]}</span><b>${o[0]}</b><span class="sub">${o[1]}</span></li>`).concat((D.locNames || []).map((o) => `<li><span class="stchip is-location">${ic("map-pin-off")}Needs location</span><b>${o[0]}</b><span class="sub">${o[1]}</span></li>`)).join("");
+    const calm = !D.off && !D.loc;
+    return `<section class="card anim-fade-up">${head}<p class="sr-only">${summary}</p>
+      <div class="devstat">${tile("on", "wifi", "Online", D.on)}${tile("off", "wifi-off", "Offline", D.off)}${tile("loc", "map-pin-off", "Need location", D.loc)}</div>
+      ${calm ? `<p style="margin:12px 20px 0;color:#03513a;display:flex;gap:8px;align-items:center;font-weight:600">${ic("circle-check")}Every attendance device is working.</p>` : `<ul class="devlist">${lines}</ul>`}
+      <div class="card-foot" style="margin-top:14px"><span>${summary}</span><a class="btn btn-outline" href="#">${ic("tablet-smartphone")}See attendance devices${ic("arrow-right")}</a></div></section>`;
+  }
+
+  function digestCard() {
+    const keys = ["27/10/2026", "26/10/2026", "21/10/2026"];
+    const idx = keys.indexOf(dayKey);
+    const nav = `<div class="digest-nav"><button class="btn btn-ghost btn-icon" aria-label="Earlier day" ${S === "digest-oldest" ? "disabled" : ""}>${ic("chevron-left")}</button><span class="lbl">${dg.label}</span><button class="btn btn-ghost btn-icon" aria-label="Later day" ${idx === 0 ? "disabled" : ""}>${ic("chevron-right")}</button></div>`;
+    const head = `<div class="small-card-head" style="flex-wrap:wrap"><span class="round-ic" style="background:var(--warning-soft);color:var(--warning)">${ic("clipboard-list")}</span><div><h2>Daily review digest</h2><p>What needed a look, plant by plant.</p></div>${nav}</div>`;
+    if (S === "loading") return `<section class="card" aria-busy="true">${head}<div style="padding:16px 20px;display:grid;gap:10px">${'<div class="skeleton" style="height:32px"></div>'.repeat(5)}</div></section>`;
+    if (S === "error") return `<section class="card">${head}<div class="alert alert-danger" style="margin:12px 20px 20px">${ic("circle-alert")}<span>The digest could not be loaded.</span><button class="btn btn-outline" style="margin-left:auto">Try again</button></div></section>`;
+    const rows = dg.rows;
+    const tot = [2, 3, 4].map((i) => rows.reduce((s, r) => s + r[i], 0));
+    if (S === "all-clear" || tot.every((x) => x === 0) && rows.every((r) => r[5] === "–")) return `<section class="card">${head}<div class="dg-empty">${ic("circle-check")}<span>A quiet day: no flagged punches, no rejections that name an employee, and every device stayed online during shifts.</span></div><div class="dg-foot">The digest covers up to 7 days back.</div></section>`;
+    const offCell = (v) => v === "–" ? `<span class="tag-ok">${ic("circle-check")}No offline time</span>` : `<span class="tag-off">${ic("wifi-off")}${v}</span>`;
+    const trs = rows.map((r) => `<tr><td><b>${r[0]}</b> <span class="sub">${r[1]}</span></td><td>${num(r[2], 1)}</td><td>${num(r[3], 1)}</td><td>${num(r[4], 1)}</td><td>${offCell(r[5])}</td></tr>`).join("");
+    const cards = rows.map((r) => `<div class="dc2"><div class="t"><b>${r[0]}</b><span class="sub">${r[1]}</span></div><div class="row"><span class="badge badge-flag">${ic("flag")}${r[2]} flagged</span><span class="badge badge-danger">${ic("circle-x")}${r[3]} rejected with an employee</span><span class="badge ${r[4] ? "badge-rev-todo" : "badge-success"}">${ic(r[4] ? "clock" : "circle-check")}${r[4]} still to check</span></div><div>${offCell(r[5])}</div>${r[4] ? `<a class="btn btn-outline" href="#">${ic("flag")}Open in Needs review</a>` : ""}</div>`).join("");
+    return `<section class="card anim-fade-up" style="overflow:hidden">${head}
+      <div class="dg-wrap"><table class="dgrid"><thead><tr><th>Plant</th><th>Flagged</th><th>Rejected, names an employee</th><th>Still to check</th><th>Device offline during shifts</th></tr></thead><tbody>${trs}</tbody>
+      <tfoot><tr><td>All plants</td><td>${tot[0]}</td><td>${tot[1]}</td><td>${tot[2]}</td><td></td></tr></tfoot></table></div>
+      <div class="dcards2">${cards}</div>
+      <div class="dg-foot">A number opens “Needs review” for that plant and day. The digest covers up to 7 days back.</div></section>`;
+  }
+
+  window.mockStart(function () {
+    const sa = ROLE === "sa";
+    document.getElementById("page").innerHTML = `<div class="page-narrow"><h1 class="page-title" style="margin-bottom:20px">Welcome, ${window.MOCK_USER.name}</h1><div class="dash-grid">${sa ? toCheckCard() : ""}${devicesCard()}${sa ? digestCard() : ""}
+      <section class="card"><div class="small-card-head" style="padding-bottom:16px"><div><h2>Live headcount comes in M5</h2><p>Setup, people and attendance device screens are ready.</p></div></div></section></div></div>`;
+    const tags = { default: "Super Admin: 6 online, 1 offline", attention: "worse morning: 2 offline, 1 needs location", "all-clear": "all clear: nothing to check, all online", "digest-earlier": "digest, Monday 26/10", "digest-oldest": "digest, 7 days back: arrow disabled", "plant-head": "Plant Head: own plant, no digest", "corporate-head": "Corporate Head: devices card only, no banner", loading: "loading", error: "could not load" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>
