@@ -31,6 +31,7 @@ import { Frame } from "./components/frame";
 import { KioskButton } from "./components/kiosk-button";
 import { ProblemScreen } from "./components/problem-screen";
 import { StatusChip } from "./components/status-chip";
+import { registerGateServiceWorker } from "./offline/register-sw";
 import { CODE_LENGTH, type PairingProblem, type PairingState, usePairing } from "./use-pairing";
 
 // Only the mark drawn on the accuracy meter. The server setting (default 50 m, Super Admin can
@@ -321,6 +322,8 @@ export function KioskPairingPage() {
   const { t } = useTranslation();
   const pairing = usePairing();
   const { state } = pairing;
+  // M4: the gate page (and only it) installs the worker that lets it reload without internet.
+  useEffect(registerGateServiceWorker, []);
 
   // Once paired, the kiosk goes straight to scanning (zero taps, spec M2 §4.1).
   if (state.phase === "paired") {
