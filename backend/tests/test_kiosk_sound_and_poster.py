@@ -7,6 +7,7 @@ import pypdfium2
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from fpdf import FPDF
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -14,6 +15,7 @@ from app.core.time import utc_now
 from app.modules.audit.models import AuditLog
 from app.modules.kiosks.models import KioskDevice
 from app.modules.org.models import Plant
+from app.modules.printing import poster_pdf
 from app.modules.users.models import Role, User
 from app.modules.users.plant_access import set_user_plant
 from tests.people_helpers import PlantIds, client_for, create_plant
@@ -159,6 +161,24 @@ def test_the_poster_names_the_plant_and_the_current_retention(
     assert "your face is checked against an encrypted record" in text
     assert "Full privacy notice:" in text and "/privacy" in text
     assert "never used for face recognition" not in text
+    # M4 §4.12: what happens without internet, and the offline privacy sentence of §4.2.
+    assert "No internet? Your punch is saved on this attendance device" in text
+    assert "deleted from the device once it is sent" in text
+    assert "the plant office will tell you" in text
+    assert "kiosk" not in text.lower()
+
+
+@pytest.mark.parametrize("retention_days", [1, 60, 365])
+def test_the_privacy_box_fits_above_the_help_line(retention_days: int) -> None:
+    pdf = FPDF(format="A4", unit="mm")
+    pdf.add_font(poster_pdf.FONT_NAME, "", str(poster_pdf.FONT_FOLDER / "Inter-Regular.ttf"))
+    pdf.add_font(poster_pdf.FONT_NAME, "B", str(poster_pdf.FONT_FOLDER / "Inter-Bold.ttf"))
+    pdf.add_page()
+    box_top = 199.0  # below the two ways, the result box and the NOT ACCEPTED note
+
+    assert (
+        poster_pdf.privacy_box_height(pdf, retention_days) <= poster_pdf.BOTTOM_LIMIT_MM - box_top
+    )
 
 
 def test_the_poster_follows_a_changed_retention(boss: TestClient, k134: PlantIds) -> None:
