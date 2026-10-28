@@ -19,6 +19,7 @@ export type KioskOfflineSettings = {
   max_mb: number;
   max_hours: number;
   cooldown_minutes: number;
+  challenge_steps: number;
   sync_max_items: number;
   sync_max_bytes: number;
 };

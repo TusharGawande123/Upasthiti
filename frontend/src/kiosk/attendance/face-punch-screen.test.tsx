@@ -11,7 +11,9 @@ import { fakeGeolocation, resetFakeReading } from "@/test/fake-geolocation";
 import { apiError, mockApi } from "../../test/mock-api";
 import { renderRoute } from "../../test/render";
 import { createDeviceKey } from "../device-key";
-import { forgetDevice, saveDevice } from "../device-store";
+import { forgetDevice, oldestQueued, queueSummary, saveDevice } from "../device-store";
+import vector from "../offline/test-vector.json";
+import { forgetAnchorForTests } from "../offline/time-anchor";
 import { DEFAULT_SCREEN_SETTINGS, type PunchAnswer } from "./punch-types";
 
 const fakes = vi.hoisted(() => ({
@@ -384,5 +386,94 @@ describe("the employee code pad", () => {
     await waitFor(() =>
       expect(screen.getByText("Show your ID card to the camera")).toBeInTheDocument(),
     );
+  });
+});
+
+describe("a face punch while the internet is down (M4)", () => {
+  const OFFLINE = {
+    enabled: true,
+    evidence_key_id: "A",
+    evidence_public_key: vector.server_public_key,
+    max_items: 2000,
+    max_mb: 200,
+    max_hours: 72,
+    cooldown_minutes: 2,
+    challenge_steps: 1,
+    sync_max_items: 20,
+    sync_max_bytes: 1_048_576,
+  };
+
+  function meOffline() {
+    const base = me();
+    return {
+      ...base,
+      time_anchor: { server_time: "2026-10-24T01:32:00Z", counter: 1, token: "anchor" },
+      kiosk_settings: { ...base.kiosk_settings, offline: OFFLINE },
+    };
+  }
+
+  beforeEach(() => {
+    forgetAnchorForTests();
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      geolocation: fakeGeolocation,
+      storage: {
+        persist: async () => true,
+        estimate: async () => ({ quota: 10_000 * 1024 * 1024, usage: 0 }),
+      },
+    });
+  });
+
+  it("asks for the employee code first, then saves the face sealed, with no name or IN/OUT", async () => {
+    // The challenge request finds no server: the gate switches to the offline way.
+    mockApi({ "GET /kiosk/me": { body: meOffline() } });
+    await openPairedKiosk();
+    fakes.faces = [STRAIGHT];
+    await screen.findByText("Location good (±10 m)");
+    await userEvent.click(await screen.findByRole("button", { name: /Punch with face/ }));
+
+    expect(
+      await screen.findByText("Type your employee code", {}, { timeout: 6000 }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText("No internet right now. Type your code, then look at the camera."),
+    ).toBeInTheDocument();
+    for (const key of ["2", "0", "0", "1"]) {
+      await userEvent.click(screen.getByRole("button", { name: key }));
+    }
+    await userEvent.click(screen.getByRole("button", { name: "OK" }));
+    // The device chose the head turn itself: turn left or right, as asked on the screen.
+    const asked = await screen.findByText(
+      "Turn your head to your",
+      { exact: false },
+      { timeout: 6000 },
+    );
+    // The turn is random: turn the way the screen asks (left is a positive turn, right negative).
+    const toTheLeft = /left/i.test(asked.textContent ?? "");
+    fakes.faces = [{ ...STRAIGHT, turn: toTheLeft ? 0.6 : -0.6 }];
+    await screen.findByText("Now look straight again.", {}, { timeout: 6000 });
+    fakes.faces = [STRAIGHT];
+
+    expect(await screen.findByText("SAVED", {}, { timeout: 6000 })).toBeInTheDocument();
+    expect(screen.getByText("Saved – will be confirmed")).toBeInTheDocument();
+    expect(screen.queryByText("IN")).not.toBeInTheDocument();
+    const [saved] = await oldestQueued(5, 10_000_000);
+    expect(saved?.method).toBe("face");
+    expect(saved?.signedItem).not.toContain("2001"); // the typed code is sealed too
+    expect(JSON.parse(saved?.signedItem ?? "{}").challenge).toMatch(/^turn_(left|right)$/);
+  });
+
+  it("saves nothing when the person cancels at the code pad", async () => {
+    mockApi({ "GET /kiosk/me": { body: meOffline() } });
+    await openPairedKiosk();
+    fakes.faces = [STRAIGHT];
+    await screen.findByText("Location good (±10 m)");
+    await userEvent.click(await screen.findByRole("button", { name: /Punch with face/ }));
+    await screen.findByText("Type your employee code", {}, { timeout: 6000 });
+
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
+    expect(await screen.findByText("Show your ID card to the camera")).toBeInTheDocument();
+    expect((await queueSummary()).count).toBe(0);
   });
 });

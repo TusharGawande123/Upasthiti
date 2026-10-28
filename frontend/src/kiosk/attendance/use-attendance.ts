@@ -6,6 +6,7 @@
 // The screens only show `screen` and call the actions; all timing lives here.
 import { useCallback, useEffect, useReducer, useRef, useState } from "react";
 import type { LocationReport } from "../location/gate-location";
+import type { OfflineGate } from "../offline/use-offline";
 import { INITIAL_SCREEN, isFaceScreen, nextScreen, secondsOnScreen } from "./attendance-machine";
 import { LowLightWatcher, measureVideoBrightness } from "./brightness";
 import {
@@ -27,6 +28,14 @@ import { useFacePunch } from "./use-face-punch";
 const SCAN_EVERY_MS = 150;
 const NOT_A_CARD_MS = 3_000;
 const BRIGHTNESS_EVERY_MS = 1_000;
+// A failed send that is saved on the device instead (spec §7 rule 9).
+const OFFLINE_RESULT_CODES = new Set([
+  "OFFLINE_SAVED",
+  "OFFLINE_ALREADY_SAVED",
+  "QUEUE_FULL",
+  "OFFLINE_STORAGE_TOO_SMALL",
+]);
+const SAVEABLE_FAILURES = new Set(["NETWORK_OFFLINE", "SERVER_NO_ANSWER"]);
 
 export function useAttendance({
   settings,
@@ -35,6 +44,8 @@ export function useAttendance({
   onUnpaired,
   onProblem,
   location,
+  offline,
+  serverOffsetMs,
 }: {
   settings: KioskScreenSettings;
   onOnline: (online: boolean) => void;
@@ -44,6 +55,9 @@ export function useAttendance({
   onProblem: (kind: "camera_error" | "decoder_fallback", message: string) => void;
   /** M4: card scanning waits while the gate has no usable location; each punch sends it. */
   location: { usable: boolean; report: () => LocationReport | null };
+  /** M4: saving punches while the internet is down (spec §4.3, §4.4). */
+  offline: Pick<OfflineGate, "canSave" | "save">;
+  serverOffsetMs: number;
 }) {
   const [screen, dispatch] = useReducer(nextScreen, INITIAL_SCREEN);
   const [lowLight, setLowLight] = useState(false);
@@ -62,8 +76,10 @@ export function useAttendance({
   const detectorRef = useRef<QrDetector | null>(null);
   const sameCard = useRef(new SameCardFilter());
   // Kept in a ref: a new function from the parent must never restart a punch in progress.
-  const handlers = useRef({ onOnline, onRevoked, onUnpaired, onProblem, location });
-  handlers.current = { onOnline, onRevoked, onUnpaired, onProblem, location };
+  const handlers = useRef({ onOnline, onRevoked, onUnpaired, onProblem, location, offline });
+  handlers.current = { onOnline, onRevoked, onUnpaired, onProblem, location, offline };
+  // A card shown again while offline is not saved twice: the server would refuse it anyway.
+  const savedCards = useRef(new Map<string, number>());
 
   // 1. Start the camera and the QR decoder as soon as the screen opens.
   useEffect(() => {
@@ -206,9 +222,36 @@ export function useAttendance({
     }
     if (outcome.code === "DEVICE_REVOKED") onRevoked();
     else if (outcome.code === "DEVICE_SIGNATURE_INVALID") onUnpaired();
-    onOnline(outcome.code !== "NETWORK_OFFLINE");
+    // A punch saved on the device (or refused for lack of room) happened without internet.
+    onOnline(outcome.code !== "NETWORK_OFFLINE" && !OFFLINE_RESULT_CODES.has(outcome.code));
     dispatch({ type: "failed", code: outcome.code });
   }, []);
+
+  const saveCardPunch = useCallback(
+    async (
+      card: string,
+      photo: string,
+      clientPunchId: string,
+      failed: Extract<PunchOutcome, { kind: "failed" }>,
+    ): Promise<PunchOutcome> => {
+      const { offline: gate, location: place } = handlers.current;
+      const cooldownMs = (settings.offline?.cooldown_minutes ?? 2) * 60_000;
+      const savedBefore = savedCards.current.get(card);
+      if (gate.canSave && savedBefore !== undefined && Date.now() - savedBefore < cooldownMs) {
+        return { kind: "failed", code: "OFFLINE_ALREADY_SAVED" };
+      }
+      const saved = await gate.save({
+        clientPunchId,
+        method: "qr",
+        evidence: { qr_payload: card, snapshot_jpeg: photo },
+        location: place.report(),
+      });
+      if (saved === "OFFLINE_NOT_READY") return failed; // offline mode is off: the honest M2 message
+      if (saved === "OFFLINE_SAVED") savedCards.current.set(card, Date.now());
+      return { kind: "failed", code: saved };
+    },
+    [settings.offline?.cooldown_minutes],
+  );
 
   const takePhotoNow = useCallback(async () => {
     if (payload === null || !cameraReady || sending.current) return;
@@ -218,16 +261,24 @@ export function useAttendance({
       // Without a photo the server answers SNAPSHOT_MISSING, which is the honest result.
       const snapshotBase64 = video ? await takeSnapshot(video).catch(() => "") : "";
       dispatch({ type: "photo-taken" });
+      const clientPunchId = crypto.randomUUID();
+      const location = handlers.current.location.report();
       const outcome = await sendPunch(
-        { qrPayload: payload, snapshotBase64, location: handlers.current.location.report() },
+        { qrPayload: payload, snapshotBase64, location, clientPunchId },
         { onSlow: () => dispatch({ type: "slow" }) },
       );
       sameCard.current.remember(payload, Date.now());
+      // No internet (or no answer at all): save the punch on the device with the SAME id, so if
+      // the server did get it, the sync answers "already saved" (spec §7 rule 9).
+      if (outcome.kind === "failed" && SAVEABLE_FAILURES.has(outcome.code) && location) {
+        finishPunch(await saveCardPunch(payload, snapshotBase64, clientPunchId, outcome));
+        return;
+      }
       finishPunch(outcome);
     } finally {
       sending.current = false;
     }
-  }, [payload, cameraReady, finishPunch]);
+  }, [payload, cameraReady, finishPunch, saveCardPunch]);
 
   const cancelPhoto = useCallback(() => {
     if (payload === null || sending.current) return;
@@ -273,6 +324,13 @@ export function useAttendance({
     onFailed: (code) => finishPunch({ kind: "failed", code }),
     onCameraProblem: (message) => handlers.current.onProblem("decoder_fallback", message),
     getLocation: () => handlers.current.location.report(),
+    offline: {
+      ...offline,
+      challengeSteps: settings.offline?.challenge_steps ?? 1,
+      enabled: settings.offline?.enabled === true,
+      markOffline: () => handlers.current.onOnline(false),
+    },
+    serverOffsetMs,
   });
 
   // 4. A result or failure stays a few seconds, then the kiosk scans again.

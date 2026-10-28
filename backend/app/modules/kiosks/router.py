@@ -277,6 +277,7 @@ def _offline_settings(session: Session) -> KioskOfflineSettings:
         max_mb=get_int_setting(session, "offline_queue_max_mb"),
         max_hours=get_int_setting(session, "offline_max_hours"),
         cooldown_minutes=get_int_setting(session, "punch_cooldown_minutes"),
+        challenge_steps=get_int_setting(session, "face_challenge_steps"),
         sync_max_items=MAX_SYNC_ITEMS,
         sync_max_bytes=SYNC_BODY_LIMIT,
     )

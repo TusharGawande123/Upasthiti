@@ -10,6 +10,7 @@
 import { type Dispatch, useCallback, useEffect, useRef, useState } from "react";
 import { type FaceGuide, loadFaceGuide } from "@/lib/face-guide/landmarker";
 import type { LocationReport } from "../location/gate-location";
+import type { OfflineGate } from "../offline/use-offline";
 import type { AttendanceEvent, AttendanceScreen } from "./attendance-machine";
 import { LowLightWatcher, measureVideoBrightness } from "./brightness";
 import { takeFaceFrame } from "./face-capture";
@@ -25,13 +26,14 @@ import {
 } from "./face-sequence";
 import {
   type Challenge,
+  type ChallengeName,
   type FaceFrame,
   type PunchOutcome,
   requestChallenge,
   sendEmployeeCode,
   sendFacePunch,
 } from "./punch-client";
-import type { KioskFaceSettings } from "./punch-types";
+import type { CodeEntry, KioskFaceSettings } from "./punch-types";
 
 const NOT_READY: GuideReading = { good: false, hint: null };
 const GUIDE_EVERY_MS = 150;
@@ -74,6 +76,8 @@ export function useFacePunch({
   onFailed,
   onCameraProblem,
   getLocation,
+  offline,
+  serverOffsetMs,
 }: {
   screen: AttendanceScreen;
   dispatch: Dispatch<AttendanceEvent>;
@@ -88,6 +92,16 @@ export function useFacePunch({
   onCameraProblem: (message: string) => void;
   /** M4: the gate's current reading, sent with the pictures. */
   getLocation: () => LocationReport | null;
+  /** M4: saving a face punch while the internet is down (spec §4.4). */
+  offline: Pick<OfflineGate, "canSave" | "save"> & {
+    challengeSteps: number;
+    /** The server has offline mode on: a lost connection may be saved instead of refused. */
+    enabled: boolean;
+    /** The connection just failed during this punch: show the gate as offline. */
+    markOffline: () => void;
+  };
+  /** The server's clock minus this device's clock, to time the local code pad. */
+  serverOffsetMs: number;
 }) {
   // 0 means no run; each start or retry takes the next number and cancels the run before it.
   const [attempt, setAttempt] = useState(0);
@@ -96,8 +110,28 @@ export function useFacePunch({
   const guideLoading = useRef<Promise<void> | null>(null);
   const cameraReadyRef = useRef(cameraReady);
   cameraReadyRef.current = cameraReady;
-  const latest = useRef({ face, darkThreshold, onOutcome, onFailed, onCameraProblem, getLocation });
-  latest.current = { face, darkThreshold, onOutcome, onFailed, onCameraProblem, getLocation };
+  const latest = useRef({
+    face,
+    darkThreshold,
+    onOutcome,
+    onFailed,
+    onCameraProblem,
+    getLocation,
+    offline,
+    serverOffsetMs,
+  });
+  latest.current = {
+    face,
+    darkThreshold,
+    onOutcome,
+    onFailed,
+    onCameraProblem,
+    getLocation,
+    offline,
+    serverOffsetMs,
+  };
+  // The employee code typed while offline: kept in memory only until the pictures are sealed.
+  const offlineCode = useRef<string | null>(null);
 
   // MediaPipe loads in the background once the gate shows the button, so the first tap is quick.
   const wantsGuide = face.enabled_for_plant && face.available;
@@ -131,11 +165,38 @@ export function useFacePunch({
       const ready = await guideUntilReady();
       if (!ready || signal.aborted) return;
 
+      // Offline: the code was typed first; the device chooses the head turn itself (§4.4).
+      const typedCode = offlineCode.current;
+      if (typedCode !== null) {
+        offlineCode.current = null;
+        const local = localChallenge(latest.current.offline.challengeSteps, latest.current.face);
+        const taken = await takeFrames(local);
+        if (signal.aborted || taken.kind !== "frames") {
+          if (!signal.aborted) latest.current.onFailed("CHALLENGE_EXPIRED");
+          return;
+        }
+        const saved = await latest.current.offline.save({
+          clientPunchId: crypto.randomUUID(),
+          method: "face",
+          evidence: { employee_code: typedCode, frames: taken.frames },
+          challenge: local.challenge,
+          location: latest.current.getLocation(),
+        });
+        return latest.current.onFailed(saved === "OFFLINE_NOT_READY" ? "NETWORK_OFFLINE" : saved);
+      }
+
       // 2 and 3. A challenge, then its pictures; one new challenge by itself if time runs out.
       for (let attemptNumber = 1; attemptNumber <= CHALLENGE_TRIES; attemptNumber++) {
         const given = await requestChallenge();
         if (signal.aborted) return;
-        if (given.kind === "failed") return latest.current.onFailed(given.code);
+        if (given.kind === "failed") {
+          // The internet went away after the face was shown: type the code to save the punch.
+          if (given.code === "NETWORK_OFFLINE" && latest.current.offline.enabled) {
+            latest.current.offline.markOffline();
+            return dispatch({ type: "face-offline", entry: localCodeEntry(latest.current) });
+          }
+          return latest.current.onFailed(given.code);
+        }
         const taken = await takeFrames(given.challenge);
         if (signal.aborted) return;
         if (taken.kind === "frames") {
@@ -221,6 +282,11 @@ export function useFacePunch({
 
   const start = useCallback(() => {
     setGuide(NOT_READY);
+    if (latest.current.offline.canSave) {
+      // No internet: no server to choose the turn or to ask, so the code pad comes first.
+      dispatch({ type: "face-offline", entry: localCodeEntry(latest.current) });
+      return;
+    }
     setAttempt((current) => current + 1);
     dispatch({ type: "face-start" });
   }, [dispatch]);
@@ -232,6 +298,7 @@ export function useFacePunch({
   }, [dispatch]);
 
   const cancel = useCallback(() => {
+    offlineCode.current = null; // a cancelled attempt keeps nothing
     setAttempt(0); // ends the run in progress
     dispatch({ type: "face-cancel" });
   }, [dispatch]);
@@ -240,6 +307,13 @@ export function useFacePunch({
   const submitCode = useCallback(
     async (code: string) => {
       if (screen.name !== "code-entry") return;
+      if (screen.entry.token === OFFLINE_ENTRY_TOKEN) {
+        offlineCode.current = code;
+        setGuide(NOT_READY);
+        setAttempt((current) => current + 1);
+        dispatch({ type: "offline-code-typed" });
+        return;
+      }
       dispatch({ type: "code-sent" });
       const outcome = await sendEmployeeCode(
         { token: screen.entry.token, code },
@@ -251,4 +325,38 @@ export function useFacePunch({
   );
 
   return { guide, start, retry, cancel, submitCode };
+}
+
+/** The code entry of an offline face punch: made on the device, never sent anywhere. */
+export const OFFLINE_ENTRY_TOKEN = "offline";
+
+function localCodeEntry(current: { face: KioskFaceSettings; serverOffsetMs: number }): CodeEntry {
+  const expiresAt = Date.now() + current.serverOffsetMs + current.face.code_entry_seconds * 1000;
+  return {
+    token: OFFLINE_ENTRY_TOKEN,
+    expires_at: new Date(expiresAt).toISOString(),
+    tries_left: 1,
+  };
+}
+
+/** The head turn chosen by the device with a secure random number (spec §4.4). */
+function localChallenge(steps: number, face: KioskFaceSettings): Challenge {
+  const names: ChallengeName[] =
+    steps === 2 ? ["left_then_right", "right_then_left"] : ["turn_left", "turn_right"];
+  const random = crypto.getRandomValues(new Uint8Array(1))[0] ?? 0;
+  const pick: ChallengeName = names[random % names.length] ?? "turn_left";
+  return {
+    challenge_nonce: "",
+    challenge: pick,
+    expires_at: "",
+    server_time: "",
+    capture: {
+      min_frames: 2,
+      max_frames: 4,
+      max_width: 640,
+      max_height: 480,
+      max_frame_bytes: 70_000,
+      min_yaw_degrees: face.min_yaw_degrees,
+    },
+  };
 }

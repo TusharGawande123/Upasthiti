@@ -132,6 +132,7 @@ class KioskOfflineSettings(BaseModel):
     max_mb: int
     max_hours: int
     cooldown_minutes: int
+    challenge_steps: int  # 1 or 2 head turns: the gate chooses them itself offline
     sync_max_items: int
     sync_max_bytes: int
 

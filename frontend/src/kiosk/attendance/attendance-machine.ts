@@ -9,6 +9,9 @@
 //   scanning -> face-guide -> face-challenge -> checking -> result -> scanning
 //   checking -> code-entry (the server was not sure) -> checking -> result
 //   (a result that allows a retry goes back to face-guide when the person taps "Try again")
+//   Offline face punch (M4 spec §4.4): the code pad comes FIRST (no server to ask), then the face:
+//   scanning -> code-entry (local) -> face-guide -> face-challenge -> failed "OFFLINE_SAVED"
+//   (a "saved" screen is shown as a failure screen with its own look: nothing is decided yet)
 //
 // Only one punch at a time: a card is accepted only on the scanning screen. Every other
 // event that does not fit the current screen is ignored.
@@ -46,6 +49,8 @@ export type AttendanceEvent =
   | { type: "photo-taken" }
   | { type: "photo-cancelled" }
   | { type: "face-start" }
+  | { type: "face-offline"; entry: CodeEntry } // no internet: type the employee code first
+  | { type: "offline-code-typed" }
   | { type: "face-guide-timeout" }
   | { type: "face-retry" }
   | { type: "face-ready"; shown: CaptureShown }
@@ -91,6 +96,12 @@ export function nextScreen(screen: AttendanceScreen, event: AttendanceEvent): At
       return screen.name === "get-ready" ? { name: "scanning", notACard: false } : screen;
     case "face-start":
       return screen.name === "scanning" ? { name: "face-guide", timedOut: false } : screen;
+    case "face-offline":
+      return screen.name === "scanning" || screen.name === "face-guide"
+        ? { name: "code-entry", entry: event.entry, wrong: false }
+        : screen;
+    case "offline-code-typed":
+      return screen.name === "code-entry" ? { name: "face-guide", timedOut: false } : screen;
     case "face-guide-timeout":
       return screen.name === "face-guide" ? { name: "face-guide", timedOut: true } : screen;
     case "face-retry":

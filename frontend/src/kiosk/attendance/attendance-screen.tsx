@@ -10,34 +10,98 @@ import {
   ShieldCheck,
   Volume2,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { cn } from "@/lib/utils";
 import { Frame } from "../components/frame";
 import { ProblemScreen } from "../components/problem-screen";
+import { formatIstTime } from "../components/server-clock";
 import type { PairedKiosk } from "../device-store";
 import { DEFAULT_LOCATION_SETTINGS, useGateLocation } from "../location/gate-location";
 import { LocationChip, NeedsLocationScreen } from "../location/needs-location";
+import { useOfflineGate } from "../offline/use-offline";
 import { CodePad } from "./code-pad";
 import { FaceView, showsFaceView } from "./face-view";
 import { type CodeEntry, canTryAgain, canTryAgainAfterFailure, type KioskMe } from "./punch-types";
 import { ResultView } from "./result-view";
 import { ScanningView } from "./scanning-view";
-import { ConnectionChip, TopClock } from "./top-bar";
+import { ConnectionChip, QueueChip, TopClock } from "./top-bar";
 import { useAttendance } from "./use-attendance";
 import { useHeartbeat } from "./use-heartbeat";
 import { useErrorReporter, useSelfUpdate, useSoundAndBanner } from "./use-kiosk-extras";
 
-function Footer({ retentionDays }: { retentionDays: number }) {
+// The guard's line (F-55, spec §4.2): "All punches sent ✓ 09:02" or "12 punches waiting since 08:05".
+function LastSyncLine({
+  count,
+  oldestSavedWallMs,
+  lastSentAtMs,
+}: {
+  count: number;
+  oldestSavedWallMs: number | null;
+  lastSentAtMs: number | null;
+}) {
   const { t } = useTranslation();
+  if (count > 0 && oldestSavedWallMs !== null) {
+    const time = formatIstTime(new Date(oldestSavedWallMs), false);
+    return (
+      <p className="font-bold text-foreground">
+        {t(count === 1 ? "kiosk.offline.lastSync.waitingOne" : "kiosk.offline.lastSync.waiting", {
+          count,
+          time,
+        })}
+      </p>
+    );
+  }
+  if (lastSentAtMs === null) return null;
   return (
-    <footer className="flex flex-wrap items-center justify-between gap-x-8 gap-y-2 border-t bg-card px-8 py-3 text-[24px] text-muted-foreground">
-      <p className="flex max-w-[64%] items-start gap-3">
-        <ShieldCheck className="mt-0.5 size-7 shrink-0" aria-hidden />
-        {t("kiosk.attendance.privacy", { days: retentionDays })}
-      </p>
-      <p className="flex items-center gap-3 font-semibold text-foreground">
-        <LifeBuoy className="size-7 shrink-0" aria-hidden />
-        {t("kiosk.attendance.help")}
-      </p>
+    <p className="font-bold text-success">
+      {t("kiosk.offline.lastSync.allSent", { time: formatIstTime(new Date(lastSentAtMs), false) })}
+    </p>
+  );
+}
+
+function Footer({
+  retentionDays,
+  offlineSaves,
+  sync,
+}: {
+  retentionDays: number;
+  offlineSaves: boolean;
+  sync: { count: number; oldestSavedWallMs: number | null; lastSentAtMs: number | null };
+}) {
+  const { t } = useTranslation();
+  // On a phone the long privacy text folds behind a "Privacy" row; larger screens show it all.
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  return (
+    <footer className="space-y-2 border-t bg-card px-4 py-3 text-[24px] text-muted-foreground sm:px-8">
+      {offlineSaves ? <LastSyncLine {...sync} /> : null}
+      <div className="flex flex-wrap items-start justify-between gap-x-8 gap-y-2">
+        <p className="flex items-center gap-3 font-semibold text-foreground sm:order-2">
+          <LifeBuoy className="size-7 shrink-0" aria-hidden />
+          {t("kiosk.attendance.help")}
+        </p>
+        <button
+          type="button"
+          onClick={() => setPrivacyOpen((open) => !open)}
+          aria-expanded={privacyOpen}
+          className="flex min-h-16 w-full cursor-pointer items-center gap-3 text-left font-semibold sm:hidden"
+        >
+          <ShieldCheck className="size-7 shrink-0" aria-hidden />
+          {t(privacyOpen ? "kiosk.offline.privacyClose" : "kiosk.offline.privacyOpen")}
+        </button>
+        <p
+          className={cn(
+            "max-w-full items-start gap-3 sm:order-1 sm:flex sm:max-w-[64%]",
+            privacyOpen ? "flex" : "hidden",
+          )}
+        >
+          <ShieldCheck className="mt-0.5 hidden size-7 shrink-0 sm:block" aria-hidden />
+          <span>
+            {t("kiosk.attendance.privacy", { days: retentionDays })}
+            {offlineSaves ? ` ${t("kiosk.offline.privacy")}` : ""}
+          </span>
+        </p>
+      </div>
     </footer>
   );
 }
@@ -82,6 +146,14 @@ export function AttendanceScreen({
   const report = useErrorReporter();
   const locationSettings = heartbeat.settings.location ?? DEFAULT_LOCATION_SETTINGS;
   const place = useGateLocation(locationSettings, heartbeat.online);
+  // A punch is on the screen: saved punches wait with their sending until it is over.
+  const [punching, setPunching] = useState(false);
+  const offline = useOfflineGate({
+    settings: heartbeat.settings.offline,
+    online: heartbeat.online,
+    busy: punching,
+    onRevoked: () => onRevoked(),
+  });
   const attendance = useAttendance({
     settings: heartbeat.settings,
     onOnline: heartbeat.setOnline,
@@ -89,7 +161,11 @@ export function AttendanceScreen({
     onUnpaired,
     onProblem: report,
     location: place,
+    offline,
+    serverOffsetMs: heartbeat.serverOffsetMs,
   });
+  const idleScreen = attendance.screen.name === "scanning" || attendance.screen.name === "starting";
+  useEffect(() => setPunching(!idleScreen), [idleScreen]);
   const sound = useSoundAndBanner(attendance.screen, heartbeat.settings, report);
   useSelfUpdate(attendance.screen);
   const { screen } = attendance;
@@ -102,12 +178,23 @@ export function AttendanceScreen({
       aside={
         <div className="flex w-full flex-wrap items-center justify-between gap-x-5 gap-y-3 sm:w-auto sm:justify-end">
           {sound.bannerVisible ? <SoundBanner onTap={sound.onBannerTap} /> : null}
-          <ConnectionChip online={heartbeat.online} />
+          <ConnectionChip online={heartbeat.online} savesOffline={offline.canSave} />
+          <QueueChip count={offline.queue.count} sending={heartbeat.online} />
           <LocationChip place={place} />
           <TopClock offsetMs={heartbeat.serverOffsetMs} />
         </div>
       }
-      footer={<Footer retentionDays={heartbeat.settings.snapshot_retention_days} />}
+      footer={
+        <Footer
+          retentionDays={heartbeat.settings.snapshot_retention_days}
+          offlineSaves={heartbeat.settings.offline?.enabled === true}
+          sync={{
+            count: offline.queue.count,
+            oldestSavedWallMs: offline.queue.oldestSavedWallMs,
+            lastSentAtMs: offline.lastSentAtMs,
+          }}
+        />
+      }
     >
       {/* M4: while the location is not good the camera area is replaced; the camera keeps running. */}
       {place.paused && screen.name === "scanning" ? (

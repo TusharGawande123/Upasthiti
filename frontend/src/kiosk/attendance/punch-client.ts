@@ -144,12 +144,18 @@ async function deliver<Answer>(
 }
 
 export async function sendPunch(
-  input: { qrPayload: string; snapshotBase64: string; location: LocationReport | null },
+  input: {
+    qrPayload: string;
+    snapshotBase64: string;
+    location: LocationReport | null;
+    /** M4: made by the caller, so a punch queued after a failed send keeps the same id. */
+    clientPunchId?: string;
+  },
   options: { onSlow?: () => void; send?: SendPunch } = {},
 ): Promise<PunchOutcome> {
   const send = options.send ?? sendSigned;
   const body: PunchBody = {
-    client_punch_id: crypto.randomUUID(),
+    client_punch_id: input.clientPunchId ?? crypto.randomUUID(),
     method: "qr",
     qr_payload: input.qrPayload,
     snapshot_jpeg: input.snapshotBase64,

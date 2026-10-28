@@ -375,6 +375,30 @@
         "message": "This plant has no fence on the map yet.",
         "next": "Please visit the plant office.",
         "voice": "Not accepted. Please visit the plant office."
+      },
+      "OFFLINE_SAVED": {
+        "title": "SAVED",
+        "message": "Saved – will be confirmed",
+        "next": "Your punch is saved on this attendance device. It will be checked when the internet is back.",
+        "voice": "Saved."
+      },
+      "OFFLINE_ALREADY_SAVED": {
+        "title": "ALREADY SAVED",
+        "message": "Already saved. No need to punch again.",
+        "next": "Your first punch is saved and will be checked when the internet is back.",
+        "voice": "Already saved."
+      },
+      "QUEUE_FULL": {
+        "title": "NOT SAVED",
+        "message": "This attendance device cannot save more punches. Your punch was NOT saved.",
+        "next": "Please visit the plant office.",
+        "voice": "Not saved. Please visit the plant office."
+      },
+      "OFFLINE_STORAGE_TOO_SMALL": {
+        "title": "NOT SAVED",
+        "message": "This attendance device cannot save punches without internet. Your punch was NOT saved.",
+        "next": "Please visit the plant office.",
+        "voice": "Not saved. Please visit the plant office."
       }
     },
     "attendance": {
@@ -506,6 +530,23 @@
         "device": "This device and its accuracy (dot and circle)",
         "needed": "Accuracy needed (dotted circle)"
       }
+    },
+    "offline": {
+      "chipOffline": "No internet – punches are saved",
+      "chipWaiting": "{{count}} saved",
+      "chipSending": "Sending saved punches… {{count}} left",
+      "lastSync": {
+        "allSent": "All punches sent ✓ {{time}}",
+        "waiting": "{{count}} punches waiting since {{time}}",
+        "waitingOne": "1 punch waiting since {{time}}"
+      },
+      "privacy": "When the internet is down, your punch is saved on this attendance device in a locked form that only our server can open, and it is deleted from the device once it is sent.",
+      "privacyOpen": "Privacy",
+      "privacyClose": "Hide privacy",
+      "typeCodeTitle": "Type your employee code",
+      "typeCodeLine": "No internet right now. Type your code, then look at the camera.",
+      "storageAlmostFull": "Storage almost full – please restore the internet.",
+      "clockOffline": "(offline)"
     }
   },
   "health": {
@@ -676,7 +717,11 @@
     "FACE_SERVICE_UNAVAILABLE": "Face checks are not available right now. Try again in a minute.",
     "PAYLOAD_TOO_LARGE": "The picture could not be read. Try again.",
     "PRIVACY_CONTACT_MISSING": "Set the privacy contact in Settings first.",
-    "SETTING_INVALID": "The code-entry floor must be lower than the match threshold."
+    "SETTING_INVALID": "The code-entry floor must be lower than the match threshold.",
+    "OFFLINE_NOT_CONFIGURED": "Offline punches are not set up on this server yet.",
+    "ITEM_SIGNATURE_INVALID": "A saved punch was not signed by this device.",
+    "ITEM_COUNTER_INVALID": "A saved punch was already used or is out of order.",
+    "ITEM_INVALID": "A saved punch could not be read."
   },
   "nav": {
     "label": "Main menu",

@@ -26,3 +26,11 @@ sideways scroll). Changes spec §4.1–§4.6.
 9. **A test card is never refused for the device's place**: it skips the location rules and the
    self-test answer says "Location ✓" or "Location ✗ (CODE)" instead (spec §5.1), so a guard can test
    a device whose location is wrong.
+10. **Gate size budget** went on from 61,000 to 65,000 bytes gzip (slice B): the offline queue, the
+    sealing (WebCrypto), the time anchor, the sync runner and the offline screens add about 2 kB.
+11. **Offline face punch** starts at the code pad when the gate knows it is offline; when the
+    internet is lost only during a face punch (the challenge request fails), the gate switches to
+    the code pad by itself. The device picks the head turn with `crypto.getRandomValues`, using the
+    `challenge_steps` the server sends in `kiosk_settings.offline`.
+12. **A saved punch is shown as a "failed" screen with its own look** (`OFFLINE_SAVED`, slate blue):
+    nothing is decided yet, so it has no green or red and never a name or IN/OUT.
