@@ -29,7 +29,7 @@ from tests.kiosk_helpers import GATE_FENCE_RADIUS_M, GATE_LOCATION, Device, make
 from tests.offline_helpers import SYNC, OfflineGate, card_evidence
 from tests.people_helpers import PlantIds, client_for, create_plant
 from tests.test_m4_location_and_flags import add_counted_punch, north_of_gate
-from tests.test_punch_api import Worker, photo_text
+from tests.test_punch_api import Worker, make_worker, photo_text
 
 
 @pytest.fixture(autouse=True)
@@ -60,8 +60,8 @@ def kiosk(db_session: Session, k134: PlantIds, device: Device) -> KioskDevice:
 
 
 @pytest.fixture
-def worker(boss: TestClient, k134: PlantIds) -> Worker:
-    return Worker(boss, k134)
+def worker(boss: TestClient, db_session: Session, k134: PlantIds) -> Worker:
+    return make_worker(boss, db_session, k134)
 
 
 @pytest.fixture
