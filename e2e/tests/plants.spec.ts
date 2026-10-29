@@ -99,7 +99,7 @@ test("the geofence tab shows a map with the OpenStreetMap credit and draws a pol
 
   await expect(page.getByText("Polygon · 4 corners")).toBeVisible();
   await page.getByRole("button", { name: "Save new version" }).click();
-  await expect(page.getByText("v1")).toBeVisible();
+  await expect(page.getByText("v1", { exact: true })).toBeVisible();
   await expect(page.getByText("Version 1 · current")).toBeVisible();
 });
 

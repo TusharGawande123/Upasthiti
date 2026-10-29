@@ -28,7 +28,7 @@ async function setUp(page: Page) {
   await logIn(page, SUPER_ADMIN_LOGIN);
   await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
   const api = adminApi(page);
-  plant ??= await makePlant(api, "RV1");
+  plant ??= await makePlant(api, "XQ9");
   return api;
 }
 
@@ -45,7 +45,7 @@ test("a punch at the edge of the fence is flagged, and the Super Admin confirms 
 }) => {
   test.setTimeout(180_000);
   const api = await setUp(page);
-  const card = await makeWorkerWithCard(api, plant, "RV-101", "Sunita Pawar");
+  const card = await makeWorkerWithCard(api, plant, "XQ-101", "Sunita Pawar");
   const code = await makeKioskCode(api, plant, "Review edge gate");
 
   const { device, close } = await openKioskWithCard(card.serial, code);
@@ -57,7 +57,7 @@ test("a punch at the edge of the fence is flagged, and the Super Admin confirms 
     await close();
   }
 
-  await page.goto(`/admin/review?q=RV-101`);
+  await page.goto(`/admin/review?q=XQ-101`);
   await expect(page.getByRole("heading", { name: "Needs review" })).toBeVisible();
   const menu = page.getByRole("navigation", { name: "Main menu" });
   await expect(menu.getByRole("link", { name: /Needs review/ })).toContainText(/\d/);
@@ -85,7 +85,7 @@ test("a punch at the edge of the fence is flagged, and the Super Admin confirms 
   await page.getByRole("tab", { name: /Reviewed/ }).click();
   await expect(page.getByRole("button", { name: /Review the punch of Sunita Pawar/ })).toBeVisible();
   const log = await api.get<{ items: Array<{ decision: string; review_state: string }> }>(
-    `/punches?plant_id=${plant.id}&q=RV-101`,
+    `/punches?plant_id=${plant.id}&q=XQ-101`,
   );
   expect(log.items[0]).toMatchObject({ decision: "flagged", review_state: "confirmed" });
 });
@@ -96,8 +96,8 @@ test("a rejected punch that names the worker is approved as IN", async ({ page }
   // A card works only at its owner's plant: shown at the other plant's gate it is NOT ACCEPTED
   // (WRONG_PLANT), and the punch names the worker. (A revoked or expired card names nobody: the
   // card may be in someone else's hand, M2.)
-  const otherPlant = await makePlant(api, "RV2");
-  const card = await makeWorkerWithCard(api, plant, "RV-102", "Ganesh Kale");
+  const otherPlant = await makePlant(api, "XQ8");
+  const card = await makeWorkerWithCard(api, plant, "XQ-102", "Ganesh Kale");
   const code = await makeKioskCode(api, otherPlant, "Review other plant gate");
 
   const { device, close } = await openKioskWithCard(card.serial, code);
@@ -107,7 +107,7 @@ test("a rejected punch that names the worker is approved as IN", async ({ page }
     await close();
   }
 
-  await page.goto("/admin/review?tab=rejected&q=RV-102");
+  await page.goto("/admin/review?tab=rejected&q=XQ-102");
   await page
     .getByRole("button", { name: /Review the punch of Ganesh Kale/ })
     .first()
@@ -126,7 +126,7 @@ test("a rejected punch that names the worker is approved as IN", async ({ page }
 
   const log = await api.get<{
     items: Array<{ decision: string; review_state: string | null; review_direction: string }>;
-  }>(`/punches?plant_id=${otherPlant.id}&q=RV-102&decision=rejected`);
+  }>(`/punches?plant_id=${otherPlant.id}&q=XQ-102&decision=rejected`);
   const approved = log.items.find((item) => item.review_state === "approved");
   expect(approved).toMatchObject({ decision: "rejected", review_direction: "in" });
 });
