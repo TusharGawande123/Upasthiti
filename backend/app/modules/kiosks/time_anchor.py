@@ -14,7 +14,7 @@ import uuid
 from datetime import UTC, datetime
 
 from fastapi import Request
-from pydantic import BaseModel
+from pydantic import AwareDatetime, BaseModel
 
 from app.core.config import get_settings
 from app.core.offline_crypto import b64url_encode
@@ -23,7 +23,9 @@ ANCHOR_LABEL = b"offline-time-anchor-v1"
 
 
 class TimeAnchor(BaseModel):
-    server_time: datetime
+    # Aware: a device-sent anchor without a zone would break the time comparisons (500 for the
+    # whole sync request instead of one refused item).
+    server_time: AwareDatetime
     counter: int  # the signed request's counter: offline items must come after it
     token: str
 

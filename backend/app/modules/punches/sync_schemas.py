@@ -9,7 +9,7 @@ import uuid
 from datetime import datetime
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import AwareDatetime, BaseModel, Field, model_validator
 
 from app.modules.kiosks.schemas import LocationReport
 from app.modules.kiosks.time_anchor import TimeAnchor
@@ -36,7 +36,7 @@ class ItemTime(BaseModel):
     elapsed_ms: int = Field(ge=0, le=31 * 24 * 3600 * 1000)
     wall_elapsed_ms: int = Field(ge=-31 * 24 * 3600 * 1000, le=31 * 24 * 3600 * 1000)
     same_session: bool
-    device_time: datetime | None = None
+    device_time: AwareDatetime | None = None  # a time without a zone cannot be compared
 
 
 class ItemEvidence(BaseModel):
@@ -47,8 +47,13 @@ class ItemEvidence(BaseModel):
 
 
 class OfflineLocation(LocationReport):
-    # Offline the gate may reuse its last good reading for up to 7 days (§14 answer 1).
-    age_s: int | None = Field(default=None, ge=0, le=604_800)
+    # Offline the gate may reuse its last good reading for up to 7 days (§14 answer 1). The age is
+    # required: without it the LOCATION_STALE flag could never fire (security review).
+    @model_validator(mode="after")
+    def age_is_required(self) -> OfflineLocation:
+        if self.age_s is None:
+            raise ValueError("age_s is required for an offline location")
+        return self
 
 
 class SignedItem(BaseModel):

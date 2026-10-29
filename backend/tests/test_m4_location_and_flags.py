@@ -180,7 +180,7 @@ def test_a_reading_at_the_edge_counts_and_is_flagged(
 
     # The gate sees a normal IN; the flag is for the Super Admin only.
     assert answer["decision"] == "accepted" and answer["direction"] == "in"
-    assert answer["reason_code"] is None or answer["reason_code"] == "LOCATION_AT_EDGE"
+    assert answer["reason_code"] is None  # the gate never learns a flag code
     (punch,) = punch_rows(db_session)
     assert punch.decision == "flagged" and punch.reason_codes == ["LOCATION_AT_EDGE"]
     assert punch.direction == "in" and 17 < float(punch.geofence_distance_m or 0) < 19

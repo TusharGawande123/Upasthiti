@@ -18,9 +18,11 @@ from app.core.config import get_settings
 from app.core.time import utc_now
 from app.modules.audit.models import AuditLog
 from app.modules.kiosks.models import KioskDevice
+from app.modules.org.models import Geofence
 from app.modules.punches.models import Punch, PunchSnapshot
 from app.modules.qr_cards.models import QrCredential
 from app.modules.qr_cards.payload import build_payload
+from app.modules.settings.models import SettingValue
 from app.modules.users.models import Role
 from tests.conftest import clear_cached_settings
 from tests.kiosk_helpers import GATE_FENCE_RADIUS_M, GATE_LOCATION, Device, make_active_kiosk
@@ -283,6 +285,59 @@ def test_a_punch_saved_for_more_than_72_hours_is_flagged_too_old(
     (punch,) = rows(db_session)
     assert punch.time_proof == "anchored" and "OFFLINE_TOO_OLD" in punch.reason_codes
     assert punch.decision == "flagged"
+
+
+def test_too_old_follows_the_offline_max_hours_setting(
+    db_client: TestClient, db_session: Session, gate: OfflineGate, worker: Worker
+) -> None:
+    """The Super Admin may set 24 to 168 hours (spec §7 rule 17); the flag uses that value."""
+    db_session.merge(SettingValue(key="offline_max_hours", value=24))
+    db_session.commit()
+    card = db_session.get(QrCredential, worker.card_id)
+    assert card is not None
+    card.valid_from = (utc_now() - timedelta(days=3)).date()
+    db_session.commit()
+    old_gate = OfflineGate(gate.device)
+    old_gate.take_anchor(utc_now() - timedelta(hours=30))
+    item = card_item(old_gate, worker, elapsed=timedelta(minutes=1))
+
+    gate.send(db_client, [item])
+
+    (punch,) = rows(db_session)
+    assert punch.time_proof == "anchored"
+    assert "OFFLINE_TOO_OLD" in punch.reason_codes  # 30 h > 24 h, although under the default 72
+
+
+def test_an_unproven_time_is_judged_against_todays_fence(
+    db_client: TestClient,
+    db_session: Session,
+    gate: OfflineGate,
+    worker: Worker,
+    kiosk: KioskDevice,
+) -> None:
+    """A device can choose an unproven time, so it must not be able to pick a moment when an
+    older, wider fence version was current (facts_at_time: unproven = judged as at sync)."""
+    db_session.add(
+        Geofence(
+            plant_id=kiosk.plant_id,
+            version=0,
+            shape="circle",
+            geojson={"type": "Point", "coordinates": [GATE_LOCATION["lon"], GATE_LOCATION["lat"]]},
+            radius_m=2000,
+            buffer_m=25,
+            is_current=False,
+            created_at=utc_now() - timedelta(days=2),
+        )
+    )
+    db_session.commit()
+    outside_today = north_of_gate(GATE_FENCE_RADIUS_M + 300)
+    item = card_item(gate, worker, anchor_token="forged-token", location=outside_today)
+
+    gate.send(db_client, [item])
+
+    (punch,) = rows(db_session)
+    assert punch.time_proof == "unproven"
+    assert punch.decision == "rejected" and punch.reason_codes[0] == "OUTSIDE_GEOFENCE"
 
 
 # --- Judged as things were then (AC-16) ------------------------------------------------------

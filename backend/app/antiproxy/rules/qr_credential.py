@@ -45,8 +45,11 @@ def check_qr_credential(context: PunchContext) -> RuleResult:
 
     # The dates are judged on the IST day of the punch time; an offline punch with a proven time
     # is judged as things were then (M4 §7 rule 5, facts_at_time.py).
-    day = to_ist(context.now).date()
+    # An offline punch whose time is NOT proven is judged as it is at sync: its time was partly
+    # chosen by the device, and a device clock set back must not revive an expired card.
     at_punch_time = context.judges_at_punch_time
+    judged_at = context.now if at_punch_time or not context.is_offline else context.received_at
+    day = to_ist(judged_at or context.now).date()
     if card_was_revoked(card, context.now, at_punch_time):
         return RuleResult.rejected("QR_REVOKED")
     if day < card.valid_from:

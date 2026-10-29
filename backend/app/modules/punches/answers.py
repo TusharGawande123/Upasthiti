@@ -34,9 +34,10 @@ FACE_RETRY_CODES = (
 def punch_answer(
     session: Session, punch: Punch, kiosk_name: str, limits: PunchLimits
 ) -> KioskPunchResponse:
-    reason_code = punch.reason_codes[0] if punch.reason_codes else None
-    # A flagged punch counts like an accepted one; the flag is for the Super Admin only (M4).
+    # A flagged punch counts like an accepted one; the flag is for the Super Admin only (M4): the
+    # gate gets no flag code, which would tell someone faking a location what to adjust.
     accepted = punch.decision in (PunchDecision.ACCEPTED.value, PunchDecision.FLAGGED.value)
+    reason_code = punch.reason_codes[0] if punch.reason_codes and not accepted else None
     needs_code = punch.decision == PunchDecision.NEEDS_CODE.value
     already_punched = reason_code in ALREADY_PUNCHED_CODES
 

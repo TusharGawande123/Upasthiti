@@ -130,6 +130,12 @@ def record_offline_face_punch(
     context: FacePunchContext | None = None
     if place_decision.outcome is Outcome.REJECT:
         decision = place_decision
+    elif candidate is None or candidate.template is None:
+        # The typed code names nobody who may use face (unknown, a card employee, consent
+        # withdrawn, left since): the pictures are not processed at all (DPDP: only for the
+        # consented purpose). Offline the device never sees the answer, so the equal-timing
+        # reason of the online path (M3) does not apply here.
+        decision = rejected_after(place_decision, "FACE_NOT_RECOGNISED")
     else:
         face_limits = load_face_limits(session)
         steps = get_int_setting(session, "face_challenge_steps")

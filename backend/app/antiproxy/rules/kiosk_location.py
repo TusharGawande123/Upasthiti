@@ -13,8 +13,10 @@ from app.modules.kiosks.location_check import check_location
 
 
 def check_kiosk_location(context: PunchContext) -> RuleResult:
-    # Online the fence of "now"; offline the fence of the proven punch time.
-    moment = context.now if context.is_offline else None
+    # Online the fence of "now"; offline the fence of the proven punch time. An unproven time was
+    # partly chosen by the device, so it is judged against today's fence (as facts_at_time does):
+    # otherwise a device could pick a moment when an older, wider fence version was current.
+    moment = context.now if context.judges_at_punch_time else None
     verdict = check_location(
         context.session, context.kiosk.plant_id, context.location, moment=moment
     )

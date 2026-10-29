@@ -82,6 +82,7 @@ def load_limits(session: Session) -> PunchLimits:
             session, "impossible_travel_min_distance_m"
         ),
         same_person_two_devices_minutes=get_int_setting(session, "same_person_two_devices_minutes"),
+        offline_max_hours=get_int_setting(session, "offline_max_hours"),
     )
 
 

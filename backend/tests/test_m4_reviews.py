@@ -524,7 +524,8 @@ def test_what_may_not_be_approved_or_confirmed(
     assert code(expired, "confirm") == "REVIEW_NOT_ALLOWED"
     assert code(expired, "not_accepted") == "REVIEW_NOT_ALLOWED"  # nothing to withdraw yet
     assert (
-        review(boss, boss_punch := expired, "approve", "Sent to the other plant", "in").status_code == 201
+        review(boss, boss_punch := expired, "approve", "Sent to the other plant", "in").status_code
+        == 201
     )
     assert boss_punch.id == expired.id
     assert db_session.scalars(select(PunchReview)).all() != []
@@ -783,3 +784,32 @@ def test_the_digest_goes_back_7_days_at_most(boss: TestClient) -> None:
     response = boss.get(f"{REVIEWS}/digest", params={"date": too_old})
 
     assert response.status_code == 422
+
+
+# --- The audit log must not give back what the punch log hides (compliance review) ---
+
+
+def test_the_audit_log_hides_review_reasons_from_the_other_roles(
+    boss: TestClient,
+    corporate: TestClient,
+    plant_head: TestClient,
+    db_session: Session,
+    kiosk: KioskDevice,
+    worker: Worker,
+) -> None:
+    punch = add_punch(db_session, kiosk, worker, age=timedelta(minutes=5))
+    review(boss, punch, "not_accepted", reason="Used a friend's card, said the guard")
+
+    def entry_of(client: TestClient) -> dict:
+        items = client.get("/api/v1/audit", params={"action": "punch_review.not_accepted"}).json()
+        (entry,) = items["items"]
+        return entry
+
+    full = entry_of(boss)
+    assert full["reason"] == "Used a friend's card, said the guard"
+    assert full["after"]["reason"] == "Used a friend's card, said the guard"
+    for client in (corporate, plant_head):
+        hidden = entry_of(client)
+        assert hidden["reason"] is None and "reason" not in hidden["after"]
+        assert "friend" not in str(hidden)
+        assert hidden["action"] == "punch_review.not_accepted"  # that it happened stays visible

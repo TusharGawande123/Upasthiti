@@ -26,7 +26,7 @@ import sys
 import uuid
 from dataclasses import dataclass, field
 
-from sqlalchemy import Table, delete, or_, select, text, update
+from sqlalchemy import Table, delete, func, or_, select, text, update
 from sqlalchemy.orm import Session
 
 from app.core.config import load_settings_or_exit
@@ -53,6 +53,8 @@ class RemovalPlan:
     test_card_labels: list[str] = field(default_factory=list)
     punch_ids: list[uuid.UUID] = field(default_factory=list)
     photo_keys: list[str] = field(default_factory=list)
+    review_ids: list[uuid.UUID] = field(default_factory=list)
+    heartbeat_count: int = 0
     counts: dict[str, int] = field(default_factory=dict)
 
 
@@ -109,6 +111,40 @@ def build_plan(session: Session, plant_code: str, include_test_cards: bool) -> R
             punches.c.claimed_employee_id.in_(plan.employee_ids),
         ),
     )
+    # M4: reviews of those punches (append-only, like the punches) and the health samples of the
+    # demo devices. A real punch that points at a demo punch (travel / two-devices flag) would
+    # make the delete fail half way, so that case is refused up front.
+    reviews, heartbeats = _table("punch_reviews"), _table("kiosk_heartbeats")
+    plan.review_ids = _ids(
+        session,
+        "punch_reviews",
+        "id",
+        or_(
+            reviews.c.punch_id.in_(plan.punch_ids),
+            reviews.c.employee_id.in_(plan.employee_ids),
+        ),
+    )
+    plan.heartbeat_count = (
+        session.scalar(
+            select(func.count())
+            .select_from(heartbeats)
+            .where(heartbeats.c.kiosk_id.in_(plan.kiosk_ids))
+        )
+        or 0
+    )
+    linked_from_outside = session.scalar(
+        select(func.count())
+        .select_from(punches)
+        .where(
+            punches.c.related_punch_id.in_(plan.punch_ids),
+            punches.c.id.not_in(plan.punch_ids),
+        )
+    )
+    if linked_from_outside:
+        raise RemovalRefusedError(
+            f"{linked_from_outside} punch(es) of other plants point at punches of this demo plant "
+            "(a travel or two-devices flag). Remove or review those first."
+        )
     plan.photo_keys = [
         key
         for key in session.scalars(
@@ -122,6 +158,8 @@ def build_plan(session: Session, plant_code: str, include_test_cards: bool) -> R
         "QR cards (incl. test cards if asked)": len(plan.card_ids),
         "punches": len(plan.punch_ids),
         "photos": len(plan.photo_keys),
+        "reviews of those punches": len(plan.review_ids),
+        "device health samples": plan.heartbeat_count,
     }
     return plan
 
@@ -169,9 +207,16 @@ def remove(session: Session, plan: RemovalPlan) -> None:
     # Only inside this transaction: switch the punches "never change or delete" trigger off, and
     # make sure it is on again (a rollback would undo this too).
     session.execute(text("ALTER TABLE punches DISABLE TRIGGER USER"))
+    session.execute(text("ALTER TABLE punch_reviews DISABLE TRIGGER USER"))
     try:
         t = _table
         _remove_face_data(session, plan)
+        session.execute(
+            delete(t("punch_reviews")).where(t("punch_reviews").c.id.in_(plan.review_ids))
+        )
+        session.execute(
+            delete(t("kiosk_heartbeats")).where(t("kiosk_heartbeats").c.kiosk_id.in_(kiosk_ids))
+        )
         session.execute(
             delete(t("punch_snapshots")).where(t("punch_snapshots").c.punch_id.in_(plan.punch_ids))
         )
@@ -214,6 +259,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         session.execute(delete(t("plants")).where(t("plants").c.id == plant_id))
     finally:
         session.execute(text("ALTER TABLE punches ENABLE TRIGGER USER"))
+        session.execute(text("ALTER TABLE punch_reviews ENABLE TRIGGER USER"))
 
     # One line that says it happened (counts only: no names, no codes of people).
     record_audit(

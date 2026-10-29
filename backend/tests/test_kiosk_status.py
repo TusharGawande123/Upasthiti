@@ -204,16 +204,18 @@ def make_shift_now(session: Session, plant: PlantIds) -> None:
     now = to_ist(utc_now())
     for shift in session.scalars(select(Shift).where(Shift.plant_id == uuid.UUID(plant.id))):
         shift.is_active = False
+    start_time = (now - timedelta(hours=1)).time().replace(microsecond=0)
+    end_time = (now + timedelta(hours=1)).time().replace(microsecond=0)
     session.add(
         Shift(
             plant_id=uuid.UUID(plant.id),
             name="Now",
-            start_time=(now - timedelta(hours=1)).time().replace(microsecond=0),
-            end_time=(now + timedelta(hours=1)).time().replace(microsecond=0),
+            start_time=start_time,
+            end_time=end_time,
             grace_min=10,
             half_day_min=240,
             ot_after_min=480,
-            crosses_midnight=False,
+            crosses_midnight=start_time > end_time,  # near midnight the shift wraps
             is_active=True,
         )
     )
@@ -336,20 +338,22 @@ def add_samples(session: Session, kiosk: KioskDevice, moments: list[datetime]) -
 def test_the_timeline_shows_a_gap_as_offline_and_the_rest_as_online(
     boss: TestClient, db_session: Session, kiosk: KioskDevice
 ) -> None:
-    today = utc_now().astimezone(IST).date()
-    midnight = datetime.combine(today, time.min, tzinfo=IST)
+    # Yesterday, so the samples are in the past whatever time of day the test runs.
+    yesterday = utc_now().astimezone(IST).date() - timedelta(days=1)
+    midnight = datetime.combine(yesterday, time.min, tzinfo=IST)
     kiosk.registered_at = midnight - timedelta(days=1)
     # One sample every 5 minutes from 01:00 to 02:00, then silence for 40 minutes, then again.
     first = [midnight + timedelta(hours=1, minutes=5 * i) for i in range(13)]
     second = [midnight + timedelta(hours=2, minutes=40 + 5 * i) for i in range(5)]
     add_samples(db_session, kiosk, first + second)
     kiosk.last_seen_at = second[-1]
+    kiosk.camera_ok = True  # what the last heartbeat reported
     db_session.commit()
 
-    response = boss.get(f"/api/v1/kiosks/{kiosk.id}/health", params={"days": 1}).json()
+    response = boss.get(f"/api/v1/kiosks/{kiosk.id}/health", params={"days": 2}).json()
 
-    (day,) = response["days"]
-    assert day["date"] == today.isoformat()
+    day, _today = response["days"]
+    assert day["date"] == yesterday.isoformat()
     offline_stretches = [s for s in day["stretches"] if s["state"] == "offline"]
     # The 40-minute silence (minus what still counts as "recently seen") is an offline stretch.
     assert any(
@@ -358,7 +362,7 @@ def test_the_timeline_shows_a_gap_as_offline_and_the_rest_as_online(
         < datetime.fromisoformat(s["end"])
         for s in offline_stretches
     )
-    assert response["latest"]["camera_ok"] is None or response["latest"]["camera_ok"] is True
+    assert response["latest"]["camera_ok"] is True  # the newest sample says the camera works
 
 
 def test_health_needs_a_device_in_scope_and_at_most_7_days(

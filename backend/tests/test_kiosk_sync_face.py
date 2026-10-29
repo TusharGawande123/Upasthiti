@@ -127,6 +127,22 @@ def test_an_unknown_code_is_not_recognised_with_the_same_answer(
     assert result["reason_code"] == "FACE_NOT_RECOGNISED"
 
 
+def test_the_pictures_of_a_code_that_cannot_use_face_are_never_processed(
+    db_client: TestClient, db_session: Session, gate: OfflineGate, ravi: str
+) -> None:
+    """Compliance: no face work for an unknown code, a card employee or a withdrawn consent. A
+    challenge that would fail the face rules is not even reached: the answer is the same
+    FACE_NOT_RECOGNISED as for any other code that does not match."""
+    item = face_item(gate, face_evidence(1, "NOBODY"), challenge="left_then_right")
+
+    (result,) = gate.send(db_client, [item]).json()["results"]
+
+    assert result["reason_code"] == "FACE_NOT_RECOGNISED"
+    (punch,) = rows(db_session)
+    assert punch.match_score is None and punch.antispoof_score is None
+    assert punch.employee_id is None and punch.claimed_employee_id is None
+
+
 @pytest.mark.parametrize("challenge", [None, "turn_right_then_left", "left_then_right"])
 def test_a_challenge_that_is_not_valid_for_the_setting_is_refused(
     db_client: TestClient, gate: OfflineGate, ravi: str, challenge: str | None
