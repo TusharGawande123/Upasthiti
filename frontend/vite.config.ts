@@ -115,7 +115,7 @@ export default defineConfig(({ mode }) => {
         ],
         reporter: ["text", "json-summary"],
         // Coverage floor: 60% in M0, 70% from M1, 75% from M2, 80% from M3; raised in each milestone (spec S-8).
-        thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
+        thresholds: { lines: 82, functions: 82, branches: 82, statements: 82 },
       },
     },
   };

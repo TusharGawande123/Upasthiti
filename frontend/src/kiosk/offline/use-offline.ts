@@ -3,10 +3,10 @@
 //  - checks the browser's storage once (S-38): saving offline is allowed only with room to spare;
 //  - sends the saved punches by itself as soon as the gate is online again, one batch after the
 //    other, and pauses while a punch is on the screen (live punches always go first);
-//  - when the server says the device is switched off, throws the queue away (privacy: nothing can
-//    ever be sent with a revoked key).
+//  - when the server says the device is switched off, says so (the pairing hook then throws the
+//    queue away: nothing can ever be sent with a revoked key).
 import { useCallback, useEffect, useRef, useState } from "react";
-import { clearQueue, type QueueSummary, queueSummary } from "../device-store";
+import { type QueueSummary, queueSummary } from "../device-store";
 import type { LocationReport } from "../location/gate-location";
 import {
   type CardEvidence,
@@ -73,7 +73,7 @@ export function useOfflineGate({
   online: boolean;
   /** A punch is on the screen: do not start a batch now. */
   busy: boolean;
-  onRevoked: (waiting: number) => void;
+  onRevoked: () => void;
 }): OfflineGate {
   const [queue, setQueue] = useState<QueueSummary>(EMPTY);
   const [storage, setStorage] = useState<StorageCheck | null>(null);
@@ -108,9 +108,8 @@ export function useOfflineGate({
           const round = await syncOnce();
           if (stopped) return;
           if (round.kind === "revoked") {
-            const lost = (await queueSummary()).count;
-            await clearQueue();
-            latest.current.onRevoked(lost);
+            // The pairing hook counts and deletes the queue for the "Switched off" screen.
+            latest.current.onRevoked();
             break;
           }
           if (round.kind === "sent") setLastSentAtMs(Date.now());

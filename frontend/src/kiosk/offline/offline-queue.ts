@@ -24,6 +24,22 @@ export type KioskOfflineSettings = {
   sync_max_bytes: number;
 };
 
+/** From this share of the queue limits on, the gate warns "Storage almost full" (spec §7 rule 12). */
+export const QUEUE_ALMOST_FULL_SHARE = 0.8;
+
+/**
+ * How full the queue is: the larger of the item count and the size against their limits
+ * (1 = full, nothing more is saved).
+ */
+export function queueFillShare(
+  queued: { count: number; bytes: number },
+  limits: { max_items: number; max_mb: number },
+): number {
+  const byItems = queued.count / Math.max(1, limits.max_items);
+  const byBytes = queued.bytes / Math.max(1, limits.max_mb * 1024 * 1024);
+  return Math.max(byItems, byBytes);
+}
+
 export type CardEvidence = { qr_payload: string; snapshot_jpeg: string };
 export type FaceEvidence = {
   employee_code: string;
@@ -57,9 +73,7 @@ export async function saveOfflinePunch(input: {
   const device = await loadDevice();
   if (!time || !device) return "OFFLINE_NOT_READY";
   const queued = await queueSummary();
-  if (queued.count >= settings.max_items || queued.bytes >= settings.max_mb * 1024 * 1024) {
-    return "QUEUE_FULL";
-  }
+  if (queueFillShare(queued, settings) >= 1) return "QUEUE_FULL";
 
   const kioskId = device.paired.kioskId;
   const counter = await takeNextCounter();

@@ -110,14 +110,21 @@ function PunchSummary({ context }: { context: ReviewContext }) {
   const reasonText = useReasonText();
   const { punch } = context;
   const person = personOf(context);
-  const counts =
-    punch.decision === "flagged" && punch.review_state !== "not_accepted"
-      ? t("review.sheet.countsAs", { direction: t(`punches.direction.${punch.direction ?? "in"}`) })
-      : punch.review_state === "approved"
-        ? t("review.sheet.countsAs", {
-            direction: t(`punches.direction.${punch.review_direction ?? "in"}`),
-          })
-        : t("review.sheet.doesNotCount");
+  const countsLine = () => {
+    const named = (direction: "in" | "out" | null) => t(`punches.direction.${direction ?? "in"}`);
+    if (punch.review_state === "not_accepted") return t("review.sheet.doesNotCount");
+    if (punch.review_state === "approved") {
+      return t("review.sheet.countsDecided", { direction: named(punch.review_direction ?? null) });
+    }
+    if (punch.decision === "flagged") {
+      // Not reviewed yet: it already counts, until the Super Admin decides otherwise.
+      return punch.review_state === "confirmed"
+        ? t("review.sheet.countsDecided", { direction: named(punch.direction) })
+        : t("review.sheet.countsAs", { direction: named(punch.direction) });
+    }
+    return t("review.sheet.doesNotCount");
+  };
+  const counts = countsLine();
   return (
     <Section title={t("review.sheet.punch")} icon={Flag}>
       <ul className="space-y-2">

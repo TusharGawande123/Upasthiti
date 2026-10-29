@@ -100,6 +100,20 @@ export async function clearQueue(): Promise<void> {
   await db().queue.clear();
 }
 
+/**
+ * A switched-off device can never send its saved punches (its key is revoked), so they are
+ * deleted at once (privacy, M4 spec §7 rule 12). Returns how many there were, for the screen.
+ */
+export async function dropQueueOfRevokedDevice(): Promise<number> {
+  try {
+    const lost = (await queueSummary()).count;
+    await clearQueue();
+    return lost;
+  } catch {
+    return 0; // storage not readable: nothing to show, nothing that could be sent anyway
+  }
+}
+
 export type QueueSummary = { count: number; bytes: number; oldestSavedWallMs: number | null };
 
 /** Counts and times only, never contents (for the screen and the heartbeat). */

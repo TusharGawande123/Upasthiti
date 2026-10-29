@@ -129,11 +129,15 @@ export function KiosksPage() {
   // The offline badge links here with ?state=offline (M4 F-36).
   const [params, setParams] = useSearchParams();
   const state = (params.get("state") ?? "") as DeviceState | "";
-  const kiosks = useKiosks({
-    plant_id: plantId || undefined,
-    status: status || undefined,
-    state: state || undefined,
-  });
+  // Refreshes by itself every 30 s while open (spec M4 §4.7): the state, queue and last punch move.
+  const kiosks = useKiosks(
+    {
+      plant_id: plantId || undefined,
+      status: status || undefined,
+      state: state || undefined,
+    },
+    { refetchMs: 30_000 },
+  );
   const plants = usePlants();
   const revoke = useRevokeKiosk();
   const newCode = useNewPairingCode();

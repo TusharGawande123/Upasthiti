@@ -84,7 +84,8 @@ function useAddressFilters() {
       if (value) next.set(key, value);
       else next.delete(key);
     }
-    next.delete("page");
+    // Any other change starts again at the first page; only the pager itself sets a page.
+    if (!("page" in changes)) next.delete("page");
     setParams(next, { replace: true });
   };
   return { read, set, params };

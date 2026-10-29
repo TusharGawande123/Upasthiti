@@ -4,6 +4,7 @@
 import {
   Camera,
   CameraOff,
+  HardDrive,
   LifeBuoy,
   MonitorX,
   RotateCw,
@@ -19,6 +20,7 @@ import { formatIstTime } from "../components/server-clock";
 import type { PairedKiosk } from "../device-store";
 import { DEFAULT_LOCATION_SETTINGS, useGateLocation } from "../location/gate-location";
 import { LocationChip, NeedsLocationScreen } from "../location/needs-location";
+import { QUEUE_ALMOST_FULL_SHARE, queueFillShare } from "../offline/offline-queue";
 import { useOfflineGate } from "../offline/use-offline";
 import { CodePad } from "./code-pad";
 import { FaceView, showsFaceView } from "./face-view";
@@ -46,7 +48,7 @@ function LastSyncLine({
     const time = formatIstTime(new Date(oldestSavedWallMs), false);
     return (
       <p className="font-bold text-foreground">
-        {t(count === 1 ? "kiosk.offline.lastSync.waitingOne" : "kiosk.offline.lastSync.waiting", {
+        {t("kiosk.offline.lastSync.waiting", {
           count,
           time,
         })}
@@ -159,8 +161,12 @@ export function AttendanceScreen({
     settings: heartbeat.settings.offline,
     online: heartbeat.online,
     busy: punching,
-    onRevoked: () => onRevoked(),
+    onRevoked,
   });
+  const offlineSettings = heartbeat.settings.offline;
+  const almostFull =
+    offlineSettings?.enabled === true &&
+    queueFillShare(offline.queue, offlineSettings) >= QUEUE_ALMOST_FULL_SHARE;
   const attendance = useAttendance({
     settings: heartbeat.settings,
     onOnline: heartbeat.setOnline,
@@ -210,6 +216,16 @@ export function AttendanceScreen({
         />
       }
     >
+      {/* M4 (design gate A 06): the gate still works; the guard should bring the internet back. */}
+      {almostFull ? (
+        <p
+          role="status"
+          className="mb-4 flex items-center gap-3 rounded-lg border border-warning/40 bg-warning-soft px-4 py-3 text-[24px] font-bold text-foreground sm:text-[30px]"
+        >
+          <HardDrive className="size-8 shrink-0" aria-hidden />
+          {t("kiosk.offline.storageAlmostFull")}
+        </p>
+      ) : null}
       {/* M4: while the location is not good the camera area is replaced; the camera keeps running. */}
       {place.paused && screen.name === "scanning" ? (
         <NeedsLocationScreen place={place} settings={locationSettings} />

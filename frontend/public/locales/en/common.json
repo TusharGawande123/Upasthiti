@@ -103,7 +103,9 @@
         "steps": [
           "To use it again, the admin adds it as a new attendance device.",
           "Then type the new code on this device."
-        ]
+        ],
+        "lost_one": "{{count}} saved punch could not be sent. Please visit the plant office.",
+        "lost_other": "{{count}} saved punches could not be sent. Please visit the plant office."
       },
       "network": {
         "title": "No connection",
@@ -372,7 +374,7 @@
       },
       "GEOFENCE_NOT_SET": {
         "title": "NOT ACCEPTED",
-        "message": "This plant has no fence on the map yet.",
+        "message": "This attendance device is not set up yet.",
         "next": "Please visit the plant office.",
         "voice": "Not accepted. Please visit the plant office."
       },
@@ -452,7 +454,8 @@
       "outAfter": "Already IN at {{time}}. You can punch OUT after {{outTime}}.",
       "selfTestChecks": "Camera ✓ · Server ✓ · Clock ✓ (server time {{time}})",
       "selfTestChecksLocation": "Camera ✓ · Server ✓ · Clock ✓ · {{location}} (server time {{time}})",
-      "noAttendance": "No attendance was recorded."
+      "noAttendance": "No attendance was recorded.",
+      "savedAt": "Time"
     },
     "voice": {
       "in": "Checked in.",
@@ -506,7 +509,8 @@
         "good": "Location good (±{{metres}} m)",
         "weak": "Location weak (±{{metres}} m)",
         "none": "No location",
-        "stale": "Last location (offline)"
+        "stale": "Last location (offline)",
+        "outside": "Not at the gate"
       },
       "title": "This attendance device needs its location",
       "message": "Punching is paused. Please wait a moment. If this stays, please visit the plant office.",
@@ -537,15 +541,15 @@
       "chipSending": "Sending saved punches… {{count}} left",
       "lastSync": {
         "allSent": "All punches sent ✓ {{time}}",
-        "waiting": "{{count}} punches waiting since {{time}}",
-        "waitingOne": "1 punch waiting since {{time}}"
+        "waiting_one": "{{count}} punch waiting since {{time}}",
+        "waiting_other": "{{count}} punches waiting since {{time}}"
       },
       "privacy": "When the internet is down, your punch is saved on this attendance device in a locked form that only our server can open, and it is deleted from the device once it is sent.",
       "privacyOpen": "Privacy",
       "privacyClose": "Hide privacy",
       "typeCodeTitle": "Type your employee code",
       "typeCodeLine": "No internet right now. Type your code, then look at the camera.",
-      "storageAlmostFull": "Storage almost full – please restore the internet.",
+      "storageAlmostFull": "Storage almost full. Please tell the plant office.",
       "clockOffline": "(offline)"
     }
   },
@@ -1598,12 +1602,9 @@
       "needs_location": "Needs location",
       "sending": "Sending saved punches"
     },
-    "offlineBadge": "{{count}} attendance device offline",
-    "offlineBadge_other": "{{count}} attendance devices offline",
     "offlineAlert": "Attendance device “{{name}}” has been offline since {{time}} ({{minutes}} min). Check its power and internet.",
     "offlineAlertView": "View",
     "offlineAlertHide": "Hide",
-    "revokeQueueWarning": "{{count}} punches are still waiting on this attendance device. If you switch it off now, they are lost. Wait until it shows 0 if you can.",
     "drawer": {
       "lastContact": "Last contact",
       "lastPunch": "Last punch",
@@ -1635,8 +1636,12 @@
       "timelineHelp": "Green: the device was in contact. Grey: no contact.",
       "noData": "No data",
       "dayLine": "Online {{online}}% of the time",
-      "dayLabel": "Online {{online}} minutes, offline {{offline}} minutes"
-    }
+      "dayLabel": "Online {{online}} min, offline {{offline}} min"
+    },
+    "offlineBadge_one": "{{count}} attendance device offline",
+    "offlineBadge_other": "{{count}} attendance devices offline",
+    "revokeQueueWarning_one": "{{count}} punch is still waiting on this attendance device. If you switch it off now, it is lost. Wait until it shows 0 if you can.",
+    "revokeQueueWarning_other": "{{count}} punches are still waiting on this attendance device. If you switch it off now, they are lost. Wait until it shows 0 if you can."
   },
   "plantFilter": {
     "label": "Plant filter",
@@ -2361,7 +2366,7 @@
     "QR_EXPIRED": "Card expired",
     "EMPLOYEE_INACTIVE": "Employee has left",
     "EMPLOYEE_NOT_QR": "Employee punches by face",
-    "WRONG_PLANT": "Card of another plant",
+    "WRONG_PLANT": "Registered at another plant",
     "COOLDOWN_ACTIVE": "Already punched (scanned again too soon)",
     "OUT_TOO_SOON": "Already IN (OUT not allowed yet)",
     "NO_FACE": "No face seen",
@@ -2397,7 +2402,9 @@
     "OFFLINE_TOO_OLD": "Saved offline for too long",
     "OFFLINE_TOO_OLD_help": "The punch was saved on the device longer than the allowed offline time before it was sent.",
     "SYNC_ORDER_CONFLICT": "Arrived after a later punch",
-    "SYNC_ORDER_CONFLICT_help": "This offline punch arrived after a later punch of the same person was already counted, so IN and OUT may not alternate."
+    "SYNC_ORDER_CONFLICT_help": "This offline punch arrived after a later punch of the same person was already counted, so IN and OUT may not alternate.",
+    "OFFLINE_CHALLENGE_INVALID_help": "The saved face punch did not carry a valid head-turn instruction, so it was not checked further.",
+    "OFFLINE_EVIDENCE_UNREADABLE_help": "The saved punch could not be opened (damaged, or locked with an old key). Ask the person when they came."
   },
   "punches": {
     "title": "Punch log",
@@ -2580,7 +2587,15 @@
       "approved": "Approved",
       "approvedAs": "Approved as {{direction}}"
     },
-    "offlineSent": "Offline, sent {{time}}"
+    "offlineSent": "Offline, sent {{time}}",
+    "resultLine": {
+      "accepted": "Accepted {{direction}}",
+      "flagged": "Flagged {{direction}}",
+      "flaggedWhy": "Flagged {{direction}} · {{reason}}",
+      "rejected": "Rejected · {{reason}}",
+      "rejectedPlain": "Rejected",
+      "needsCode": "Asked for the employee code"
+    }
   },
   "notices": {
     "title": "Gate notices",
@@ -2997,7 +3012,7 @@
       "punchTime": "Punch time",
       "delay": "Delay",
       "timeAnchored": "Time proof: anchored to server time",
-      "timeUnproven": "⚠ Time not proven (device restarted while offline)",
+      "timeUnproven": "Time not proven (the device restarted or its clock moved while offline)",
       "timeUnprovenHelp": "The punch time is the device's own estimate. Check it against the photo and the other punches of the day.",
       "sameAsServer": "Same as the server time (online punch).",
       "photoAudited": "Opening the photo is recorded in the audit log.",
@@ -3007,7 +3022,8 @@
       "nobody": "No employee is known for this punch.",
       "repeatScan": "This punch was a repeat scan. It has nothing to approve.",
       "nextOpens": "After you decide, the next punch opens.",
-      "mapFailed": "The map could not be drawn. The distance is written below."
+      "mapFailed": "The map could not be drawn. The distance is written below.",
+      "countsDecided": "Counts as {{direction}}"
     },
     "relation": {
       "travel": "Impossible travel between these two punches",
@@ -3017,10 +3033,13 @@
     "hints": {
       "title": "Seen before",
       "note": "Seen in the last 7 days. Hints only: nothing is blocked.",
-      "employee_rejections": "{{code}} was rejected {{count}} times this week",
-      "device_edge_flags": "This attendance device had {{count}} fence-edge flags this week – check its location or the fence margin",
-      "card_two_devices": "This card was used at two attendance devices {{count}} times this week",
-      "show": "Show those punches"
+      "show": "Show those punches",
+      "employee_rejections_one": "{{code}} was rejected once this week",
+      "employee_rejections_other": "{{code}} was rejected {{count}} times this week",
+      "device_edge_flags_one": "This attendance device had {{count}} fence-edge flag this week – check its location or the fence margin",
+      "device_edge_flags_other": "This attendance device had {{count}} fence-edge flags this week – check its location or the fence margin",
+      "card_two_devices_one": "This card was used at two attendance devices once this week",
+      "card_two_devices_other": "This card was used at two attendance devices {{count}} times this week"
     },
     "action": {
       "confirmed": "Confirmed",

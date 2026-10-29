@@ -139,12 +139,22 @@ export function PunchResultText({ punch, small = false }: { punch: PunchItem; sm
   const { t } = useTranslation();
   const reasonText = useReasonText();
   const direction = t(`punches.direction.${punch.direction ?? "in"}`);
+  const code = punch.reason_codes[0];
+  const reason = code ? reasonText(code) : "";
+  // Whole sentences with the words in the translation file (word order differs by language).
   const text =
     punch.decision === "accepted"
-      ? `${t("punches.result.accepted")} ${direction}`
-      : punch.decision === "flagged"
-        ? `${t("punches.result.flagged")} ${direction} · ${reasonText(punch.reason_codes[0] ?? "")}`
-        : `${t("punches.result.rejected")} · ${reasonText(punch.reason_codes[0] ?? "")}`;
+      ? t("punches.resultLine.accepted", { direction })
+      : punch.decision === "needs_code"
+        ? t("punches.resultLine.needsCode")
+        : punch.decision === "flagged"
+          ? t(reason ? "punches.resultLine.flaggedWhy" : "punches.resultLine.flagged", {
+              direction,
+              reason,
+            })
+          : t(reason ? "punches.resultLine.rejected" : "punches.resultLine.rejectedPlain", {
+              reason,
+            });
   return <span className={small ? "text-xs text-muted-foreground" : "text-sm"}>{text}</span>;
 }
 

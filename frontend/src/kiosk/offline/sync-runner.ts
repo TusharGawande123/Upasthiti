@@ -14,6 +14,8 @@ type SyncResult = {
   result: "saved" | "already_saved" | "retry_later" | "refused";
 };
 
+const DONE = ["saved", "already_saved", "refused"];
+
 export type SyncRound =
   | { kind: "sent"; done: number; kept: number }
   | { kind: "empty" }
@@ -38,8 +40,10 @@ export async function syncOnce(
       })),
     });
     // The answers come in the order the items were sent.
+    // Only an explicit answer ends an item. A missing answer or "retry_later" keeps it, so a
+    // short or odd reply can never throw a saved punch away.
     const finished = batch
-      .filter((_, index) => answer.results[index]?.result !== "retry_later")
+      .filter((_, index) => DONE.includes(answer.results[index]?.result as string))
       .map((punch) => punch.clientPunchId);
     await removeFromQueue(finished);
     return { kind: "sent", done: finished.length, kept: batch.length - finished.length };

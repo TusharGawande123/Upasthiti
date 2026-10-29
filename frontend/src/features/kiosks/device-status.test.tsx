@@ -149,7 +149,7 @@ describe("the devices page", () => {
     expect(within(drawer).getByText("Inside the fence (±12 m)")).toBeInTheDocument();
     expect(await within(drawer).findByText(/^Online \d+% of the time$/)).toBeInTheDocument();
     expect(
-      within(drawer).getByRole("img", { name: /Online 1300 minutes, offline 60 minutes/ }),
+      within(drawer).getByRole("img", { name: /Online 1300 min, offline 60 min/ }),
     ).toBeInTheDocument();
   });
 

@@ -5,8 +5,8 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { apiError, mockApi } from "../../test/mock-api";
 import { createDeviceKey } from "../device-key";
-import { forgetDevice, queueSummary, saveDevice } from "../device-store";
-import { type KioskOfflineSettings, saveOfflinePunch } from "./offline-queue";
+import { dropQueueOfRevokedDevice, forgetDevice, queueSummary, saveDevice } from "../device-store";
+import { type KioskOfflineSettings, queueFillShare, saveOfflinePunch } from "./offline-queue";
 import vector from "./test-vector.json";
 import { forgetAnchorForTests, rememberAnchor } from "./time-anchor";
 import { checkStorage, useOfflineGate } from "./use-offline";
@@ -174,17 +174,40 @@ describe("the hook", () => {
     expect(result.current.queue.count).toBe(1);
   });
 
-  it("throws the queue away and tells the screen when the device was switched off", async () => {
+  it("tells the screen when the device was switched off", async () => {
     stubStorage(1000);
     await pairAndSavePunch();
     mockApi({ "POST /kiosk/sync": () => apiError(403, "DEVICE_REVOKED") });
-    const lost = vi.fn();
+    const switchedOff = vi.fn();
 
     renderHook(() =>
-      useOfflineGate({ settings: SETTINGS, online: true, busy: false, onRevoked: lost }),
+      useOfflineGate({ settings: SETTINGS, online: true, busy: false, onRevoked: switchedOff }),
     );
 
-    await waitFor(() => expect(lost).toHaveBeenCalledWith(1), { timeout: 5000 });
+    await waitFor(() => expect(switchedOff).toHaveBeenCalled(), { timeout: 5000 });
+  });
+});
+
+describe("a switched-off device's queue", () => {
+  it("is counted and deleted at once (nothing can ever be sent with a revoked key)", async () => {
+    stubStorage(1000);
+    await pairAndSavePunch();
+    expect((await queueSummary()).count).toBe(1);
+
+    expect(await dropQueueOfRevokedDevice()).toBe(1);
+
     expect((await queueSummary()).count).toBe(0);
+    expect(await dropQueueOfRevokedDevice()).toBe(0);
+  });
+});
+
+describe("how full the queue is", () => {
+  it("takes the larger share of the item count and the size", () => {
+    const limits = { max_items: 2000, max_mb: 200 };
+
+    expect(queueFillShare({ count: 0, bytes: 0 }, limits)).toBe(0);
+    expect(queueFillShare({ count: 1600, bytes: 0 }, limits)).toBeCloseTo(0.8);
+    expect(queueFillShare({ count: 10, bytes: 180 * 1024 * 1024 }, limits)).toBeCloseTo(0.9);
+    expect(queueFillShare({ count: 2000, bytes: 0 }, limits)).toBe(1);
   });
 });

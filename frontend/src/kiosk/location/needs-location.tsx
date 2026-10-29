@@ -46,7 +46,7 @@ export function LocationChip({ place }: { place: GateLocation }) {
     ),
     outside: (
       <StatusChip tone="danger" icon={MapPinOff}>
-        {t("kiosk.location.chip.none")}
+        {t("kiosk.location.chip.outside")}
       </StatusChip>
     ),
     none: (
