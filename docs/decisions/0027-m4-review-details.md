@@ -41,13 +41,13 @@ Status: Accepted.
     dialogs and cards add about 0.3 kB of CSS. The admin first load and the gate are unchanged.
 12. **The Excel export uses the same words as the screens** for the M4 codes
     (`punches/reasons.py` = `punchReasons.*`).
-14. **Which rejected card punches can be approved** (as the spec says: the punch "names" an
+13. **Which rejected card punches can be approved** (as the spec says: the punch "names" an
     employee = `employee_id` or `claimed_employee_id`). Since M2 a revoked, expired or not-yet-valid
     card does NOT set `employee_id` (the card may be in someone else's hand), so such a punch names
     nobody and cannot be approved; WRONG_PLANT, EMPLOYEE_INACTIVE, EMPLOYEE_NOT_QR, OUT_TOO_SOON and
     the location and face rejections do name the worker. **Open question for Tushar:** should an
     *expired* card (a renewal that came a day late) be approvable for the card's owner? That would
     change the M2 rule for that one code; until he decides, the spec rule stays.
-13. **The "Needs review" list is a list of rows, not a table**, at every width (gate B drew a table on a
+14. **The "Needs review" list is a list of rows, not a table**, at every width (gate B drew a table on a
     computer and cards on a phone): one layout that fits 360 px, 768 px and wide screens without a
     sideways scroll. All the gate B columns are there.

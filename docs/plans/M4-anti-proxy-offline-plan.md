@@ -322,24 +322,30 @@ suites). Manual: step 34 real-device check on the live site.
   alert banner, readiness lines, dashboard devices card. Design gates A, B, C mockups are in
   `docs/design-refs/m4/gate-{a,b,c}/` (not yet formally approved by the lead; build followed them).
   Gap: no map in the device drawer yet.
-- IN PROGRESS (slice D, backend only, NOT TESTED, may not run): `punches/counting.py` got
-  `latest_reviews` + `review_state`; `punches/queries.py` got filters `flagged` / `was_offline` /
-  `review_state`, day = `punch_time`, summary counts flagged as IN/OUT and adds `flagged`, `offline`,
-  `to_check`. Run `uv run ruff check . && uv run pyright && uv run pytest` first and fix.
-- Next (slice D, steps 26-29): (1) finish punch log: add `punch_time`, `was_offline`, `review_state`,
-  `review_direction`, `time_proof` etc. to `PunchLogItem` / `PunchDetail` (schemas.py, presenter.py),
-  query params in `admin_router.punch_filters` (`flagged`, `was_offline`, `review_state`; decision may be
-  "flagged"), summary fields, Excel columns (Punch time, Saved offline, Flags, Review); (2) review
-  endpoints: capability `REVIEW_PUNCHES` (Super Admin), `GET /reviews`, `/reviews/summary`,
-  `/reviews/digest` (F-48), `GET /punches/{id}/review-context` (related punches, suggestion, nearby
-  counted, history, F-54 hints), `POST /punches/{id}/reviews` (confirm / not_accepted / approve,
-  `expected_latest_review_id` -> REVIEW_CHANGED, audit `punch_review.*`), spec section 5.3 and 7 rules 6, 7,
-  20; (3) frontend `/admin/review` page per the gate B mockups, punch log marks and filters (gate C
-  03-punch-log), dashboard "To check" and digest cards, sidebar entry + Ctrl+K; (4) tests (AC-24 to
-  AC-30, AC-42, AC-43), e2e `admin-review.spec.ts`, add `/admin/review` to `e2e/tests/responsive.spec.ts`.
-  Then slice E (steps 30-35): coverage floor 82%, docs (spec section 15; fix the spec example "2.4 km in
-  3 min = 48 km/h" which is under the 60 limit), `/review-milestone`, CLAUDE.md diff for the lead, then
-  `/ship`. Outward steps for Tushar: make `OFFLINE_EVIDENCE_KEY` (`uv run python -m
-  app.scripts.make_offline_key`), set it on Render before the merge; real-device checks (step 34).
+- Done (2026-10-28, Anuradha took over from Tushar): **slice D complete** (steps 26-29). Details and
+  small choices: decision 0027.
+  - Backend: `REVIEW_PUNCHES` (Super Admin); punch log list / detail / summary / export additions
+    (punch time, offline, delay, review state and direction; detail: time proof, distance, location
+    age, related punch, reviews: full for the Super Admin, latest action + direction for the others);
+    filters `flagged`, `was_offline`, `review_state`, `decision=flagged`; Excel columns Punch time,
+    Saved offline, Flags, Review (headers now say "Attendance device"). `punches/review_service.py`,
+    `review_router.py`, `review_schemas.py`: `/reviews` (3 tabs, filters, 62 days), `/reviews/summary`,
+    `/reviews/digest`, `/punches/{id}/review-context`, `POST /punches/{id}/reviews` (row lock,
+    `REVIEW_CHANGED` with who won, audit `punch_review.*`). An approval can be withdrawn with
+    "not accepted". Gate poster: the offline paragraph (privacy text 11 pt, address on the help line).
+  - Frontend: `src/features/review/` (page, sheet, dialog, lazy `review-map.tsx`, dashboard cards,
+    `use-review.ts`); menu entry with count + 2 Ctrl+K entries; punch log chips, filters, marks, punch
+    time column, link to the review; MIDC Waluj warning on raised location limit / margin; last-position
+    map in the device drawer (closes the slice C gap). Styles budget 12,400 -> 13,000 bytes.
+  - Tests: pytest 1118 passed + review 22 + poster 4 (coverage 90%); Vitest 579 passed (branches
+    80.28%); e2e `admin-review.spec.ts` 2 passed headed; `/admin/review` in `responsive.spec.ts`.
+  - Design gates B and C: built from the mockups, not formally approved (say so in the PR).
+  - Open question for Tushar (decision 0027 item 13): should an expired card punch be approvable?
+- Next: slice E (steps 30-35): coverage floor 82% (backend 90%, frontend lines 87.9% / branches 80.3%:
+  check what `vite.config.ts` measures before raising), AC-32 log-scrub test for sync, heartbeat and
+  review traffic, docs (spec section 15; fix the spec example "2.4 km in 3 min = 48 km/h" -> "2.4 km in
+  2 min = 72 km/h"), known gaps (revoked screen count, storage-almost-full line, AC-21 offline reload),
+  `/review-milestone`, CLAUDE.md diff (Anuradha approves), `/ship`. Outward for Tushar: real-device
+  checks (step 34), merge.
 - Local setup: start Docker Desktop, `docker compose up -d`, `cd backend && uv run alembic upgrade head`.
 - Open questions: none.

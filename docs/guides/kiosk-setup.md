@@ -57,8 +57,8 @@ if you need help; it is also in the audit log.
   paired again (the admin adds it as a new kiosk).
 - The 50 m accuracy limit and the margin around the geofence are settings the Super Admin
   can change (Settings).
-- Location must stay allowed after pairing too: from M4 every punch is checked against the
-  geofence.
+- Location must stay allowed after pairing too: since M4 **every punch** is checked against the
+  geofence. See "Location on every punch" below.
 
 ## Punching with a QR card (from M2)
 
@@ -186,6 +186,91 @@ punching have no reason to exist. Fix the gate poster (see below) next to the ki
 **Updates.** The kiosk checks for a new version every 5 minutes and reloads itself only after
 30 seconds with nobody punching, never in the middle of a punch.
 
+**After every update of the website (deploy).** Open each gate page once (or wait until it has
+reloaded itself), so the attendance device installs the new version. An attendance device that
+still runs a very old page can have its punches refused until it reloads.
+
+## Location on every punch (from M4)
+
+The attendance device must know where it is for **every** punch, not only for pairing. The
+server checks each punch against the plant's geofence.
+
+1. Keep **Location** switched on and allowed for the website, all day.
+2. **On a PC, keep Wi-Fi switched ON**, even if the PC uses a cable for the internet. Windows
+   finds the PC's position from the Wi-Fi networks nearby; it does not need to connect to them.
+3. Look at the location chip in the top bar of the gate page:
+   - **Location good (±12 m)** (green): punching works.
+   - **Location weak (±140 m)** (amber) or **No location** (red): the device is waiting.
+   - **Last location (offline)**: see "When the internet is down" below.
+4. If there is no good location for about 10 seconds, the screen says **This attendance device
+   needs its location** and punching is paused. One line says why (location blocked, switched
+   off, signal too weak, or not at the plant gate). A small **Why paused?** drawing shows the
+   fence and where the device thinks it is. The screen goes away by itself when the location is
+   good again; nobody has to tap.
+5. What to do: allow Location in the browser (padlock next to the address), switch Wi-Fi on,
+   move the device nearer a window or the open gate. If the drawing shows the device outside the
+   fence while it is at the gate, ask the Super Admin to check the geofence.
+
+A punch made at the very edge of the fence (inside the allowed margin) is accepted as usual. The
+Super Admin sees it marked for checking in **Needs review**.
+
+## Add the gate page to the home screen (phone or tablet)
+
+1. Open the gate page (`/attendance`) in Chrome.
+2. Open the Chrome menu (three dots) and choose **Add to Home screen** (or **Install app**).
+3. Keep the name **Gate attendance** and confirm.
+4. From now on, open the gate page from this icon. It opens in full screen.
+
+## Storage on the device (from M4)
+
+When the internet is down, punches are saved in the browser's storage on the device.
+
+- At start the gate page asks the browser to **keep its storage** (not clear it when space is
+  short). The Super Admin sees the answer in the device's details on the **Attendance devices**
+  page; "the browser may clear it" means the browser did not promise this.
+- **Storage self-check:** the gate page saves punches without internet **only when there is
+  enough free storage** (room for the full queue, 200 MB by default, plus 50 MB). If there is
+  not, the device details show **Offline saving off: not enough storage**. Free up space on the
+  device (delete unused apps, photos or downloads), then reload the gate page.
+- Do not clear the browser's site data: that also removes the device key and any saved punches.
+
+## When the internet is down (from M4)
+
+The attendance device keeps working for card and face punches.
+
+1. The top bar shows **No internet – punches are saved**.
+2. A card punch has the same steps as usual. A face punch first asks the worker to **type the
+   employee code**, then to look at the camera and turn the head.
+3. The screen shows **SAVED – Saved – will be confirmed**. It shows no name and no IN/OUT,
+   because the server has not checked the punch yet.
+4. The saved punches are locked so that only the server can open them. They are deleted from
+   the device once they are sent.
+5. If the device has no new location, it uses its **last good location from the same session**
+   of the gate page (chip: **Last location (offline)**). The Super Admin sees these punches marked
+   for checking. After a reload or power cut without internet there is no last location, so the
+   device waits for a new good location.
+6. The footer shows the guard what is waiting, for example **12 punches waiting since 08:05**,
+   or **All punches sent ✓ 09:02** when nothing waits.
+7. When the internet is back, the device sends the saved punches by itself within a few
+   minutes. The server checks each one and decides IN or OUT.
+8. If the page is reloaded (or the device restarts) while there is no internet, the gate page
+   still opens, as long as it was opened once with internet before.
+9. Limits: about **2,000 punches** or **200 MB** (settings). When the device is full, the screen
+   says **NOT SAVED** and the worker must visit the plant office.
+
+Workers are not told later what happened to a saved punch. The plant office sees refused ones
+in the punch log.
+
+## Before you revoke an attendance device (from M4)
+
+A revoked device deletes its saved punches at once, without sending them.
+
+1. On the **Attendance devices** page, press **Revoke** for the device.
+2. Read the dialog. If it says **N punches are still waiting on this attendance device**, cancel
+   and wait until the device shows 0 waiting (bring its internet back first).
+3. Revoke only then. A **stolen** device must be revoked at once, even with punches waiting; the
+   plant office corrects those days later.
+
 ## Every morning: the TEST card
 
 The Super Admin prints a **TEST card** (QR cards › Test cards) for each gate. The guard or the
@@ -205,7 +290,11 @@ the kiosk. It also prints the address of the public privacy page (`/privacy`) as
 |---|---|
 | Camera is blocked | Tap the padlock next to the address, set Camera to Allow, press **Try again** |
 | No camera found | Check the camera cable; close other apps that use the camera |
-| No internet | Check the Wi-Fi or mobile data. Punches are not saved while offline (offline saving comes in M4) |
+| No internet – punches are saved | Punches are saved and sent later (see "When the internet is down"). Check the Wi-Fi or mobile data |
+| No internet. Your punch was NOT saved. | Offline saving is not possible yet: it is not set up on the server, or the device has had no contact with the server since the page opened. Check the internet; tell the admin |
+| NOT SAVED: This attendance device cannot save punches without internet | Not enough free storage on the device (see "Storage on the device"). Check the internet; free up space |
+| This attendance device needs its location | See "Location on every punch" |
+| NOT SAVED: This attendance device cannot save more punches | The device is full of saved punches. Bring the internet back so they are sent |
 | The server is starting. Please wait… | The free server was asleep; it wakes in under a minute. Keep the card ready |
 | This is not an Upasthiti ID card | Use the card printed by the plant office |
 | Too dark | Switch on the gate light |

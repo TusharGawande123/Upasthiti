@@ -94,6 +94,22 @@ Details: [docs/specs/M3-face-attendance.md](docs/specs/M3-face-attendance.md),
 [docs/guides/face-privacy-handover.md](docs/guides/face-privacy-handover.md). The face accuracy tool
 reads pictures only from a folder outside the repository and writes only numbers.
 
+### Offline punches key (from M4)
+
+Gate devices save punches while the internet is down and seal them for the server only, with
+`OFFLINE_EVIDENCE_KEY` (+ optional `OFFLINE_EVIDENCE_KEY_ID`, default `A`). Make it once, paste the
+printed line into `.env` and keep a copy in the password manager (if it is lost, the punches still
+waiting on gate devices cannot be read):
+
+```powershell
+cd backend
+uv run python -m app.scripts.make_offline_key   # OFFLINE_EVIDENCE_KEY=...
+```
+
+Without it the app still starts locally, but offline saving at the gate is off (the gate shows
+"No internet. Your punch was NOT saved."). The live backend does not start without it
+([deploy/README.md](deploy/README.md)).
+
 ## Run it
 
 ```powershell

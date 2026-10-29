@@ -346,7 +346,7 @@ Gate A (approved 2026-10-28, decision 0026): [docs/design-refs/m4/gate-a/index.h
   - **photo:** "View photo" (M2 dialog, audited; M3 rules for face photos);
   - **related punch** for `IMPOSSIBLE_TRAVEL`, `TWO_DEVICES_SOON`, `SYNC_ORDER_CONFLICT`: the two
     punches side by side (time, device, plant, method, decision, "View photo" each audited) and the
-    map with both points, the distance and the speed ("2.4 km in 3 min = 48 km/h; limit 60");
+    map with both points, the distance and the speed ("2.4 km in 2 min = 72 km/h; limit 60");
   - **history:** earlier reviews of this punch (who, when, action, reason);
   - **repeat-pattern hints (F-54)**, shown as amber info lines when they apply (last 7 days):
     "EMP-0123 was rejected 3 times this week" (link: those punches), "This attendance device had 24

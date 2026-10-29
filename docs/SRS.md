@@ -220,18 +220,32 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 - **FR-19 (M, M2)** The server decides IN or OUT, not the kiosk.
 - **FR-20 (M, M2)** Result screens use colour + icon + word. Rejections show a worker-safe
   message and a next step; the detailed reason is visible to HR only.
-- **FR-21 (M, M4)** Offline mode:
-  - the kiosk queues signed punches and shows "Saved – will be confirmed";
-  - it syncs automatically;
-  - it works offline for up to 72 hours.
+- **FR-21 (M, M4)** Offline mode (M4 spec §7 rules 8–13):
+  - card and face punches both work offline. A card punch has the same steps as online. A face
+    punch asks for the employee code first, then takes the face pictures with a head turn chosen
+    by the device; at sync the server runs the full face check with a 1:1 match against that code;
+  - each queued punch is signed at capture time; its evidence (photo, card text, face pictures,
+    code) is sealed so only the server can open it, and it is deleted from the device after sync;
+  - the kiosk shows "Saved – will be confirmed", without a name or IN/OUT;
+  - it syncs automatically (signed batches); the server re-runs every rule and decides IN/OUT;
+  - punch time = the last server-signed time anchor + the elapsed time on the device; a punch older
+    than 72 hours (`offline_max_hours`) or whose time cannot be proven is **flagged**, never
+    rejected;
+  - queue limits: 2,000 punches or 200 MB (settings); the kiosk keeps saving until it is full;
+  - the gate page also loads without internet (a service worker, scope `/attendance` only).
 
 ### 4.f Kiosk device registration and verification
 - **FR-22 (M, M1)** Pair a kiosk with a one-time 6-digit code (10 minutes). The kiosk
   registers a non-extractable device public key. Every kiosk (phone or PC) must give an
   accurate location inside the geofence (location switched on in the device).
 - **FR-23 (M, M1)** Revoke a kiosk. A revoked device can no longer punch.
-- **FR-24 (S, M4)** Kiosk heartbeat. The admin sees each kiosk's online/offline state, last
-  punch and queue size.
+- **FR-24 (S, M4)** Kiosk heartbeat (`POST /kiosk/heartbeat`, every 60 s). The admin sees each
+  kiosk's state (Online, Offline since, Needs location, Sending saved punches, Switched off =
+  revoked, Waiting for pairing = pending), last contact, last punch, last sync, queue size and
+  location. Plant readiness gains "Attendance device online" (`device_online`) and "Location
+  good" (`location_good`). Approved extras: an offline badge in the admin top bar (F-36), an
+  in-app "attendance device offline" alert during a shift (F-46) and a 7-day health history with
+  battery, camera and storage (F-3).
 
 ### 4.g Anti-proxy engine
 - **FR-25 (M, M2–M4)** Every punch goes through the ordered rules below, and each rejection
@@ -239,14 +253,23 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
   1. device signature, nonce and counter;
   2. device active;
   3. ~~plant network allow-list~~ (dropped, decision 0005);
-  4. GPS accuracy and geofence;
+  4. kiosk location on **every** punch (M4): no location, too weak or outside the geofence +
+     margin = rejected; inside the margin at the fence edge = accepted and flagged
+     `LOCATION_AT_EDGE`;
   5. QR validity, or face + liveness + anti-spoof;
   6. cool-down;
-  7. impossible travel.
-- **FR-26 (M, M4)** Suspicious but not clearly invalid punches are **flagged** for HR review,
-  not silently accepted. Examples: offline claimed time outside the window, a GPS edge case.
-- **FR-27 (M, M4)** HR exceptions screen lists rejected and flagged punches with the reason,
-  the snapshot (QR), map position and kiosk. HR can approve with a reason, which is audited.
+  7. impossible travel and "same person at two kiosks within N minutes" (M4): flag only
+     (`IMPOSSIBLE_TRAVEL`, `TWO_DEVICES_SOON`), never reject.
+- **FR-26 (M, M4)** Suspicious but not clearly invalid punches are **flagged** for the Super
+  Admin's review, not silently accepted. A flagged punch counts as IN/OUT at once. Examples: a
+  GPS reading at the fence edge, impossible travel, two kiosks soon after each other, an offline
+  punch older than 72 hours or with an unproven time.
+- **FR-27 (M, M4)** The Super Admin's "Needs review" screen lists flagged and rejected punches
+  with the reason, the photo, the map position against the fence, the kiosk and the time proof.
+  The Super Admin **confirms** a flagged punch or marks it **"Not accepted"**, and may **approve**
+  a rejected punch that names an employee, choosing IN or OUT, with a reason. Each review is
+  audited and stored in a separate append-only table (`punch_reviews`); the punch row never
+  changes. M5 shows these approvals together with regularisations.
 
 ### 4.h Attendance processing
 - **FR-28 (M, M5)** Pair IN and OUT punches into attendance days per shift, including night
@@ -333,13 +356,15 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 | GET/POST | /change-requests · /change-requests/{id}/approve · /reject | Super Admin | Approvals inbox |
 | POST | /kiosks · /kiosks/{id}/revoke | plant admin | Create kiosk + pairing code; revoke |
 | POST | /kiosk/register | pairing code | Register the device public key |
-| GET/POST | /kiosk/me (heartbeat, notices, kiosk settings) · /kiosk/report · /kiosk/sync (M4) | kiosk | Health; error report; offline batch upload |
+| GET/POST | /kiosk/me (notices, kiosk settings) · POST /kiosk/heartbeat (M4, every 60 s) · /kiosk/report · POST /kiosk/sync (M4, signed batches of signed items) | kiosk | Settings and health; error report; offline batch upload (M4 spec §5.2) |
 | POST | /punch/challenge · /punch/kiosk · /punch/kiosk/code | kiosk | Head-turn challenge; submit a punch (card or face); employee-code try after `needs_code` (M3 spec §5.1–5.2) |
 | GET/POST | /employees/{id}/face · /employees/{id}/face/consent · /face/consent/withdraw · /face/template/delete · GET /face/consent-texts/{version} | Super Admin (read: all roles in scope) | Face state, consent, template deletion (M3 spec §5.3) |
 | POST | /employees/{id}/face/enrolment-sessions · /face/enrolment-sessions/{id}/shots · /finish · /cancel | Super Admin | Face enrolment (M3 spec §5.4) |
 | GET | /face/enrolment-progress · GET /privacy-notice (public, no login) | roles in scope / public | Enrolment progress; data for the public `/privacy` page (M3 spec §5.5) |
 | GET/POST/PATCH | /qr-cards · /employees/{id}/qr-cards · /qr-cards/{id}/revoke · /qr-cards/bulk · /qr-cards/print · POST /qr-cards/{id}/card.pdf · /qr-test-cards | Super Admin (lists: all roles in scope) | QR credentials (M2 spec §5.1) |
 | GET | /punches · /punches/summary · /punches/{id} · /punches/{id}/snapshot · /punches/{id}/compare · /punches/export.xlsx | roles in scope; photos Super Admin only | Punch log (M2 spec §5.3) |
+| GET/POST | /reviews · /reviews/summary · /reviews/digest · GET /punches/{id}/review-context · POST /punches/{id}/reviews | Super Admin | "Needs review": flagged and rejected punches, confirm / not accepted / approve (M4 spec §5.3) |
+| GET | /kiosks/status-summary · /kiosks/{id}/health | roles in scope | Kiosk states, offline alert, 7-day health history (M4 spec §5.4) |
 | CRUD | /notices · POST /notices/{id}/end | Super Admin, Plant Head (own plant) | Gate notices (M2) |
 | GET | /attendance/daily · /attendance/employee/{id} | roles | Attendance |
 | POST | /regularisations · /regularisations/{id}/decide | supervisor / HR | Corrections |
@@ -377,13 +402,15 @@ unless the user is an admin).
 | Case | Handling (reason code) |
 |---|---|
 | GPS spoofing | Kiosk GPS is one signal among several (device key, impossible travel). Mock-location reports and accuracy are checked (`OUTSIDE_GEOFENCE`, `GPS_ACCURACY_TOO_LOW`) |
-| Poor indoor GPS / boundary jitter | Geofence margin in metres; an accuracy limit setting; a borderline punch is flagged instead of rejected |
+| Poor indoor GPS / boundary jitter | Geofence margin in metres; an accuracy limit setting; a reading outside the drawn fence but inside the margin is accepted and flagged (`LOCATION_AT_EDGE`) instead of rejected |
 | Photo, video or mask spoof | Liveness challenge + anti-spoof model (`LIVENESS_FAILED`, `SPOOF_SUSPECTED`) |
 | Twins, beard, helmet, safety glasses | Several enrolment shots; a margin over the second-best match → `NEED_EMPLOYEE_CODE`; re-enrolment option |
 | QR screenshot shared / card lent | Snapshot at each punch + cool-down + impossible travel; HR review |
 | Revoked, expired or damaged card | `QR_REVOKED`, `QR_EXPIRED`, `QR_NOT_YET_VALID`, `QR_SIGNATURE_INVALID`; unreadable → "Hold the card still / see HR" |
-| Network down at the kiosk | Offline queue, signed, synced later; "Saved – will be confirmed" |
-| Device clock wrong | Server time only; claimed device time is used only for offline punches within the window, otherwise flagged |
+| Network down at the kiosk | Offline queue (M4): each punch signed at capture, evidence sealed for the server only, "Saved – will be confirmed" without name or IN/OUT; limits 2,000 punches / 200 MB, then "NOT SAVED"; synced later in signed batches; the server decides each punch in punch-time order (`SYNC_ORDER_CONFLICT` flag when a later punch was decided first) |
+| Device clock wrong | Server time only for online punches. Offline punch time = the last server-signed time anchor + the elapsed time on the device; the device clock is never trusted. An unproven time (device restarted, clock changed) is flagged `OFFLINE_TIME_UNPROVEN`; older than 72 h is flagged `OFFLINE_TOO_OLD` |
+| Kiosk revoked while punches wait in its queue | The device deletes its queue at once (a revoked key cannot be trusted); the revoke dialog first warns "N punches are still waiting on this attendance device" so the admin can wait for the sync |
+| Kiosk offline and no new location reading (e.g. a PC that needs the internet for Wi-Fi positioning) | The last good reading of the same page session is reused (up to 72 h), never one from before a reload; such punches are flagged `LOCATION_STALE` at sync |
 | Duplicate punch | `COOLDOWN_ACTIVE` → "Already IN at 08:02" (within the cool-down, default 2 min); `OUT_TOO_SOON` → "OUT after 08:32" (IN less than 30 min ago); both settings |
 | Night shift across midnight | The attendance date belongs to the shift's start date |
 | Transfer between plants | Employee plant history; punches allowed only at the current plant (`WRONG_PLANT`); the card is reprinted |
@@ -419,7 +446,7 @@ ER summary and table dictionary: **docs/architecture.md §7**.
 | M1 Foundation | Login and roles; approvals inbox; plants, geofence editor, shifts, categories; kiosk pairing; employees + Excel import; contractors; design system; audit writes; deploy to Vercel + Render + Supabase | An admin logs in on the live URL, creates a plant with a geofence, pairs a kiosk, imports employees |
 | M2 QR attendance | QR issue/revoke/expiry, ID card PDF, kiosk QR scan, snapshot, server checks, result screens | **First demo:** a valid card is accepted and a revoked card is rejected, with its reason, on the deployed kiosk |
 | M3 Face | Consent, enrolment, encrypted templates, liveness challenge, server face pipeline, code fallback, FAR/FRR report | One-tap face punch works; spoofs are rejected; the accuracy targets are met; RAM fits the host |
-| M4 Anti-proxy + offline | Geofence/IP/impossible-travel rules, exceptions screen, offline queue + signed sync | Security-reviewer spoof tests all rejected; a 1-hour offline sync is correct |
+| M4 Anti-proxy + offline | Geofence, impossible travel and two-device rules (no IP list), exceptions screen, offline queue + signed sync | Security-reviewer spoof tests all rejected; a 1-hour offline sync is correct |
 | M4b Phone punching | Per-employee phone punch permission, registered phones, phone face + liveness, at-plant geofence / outside-plant tag, review list, temporary workers' phone scan of the gate QR | An allowed employee punches by phone inside the geofence (accepted) and outside the plant (accepted and tagged); a not-allowed employee is rejected |
 | M5 Attendance, dashboards, reports | Pairing, late/early/OT, night shifts, regularisation, leave/holidays, live dashboard, Excel/PDF reports | Hand-calculated test cases match; reports open in Excel |
 | M6 Testing and handover | Full tests, security and compliance review, manuals, runbook, backups, final free-tier deploy and account handover (own server only if the free tiers are not enough, decision 0004) | All must-fix items closed; a teammate follows the runbook successfully |
