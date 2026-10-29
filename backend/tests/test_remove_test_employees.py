@@ -151,3 +151,44 @@ def test_too_many_employees_in_one_run_are_refused(boss: TestClient, db_session:
 
     with pytest.raises(RemovalRefusedError, match="at most"):
         build_plan(db_session, "K134", codes, [])
+
+
+def test_a_refused_scan_that_names_nobody_needs_its_own_flag(
+    boss: TestClient,
+    db_session: Session,
+    snapshot_folder: Path,  # noqa: F811
+) -> None:
+    real = create_plant(boss, db_session, "K134")
+    test_gate = make_gate(db_session, real, "plant1")
+    punch_at(boss, test_gate, Worker(boss, real, "101"))
+    noise = send(boss, test_gate, "UPS1.not-a-card").json()
+    assert noise["decision"] == "rejected" and noise["employee"] is None
+
+    # Without the flag the tool stops and shows what it found (a time, a decision, a code).
+    with pytest.raises(RemovalRefusedError, match="names nobody") as refused:
+        build_plan(db_session, "K134", ["101"], ["plant1"])
+    assert "--include-unidentified-punches" in str(refused.value)
+    assert "QR_FORMAT_INVALID" in str(refused.value)
+
+    # With the flag both the employee's punch and the noise go.
+    plan = build_plan(db_session, "K134", ["101"], ["plant1"], include_unidentified=True)
+    assert plan.counts["punches"] == 2
+    remove(db_session, plan)
+    db_session.commit()
+    assert count(db_session, Punch) == 0
+
+
+def test_the_flag_never_covers_a_real_persons_punch(
+    boss: TestClient,
+    db_session: Session,
+    snapshot_folder: Path,  # noqa: F811
+) -> None:
+    real = create_plant(boss, db_session, "K134")
+    shared_gate = make_gate(db_session, real, "plant1")
+    punch_at(boss, shared_gate, Worker(boss, real, "101"))
+    punch_at(boss, shared_gate, Worker(boss, real, "REAL-1"))
+    send(boss, shared_gate, "UPS1.not-a-card")
+
+    with pytest.raises(RemovalRefusedError, match="employee REAL-1"):
+        build_plan(db_session, "K134", ["101"], ["plant1"], include_unidentified=True)
+    assert count(db_session, Punch) == 3
