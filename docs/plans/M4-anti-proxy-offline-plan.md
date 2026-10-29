@@ -341,11 +341,23 @@ suites). Manual: step 34 real-device check on the live site.
     80.28%); e2e `admin-review.spec.ts` 2 passed headed; `/admin/review` in `responsive.spec.ts`.
   - Design gates B and C: built from the mockups, not formally approved (say so in the PR).
   - Open question for Tushar (decision 0027 item 13): should an expired card punch be approvable?
-- Next: slice E (steps 30-35): coverage floor 82% (backend 90%, frontend lines 87.9% / branches 80.3%:
-  check what `vite.config.ts` measures before raising), AC-32 log-scrub test for sync, heartbeat and
-  review traffic, docs (spec section 15; fix the spec example "2.4 km in 3 min = 48 km/h" -> "2.4 km in
-  2 min = 72 km/h"), known gaps (revoked screen count, storage-almost-full line, AC-21 offline reload),
-  `/review-milestone`, CLAUDE.md diff (Anuradha approves), `/ship`. Outward for Tushar: real-device
-  checks (step 34), merge.
+- Done (2026-10-29): **slice E complete** and **PR #29 merged** into `main` (merge commit 509f8cf, squash).
+  - Reviews (security, compliance, code quality, i18n, tests) ran on the branch; findings, fixes and
+    leftovers: decision 0028. Fixed before the merge: the `offline_max_hours` setting, unproven times
+    judged by today's fence and card dates, no flag code to the gate, review reasons hidden in the audit
+    log, no face processing for codes that cannot use face, a stuck review pager, a devices page that
+    never refreshed, a demo-removal tool that failed on the new tables.
+  - Last numbers before the merge: pytest 1130 passed (coverage 90%, floor 82%), Vitest 659 passed
+    (branches 82.3%, floor 82%), Playwright 62 passed headed, 5 required CI checks green.
+- Done (2026-10-29, after the merge): **M4 complete.** Decision 0029: the open points A to E answered
+  (expired card stays not approvable; backdating inside the 72 hours closed by the "heard again" rule;
+  no consent v2 now; an approved punch shows whom it counts for; the five code/spec differences
+  accepted). Live check: `/api/v1/health` ok, version 509f8cf, gate page and `sw.js` answer 200, CI
+  memory check peak 236 MB (limit 450 MB). Gaps (a) revoked screen count, (b) storage almost full and
+  (c) drawer map were already built; their missing tests were added (Vitest for the 80% line,
+  `kiosk-revoked-queue.spec.ts` for the revoked screen and the drawer at 360 px and 768 px).
+  Housekeeping: no open pull request, no Dependabot pull request waiting.
+- Human-only, still open: the real-device check on the gate phone and the gate PC
+  (`docs/guides/m4-real-device-check.md`, one request for Tushar). Results go into decision 0030.
 - Local setup: start Docker Desktop, `docker compose up -d`, `cd backend && uv run alembic upgrade head`.
 - Open questions: none.
