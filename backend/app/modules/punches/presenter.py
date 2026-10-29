@@ -82,16 +82,40 @@ def _load_related(session: Session, punches: Sequence[Punch]) -> _Related:
         if asked
         else {}
     )
+    reviews = latest_reviews(
+        session, [p.id for p in punches if p.decision in ("flagged", "rejected")]
+    )
+    # The people on the page: who punched, and whom an approved review counts a punch for.
+    people = {p.employee_id for p in punches if p.employee_id}
+    people |= {r.employee_id for r in reviews.values() if _counts_by_approval(r) and r.employee_id}
     return _Related(
-        employees=by_id(Employee, {p.employee_id for p in punches if p.employee_id}),
+        employees=by_id(Employee, people),
         kiosks=by_id(KioskDevice, {p.kiosk_id for p in punches}),
         plants=by_id(Plant, {p.plant_id for p in punches}),
         snapshots=snapshots,
         followers=followers,
-        reviews=latest_reviews(
-            session, [p.id for p in punches if p.decision in ("flagged", "rejected")]
-        ),
+        reviews=reviews,
     )
+
+
+def _counts_by_approval(review: PunchReview) -> bool:
+    return review.action == ReviewAction.APPROVED.value
+
+
+def _counted_for(punch: Punch, related: _Related, viewer: Viewer) -> PunchLogEmployee | None:
+    """Whom an approved review counts this rejected punch for, when the row itself names nobody
+    (for example a code that was typed but a face that did not match). counting.py counts it for
+    the review's employee, so the log must say so too (compliance review of M4, decision 0029).
+    A viewer limited to some plants never learns the name of a person of another plant."""
+    review = related.reviews.get(punch.id)
+    if punch.employee_id is not None or review is None or not _counts_by_approval(review):
+        return None
+    person = related.employees.get(review.employee_id) if review.employee_id else None
+    if person is None:
+        return None
+    if viewer.only_plant_ids is not None and person.plant_id not in viewer.only_plant_ids:
+        return None
+    return PunchLogEmployee(id=person.id, code=person.employee_code, name=person.full_name)
 
 
 def _employee(
@@ -153,6 +177,7 @@ def _item(punch: Punch, related: _Related, viewer: Viewer) -> PunchLogItem:
         offline_delay_seconds=offline_delay_seconds(punch),
         review_state=review_state(punch, review),  # type: ignore[arg-type]
         review_direction=review.direction if approved else None,  # type: ignore[union-attr]
+        counted_for=_counted_for(punch, related, viewer),
     )
 
 

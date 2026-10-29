@@ -49,6 +49,26 @@ beforeEach(() => localStorage.clear());
 afterEach(() => vi.unstubAllGlobals());
 
 describe("punch log marks (M4 §4.9)", () => {
+  it("says whom an approved punch counts for when the punch itself names nobody", async () => {
+    const approved = rejectedPunch("SPOOF_SUSPECTED", {
+      id: "pu-approved",
+      method: "face",
+      employee: null,
+      review_state: "approved",
+      review_direction: "in",
+      counted_for: { id: "e-1", code: "T-2041", name: "Asha Kale" },
+    });
+    mockApi({
+      ...answers(),
+      "GET /punches": { body: { items: [approved], page: 1, page_size: 50, total: 1 } },
+    });
+
+    renderRoute("/admin/punches");
+
+    expect(await screen.findByText("Counted for Asha Kale (T-2041)")).toBeInTheDocument();
+    expect(screen.getByText("Approved as IN")).toBeInTheDocument();
+  });
+
   it("shows flags, the offline mark, the punch time and the review as text to every role", async () => {
     mockApi(answers(CORPORATE_HEAD));
 

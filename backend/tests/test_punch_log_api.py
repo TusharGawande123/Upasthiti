@@ -512,6 +512,7 @@ def test_the_export_has_the_days_punches_as_text_and_is_audited(
         "Saved offline",
         "Flags",
         "Review",
+        "Counted for",
     ]
     assert len(rows) == 6  # header + 5 punches at K134 today
     first_in = next(row for row in rows if row[1] == "07:02:00")
