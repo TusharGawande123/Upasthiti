@@ -6,13 +6,13 @@
 import { expect, type Page, test } from "@playwright/test";
 import {
   adminApi,
+  INSIDE,
   logIn,
   makeKioskCode,
   makePlant,
   makeWorkerWithCard,
   openKioskWithCard,
   SUPER_ADMIN_LOGIN,
-  type TestPlant,
 } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
@@ -22,8 +22,6 @@ const SIZES = [
   { label: "360 px phone", width: 360, height: 740, suffix: "A" },
   { label: "768 px tablet", width: 768, height: 1024, suffix: "B" },
 ] as const;
-
-let plant: TestPlant;
 
 async function expectNoSidewaysScroll(page: Page, where: string) {
   const widths = await page.evaluate(() => ({
@@ -44,10 +42,10 @@ for (const size of SIZES) {
     await logIn(page, SUPER_ADMIN_LOGIN);
     await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
     const api = adminApi(page);
-    // A retry starts a fresh worker but the database keeps the first attempt's plant and
-    // employee, so every attempt uses its own codes (a plain retry would fail with 409).
+    // The database keeps what an earlier attempt made (a retry reruns the whole serial group),
+    // so every test and attempt has its own plant and codes: a plain retry would fail with 409.
     const attempt = testInfo.retry;
-    plant ??= await makePlant(api, `XQ${7 + attempt}`);
+    const plant = await makePlant(api, `X${size.suffix}${attempt}`);
     const name = `Revoked gate ${size.suffix}${attempt}`;
     const card = await makeWorkerWithCard(
       api,
@@ -80,7 +78,10 @@ for (const size of SIZES) {
         )
         .not.toBeNull();
 
-      // 2. The network goes away: the next scan is saved on the device.
+      // 2. The network goes away: the next scan is saved on the device. The browser's pretend
+      // location never updates by itself, so the gate's reading has grown old while it waited
+      // for the heartbeat; send a fresh one first (a real phone keeps updating).
+      await device.context().setGeolocation(INSIDE);
       await device.context().setOffline(true);
       // The SAVED screen only shows for a few seconds (kiosk-offline.spec.ts looks at it); what
       // stays is the waiting line in the footer, so this test waits for that.
