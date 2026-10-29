@@ -39,14 +39,22 @@ async function expectNoSidewaysScroll(page: Page, where: string) {
 for (const size of SIZES) {
   test(`a switched-off gate says how many saved punches were lost (${size.label})`, async ({
     page,
-  }) => {
-    test.setTimeout(300_000);
+  }, testInfo) => {
+    test.setTimeout(420_000);
     await logIn(page, SUPER_ADMIN_LOGIN);
     await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
     const api = adminApi(page);
-    plant ??= await makePlant(api, "XQ7");
-    const name = `Revoked gate ${size.suffix}`;
-    const card = await makeWorkerWithCard(api, plant, `XQ-70${size.suffix}`, "Mangal Jadhav");
+    // A retry starts a fresh worker but the database keeps the first attempt's plant and
+    // employee, so every attempt uses its own codes (a plain retry would fail with 409).
+    const attempt = testInfo.retry;
+    plant ??= await makePlant(api, `XQ${7 + attempt}`);
+    const name = `Revoked gate ${size.suffix}${attempt}`;
+    const card = await makeWorkerWithCard(
+      api,
+      plant,
+      `XQ-7${attempt}${size.suffix}`,
+      "Mangal Jadhav",
+    );
     const code = await makeKioskCode(api, plant, name);
 
     const { device, close } = await openKioskWithCard(card.serial, code, {
@@ -57,8 +65,9 @@ for (const size of SIZES) {
       // 1. Online: the first scan is an IN (it also gives the gate its server time anchor).
       await expect(device.getByText("IN", { exact: true })).toBeVisible(NEXT_SCAN);
 
-      // The gate reports its position with the next heartbeat (one a minute); wait until the
-      // admin side knows it, so the drawer has a last position to show.
+      // The gate reports its position with the next heartbeat (one a minute, the first one a
+      // minute after the page opened); wait until the admin side knows it, so the drawer has a
+      // last position to show. Three beats of room, because a busy CI machine can be slow.
       await expect
         .poll(
           async () => {
@@ -67,7 +76,7 @@ for (const size of SIZES) {
             >(`/kiosks?plant_id=${plant.id}`);
             return list.find((item) => item.name === name)?.location?.lat ?? null;
           },
-          { timeout: 120_000, intervals: [5_000] },
+          { timeout: 200_000, intervals: [5_000] },
         )
         .not.toBeNull();
 
