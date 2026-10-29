@@ -2856,7 +2856,8 @@
       "pictures": "Pictures at each face punch. The device takes a few pictures. The server compares them with your template and then deletes them.",
       "photo": "One small photo when a face punch fails or you type your employee code, so the plant office can check what happened.",
       "cardLead": "If you punch with a QR card: one photo at each card punch, checked automatically to see that a face is present.",
-      "everyone": "For everyone: your name, employee code, plant, and the time and device of each punch."
+      "everyone": "For everyone: your name, employee code, plant, and the time and device of each punch.",
+      "offline": "When the attendance device has no internet: your punch is saved on the device, together with the pictures it took (your card photo, or your face pictures and the employee code you typed). It is locked in a form only our server can open, so the device itself cannot read it. It is sent and checked as soon as the internet is back."
     },
     "why": {
       "title": "Why",
@@ -2876,7 +2877,9 @@
       "punchesWhen": "As labour law requires",
       "consent": "Your consent record (proof of consent)",
       "consentWhen": "With your employee record",
-      "after": "When you leave the company or withdraw your consent, your template is deleted at once."
+      "after": "When you leave the company or withdraw your consent, your template is deleted at once.",
+      "offline": "A punch saved while the internet was down",
+      "offlineWhen": "Deleted from the device once it is sent"
     },
     "where": {
       "title": "Where it is processed",

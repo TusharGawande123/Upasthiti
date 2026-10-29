@@ -185,6 +185,7 @@ export function PrivacyPage() {
             </ul>
             <p>{t("privacy.collect.cardLead")}</p>
             <p>{t("privacy.collect.everyone")}</p>
+            <p>{t("privacy.collect.offline")}</p>
           </Section>
 
           <Section id="why" icon={Target} title={t("privacy.why.title")}>
@@ -204,6 +205,7 @@ export function PrivacyPage() {
                 what={t("privacy.keep.cardPhoto")}
                 when={t("privacy.keep.days", { count: days })}
               />
+              <KeepRow what={t("privacy.keep.offline")} when={t("privacy.keep.offlineWhen")} />
               <KeepRow what={t("privacy.keep.punches")} when={t("privacy.keep.punchesWhen")} />
               <KeepRow what={t("privacy.keep.consent")} when={t("privacy.keep.consentWhen")} />
             </dl>
