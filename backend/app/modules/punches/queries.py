@@ -72,15 +72,24 @@ def punches_statement(
         (Punch.plant_id, filters.plant_id),
         (Punch.decision, filters.decision),
         (Punch.kiosk_id, filters.kiosk_id),
-        (Punch.employee_id, filters.employee_id),
     ):
         if value is not None:
             statement = statement.where(column == value)
+    if filters.employee_id is not None:
+        # The punches of a person, and the rejected punches an approval counts for them.
+        statement = statement.where(
+            or_(
+                Punch.employee_id == filters.employee_id,
+                _approved_for(filters.employee_id),
+            )
+        )
     if only_plant_ids is not None and filters.employee_id is not None:
         # Rows of other plants' people are hidden in the log, so they must not be findable
         # by their id either (the answer "no rows" would confirm the person exists).
         statement = statement.where(
-            Punch.employee_id.in_(select(Employee.id).where(Employee.plant_id.in_(only_plant_ids)))
+            exists().where(
+                Employee.id == filters.employee_id, Employee.plant_id.in_(only_plant_ids)
+            )
         )
     if filters.reason_code:
         statement = statement.where(Punch.reason_codes.contains([filters.reason_code]))
@@ -116,6 +125,18 @@ def punches_statement(
             # Same reason as above: a search must not reveal who the hidden rows belong to.
             statement = statement.where(Employee.plant_id.in_(only_plant_ids))
     return statement
+
+
+def _approved_for(employee_id: uuid.UUID):  # noqa: ANN202 (a SQL condition)
+    """The punch's latest review approved it for this person (counting.py counts it for them)."""
+    latest = aliased(PunchReview, name="approved_filter")
+    newer = aliased(PunchReview, name="approved_newer")
+    return exists().where(
+        latest.punch_id == Punch.id,
+        latest.action == ReviewAction.APPROVED.value,
+        latest.employee_id == employee_id,
+        ~exists().where(newer.supersedes_review_id == latest.id),
+    )
 
 
 def _by_review_state(statement: Select[Punch], state: str) -> Select[Punch]:

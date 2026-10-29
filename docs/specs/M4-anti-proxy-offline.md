@@ -672,6 +672,10 @@ snapshot estimate (only during outages).
      2. `t = anchor_server_time + elapsed_ms`, and `anchor_server_time ≤ t ≤ received + 5 s`;
      3. the item's counter is greater than the anchor request's counter, and within one sync batch
         and one anchor, counter order equals time order;
+     4. (added at the end of M4, decision 0029) the server did not hear from this device between the
+        anchor (plus 2 minutes) and `t`: no health sample in `kiosk_heartbeats` and no online punch
+        of this device in that stretch. A device that reached the server then held a newer anchor, so
+        choosing the older one to claim an earlier moment was its own choice;
      - all true → `offline_punch_time = t`, `time_proof = anchored`;
      - any false → `time_proof = unproven`, **FLAG `OFFLINE_TIME_UNPROVEN`**, and
        `offline_punch_time` = the device's estimate (`anchor_server_time + wall_elapsed_ms`, or
@@ -980,7 +984,7 @@ snapshot estimate (only during outages).
 |---|---|---|
 | Faked browser location (devtools sensors, mock-location app) | A web page cannot prove where it is (decision 0005) | Locked kiosk mode (setup guide), device key, photo/face evidence, travel and two-device flags, location age stored, review |
 | Offline face liveness weaker (device-chosen turn) | No server nonce without internet | Anti-spoof, consistency, 1:1 code match, photo kept, location, review; F-52 (Later) if more is wanted |
-| A compromised gate device picks an offline punch time within its outage | The device measures elapsed time | Anchor bounds, counter order, drift check, flags; travel/two-device flags |
+| A compromised gate device picks an offline punch time within its outage | The device measures elapsed time | Anchor bounds, counter order, drift check, flags; travel/two-device flags; a time after the server last heard from the device is not proven (decision 0029). Left: a window of about 5 minutes after each health sample |
 | Revoked device loses its waiting punches | A revoked key cannot be trusted | Revoke dialog warns "N punches are still waiting"; queue size on the devices page; M5 regularisation (F-51 rejected) |
 | Offline punches use a reused (stale) location | Windows Wi-Fi positioning may need the internet, so an offline PC gate may get no new reading | Only the same page session's last good reading, at most `offline_max_hours`; every such punch flagged `LOCATION_STALE`; a moved phone gets a new reading that pauses it (§14 answer 1) |
 

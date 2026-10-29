@@ -43,6 +43,22 @@ export function EmployeeCell({ punch }: { punch: PunchItem }) {
       </span>
     );
   }
+  // An approved punch that names nobody still counts for someone: say whom (M4 review).
+  if (punch.counted_for) {
+    return (
+      <span className="block">
+        <span className="block text-muted-foreground">
+          {punch.method === "face" ? t("punches.faceNotMatched") : t("punches.unknownCard")}
+        </span>
+        <span className="block text-sm">
+          {t("punches.countedFor", {
+            name: punch.counted_for.name,
+            code: punch.counted_for.code,
+          })}
+        </span>
+      </span>
+    );
+  }
   // A face that was not matched has no name (the server never names a rejected face punch).
   if (punch.method === "face") {
     return (

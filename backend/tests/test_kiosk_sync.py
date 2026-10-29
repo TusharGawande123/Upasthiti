@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.time import utc_now
 from app.modules.audit.models import AuditLog
-from app.modules.kiosks.models import KioskDevice
+from app.modules.kiosks.models import KioskDevice, KioskHeartbeat
 from app.modules.org.models import Geofence
 from app.modules.punches.models import Punch, PunchSnapshot
 from app.modules.qr_cards.models import QrCredential
@@ -28,7 +28,7 @@ from tests.conftest import clear_cached_settings
 from tests.kiosk_helpers import GATE_FENCE_RADIUS_M, GATE_LOCATION, Device, make_active_kiosk
 from tests.offline_helpers import SYNC, OfflineGate, card_evidence
 from tests.people_helpers import PlantIds, client_for, create_plant
-from tests.test_m4_location_and_flags import north_of_gate
+from tests.test_m4_location_and_flags import add_counted_punch, north_of_gate
 from tests.test_punch_api import Worker, photo_text
 
 
@@ -306,6 +306,102 @@ def test_too_old_follows_the_offline_max_hours_setting(
     (punch,) = rows(db_session)
     assert punch.time_proof == "anchored"
     assert "OFFLINE_TOO_OLD" in punch.reason_codes  # 30 h > 24 h, although under the default 72
+
+
+# --- A device the server heard from cannot claim an old anchor (security review, decision 0029) ---
+
+
+def heard_from(session: Session, kiosk: KioskDevice, age: timedelta) -> None:
+    """A health sample of the device `age` ago: the device was online then."""
+    session.add(
+        KioskHeartbeat(
+            kiosk_id=kiosk.id,
+            received_at=utc_now() - age,
+            queue_count=0,
+            location_state="good",
+        )
+    )
+    session.commit()
+
+
+def three_hour_old_anchor(gate: OfflineGate) -> OfflineGate:
+    old_gate = OfflineGate(gate.device)
+    old_gate.take_anchor(utc_now() - timedelta(hours=3))
+    return old_gate
+
+
+def test_a_time_after_the_device_was_heard_again_is_not_proven(
+    db_client: TestClient,
+    db_session: Session,
+    gate: OfflineGate,
+    kiosk: KioskDevice,
+    worker: Worker,
+) -> None:
+    """The device reached the server 2 h ago, so it held a newer anchor than the one from 3 h ago.
+    Choosing the old one to claim a time 30 minutes ago (after that contact) is its own doing."""
+    heard_from(db_session, kiosk, timedelta(hours=2))
+    item = card_item(three_hour_old_anchor(gate), worker, elapsed=timedelta(hours=2, minutes=30))
+
+    gate.send(db_client, [item])
+
+    (punch,) = rows(db_session)
+    assert punch.time_proof == "unproven"
+    assert punch.decision == "flagged" and "OFFLINE_TIME_UNPROVEN" in punch.reason_codes
+
+
+def test_contact_right_after_the_anchor_does_not_spoil_the_proof(
+    db_client: TestClient,
+    db_session: Session,
+    gate: OfflineGate,
+    kiosk: KioskDevice,
+    worker: Worker,
+) -> None:
+    """The request that made the anchor and its answer are the same moment: a sample a minute
+    after the anchor is that heartbeat, not a later contact."""
+    heard_from(db_session, kiosk, timedelta(hours=3) - timedelta(minutes=1))
+    item = card_item(three_hour_old_anchor(gate), worker, elapsed=timedelta(hours=2, minutes=30))
+
+    gate.send(db_client, [item])
+
+    (punch,) = rows(db_session)
+    assert punch.time_proof == "anchored" and punch.decision == "accepted"
+
+
+def test_contact_after_the_punch_time_keeps_the_proof(
+    db_client: TestClient,
+    db_session: Session,
+    gate: OfflineGate,
+    kiosk: KioskDevice,
+    worker: Worker,
+) -> None:
+    """The normal case: offline for hours, a punch made inside that stretch, then the internet
+    comes back (a health sample after the punch time). The proof stays."""
+    heard_from(db_session, kiosk, timedelta(minutes=30))
+    item = card_item(three_hour_old_anchor(gate), worker, elapsed=timedelta(hours=2))
+
+    gate.send(db_client, [item])
+
+    (punch,) = rows(db_session)
+    assert punch.time_proof == "anchored" and punch.decision == "accepted"
+
+
+def test_an_online_punch_after_the_anchor_also_counts_as_contact(
+    boss: TestClient,
+    db_client: TestClient,
+    db_session: Session,
+    gate: OfflineGate,
+    kiosk: KioskDevice,
+    worker: Worker,
+    k134: PlantIds,
+) -> None:
+    other = Worker(boss, k134, "T-9")
+    add_counted_punch(db_session, kiosk, other, timedelta(hours=2), decision="accepted")
+    item = card_item(three_hour_old_anchor(gate), worker, elapsed=timedelta(hours=2, minutes=30))
+
+    gate.send(db_client, [item])
+
+    punches = [punch for punch in rows(db_session) if punch.employee_id == worker.employee_id]
+    assert punches[0].time_proof == "unproven"
 
 
 def test_an_unproven_time_is_judged_against_todays_fence(

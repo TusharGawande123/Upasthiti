@@ -23,9 +23,10 @@ import time
 import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 
 from pydantic import ValidationError
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -45,12 +46,13 @@ from app.face.engine import FaceEngine
 from app.modules.audit.service import Actor, record_audit
 from app.modules.kiosks.crypto import verify_signature
 from app.modules.kiosks.location_check import Location
-from app.modules.kiosks.models import KioskDevice
+from app.modules.kiosks.models import KioskDevice, KioskHeartbeat
 from app.modules.kiosks.schemas import LocationReport
 from app.modules.punches import service
 from app.modules.punches.models import Punch, PunchDecision
 from app.modules.punches.offline_face_service import OfflineFaceEvidence, record_offline_face_punch
 from app.modules.punches.offline_time import (
+    ANCHORED,
     UNPROVEN,
     OfflinePunch,
     ProvenTime,
@@ -73,6 +75,9 @@ logger = logging.getLogger(__name__)
 
 STATEMENT_PREFIX = "UPS-OFFLINE-1"
 TIME_BUDGET_SECONDS = 20.0
+# A device that reached the server after its anchor got a newer anchor in the answer. The request
+# that made the anchor itself, and its answer, count as the same moment: this much slack.
+HEARD_AGAIN_GRACE = timedelta(minutes=2)
 
 
 def item_statement(kiosk_id: uuid.UUID, counter: int, signed_item: str) -> bytes:
@@ -132,6 +137,7 @@ def sync_items(
         ready.append(_Ready(index, sync_item.counter, checked, proven))
 
     _unprove_out_of_order(ready)
+    _unprove_old_anchors(session, kiosk, ready)
     ready.sort(key=lambda entry: (entry.proven.punch_time, entry.counter))
     started = clock()
     for entry in ready:
@@ -196,6 +202,43 @@ def _unprove_out_of_order(ready: list[_Ready]) -> None:
         for earlier, later in zip(entries, entries[1:], strict=False):
             if later.proven.punch_time < earlier.proven.punch_time:
                 later.proven = ProvenTime(later.proven.punch_time, UNPROVEN)
+
+
+def _unprove_old_anchors(session: Session, kiosk: KioskDevice, ready: list[_Ready]) -> None:
+    """A time is NOT proven when the server heard from this device after the anchor and before the
+    punch time. The device then held a newer anchor, so choosing the older one was its own choice
+    (it could pick an old moment, for example before a card was revoked). Only a punch time inside
+    the real offline stretch stays anchored (security review of M4, decision 0029).
+
+    The server knows two kinds of contact: heartbeat samples (at most one every 5 minutes) and
+    online punches. That is dense enough to cut the window to a few minutes; it is not a proof."""
+    first_contact_after: dict[datetime, datetime | None] = {}
+    for entry in ready:
+        if entry.proven.proof != ANCHORED:
+            continue
+        since = entry.item.time.anchor.server_time + HEARD_AGAIN_GRACE
+        if since not in first_contact_after:
+            first_contact_after[since] = _first_contact_after(session, kiosk, since)
+        heard = first_contact_after[since]
+        if heard is not None and heard < entry.proven.punch_time:
+            entry.proven = ProvenTime(entry.proven.punch_time, UNPROVEN)
+
+
+def _first_contact_after(session: Session, kiosk: KioskDevice, since: datetime) -> datetime | None:
+    sample = session.scalar(
+        select(func.min(KioskHeartbeat.received_at)).where(
+            KioskHeartbeat.kiosk_id == kiosk.id, KioskHeartbeat.received_at > since
+        )
+    )
+    online_punch = session.scalar(
+        select(func.min(Punch.server_received_at)).where(
+            Punch.kiosk_id == kiosk.id,
+            Punch.was_offline.is_(False),
+            Punch.server_received_at > since,
+        )
+    )
+    moments = [moment for moment in (sample, online_punch) if moment is not None]
+    return min(moments) if moments else None
 
 
 def _decide(

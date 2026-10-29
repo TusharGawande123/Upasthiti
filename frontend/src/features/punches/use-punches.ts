@@ -42,6 +42,8 @@ export type PunchItem = {
   offline_delay_seconds?: number | null;
   review_state?: ReviewState | null;
   review_direction?: "in" | "out" | null;
+  // Whom an approved review counts the punch for, when the row itself names nobody.
+  counted_for?: { id: string; code: string; name: string } | null;
 };
 
 export type ReviewState = "to_check" | "confirmed" | "not_accepted" | "approved";

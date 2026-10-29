@@ -813,3 +813,96 @@ def test_the_audit_log_hides_review_reasons_from_the_other_roles(
         assert hidden["reason"] is None and "reason" not in hidden["after"]
         assert "friend" not in str(hidden)
         assert hidden["action"] == "punch_review.not_accepted"  # that it happened stays visible
+
+
+# --- An approved punch shows whom it counts for (compliance review, decision 0029) ---------------
+
+
+def approved_code_punch(boss: TestClient, session: Session, kiosk: KioskDevice, worker: Worker):
+    """A face punch refused by the face check, whose typed code names the worker, then approved."""
+    punch = add_punch(
+        session,
+        kiosk,
+        None,
+        age=timedelta(minutes=5),
+        decision="rejected",
+        codes=("SPOOF_SUSPECTED",),
+        method="face",
+        claimed=worker,
+    )
+    assert review(boss, punch, "approve", "Checked the photo", "in").status_code == 201
+    return punch
+
+
+def test_an_approved_punch_without_an_employee_shows_whom_it_counts_for(
+    boss: TestClient,
+    plant_head: TestClient,
+    corporate: TestClient,
+    db_session: Session,
+    kiosk: KioskDevice,
+    worker: Worker,
+) -> None:
+    punch = approved_code_punch(boss, db_session, kiosk, worker)
+    day = to_ist(punch.punch_time).date().isoformat()
+
+    for client in (boss, corporate, plant_head):
+        (item,) = client.get(PUNCHES, params={"date": day}).json()["items"]
+        assert item["employee"] is None  # the punch row names nobody
+        assert item["counted_for"]["code"] == "T-1" and item["review_state"] == "approved"
+        detail = client.get(f"{PUNCHES}/{punch.id}").json()
+        assert detail["counted_for"]["name"] == "Asha Kale"
+
+
+def test_the_employee_filter_finds_the_punches_an_approval_counts_for_them(
+    boss: TestClient,
+    plant_head: TestClient,
+    db_session: Session,
+    kiosk: KioskDevice,
+    worker: Worker,
+    k134: PlantIds,
+) -> None:
+    punch = approved_code_punch(boss, db_session, kiosk, worker)
+    day = to_ist(punch.punch_time).date().isoformat()
+    other = Worker(boss, k134, "T-2")
+
+    for client in (boss, plant_head):
+        found = client.get(PUNCHES, params={"date": day, "employee_id": str(worker.employee_id)})
+        assert [item["id"] for item in found.json()["items"]] == [str(punch.id)]
+        nobody = client.get(PUNCHES, params={"date": day, "employee_id": str(other.employee_id)})
+        assert nobody.json()["items"] == []
+
+
+def test_a_plant_head_of_another_plant_never_learns_the_person(
+    boss: TestClient,
+    db_app: FastAPI,
+    db_session: Session,
+    kiosk: KioskDevice,
+    worker: Worker,
+) -> None:
+    other_plant = create_plant(boss, db_session, "TP1")
+    stranger = client_for(db_app, db_session, Role.PLANT_HEAD, "tp1head")
+    user = db_session.scalars(select(User).where(User.username == "tp1head")).one()
+    set_user_plant(db_session, user, uuid.UUID(other_plant.id))
+    db_session.commit()
+    punch = approved_code_punch(boss, db_session, kiosk, worker)
+
+    # The punch was made at K134, so the TP1 head does not see it at all, and the person is hidden
+    # from any filter by their id as well.
+    day = to_ist(punch.punch_time).date().isoformat()
+    assert stranger.get(PUNCHES, params={"date": day}).json()["items"] == []
+    assert stranger.get(f"{PUNCHES}/{punch.id}").status_code == 404
+
+
+def test_the_export_says_whom_an_approved_punch_counts_for(
+    boss: TestClient, db_session: Session, kiosk: KioskDevice, worker: Worker
+) -> None:
+    punch = approved_code_punch(boss, db_session, kiosk, worker)
+    day = to_ist(punch.punch_time).date().isoformat()
+
+    response = boss.get(f"{PUNCHES}/export.xlsx", params={"date": day})
+
+    book = openpyxl.load_workbook(io.BytesIO(response.content))
+    header, row = [list(r) for r in book.active.iter_rows(values_only=True)]  # type: ignore[union-attr]
+    values = dict(zip(header, row, strict=True))
+    assert values["Counted for"] == "T-1 · Asha Kale"
+    assert values["Review"] == "Approved as IN"

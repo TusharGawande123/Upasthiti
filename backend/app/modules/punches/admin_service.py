@@ -101,6 +101,7 @@ COLUMNS = (
     ("Saved offline", 13),
     ("Flags", 40),
     ("Review", 18),
+    ("Counted for", 30),
 )
 HIDDEN_EMPLOYEE = "Card of another plant"
 RESULT_TEXTS = {
@@ -179,6 +180,7 @@ def _row(item: PunchLogItem) -> list[str]:
         "Yes" if item.was_offline else "No",
         "; ".join(f"{reason_text(flag)} ({flag})" for flag in _flag_codes(item)),
         _review_text(item),
+        f"{item.counted_for.code} · {item.counted_for.name}" if item.counted_for else "",
     ]
 
 

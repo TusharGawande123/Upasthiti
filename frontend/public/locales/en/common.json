@@ -2595,7 +2595,8 @@
       "rejected": "Rejected · {{reason}}",
       "rejectedPlain": "Rejected",
       "needsCode": "Asked for the employee code"
-    }
+    },
+    "countedFor": "Counted for {{name}} ({{code}})"
   },
   "notices": {
     "title": "Gate notices",

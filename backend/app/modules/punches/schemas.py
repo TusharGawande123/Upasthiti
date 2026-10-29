@@ -181,6 +181,9 @@ class PunchLogItem(BaseModel):
     offline_delay_seconds: int | None = None  # offline only: punch time -> received by the server
     review_state: Literal["to_check", "confirmed", "not_accepted", "approved"] | None = None
     review_direction: Literal["in", "out"] | None = None  # the direction an approval gave
+    # Whom an approved review counts this punch for when the punch row names nobody (spec M4 §7
+    # rule 6); never set for a person of a plant the viewer may not see.
+    counted_for: PunchLogEmployee | None = None
 
 
 class PunchLocation(BaseModel):
