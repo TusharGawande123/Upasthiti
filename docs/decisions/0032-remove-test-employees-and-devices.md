@@ -4,15 +4,15 @@ Date: 2026-10-29 · Asked by: Anuradha · Approved by: Tushar Gawande (lead), wh
 exception to CLAUDE.md section 5 · Status: Accepted, **one exception, not a new habit**.
 
 ## Why
-During the real-device check of M4 (decision 0030) Anuradha made six test employees (codes 101 to 106:
-three with face, three with QR cards C000007 to C000009), their face data, cards, punches and punch
+During the real-device check of M4 (decision 0030) Anuradha made seven test employees (codes 101 to 107:
+with face or with QR cards C000007 to C000009), their face data, cards, punches and punch
 log entries, and two test attendance devices (`plant1`, `plant2`) in the REAL plant K134. Tushar has
 not tested yet and wants the live site clean first. `remove_demo_plant` refuses a plant whose code does
 not start with DEMO, and the screens never delete people or punches (labour-law record keeping).
 
 ## What
 - New tool `uv run python -m app.scripts.remove_test_employees --plant-code K134 --employee-codes 101
-  102 103 104 105 106 --device-names plant1 plant2` (add `--confirm` to delete).
+  102 103 104 105 106 107 --device-names plant1 plant2` (add `--confirm` to delete).
 - It deletes ONLY the typed employee codes and device names, inside the named plant: their face data,
   QR cards, punches, reviews, snapshots (database rows first, photo files after the commit), shifts,
   plant history, change requests, device health samples and pairing codes.
