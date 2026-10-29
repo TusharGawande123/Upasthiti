@@ -10,8 +10,9 @@ import { apiError, mockApi } from "../../test/mock-api";
 import { renderRoute } from "../../test/render";
 import { createDeviceKey } from "../device-key";
 import { forgetDevice, oldestQueued, queueSummary, saveDevice } from "../device-store";
+import { saveOfflinePunch } from "../offline/offline-queue";
 import vector from "../offline/test-vector.json";
-import { forgetAnchorForTests } from "../offline/time-anchor";
+import { forgetAnchorForTests, rememberAnchor } from "../offline/time-anchor";
 import { DEFAULT_SCREEN_SETTINGS, type PunchAnswer } from "./punch-types";
 
 // --- Fakes for the hardware ---------------------------------------------------------------------
@@ -99,7 +100,7 @@ function answer(changes: Partial<PunchAnswer> = {}): PunchAnswer {
   };
 }
 
-async function openPairedKiosk() {
+async function openPairedKiosk(beforeRender?: () => Promise<void>) {
   const key = await createDeviceKey();
   await saveDevice({
     privateKey: key.privateKey,
@@ -114,6 +115,7 @@ async function openPairedKiosk() {
     },
     counter: 0,
   });
+  await beforeRender?.();
   renderRoute("/attendance");
   await screen.findByText("Sheet Shapers · K134");
 }
@@ -679,6 +681,67 @@ describe("punching while the internet is down (M4)", () => {
 
     expect(await screen.findByText("1 saved")).toBeInTheDocument();
     expect(screen.getByText(/^1 punch waiting since \d\d:\d\d$/)).toBeInTheDocument();
+  });
+
+  // A small queue limit (5 punches) so that 80% and "full" are easy to reach; the server only
+  // allows 200 or more, but the gate just follows the limits it is given (spec M4 §7 rule 12).
+  const SMALL_QUEUE = { ...OFFLINE_SETTINGS, max_items: 5 };
+
+  function meWithSmallQueue() {
+    const base = meWithOffline();
+    return { ...base, kiosk_settings: { ...base.kiosk_settings, offline: SMALL_QUEUE } };
+  }
+
+  /** Puts `howMany` saved punches on the device before the gate page opens. */
+  function withSavedPunches(howMany: number) {
+    return async () => {
+      rememberAnchor({ server_time: "2026-10-20T03:54:10Z", counter: 1, token: "anchor-token" });
+      for (let n = 0; n < howMany; n += 1) {
+        const outcome = await saveOfflinePunch({
+          clientPunchId: crypto.randomUUID(),
+          method: "qr",
+          evidence: { qr_payload: `card-${n}`, snapshot_jpeg: "photo" },
+          location: { lat: 19.85, lon: 75.25, accuracy_m: 10, age_s: 1 },
+          settings: SMALL_QUEUE,
+          offlineReady: true,
+        });
+        expect(outcome).toBe("OFFLINE_SAVED");
+      }
+    };
+  }
+
+  it("warns 'Storage almost full' from 80% of the queue limit (4 of 5 punches)", async () => {
+    mockApi({ "GET /kiosk/me": { body: meWithSmallQueue() } });
+    await openPairedKiosk(withSavedPunches(4));
+
+    const warning = await screen.findByText("Storage almost full. Please tell the plant office.");
+    expect(warning).toBeInTheDocument();
+    expect(warning.closest("[role=status]")).not.toBeNull(); // announced, and the gate still works
+  });
+
+  it("does not warn below 80% (3 of 5 punches)", async () => {
+    mockApi({ "GET /kiosk/me": { body: meWithSmallQueue() } });
+    await openPairedKiosk(withSavedPunches(3));
+    await screen.findByText(/^3 punches waiting since \d\d:\d\d$/);
+
+    expect(
+      screen.queryByText("Storage almost full. Please tell the plant office."),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says NOT SAVED when the queue is full", async () => {
+    mockApi({ "GET /kiosk/me": { body: meWithSmallQueue() } });
+    await openPairedKiosk(withSavedPunches(5));
+    await screen.findByText("Location good (±10 m)");
+    await showCard();
+
+    expect(await screen.findByText("NOT SAVED")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "This attendance device cannot save more punches. Your punch was NOT saved.",
+      ),
+    ).toBeInTheDocument();
+    expect((await queueSummary()).count).toBe(5); // nothing was added
   });
 
   it("keeps the honest 'NOT SAVED' message when this server has no offline mode", async () => {
