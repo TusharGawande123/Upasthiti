@@ -20,8 +20,9 @@ def main() -> int:
     print("  gate devices at that moment can no longer be read (punches already sent are safe).")
     print("- If it leaks together with a stolen gate device, that device's waiting punches could")
     print("  be read: make a new key and set OFFLINE_EVIDENCE_KEY_ID to the next letter.")
-    print("  The server opens punches with the CURRENT key only, so first check on the devices page")
-    print("  that every gate device has sent its waiting punches (count 0), or accept losing them.")
+    print("  The server opens punches with the CURRENT key only: first check on the devices")
+    print("  page that every gate device has sent its waiting punches (count 0), or accept")
+    print("  losing them.")
     return 0
 
 
