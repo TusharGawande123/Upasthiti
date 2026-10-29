@@ -340,11 +340,13 @@ function localCodeEntry(current: { face: KioskFaceSettings; serverOffsetMs: numb
 }
 
 /** The head turn chosen by the device with a secure random number (spec §4.4). */
-function localChallenge(steps: number, face: KioskFaceSettings): Challenge {
+export function localChallenge(steps: number, face: KioskFaceSettings): Challenge {
   const names: ChallengeName[] =
     steps === 2 ? ["left_then_right", "right_then_left"] : ["turn_left", "turn_right"];
+  // `names` always has exactly two entries, so one random bit picks one of them with no bias
+  // (a modulo of a random byte by a length that is not a power of two would favour some).
   const random = crypto.getRandomValues(new Uint8Array(1))[0] ?? 0;
-  const pick: ChallengeName = names[random % names.length] ?? "turn_left";
+  const pick: ChallengeName = names[random & 1] ?? "turn_left";
   return {
     challenge_nonce: "",
     challenge: pick,
