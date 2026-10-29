@@ -4,7 +4,7 @@
 import { act, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { mockApi, type RecordedCall, SUPER_ADMIN } from "../../test/mock-api";
+import { apiError, mockApi, type RecordedCall, SUPER_ADMIN } from "../../test/mock-api";
 import { renderRoute } from "../../test/render";
 
 const PLANT = {
@@ -172,6 +172,73 @@ describe("the rows of the devices table", () => {
     await waitFor(() =>
       expect(calls.some((call) => call.path === "/kiosks/k-1/pairing-code")).toBe(true),
     );
+  });
+});
+
+describe("renaming and switching off a device", () => {
+  it("renames a device", async () => {
+    const calls = open("/admin/kiosks", [device()], {
+      "PATCH /kiosks/k-1": { body: device({ name: "Gate 1" }) },
+    });
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Rename Main gate phone" }));
+    const dialog = await screen.findByRole("dialog", { name: "Rename device" });
+    const field = within(dialog).getByLabelText("Device name");
+    await user.clear(field);
+    await user.type(field, "  Gate 1  ");
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+
+    await waitFor(() => {
+      const patch = calls.find((call) => call.method === "PATCH");
+      expect(patch?.body).toEqual({ name: "Gate 1" });
+    });
+  });
+
+  it("shows the server's answer when renaming fails, and cancels", async () => {
+    open("/admin/kiosks", [device()], { "PATCH /kiosks/k-1": apiError(404, "NOT_FOUND") });
+    const user = userEvent.setup();
+
+    await user.click(await screen.findByRole("button", { name: "Rename Main gate phone" }));
+    const dialog = await screen.findByRole("dialog", { name: "Rename device" });
+    await user.click(within(dialog).getByRole("button", { name: "Save" }));
+    expect(await within(dialog).findByText("Not found.")).toBeInTheDocument();
+    await user.click(within(dialog).getByRole("button", { name: "Cancel" }));
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+  });
+
+  it("switches a device off with a reason", async () => {
+    const calls = open("/admin/kiosks", [device()], {
+      "POST /kiosks/k-1/revoke": { body: device({ status: "revoked", state: "revoked" }) },
+    });
+    const user = userEvent.setup();
+    const row = (await screen.findByText("Main gate phone")).closest("tr") as HTMLElement;
+
+    await user.click(within(row).getByRole("button", { name: "Revoke" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Reason"), "Phone lost");
+    await user.click(within(dialog).getByRole("button", { name: "Revoke" }));
+
+    await waitFor(() => {
+      const post = calls.find((call) => call.path === "/kiosks/k-1/revoke");
+      expect(post?.body).toEqual({ reason: "Phone lost" });
+    });
+  });
+
+  it("shows the server's answer when switching off fails", async () => {
+    open("/admin/kiosks", [device()], {
+      "POST /kiosks/k-1/revoke": apiError(403, "FORBIDDEN"),
+    });
+    const user = userEvent.setup();
+    const row = (await screen.findByText("Main gate phone")).closest("tr") as HTMLElement;
+
+    await user.click(within(row).getByRole("button", { name: "Revoke" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Reason"), "Phone lost");
+    await user.click(within(dialog).getByRole("button", { name: "Revoke" }));
+
+    expect(await within(dialog).findByText("You are not allowed to do this.")).toBeInTheDocument();
   });
 });
 
