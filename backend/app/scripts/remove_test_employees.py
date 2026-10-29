@@ -258,10 +258,10 @@ def remove(session: Session, plan: RemovalPlan) -> None:
     )
 
 
-def _show(plan: RemovalPlan, employee_codes: list[str], device_names: list[str]) -> None:
+def _show(plan: RemovalPlan) -> None:
+    # Counts only: the typed codes are not printed again (they are people's data, and the person
+    # running the tool typed them a moment ago). A wrong code stops the run before this point.
     print(f"Plant: {plan.plant_code} ({plan.plant_name}); the plant itself stays.")
-    print(f"  Employee codes: {', '.join(employee_codes) or '-'}")
-    print(f"  Device names:   {', '.join(device_names) or '-'}")
     for label, count in plan.counts.items():
         print(f"  {count:>5}  {label}")
     print("  Also: their face data, shifts, plant history and change requests.")
@@ -289,7 +289,7 @@ def main() -> int:
         except RemovalRefusedError as error:
             print(f"Refused: {error}")
             return 1
-        _show(plan, arguments.employee_codes, arguments.device_names)
+        _show(plan)
         if not arguments.confirm:
             print("\nNothing was changed. Run again with --confirm to delete all of this.")
             return 0
