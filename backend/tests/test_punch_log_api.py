@@ -333,6 +333,10 @@ def test_the_day_summary_counts_results_and_reasons(
         "code_accepted": 0,
         "asked_for_code": 0,
         "no_face_photos": 0,
+        # M4: flagged and offline punches, and flagged ones nobody reviewed (Super Admin).
+        "flagged": 0,
+        "offline": 0,
+        "to_check": 0,
     }
     everywhere = boss.get(f"{PUNCHES}/summary").json()
     assert everywhere["accepted_in"] == 2
@@ -495,15 +499,19 @@ def test_the_export_has_the_days_punches_as_text_and_is_audited(
     assert rows[0] == [
         "Date",
         "Time (IST)",
-        "Plant (kiosk)",
+        "Plant (attendance device)",
         "Employee code",
         "Name",
-        "Kiosk",
+        "Attendance device",
         "Direction",
         "Result",
         "Reason code",
         "Reason",
         "Photo",
+        "Punch time",
+        "Saved offline",
+        "Flags",
+        "Review",
     ]
     assert len(rows) == 6  # header + 5 punches at K134 today
     first_in = next(row for row in rows if row[1] == "07:02:00")

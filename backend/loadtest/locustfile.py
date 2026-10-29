@@ -36,6 +36,7 @@ BACKEND_FOLDER = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(BACKEND_FOLDER))
 # The ONE definition of what a kiosk signs, shared with the server (never copied here).
 from app.modules.kiosks.crypto import signed_message  # noqa: E402
+from app.scripts.gate_fence_fixture import GATE_LOCATION  # noqa: E402
 
 FIXTURE = Path(
     os.environ.get("LOADTEST_FIXTURE", BACKEND_FOLDER / "loadtest" / ".data" / "fixture.json")
@@ -109,6 +110,7 @@ class KioskUser(HttpUser):
                 "qr_payload": card_text,
                 "snapshot_jpeg": SNAPSHOT,
                 "device_time": datetime.now(UTC).isoformat(),
+                "location": GATE_LOCATION,
                 "app_version": "loadtest",
             }
         ).encode()

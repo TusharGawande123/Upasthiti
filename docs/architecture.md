@@ -75,18 +75,31 @@ Principles:
 3. Before the rules: body ≤ 64 KB, 60 punches a minute per kiosk, the device signature,
    nonce, counter and active status (`require_kiosk`, M1). A retry with the same
    `client_punch_id` gets the stored answer again and creates no second punch.
-4. The anti-proxy engine (`app/antiproxy/engine.py`) runs its rules in a fixed order; the
-   first rejection wins and its reason code is stored:
-   1. snapshot: `SNAPSHOT_MISSING` / `SNAPSHOT_INVALID` (decoded with a pixel limit, re-encoded
+4. The anti-proxy engine (`app/antiproxy/engine.py`) runs its rules in a fixed order
+   (`QR_RULES`). A rule answers ALLOW, REJECT(code), FLAG(code) (from M4) or SELF_TEST. The
+   first rejection stops the chain and its reason code is stored first; a FLAG records its
+   code and the chain goes on (M4 spec §7 rule 2):
+   1. `read_card`: reads the payload; a TEST card answers `self_test` ("KIOSK OK"), stores no
+      punch and skips the location rules (the answer reports "Location ✓/✗" instead);
+   2. **`kiosk_location`** (M4, location on every punch): `LOCATION_REQUIRED` /
+      `GPS_ACCURACY_TOO_LOW` / `GEOFENCE_NOT_SET` / `OUTSIDE_GEOFENCE`; outside the drawn fence
+      but inside the margin = FLAG `LOCATION_AT_EDGE`; an offline item with an old reused
+      reading = FLAG `LOCATION_STALE`. It runs first because it is cheap and refuses a device
+      taken away before any card work;
+   3. snapshot: `SNAPSHOT_MISSING` / `SNAPSHOT_INVALID` (decoded with a pixel limit, re-encoded
       without metadata, brightness measured for the "dark photo" mark);
-   2. QR credential: `QR_FORMAT_INVALID` / `QR_SIGNATURE_INVALID` / `QR_REVOKED` /
+   4. QR credential: `QR_FORMAT_INVALID` / `QR_SIGNATURE_INVALID` / `QR_REVOKED` /
       `QR_EXPIRED` / `QR_NOT_YET_VALID` / `EMPLOYEE_INACTIVE` / `EMPLOYEE_NOT_QR` /
-      `WRONG_PLANT` (a card works only at its owner's current plant, decision 0009). A TEST
-      card answers `self_test` ("KIOSK OK") and stores no punch;
-   3. cool-down and IN/OUT (server time, employee row locked): `COOLDOWN_ACTIVE` /
-      `OUT_TOO_SOON`, otherwise IN or OUT (M2 §7 rule 6);
-   - from M4: `GPS_ACCURACY_TOO_LOW` / `OUTSIDE_GEOFENCE` and `IMPOSSIBLE_TRAVEL`;
-     ~~`NETWORK_NOT_ALLOWED`~~ (dropped, decision 0005).
+      `WRONG_PLANT` (a card works only at its owner's current plant, decision 0009);
+   5. cool-down and IN/OUT (punch time, employee row locked): `COOLDOWN_ACTIVE` /
+      `OUT_TOO_SOON`, otherwise IN or OUT (M2 §7 rule 6; M4 §7 rule 5 for offline punches);
+   6. **`impossible_travel`** (M4): FLAG `IMPOSSIBLE_TRAVEL`, never a rejection;
+   7. **`two_devices`** (M4, decision 0012): FLAG `TWO_DEVICES_SOON`, never a rejection;
+   8. offline items only: **`offline_time`**: FLAG `OFFLINE_TIME_UNPROVEN` / `OFFLINE_TOO_OLD`.
+   - No rejection and at least one flag → decision `flagged`: it has a direction and **counts as
+     IN/OUT at once**. The gate's answer says `"accepted"` (normal IN/OUT screen); flags are
+     for the Super Admin's "Needs review" screen only.
+   - ~~`NETWORK_NOT_ALLOWED`~~ (dropped, decision 0005).
 5. The server writes, in one transaction:
    - the `punches` row (append-only: a trigger refuses UPDATE, DELETE and TRUNCATE): accepted
      or rejected, the direction, the reason code;
@@ -141,7 +154,13 @@ for Render Free (decision 0016, items 17–20). The frames are processed in memo
       - clearly no match, or an empty gallery: `FACE_NOT_RECOGNISED`;
    7. `cooldown` (the M2 rule, unchanged): the employee row is locked, then `COOLDOWN_ACTIVE` /
       `OUT_TOO_SOON`, otherwise IN or OUT.
-   M4 will add the geofence and impossible-travel rules in front of these.
+   **M4 order:** request checks (step 4) → **`kiosk_location`** (runs before the face worker
+   starts; same codes and flags as the card punch) → `FACE_RULES` above in the face worker →
+   `check_in_out` →
+   `impossible_travel` → `two_devices` → (offline items only) `offline_time`. The location
+   and flag rules run outside the face worker, with the employee row locked. A flagged face
+   punch answers `"accepted"` at the gate, like a card punch. The code path's final row reuses
+   the location verdict of its `needs_code` row.
 6. **Store** in one transaction: the `punches` row (method `face`, scores, challenge, model,
    match mode). A **rejected** punch (not the "already punched" ones, not `FRAMES_INVALID`) or a
    `needs_code` row also gets one 320 px photo made by the server from the first frontal frame,
@@ -160,20 +179,69 @@ for Render Free (decision 0016, items 17–20). The frames are processed in memo
    `needs_code` row (`follows_punch_id`) and records whose code was typed
    (`claimed_employee_id`).
 
-## 5. Offline sync
-- When a punch call fails because there is no network:
-  - the kiosk stores the signed punch in Dexie (IndexedDB);
-  - it shows an amber banner and "Saved – will be confirmed when online";
-  - its counter keeps increasing.
-- When the network returns, the kiosk sends `POST /api/v1/kiosk/sync` with batches of up to
-  50.
-- The server re-runs **every** rule:
-  - Its receive time is recorded.
-  - `device_claimed_at` is accepted as the punch time only if it falls within the offline
-    window and the counters are in order. Otherwise the punch is `flagged` for HR review.
-  - Face punches made offline can't be matched until synced; they are checked at sync time
-    from the stored frames, which are deleted after the check.
-- Per-punch results go back and the kiosk clears its queue.
+## 5. Offline sync — built in M4 (spec docs/specs/M4-anti-proxy-offline.md §7 rules 8–13)
+- **When the kiosk is offline:** a heartbeat fails with a network error, or a card punch fails
+  for the network or gets no answer from the server; that punch is then saved with the **same
+  `client_punch_id`** (if it did arrive, the sync answers `already_saved`). A successful heartbeat
+  ends offline mode and the sync starts. Offline mode needs
+  `kiosk_settings.offline.enabled` from `/kiosk/me` (false without `OFFLINE_EVIDENCE_KEY`, in
+  development); without it the kiosk keeps the M2 "No internet. Your punch was NOT saved." text.
+- **Time anchor:** every signed kiosk answer carries `time_anchor = { server_time, token }`;
+  `token` = HMAC-SHA256 over `kiosk_id | server_time | request counter`, with a key derived from
+  `APP_SECRET_KEY`. The kiosk stores it with `performance.now()` (monotonic) and `Date.now()` at
+  receipt and the page's session id. Offline it records the elapsed time since the anchor.
+- **Punch time** (server, per item): `anchor_server_time + elapsed_ms` when the token is valid,
+  the anchor is from the same page session, the monotonic and wall-clock elapsed times agree
+  within `offline_clock_drift_seconds`, the time lies between the anchor and the sync receive
+  time, and counter order equals time order → `time_proof = anchored`. Otherwise the device's
+  estimate (clamped) is used, `time_proof = unproven` and the punch is **flagged**
+  `OFFLINE_TIME_UNPROVEN`. Older than `offline_max_hours` (72) → flag `OFFLINE_TOO_OLD`. Never
+  rejected for time. Online punches use server time only.
+- **Signed item at capture:** the kiosk reserves the next counter (the same sequence as its
+  requests), builds the item JSON (`client_punch_id`, method, challenge for face, time fields,
+  location with its age, sealed evidence, app version), signs
+  `"UPS-OFFLINE-1\n{kiosk_id}\n{counter}\n{SHA-256 hex of the item}"` with the device key, and
+  writes it to Dexie (`queue` table) in one transaction. Only then does it show "Saved – will be
+  confirmed" (no name, no IN/OUT).
+- **Sealed evidence** (photo, card text, face frames, typed code): per item an ephemeral ECDH
+  P-256 key, HKDF-SHA256, AES-256-GCM with a random 12-byte nonce and associated data
+  `kiosk_id | client_punch_id | method | key_id`, to the server's public key (from
+  `OFFLINE_EVIDENCE_KEY`, sent in `/kiosk/me`). The ephemeral private key is never stored, so the
+  device cannot open its own queue. Code: `app/core/offline_crypto.py`,
+  `frontend/src/kiosk/offline/sealer.ts`; a shared test vector pins the format on both sides.
+- **Sync:** when a heartbeat succeeds, the kiosk sends signed `POST /api/v1/kiosk/sync` requests
+  of at most **20 items and 1 MB**, oldest counter first, and pauses while a punch is on screen.
+  Per item the server checks the signature (with the sync request's kiosk key), the form, the
+  duplicate `(kiosk, client_punch_id)`, the counter (below the request's, unique per kiosk) and
+  the decryption. It then **sorts the batch by punch time** (then counter) and runs every rule
+  with "now" = the punch time. Card, employee and plant facts are judged as they were at an
+  anchored punch time.
+- **Per-item results:** `saved` (a new punch row), `already_saved` (the same id exists; its
+  stored decision is returned), `retry_later` (face worker busy or the 20 s budget used up; kept
+  on the device), `refused` (bad signature, counter or form; no punch row, audit
+  `kiosk.sync_item_refused`). The kiosk deletes items answered `saved`, `already_saved` or
+  `refused`. Evidence that cannot be opened becomes a rejected row `OFFLINE_EVIDENCE_UNREADABLE`.
+- **Order conflicts:** if a counted punch of the same employee already exists after the offline
+  punch's time: within the cool-down → `COOLDOWN_ACTIVE` (double punch); further away → the
+  direction is decided from the earlier punches and the row is flagged `SYNC_ORDER_CONFLICT`
+  with `related_punch_id` (punch rows never change).
+- **Offline face punch:** the employee code is typed first; the device chooses the head turn
+  with `crypto.getRandomValues`. At sync the item goes through the face worker **only when it is
+  free** (live punches first): location → signed challenge valid (`OFFLINE_CHALLENGE_INVALID`) →
+  frames, liveness against the signed turn, anti-spoof, consistency → 1:1 match against the
+  typed code (`FACE_NOT_RECOGNISED`, `WRONG_PLANT`) → IN/OUT and flags. One 320 px encrypted photo
+  is kept (`punch_snapshots.reason = face_offline`). Weaker than online (the server did not choose
+  the turn): an accepted risk, M4 spec §7 rule 10.
+- **Queue limits:** `offline_queue_max_items` (2,000) and `offline_queue_max_mb` (200). Full →
+  "NOT SAVED". The storage self-check (S-38) switches offline saving off when the browser's free
+  quota is below the MB limit + 50 MB. The kiosk keeps saving after 72 hours until it is full.
+- **Revoked kiosk:** the sync is refused (`DEVICE_REVOKED`) and the kiosk deletes its queue at
+  once. The revoke dialog warns first with the waiting count from the last heartbeat.
+- **Gate page offline (service worker):** vite-plugin-pwa (Workbox), registered only by the gate
+  page, scope `/attendance` (the admin website is never controlled). The page shell is
+  precached; scripts, styles, the QR decoder and the face guide are cached the first time the gate
+  loads them. `/api/*` and `/version.json` are never cached. A new worker takes over at once; the
+  gate reloads itself when idle (S-27). Manifest name "Gate attendance".
 
 ## 5b. Phone punch (M4b, only for employees an admin allows)
 - An admin switches phone punching on for one employee (with a reason; audited). The
@@ -202,7 +270,14 @@ for Render Free (decision 0016, items 17–20). The frames are processed in memo
   `face_enrolment_shots`; delete `punch_challenges` older than 1 day. The job logs only counts.
 - **Face template removal** is not a job: the template is deleted in the same transaction that
   marks an employee as left, withdraws consent or changes the punch method to QR.
-- **Kiosk health:** mark a kiosk offline when no heartbeat arrives for N minutes.
+- **Kiosk health** (M4) is **not a job**: the state (Online, Offline since, Needs location,
+  Sending saved punches, Switched off, Waiting for pairing) and the "attendance device offline"
+  alert are computed on read from `last_seen_at` and the last heartbeat
+  (`app/modules/kiosks/status.py`; offline = no signed request for
+  `kiosk_offline_after_minutes`; alert = offline for `kiosk_offline_alert_minutes` during one
+  of the plant's shifts).
+- **Daily job** (`app/jobs/daily.py`, 00:05 IST, safe to repeat): from M4 it also deletes
+  `kiosk_heartbeats` rows older than 7 days, in batches, and logs only the count.
 
 ## 7. Data model (table dictionary)
 Conventions:
@@ -210,7 +285,7 @@ Conventions:
 - `created_at` / `updated_at` in UTC; shown in IST.
 - Money in `numeric(12,2)`.
 - Soft delete (`status` / `deleted_at`) for people and setup data.
-- `punches` and `audit_logs` are append-only, never deleted.
+- `punches`, `punch_reviews` (M4) and `audit_logs` are append-only, never deleted.
 
 | Area | Table | Key columns |
 |---|---|---|
@@ -235,13 +310,15 @@ Conventions:
 | | `face_enrolment_shots` | session_id, pose (straight/left/right/up/down), nonce, ciphertext (the shot's embedding, encrypted); rows are deleted when the session ends |
 | | `face_pending_matches` | kiosk_id, origin_punch_id, token_sha256, model_id, nonce, ciphertext (the unsure embedding, encrypted), tries_left, last_try_client_punch_id, expires_at (90 s); deleted after the final answer |
 | | `qr_credentials` (M2) | kind (employee/test), employee_id?, label?, card_serial, key_id, valid_from, valid_until, issued_by/at, revoked_by/at, revoke_kind, revoke_reason, print_count, last_printed_at, printed_plant_id, last_used_at, note (one active card per employee) |
-| Kiosks | `kiosk_devices` | plant_id, name, public_key, status, last_seen_at, last_counter, app_version, sound_muted, last_self_test_at (M2) |
+| Kiosks | `kiosk_devices` | plant_id, name, public_key, status, last_seen_at, last_counter, app_version, sound_muted, last_self_test_at (M2); M4 status and health columns (updated in place by heartbeats, syncs and punches): last_heartbeat_at, queue_count, queue_bytes, queue_oldest_at, last_sync_at, last_punch_at, location_state (good/weak/none/denied/outside/stale), last_lat, last_lon, last_accuracy_m, last_location_at, storage_persisted, storage_quota_mb, storage_usage_mb, offline_ready (S-38), battery_level, battery_charging, camera_ok (F-3) |
+| | `kiosk_heartbeats` (M4, F-3) | kiosk_id, received_at, queue_count, location_state, accuracy_m, battery_level, battery_charging, camera_ok, storage_usage_mb, app_version (no coordinates); at most one row per 5 minutes per kiosk plus state changes; rows older than 7 days are deleted by the daily job; RLS + `deny_all` |
 | | `kiosk_notices` (M2) | plant_id? (empty = all plants), text, level, starts_at, ends_at, created_by, ended_at, ended_by |
 | | `kiosk_pairing_codes` | kiosk_id, code_hash, expires_at, used_at |
 | | `employee_phones` (M4b) | employee_id, public_key, status, registered_at, last_seen_at |
 | | `punch_challenges` (M3) | kiosk_id, nonce_sha256 (only the hash), challenge (turn_left/turn_right; two-step values exist for the `face_challenge_steps` setting), issued_at, expires_at, used_at; rows older than 1 day are deleted |
-| Punches | `punches` | employee_id?, kiosk_id? or employee_phone_id? (M4b), plant_id, method, qr_credential_id?, client_punch_id (unique per kiosk), outside_plant (M4b), direction, server_received_at, device_claimed_at, was_offline, lat, lon, accuracy_m, ip, app_version, decision (accepted/rejected/flagged/needs_code), reason_codes[]; M3 face columns (all nullable): match_mode (one_to_many/code), match_score, second_best_score, antispoof_score, yaw_degrees, challenge, face_model_id, follows_punch_id (a code-path row points to its `needs_code` row), claimed_employee_id (whose code was typed) |
-| | `punch_snapshots` (M2) | punch_id, storage_key (never sent to the browser), state (stored/upload_failed/purged), size_bytes, width, height, brightness, is_dark, taken_at, expires_at, purged_at; M3: reason (qr_punch/face_rejected/face_code), face_found (null = not checked; set by the card-photo face check) |
+| Punches | `punches` | employee_id?, kiosk_id? or employee_phone_id? (M4b), plant_id, method, qr_credential_id?, client_punch_id (unique per kiosk), outside_plant (M4b), direction, server_received_at, device_claimed_at, was_offline, lat, lon, accuracy_m, ip, app_version, decision (accepted/rejected/flagged/needs_code), reason_codes[]; M3 face columns (all nullable): match_mode (one_to_many/code), match_score, second_best_score, antispoof_score, yaw_degrees, challenge, face_model_id, follows_punch_id (a code-path row points to its `needs_code` row), claimed_employee_id (whose code was typed); M4 columns: offline_punch_time (server-computed time of an offline punch), time_proof (anchored/unproven, offline only), device_counter (offline only; unique per kiosk), location_age_s, geofence_id (the fence version used), geofence_distance_m (0 inside the drawn shape), related_punch_id (the other punch of a travel / two-devices / order flag), **punch_time** (generated, stored: `COALESCE(offline_punch_time, server_received_at)`; used for IN/OUT, lists and filters). A `flagged` row has a direction and at least one flag code |
+| | `punch_reviews` (M4) | punch_id, action (confirmed/not_accepted/approved), direction (in/out, approvals only), employee_id, reason (3–300 characters; optional only for confirm), reviewed_by, reviewed_at, supersedes_review_id (a review is changed by adding a newer row). **Append-only** (trigger refuses UPDATE, DELETE, TRUNCATE); RLS + `deny_all`. The latest review decides whether a punch counts (`punches/counting.py`) |
+| | `punch_snapshots` (M2) | punch_id, storage_key (never sent to the browser), state (stored/upload_failed/purged), size_bytes, width, height, brightness, is_dark, taken_at, expires_at, purged_at; M3: reason (qr_punch/face_rejected/face_code; M4 adds face_offline), face_found (null = not checked; set by the card-photo face check) |
 | Attendance | `attendance_days` | employee_id, date, shift_id, first_in, last_out, worked_min, late_min, early_exit_min, overtime_min, status (present/absent/half_day/leave/holiday/weekly_off), computed_at |
 | | `leave_records` | employee_id, from_date, to_date, kind, is_paid |
 | | `regularisations` | employee_id, date, requested_change, reason, requested_by, status, decided_by, decided_at |
@@ -289,9 +366,11 @@ upasthiti/
   .env.example
 ```
 
-## 9. Notes for M4 (from the M2 review, decision 0012)
+## 9. Notes for M4 (from the M2 review, decision 0012) — both done in M4
 - Add an anti-proxy rule that flags the same QR card used at two kiosks within N minutes: a card
   can be cloned by photographing it, and in M2 the stored photo and its admin review are the only
-  defence.
+  defence. **Done:** `app/antiproxy/rules/two_devices.py` flags `TWO_DEVICES_SOON`
+  (`same_person_two_devices_minutes`, default 10).
 - Gate devices must run in locked full-screen kiosk mode (setup guide): anyone with devtools on
-  the gate PC can sign punch requests.
+  the gate PC can sign punch requests. **Done:** this stays a setup-guide rule
+  (docs/guides/kiosk-setup.md); a faked browser location is an accepted risk (M4 spec §8.3).

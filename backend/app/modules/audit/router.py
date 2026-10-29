@@ -76,30 +76,48 @@ def list_audit_entries(
 
     entries, total = fetch_page(session, statement, params)
     actor_names = _names_of_actors(session, entries)
+    sees_review_reasons = current_user.access(Capability.REVIEW_PUNCHES) is not None
     return Page(
-        items=[
-            AuditEntryResponse(
-                id=entry.id,
-                at=entry.at,
-                actor_type=entry.actor_type,
-                actor_id=entry.actor_id,
-                actor_name=actor_names.get(entry.actor_id) if entry.actor_id else None,
-                action=entry.action,
-                entity_type=entry.entity_type,
-                entity_id=entry.entity_id,
-                plant_id=entry.plant_id,
-                before=entry.before,
-                after=entry.after,
-                reason=entry.reason,
-                ip=str(entry.ip) if entry.ip else None,
-                change_request_id=entry.change_request_id,
-            )
-            for entry in entries
-        ],
+        items=[_entry_response(entry, actor_names, sees_review_reasons) for entry in entries],
         page=params.page,
         page_size=params.page_size,
         total=total,
     )
+
+
+def _entry_response(
+    entry: AuditLog, actor_names: dict[uuid.UUID, str], sees_review_reasons: bool
+) -> AuditEntryResponse:
+    before, after, reason = entry.before, entry.after, entry.reason
+    # A review's reason is free text that may name a person: like the punch log, only the Super
+    # Admin reads it (M4 spec §5.4, decision 0025 item 11). The other roles still see that a
+    # review happened, who did it and when.
+    if entry.action.startswith("punch_review.") and not sees_review_reasons:
+        reason = None
+        before = _without_reason(before)
+        after = _without_reason(after)
+    return AuditEntryResponse(
+        id=entry.id,
+        at=entry.at,
+        actor_type=entry.actor_type,
+        actor_id=entry.actor_id,
+        actor_name=actor_names.get(entry.actor_id) if entry.actor_id else None,
+        action=entry.action,
+        entity_type=entry.entity_type,
+        entity_id=entry.entity_id,
+        plant_id=entry.plant_id,
+        before=before,
+        after=after,
+        reason=reason,
+        ip=str(entry.ip) if entry.ip else None,
+        change_request_id=entry.change_request_id,
+    )
+
+
+def _without_reason(values: dict[str, Any] | None) -> dict[str, Any] | None:
+    if values is None:
+        return None
+    return {key: value for key, value in values.items() if key != "reason"}
 
 
 def _names_of_actors(session: Session, entries: list[AuditLog]) -> dict[uuid.UUID, str]:

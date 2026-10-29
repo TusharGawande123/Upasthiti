@@ -12,6 +12,7 @@ from sqlalchemy import (
     DateTime,
     ForeignKey,
     Index,
+    Integer,
     Numeric,
     String,
     Text,
@@ -34,11 +35,38 @@ class KioskStatus(enum.StrEnum):
 STATUS_VALUES = ", ".join(f"'{status.value}'" for status in KioskStatus)
 
 
+class LocationState(enum.StrEnum):
+    """How good the gate's own location is, as the gate reports it (M4 spec §6)."""
+
+    GOOD = "good"
+    WEAK = "weak"  # accuracy worse than the limit
+    NONE = "none"  # no reading, or only an old one
+    DENIED = "denied"  # the browser blocks location
+    OUTSIDE = "outside"  # beyond the fence and its margin
+    STALE = "stale"  # offline: the last good reading is reused
+
+
+LOCATION_STATE_VALUES = ", ".join(f"'{state.value}'" for state in LocationState)
+
+
 class KioskDevice(IdMixin, TimestampMixin, Base):
     __tablename__ = "kiosk_devices"
     __table_args__ = (
         Index("uq_kiosk_devices_plant_name", "plant_id", func.lower(text("name")), unique=True),
         CheckConstraint(f"status IN ({STATUS_VALUES})", name="status_known"),
+        CheckConstraint("queue_count >= 0 AND queue_bytes >= 0", name="queue_not_negative"),
+        CheckConstraint(
+            f"location_state IS NULL OR location_state IN ({LOCATION_STATE_VALUES})",
+            name="location_state_known",
+        ),
+        CheckConstraint(
+            "battery_level IS NULL OR battery_level BETWEEN 0 AND 1", name="battery_level_in_range"
+        ),
+        CheckConstraint(
+            "(last_lat IS NULL OR last_lat BETWEEN -90 AND 90) "
+            "AND (last_lon IS NULL OR last_lon BETWEEN -180 AND 180)",
+            name="last_location_in_range",
+        ),
     )
 
     plant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("plants.id"), index=True)
@@ -63,6 +91,25 @@ class KioskDevice(IdMixin, TimestampMixin, Base):
     # scanned here (F-27).
     sound_muted: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
     last_self_test_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    # --- M4: what the 60 s heartbeat tells (spec §6, migration 0017). Updated in place. ---
+    last_heartbeat_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    queue_count: Mapped[int] = mapped_column(Integer, server_default=text("0"))
+    queue_bytes: Mapped[int] = mapped_column(BigInteger, server_default=text("0"))
+    queue_oldest_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_sync_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    last_punch_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    location_state: Mapped[str | None] = mapped_column(String(10))
+    last_lat: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
+    last_lon: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
+    last_accuracy_m: Mapped[Decimal | None] = mapped_column(Numeric(7, 1))
+    last_location_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    storage_persisted: Mapped[bool | None] = mapped_column(Boolean)
+    storage_quota_mb: Mapped[int | None] = mapped_column(Integer)
+    storage_usage_mb: Mapped[int | None] = mapped_column(Integer)
+    offline_ready: Mapped[bool | None] = mapped_column(Boolean)  # S-38
+    battery_level: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
+    battery_charging: Mapped[bool | None] = mapped_column(Boolean)
+    camera_ok: Mapped[bool | None] = mapped_column(Boolean)
 
 
 class KioskPairingCode(IdMixin, Base):
@@ -77,3 +124,34 @@ class KioskPairingCode(IdMixin, Base):
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     used_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     failed_attempts: Mapped[int] = mapped_column(default=0)
+
+
+class KioskHeartbeat(IdMixin, Base):
+    """One health sample of an attendance device (F-3). At most one every 5 minutes, plus one when
+    its location or camera state changes; the daily job deletes samples older than 7 days. No
+    coordinates and no personal data are kept here (migration 0018)."""
+
+    __tablename__ = "kiosk_heartbeats"
+    __table_args__ = (
+        CheckConstraint("queue_count >= 0", name="queue_not_negative"),
+        CheckConstraint(
+            f"location_state IS NULL OR location_state IN ({LOCATION_STATE_VALUES})",
+            name="location_state_known",
+        ),
+        CheckConstraint(
+            "battery_level IS NULL OR battery_level BETWEEN 0 AND 1", name="battery_level_in_range"
+        ),
+        Index("ix_kiosk_heartbeats_kiosk_recent", "kiosk_id", text("received_at DESC")),
+        Index("ix_kiosk_heartbeats_received_at", "received_at"),
+    )
+
+    kiosk_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("kiosk_devices.id"))
+    received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))  # server time
+    queue_count: Mapped[int] = mapped_column(Integer)
+    location_state: Mapped[str | None] = mapped_column(String(10))
+    accuracy_m: Mapped[Decimal | None] = mapped_column(Numeric(7, 1))
+    battery_level: Mapped[Decimal | None] = mapped_column(Numeric(3, 2))
+    battery_charging: Mapped[bool | None] = mapped_column(Boolean)
+    camera_ok: Mapped[bool | None] = mapped_column(Boolean)
+    storage_usage_mb: Mapped[int | None] = mapped_column(Integer)
+    app_version: Mapped[str | None] = mapped_column(String(40))

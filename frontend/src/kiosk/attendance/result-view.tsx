@@ -6,6 +6,7 @@ import type { TFunction } from "i18next";
 import {
   CircleAlert,
   Clock3,
+  CloudCheck,
   Hourglass,
   IdCard,
   Info,
@@ -27,7 +28,7 @@ import { formatIstTime } from "../components/server-clock";
 import { rejectionTextCode } from "./feedback";
 import { type PunchAnswer, type ResultKind, resultKind } from "./punch-types";
 
-type Look = "in" | "out" | "already" | "reject";
+type Look = "in" | "out" | "already" | "reject" | "saved";
 type Shape = "circle" | "square" | "octagon";
 
 const FLOOD: Record<Look, { background: string; band: string; ink: boolean }> = {
@@ -41,6 +42,12 @@ const FLOOD: Record<Look, { background: string; band: string; ink: boolean }> = 
   reject: {
     background: "bg-[var(--flood-reject)]",
     band: "bg-[var(--flood-reject-dark)]",
+    ink: false,
+  },
+  // M4: "Saved – will be confirmed". Slate blue: nothing is decided yet, so not green or red.
+  saved: {
+    background: "bg-[var(--flood-saved)]",
+    band: "bg-[var(--flood-saved-dark)]",
     ink: false,
   },
 };
@@ -60,6 +67,15 @@ const KNOWN_CODES = new Set([
   "QR_SIGNING_NOT_CONFIGURED",
   "NETWORK_OFFLINE",
   "SERVER_NO_ANSWER",
+  // M4: saved on the device while offline (spec §4.5, §4.6).
+  "OFFLINE_SAVED",
+  "OFFLINE_ALREADY_SAVED",
+  "QUEUE_FULL",
+  "OFFLINE_STORAGE_TOO_SMALL",
+  "LOCATION_REQUIRED",
+  "GPS_ACCURACY_TOO_LOW",
+  "OUTSIDE_GEOFENCE",
+  "GEOFENCE_NOT_SET",
   "INTERNAL_ERROR",
   "TOO_MANY_REQUESTS",
   "PAYLOAD_TOO_LARGE",
@@ -83,10 +99,27 @@ const KNOWN_CODES = new Set([
 ]);
 
 // Nobody did anything wrong: the punch was not saved, please wait (amber, not red; decision 0019).
-const WAIT_CODES = new Set(["FACE_SERVICE_UNAVAILABLE", "FACE_SERVICE_BUSY", "TOO_MANY_REQUESTS"]);
+const WAIT_CODES = new Set([
+  "FACE_SERVICE_UNAVAILABLE",
+  "FACE_SERVICE_BUSY",
+  "TOO_MANY_REQUESTS",
+  "OFFLINE_ALREADY_SAVED",
+]);
 
 /** The "stopped" or "please wait" look of a rejection or a failure. */
 function stoppedLook(code: string, texts: string, time: string, t: TFunction): Shown {
+  if (code === "OFFLINE_SAVED") {
+    // No name and no IN or OUT: the device cannot know the result (spec §4.5).
+    return {
+      look: "saved",
+      icon: CloudCheck,
+      shape: "circle",
+      word: t("kiosk.punch.OFFLINE_SAVED.title"),
+      lead: t("kiosk.punch.OFFLINE_SAVED.message"),
+      card: { icon: MoveRight, main: t("kiosk.punch.OFFLINE_SAVED.next") },
+      time,
+    };
+  }
   const waiting = WAIT_CODES.has(code);
   return {
     look: waiting ? "already" : "reject",
@@ -149,6 +182,7 @@ function BigIcon({ icon: Icon, shape, look }: { icon: LucideIcon; shape: Shape; 
     out: "text-[var(--flood-out)]",
     already: "text-warning",
     reject: "text-[var(--flood-reject)]",
+    saved: "text-[var(--flood-saved)]",
   }[look];
   return (
     <span
@@ -238,7 +272,7 @@ function describeAnswer(answer: PunchAnswer, t: TFunction, viaFace: boolean): Sh
       lead: t("kiosk.result.noAttendance"),
       card: {
         icon: Wrench,
-        main: t("kiosk.result.selfTestChecks", { time: hhmm(answer.server_time, true) }),
+        main: selfTestLine(answer, t),
         sub: answer.details.kiosk_name,
       },
       time,
@@ -246,6 +280,18 @@ function describeAnswer(answer: PunchAnswer, t: TFunction, viaFace: boolean): Sh
   }
   const reason = answer.reason_code ?? "INTERNAL_ERROR";
   return stoppedLook(reason, textCode(rejectionTextCode(reason, viaFace)), time, t);
+}
+
+// M4: the test card also shows whether the device's location would pass (nothing is stored).
+function selfTestLine(answer: PunchAnswer, t: TFunction): string {
+  const time = hhmm(answer.server_time, true);
+  const check = answer.details.location_check;
+  if (!check) return t("kiosk.result.selfTestChecks", { time });
+  const location =
+    check === "ok"
+      ? t("kiosk.location.selfTestLocation.ok")
+      : t("kiosk.location.selfTestLocation.bad", { code: check });
+  return t("kiosk.result.selfTestChecksLocation", { time, location });
 }
 
 function describeFailure(code: string, time: string, t: TFunction): Shown {
@@ -321,7 +367,7 @@ export function ResultView({
           <BigIcon icon={shown.icon} shape={shown.shape} look={shown.look} />
           <div className="rounded-2xl border-4 border-black/30 bg-white px-4 py-2 text-center sm:px-6 sm:py-3">
             <p className="text-[24px] font-semibold text-muted-foreground">
-              {t("kiosk.result.serverTime")}
+              {t(shown.look === "saved" ? "kiosk.result.savedAt" : "kiosk.result.serverTime")}
             </p>
             <p className="tnum text-[40px] leading-none font-extrabold text-foreground sm:text-[88px]">
               {shown.time}

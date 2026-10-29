@@ -3,6 +3,7 @@
 // digits first and letters on a second page, one-tap keys for the common starts of the plant's
 // codes (decision 0019). The name is never shown here. The pad stays on the screen while the code
 // is checked, so a wrong code can be corrected without typing everything again.
+import { OFFLINE_ENTRY_TOKEN } from "./use-face-punch";
 import "@fontsource/jetbrains-mono/latin-600.css";
 import { Check, Delete, Hash, Info, Loader2, Type, X } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -86,6 +87,8 @@ export function CodePad({
   onExpired: () => void;
 }) {
   const { t } = useTranslation();
+  // Offline (M4 §4.4) the pad comes first, before any face: it asks for the code in plain words.
+  const offline = entry.token === OFFLINE_ENTRY_TOKEN;
   const [code, setCode] = useState("");
   const [letters, setLetters] = useState(false);
   const [now, setNow] = useState(() => Date.now());
@@ -132,10 +135,12 @@ export function CodePad({
             <Info className="size-10 sm:size-12" aria-hidden />
           </span>
           <h1 className="text-[32px] leading-tight font-extrabold tracking-tight sm:text-[40px]">
-            {t("kiosk.punch.NEED_EMPLOYEE_CODE.title")}
+            {t(offline ? "kiosk.offline.typeCodeTitle" : "kiosk.punch.NEED_EMPLOYEE_CODE.title")}
           </h1>
         </div>
-        <p className="text-[26px] leading-snug">{t("kiosk.codePad.subtitle")}</p>
+        <p className="text-[26px] leading-snug">
+          {t(offline ? "kiosk.offline.typeCodeLine" : "kiosk.codePad.subtitle")}
+        </p>
 
         <div className="flex items-center gap-3">
           <output

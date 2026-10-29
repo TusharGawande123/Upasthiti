@@ -302,6 +302,9 @@ spoken**.
 ### 4.5 Kiosk: connection and server problems
 - No internet: red ⚠ "No internet. Your punch was NOT saved. Try again in a moment."
   (`NETWORK_OFFLINE`, honest: the offline queue comes in M4).
+  Note (M4): since M4 the gate saves punches offline ("Saved – will be confirmed", M4 spec §4.5).
+  This `NETWORK_OFFLINE` text now shows only when offline mode is off: in development without
+  `OFFLINE_EVIDENCE_KEY`, or with an old server that sends no `kiosk_settings.offline`.
 - Server error: "Something went wrong. Try again. If it repeats, see the plant office."
   (`INTERNAL_ERROR`).
 - Too many requests: "Please wait a moment and try again." (`TOO_MANY_REQUESTS`).

@@ -13,7 +13,7 @@ export type NavItem = {
   roles: Role[];
   end?: boolean;
   // A small number next to the label (the approvals waiting for the Super Admin).
-  badge?: "pendingApprovals" | "expiringCards";
+  badge?: "pendingApprovals" | "expiringCards" | "offlineDevices" | "toCheck";
 };
 
 type NavLinksProps = {
@@ -24,6 +24,14 @@ type NavLinksProps = {
   /** Called after a link is chosen (the slide-out menu closes itself). */
   onNavigate?: () => void;
 };
+
+// What a screen reader says after the number of each menu badge.
+const BADGE_WORDS = {
+  pendingApprovals: "nav.waiting",
+  expiringCards: "nav.endingSoon",
+  offlineDevices: "nav.offline",
+  toCheck: "nav.toCheck",
+} as const;
 
 export function NavLinks({ items, badgeFor, alwaysShowLabels, onNavigate }: NavLinksProps) {
   const { t } = useTranslation();
@@ -66,7 +74,7 @@ export function NavLinks({ items, badgeFor, alwaysShowLabels, onNavigate }: NavL
                     {count}
                     <span className="sr-only">
                       {" "}
-                      {t(item.badge === "expiringCards" ? "nav.endingSoon" : "nav.waiting")}
+                      {t(BADGE_WORDS[item.badge ?? "pendingApprovals"])}
                     </span>
                   </span>
                 ) : null}

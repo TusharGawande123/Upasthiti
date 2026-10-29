@@ -27,15 +27,13 @@ from app.modules.kiosks.crypto import (
     hash_pairing_code,
     load_public_key,
 )
+from app.modules.kiosks.location_check import REFUSAL_MESSAGES, Location, check_location
 from app.modules.kiosks.models import KioskDevice, KioskPairingCode, KioskStatus
-from app.modules.org.geofence import distance_to_geofence_m
 from app.modules.org.geofence_service import current_geofence
 from app.modules.org.models import Plant
 from app.modules.settings.service import get_int_setting
 
 MAX_WRONG_TRIES_PER_CODE = 5
-# A reported accuracy beyond this is nonsense and is treated as "not accurate enough".
-MAX_ACCURACY_REPORTED_M = 100_000
 
 
 @dataclass(frozen=True)
@@ -43,13 +41,6 @@ class IssuedCode:
     kiosk: KioskDevice
     code: str
     expires_at: datetime
-
-
-@dataclass(frozen=True)
-class Location:
-    lat: float
-    lon: float
-    accuracy_m: float
 
 
 def kiosk_snapshot(kiosk: KioskDevice) -> dict[str, object]:
@@ -322,24 +313,12 @@ def _find_code(session: Session, pairing_code: str) -> KioskPairingCode:
 
 def _check_location(session: Session, kiosk: KioskDevice, location: Location | None) -> None:
     """Location is required, accurate and inside the geofence (spec §7 rule 5, step 4)."""
-    if location is None:
-        raise ApiError("LOCATION_REQUIRED", "This device did not report its location.", 422)
-    limit = get_int_setting(session, "gps_accuracy_limit_m")
-    if not 0 <= location.accuracy_m <= MAX_ACCURACY_REPORTED_M or location.accuracy_m > limit:
-        raise ApiError(
-            "GPS_ACCURACY_TOO_LOW",
-            "The location is not accurate enough.",
-            422,
-            {"accuracy_m": round(location.accuracy_m), "limit_m": limit},
-        )
-    geofence = current_geofence(session, kiosk.plant_id)
-    if geofence is None:
-        raise ApiError("GEOFENCE_NOT_SET", "This plant has no geofence.", 422)
-    distance = distance_to_geofence_m(
-        geofence.shape, geofence.geojson, geofence.radius_m, location.lon, location.lat
-    )
-    if distance > geofence.buffer_m:
-        raise ApiError("OUTSIDE_GEOFENCE", "This device is not at the plant.", 422)
+    verdict = check_location(session, kiosk.plant_id, location)
+    if verdict.refusal_code is None:
+        return
+    # Pairing keeps its M1 answers: only the accuracy refusal carries details.
+    details = verdict.details if verdict.refusal_code == "GPS_ACCURACY_TOO_LOW" else None
+    raise ApiError(verdict.refusal_code, REFUSAL_MESSAGES[verdict.refusal_code], 422, details)
 
 
 def _audit_failed_registration(

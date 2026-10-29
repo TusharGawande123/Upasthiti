@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import { loadEnv, type Plugin } from "vite";
+import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig } from "vitest/config";
 
 // Writes dist/version.json = { "version": "<this build>" }. A running kiosk reads it every
@@ -22,6 +23,57 @@ function versionFile(version: string): Plugin {
   };
 }
 
+// M4 (spec §7 rule 13): the gate page loads without internet after a reload or a power cut.
+// The service worker is registered ONLY by the gate page (src/kiosk/offline/register-sw.ts) and
+// its scope is /attendance, so the admin website is never controlled or cached by it.
+//  - the page shell (index.html) is precached and answers navigations to /attendance;
+//  - hashed scripts, styles, fonts, the QR decoder and the face guide are cached the first time
+//    the gate loads them (they never change under the same name);
+//  - /api/* and /version.json are never cached: punches and the self-update need the network.
+function gateServiceWorker() {
+  return VitePWA({
+    // The gate page registers it itself; nothing is added to the admin pages.
+    injectRegister: null,
+    registerType: "autoUpdate",
+    manifest: {
+      name: "Gate attendance",
+      short_name: "Gate",
+      description: "Upasthiti gate attendance for the attendance device at the plant gate.",
+      start_url: "/attendance",
+      scope: "/attendance",
+      display: "fullscreen",
+      background_color: "#f8fafc",
+      theme_color: "#f8fafc",
+    },
+    workbox: {
+      globPatterns: ["index.html"],
+      navigateFallback: "/index.html",
+      navigateFallbackAllowlist: [/^\/attendance/, /^\/kiosk/],
+      navigateFallbackDenylist: [/^\/api\//],
+      cleanupOutdatedCaches: true,
+      // A new worker takes over at once; the gate itself reloads when idle (S-27).
+      skipWaiting: true,
+      clientsClaim: true,
+      runtimeCaching: [
+        {
+          urlPattern: ({ url }) => url.pathname.startsWith("/assets/"),
+          handler: "CacheFirst",
+          options: {
+            cacheName: "gate-assets",
+            expiration: { maxEntries: 150, maxAgeSeconds: 60 * 60 * 24 * 90 },
+          },
+        },
+        {
+          urlPattern: ({ url }) =>
+            url.pathname.startsWith("/models/") || url.pathname.startsWith("/locales/"),
+          handler: "StaleWhileRevalidate",
+          options: { cacheName: "gate-data" },
+        },
+      ],
+    },
+  });
+}
+
 export default defineConfig(({ mode }) => {
   const environment = loadEnv(mode, process.cwd(), "VITE_");
   // In development the browser calls /api/... on the Vite server, which forwards it to the
@@ -32,7 +84,7 @@ export default defineConfig(({ mode }) => {
     environment.VITE_APP_VERSION || process.env.VERCEL_GIT_COMMIT_SHA?.slice(0, 12) || "dev";
 
   return {
-    plugins: [react(), tailwindcss(), versionFile(appVersion)],
+    plugins: [react(), tailwindcss(), versionFile(appVersion), gateServiceWorker()],
     define: { "import.meta.env.VITE_APP_VERSION": JSON.stringify(appVersion) },
     // "@/..." means "frontend/src/..." (same as tsconfig paths; used by shadcn/ui components).
     resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
@@ -63,7 +115,7 @@ export default defineConfig(({ mode }) => {
         ],
         reporter: ["text", "json-summary"],
         // Coverage floor: 60% in M0, 70% from M1, 75% from M2, 80% from M3; raised in each milestone (spec S-8).
-        thresholds: { lines: 80, functions: 80, branches: 80, statements: 80 },
+        thresholds: { lines: 82, functions: 82, branches: 82, statements: 82 },
       },
     },
   };

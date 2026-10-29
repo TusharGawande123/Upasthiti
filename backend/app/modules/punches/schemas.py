@@ -7,6 +7,7 @@ from typing import Literal
 from pydantic import BaseModel, Field, model_validator
 
 from app.modules.kiosks.schemas import LocationReport
+from app.modules.kiosks.time_anchor import TimeAnchor
 
 # The whole request body may not be larger than this (spec §7 rule 5.2).
 MAX_BODY_BYTES = 64 * 1024
@@ -68,6 +69,7 @@ class PunchDetails(BaseModel):
     last_punch_at: datetime | None = None
     out_allowed_from: datetime | None = None
     retry_allowed: bool | None = None  # face rejections where trying again can help
+    location_check: str | None = None  # M4 self test: "ok" or the location rule's code
 
 
 class KioskPunchResponse(BaseModel):
@@ -81,6 +83,7 @@ class KioskPunchResponse(BaseModel):
     voice_key: str
     details: PunchDetails
     code_entry: CodeEntry | None = None  # only with decision "needs_code"
+    time_anchor: TimeAnchor | None = None  # M4 §7 rule 8: set by the route
 
 
 class ChallengeRequest(BaseModel):
@@ -102,6 +105,7 @@ class ChallengeResponse(BaseModel):
     expires_at: datetime
     server_time: datetime
     capture: CaptureRules
+    time_anchor: TimeAnchor | None = None  # M4 §7 rule 8
 
 
 class CodeTryRequest(BaseModel):
@@ -170,6 +174,13 @@ class PunchLogItem(BaseModel):
     follows_punch_id: uuid.UUID | None = None  # a code-path answer points to "asked for code"
     # The other way round: an "asked for code" row points to the answer that followed it.
     followed_by_punch_id: uuid.UUID | None = None
+    # M4 (spec §5.4): when the punch was made (the proven time of an offline punch), whether it
+    # was saved offline, and the Super Admin's review mark (text only for the other roles).
+    punch_time: datetime | None = None
+    was_offline: bool = False
+    offline_delay_seconds: int | None = None  # offline only: punch time -> received by the server
+    review_state: Literal["to_check", "confirmed", "not_accepted", "approved"] | None = None
+    review_direction: Literal["in", "out"] | None = None  # the direction an approval gave
 
 
 class PunchLocation(BaseModel):
@@ -178,11 +189,35 @@ class PunchLocation(BaseModel):
     accuracy_m: float | None
 
 
+class PunchReviewer(BaseModel):
+    id: uuid.UUID
+    name: str
+
+
+class PunchReviewOut(BaseModel):
+    """One review of a punch. The Corporate Head and Plant Head get the latest action and
+    direction only: no reason and no reviewer (spec M4 §5.4)."""
+
+    id: uuid.UUID | None = None
+    action: Literal["confirmed", "not_accepted", "approved"]
+    direction: Literal["in", "out"] | None = None
+    reason: str | None = None
+    reviewed_by: PunchReviewer | None = None
+    reviewed_at: datetime | None = None
+    supersedes_review_id: uuid.UUID | None = None
+
+
 class PunchDetail(PunchLogItem):
     app_version: str | None
     device_time: datetime | None  # what the kiosk's clock said: never used for a decision
     location: PunchLocation | None
     face: PunchFaceDetail | None = None  # Super Admin only
+    # M4 (spec §5.4)
+    time_proof: Literal["anchored", "unproven"] | None = None
+    geofence_distance_m: float | None = None  # 0 inside the drawn fence
+    location_age_s: int | None = None
+    related_punch_id: uuid.UUID | None = None
+    reviews: list[PunchReviewOut] = []  # newest first
 
 
 class PunchSummaryResponse(BaseModel):
@@ -196,6 +231,11 @@ class PunchSummaryResponse(BaseModel):
     code_accepted: int = 0
     asked_for_code: int = 0
     no_face_photos: int | None = None  # Super Admin only (F-30)
+    # M4: flagged punches (they also count as IN/OUT above), punches saved offline, and flagged
+    # punches nobody has reviewed yet (Super Admin only).
+    flagged: int = 0
+    offline: int = 0
+    to_check: int | None = None
 
 
 class PunchCompareResponse(BaseModel):

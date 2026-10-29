@@ -10,10 +10,10 @@ doing it twice changes nothing the second time.
 """
 
 import logging
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from apscheduler.schedulers.background import BackgroundScheduler
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from sqlalchemy.orm import Session
 
 from app.core.db import get_session_factory
@@ -22,11 +22,30 @@ from app.core.time import IST, today_ist, utc_now
 from app.modules.auth.models import LoginSession
 from app.modules.employees.operations import apply_due_transfers
 from app.modules.face.cleanup import run_face_cleanup
+from app.modules.kiosks.heartbeat_service import KEEP_SAMPLES_DAYS
+from app.modules.kiosks.models import KioskHeartbeat
 from app.modules.punches.retention import purge_expired_snapshots
 
 logger = logging.getLogger(__name__)
 
 SESSION_KEEP_DAYS = 30
+
+
+def purge_old_heartbeats(session: Session, now: datetime, batch_size: int = 5000) -> int:
+    """Delete attendance device health samples older than 7 days (F-3, spec M4 §7 rule 20), in
+    batches so one run never holds the table for long. These are health samples, not attendance,
+    audit or employee records. Safe to repeat."""
+    cutoff = now - timedelta(days=KEEP_SAMPLES_DAYS)
+    total = 0
+    while True:
+        old_ids = session.scalars(
+            select(KioskHeartbeat.id).where(KioskHeartbeat.received_at < cutoff).limit(batch_size)
+        ).all()
+        if not old_ids:
+            return total
+        session.execute(delete(KioskHeartbeat).where(KioskHeartbeat.id.in_(old_ids)))
+        session.commit()
+        total += len(old_ids)
 
 
 def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str, int]:
@@ -41,6 +60,7 @@ def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str
         "transfers_applied": transfers,
         "sessions_deleted": len(old_sessions),
         "snapshots_purged": _purge_snapshots(session, storage),
+        "heartbeats_deleted": purge_old_heartbeats(session, utc_now()),
     }
 
 

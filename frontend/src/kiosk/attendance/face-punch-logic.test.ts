@@ -302,7 +302,7 @@ describe("requests", () => {
       { role: "turn", jpeg: "BB" },
     ] as const;
     const outcome = await sendFacePunch(
-      { challengeNonce: challenge.challenge_nonce, frames: [...frames] },
+      { challengeNonce: challenge.challenge_nonce, frames: [...frames], location: null },
       { send },
     );
 

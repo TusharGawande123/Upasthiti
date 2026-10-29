@@ -10,6 +10,15 @@ function testKey(phrase: string): string {
   return createHash("sha256").update(phrase).digest("base64url"); // 32 bytes, as the server wants
 }
 
+// M4: a P-256 private key (PKCS#8 DER, base64url) whose secret number is the hash of a phrase.
+// The fixed prefix is the PKCS#8 wrapper of a P-256 key without its public part; the server
+// works the public key out itself.
+const P256_PKCS8_PREFIX = "3041020100301306072a8648ce3d020106082a8648ce3d030107042730250201010420";
+function testOfflineKey(phrase: string): string {
+  const secret = createHash("sha256").update(phrase).digest();
+  return Buffer.concat([Buffer.from(P256_PKCS8_PREFIX, "hex"), secret]).toString("base64url");
+}
+
 export const FRONTEND_URL = "http://localhost:5173";
 export const BACKEND_FOLDER = fileURLToPath(new URL("../backend", import.meta.url));
 /** Card clips and the punch photos of a run; git-ignored (e2e/.gitignore). */
@@ -37,6 +46,8 @@ export const BACKEND_ENV: Record<string, string> = {
   // M3: a stand-in for the face models (test only) and a key for the face templates.
   FACE_ENGINE: "fake",
   FACE_TEMPLATE_KEY: testKey("upasthiti end-to-end tests: face template encryption"),
+  // M4: opens the punches the gate saved while offline.
+  OFFLINE_EVIDENCE_KEY: testOfflineKey("upasthiti end-to-end tests: offline evidence"),
   STORAGE_BACKEND: "local",
   STORAGE_LOCAL_DIR: `${TMP_FOLDER}/storage`,
 };

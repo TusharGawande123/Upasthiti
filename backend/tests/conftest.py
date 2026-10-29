@@ -1,6 +1,7 @@
 """Shared test setup: safe test settings and a helper that builds a fresh app."""
 
 import base64
+import hashlib
 import os
 from collections.abc import Callable, Iterator
 from contextlib import nullcontext
@@ -34,6 +35,15 @@ os.environ["SNAPSHOT_ENCRYPTION_KEY"] = (
 )
 os.environ["FACE_TEMPLATE_KEY"] = (
     base64.urlsafe_b64encode(b"test-face-template-key-pytest-00").decode().rstrip("=")
+)
+# M4: a P-256 key made from a fixed phrase (the hash is the secret number), never a stored key.
+os.environ["OFFLINE_EVIDENCE_KEY"] = (
+    base64.urlsafe_b64encode(
+        bytes.fromhex("3041020100301306072a8648ce3d020106082a8648ce3d030107042730250201010420")
+        + hashlib.sha256(b"upasthiti pytest: offline evidence").digest()
+    )
+    .decode()
+    .rstrip("=")
 )
 os.environ["STORAGE_BACKEND"] = "local"
 

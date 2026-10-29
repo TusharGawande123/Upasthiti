@@ -81,13 +81,13 @@ describe("kiosks list", () => {
     renderRoute("/admin/kiosks");
 
     const active = (await screen.findByText("Main gate phone")).closest("tr") as HTMLElement;
-    expect(within(active).getByText("Active")).toBeInTheDocument();
+    expect(within(active).getByText("Online")).toBeInTheDocument(); // an old server sends no state
     expect(within(active).getByText("± 18 m")).toBeInTheDocument();
     const pending = screen.getByText("Spare tablet").closest("tr") as HTMLElement;
     expect(within(pending).getByText("Waiting for pairing")).toBeInTheDocument();
     expect(within(pending).getByText("Never")).toBeInTheDocument();
     const revoked = screen.getByText("Old phone").closest("tr") as HTMLElement;
-    expect(within(revoked).getByText("Revoked")).toBeInTheDocument();
+    expect(within(revoked).getByText("Switched off")).toBeInTheDocument();
     expect(within(revoked).getByText("Lost")).toBeInTheDocument();
     expect(within(revoked).queryByRole("button", { name: "Revoke" })).not.toBeInTheDocument();
   });

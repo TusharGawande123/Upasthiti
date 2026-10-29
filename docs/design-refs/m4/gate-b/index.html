@@ -1,0 +1,37 @@
+<!doctype html>
+<!-- Upasthiti - M4 design gate B: index of the "Needs review" screens. MOCKUP ONLY. -->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>M4 gate B mockups</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .intro { color: var(--muted-foreground); max-width: 72ch; margin: 0 0 24px; }
+    section { margin-bottom: 16px; }
+    .card { padding: 18px 20px; }
+    .card h2 { margin: 0; font-size: 18px; }
+    .meta { margin: 2px 0 12px; font-size: 13px; color: var(--muted-foreground); }
+    .states { display: flex; flex-wrap: wrap; gap: 8px; }
+    .states a { display: inline-flex; align-items: center; min-height: 44px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--primary-soft-foreground); font-weight: 600; font-size: 13.5px; text-decoration: none; }
+    .states a:hover { background: var(--primary-soft); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>M4 design gate B: "Needs review" (Super Admin only)</h1>
+  <p class="intro">Static mockups with made-up data and no photo of any person. Same "Steel &amp; Signal" admin look as M1 to M3 (<code>tokens.css</code>, <code>m3.css</code>, <code>gc.css</code> unchanged; new styles in <code>m4b.css</code>). Maps are drawn SVG stand-ins for Leaflet. Resize to 1280, 768 or 360 px; add <code>?shot</code> before the <code>#</code> to hide the state tag. Screenshots: <code>screenshots/</code>. Notes: <code>notes.md</code>.</p>
+  <section><div class="card"><h2>01 The list</h2><p class="meta">01-list.html - spec 4.8</p><div class="states">
+    <a href="01-list.html#default">To check (7)</a><a href="01-list.html#filters-open">Filters open</a><a href="01-list.html#filtered">Filters on</a><a href="01-list.html#filtered-empty">Filters match nothing</a><a href="01-list.html#loading">Loading</a><a href="01-list.html#error">Error</a><a href="01-list.html#empty-check">Empty: nothing to check</a>
+    <a href="01-list.html#rejected">Rejected</a><a href="01-list.html#rejected-filters">Rejected, filters</a><a href="01-list.html#rejected-cooldown">Show already-punched</a><a href="01-list.html#rejected-nobody">Names nobody</a><a href="01-list.html#rejected-empty">Empty: no rejected</a><a href="01-list.html#reviewed">Reviewed</a></div></div></section>
+  <section><div class="card"><h2>02 Detail side sheet</h2><p class="meta">02-detail.html - spec 4.8 (a) to (g), 5.3</p><div class="states">
+    <a href="02-detail.html#edge">(a) At the edge + map</a><a href="02-detail.html#edge-satellite">(a) Satellite</a><a href="02-detail.html#map-failed">(a) Map failed</a><a href="02-detail.html#travel">(b) Impossible travel</a><a href="02-detail.html#offline-anchored">(c) Offline, anchored</a><a href="02-detail.html#offline-unproven">(c) Offline, not proven</a>
+    <a href="02-detail.html#rejected-code">(d) Rejected, code typed</a><a href="02-detail.html#rejected-outside">(d) Rejected, card, map</a><a href="02-detail.html#rejected-nobody">(e) Names nobody</a><a href="02-detail.html#rejected-cooldown">Repeat scan</a><a href="02-detail.html#hints">(f) Repeat-pattern hints</a><a href="02-detail.html#history">(g) History</a><a href="02-detail.html#loading">Loading</a><a href="02-detail.html#error">Error</a></div></div></section>
+  <section><div class="card"><h2>03 Dialogs</h2><p class="meta">03-dialogs.html - spec 4.8, 7 rule 7</p><div class="states">
+    <a href="03-dialogs.html#confirm">Confirm</a><a href="03-dialogs.html#not-accepted">Not accepted</a><a href="03-dialogs.html#not-accepted-error">Reason too short</a><a href="03-dialogs.html#approve">Approve</a><a href="03-dialogs.html#approve-error">Approve: reason missing</a><a href="03-dialogs.html#approve-submitting">Approve: saving</a><a href="03-dialogs.html#change">Change review</a><a href="03-dialogs.html#conflict">REVIEW_CHANGED</a><a href="03-dialogs.html#server-error">Save failed</a><a href="03-dialogs.html#saved-next">Saved, next opens</a></div></div></section>
+</div>
+</body>
+</html>

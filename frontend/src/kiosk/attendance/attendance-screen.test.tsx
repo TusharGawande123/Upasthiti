@@ -1,13 +1,17 @@
 // The attendance screen of a paired kiosk (spec M2 §4.1 to §4.5, design gate B; AC-7, AC-10,
 // AC-31, AC-32). The camera, the QR decoder and the photo are fakes; the screens, the timers,
 // the signed requests and the texts are the real ones.
+
 import { act, screen, waitFor, waitForElementToBeRemoved } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { fakeGeolocation, fakeReading, resetFakeReading } from "@/test/fake-geolocation";
 import { apiError, mockApi } from "../../test/mock-api";
 import { renderRoute } from "../../test/render";
 import { createDeviceKey } from "../device-key";
-import { forgetDevice, saveDevice } from "../device-store";
+import { forgetDevice, oldestQueued, queueSummary, saveDevice } from "../device-store";
+import vector from "../offline/test-vector.json";
+import { forgetAnchorForTests } from "../offline/time-anchor";
 import { DEFAULT_SCREEN_SETTINGS, type PunchAnswer } from "./punch-types";
 
 // --- Fakes for the hardware ---------------------------------------------------------------------
@@ -138,7 +142,8 @@ beforeEach(async () => {
   fakes.cameraCount = 1;
   fakes.started = [];
   localStorage.clear();
-  vi.stubGlobal("navigator", { ...navigator, geolocation: {} });
+  resetFakeReading();
+  vi.stubGlobal("navigator", { ...navigator, geolocation: fakeGeolocation });
 });
 
 afterEach(() => {
@@ -571,5 +576,138 @@ describe("switching between the front and the back camera", () => {
     await screen.findByText("Show your ID card to the camera");
 
     expect(fakes.started[0]).toBe("environment");
+  });
+});
+
+describe("the gate's location (M4)", () => {
+  it("sends its location with every card punch and shows it in the top bar", async () => {
+    const calls = mockApi({
+      "GET /kiosk/me": { body: me() },
+      "POST /punch/kiosk": { body: answer() },
+    });
+    await openPairedKiosk();
+
+    expect(await screen.findByText("Location good (±10 m)")).toBeInTheDocument();
+    await showCard();
+
+    expect(await screen.findByText("IN")).toBeInTheDocument();
+    const sent = calls.find((call) => call.path === "/punch/kiosk")?.body as Record<
+      string,
+      unknown
+    >;
+    expect(sent.location).toMatchObject({ lat: 19.85, lon: 75.25, accuracy_m: 10 });
+    expect((sent.location as { age_s: number }).age_s).toBeGreaterThanOrEqual(0);
+  });
+
+  it("does not read cards while the location is too weak", async () => {
+    fakeReading.accuracy = 140;
+    const calls = mockApi({ "GET /kiosk/me": { body: me() } });
+    await openPairedKiosk();
+
+    expect(await screen.findByText("Location weak (±140 m)")).toBeInTheDocument();
+    fakes.qrText = CARD;
+    await new Promise((resolve) => setTimeout(resolve, 400));
+
+    expect(screen.queryByText(/Get ready for your photo/)).not.toBeInTheDocument();
+    expect(calls.some((call) => call.path === "/punch/kiosk")).toBe(false);
+  });
+});
+
+describe("punching while the internet is down (M4)", () => {
+  const OFFLINE_SETTINGS = {
+    enabled: true,
+    evidence_key_id: "A",
+    evidence_public_key: vector.server_public_key,
+    max_items: 2000,
+    max_mb: 200,
+    max_hours: 72,
+    cooldown_minutes: 2,
+    challenge_steps: 1,
+    sync_max_items: 20,
+    sync_max_bytes: 1_048_576,
+  };
+
+  // A server that answers the heartbeat once (so the gate has a time anchor and the offline
+  // settings) and then cannot be reached.
+  function meWithOffline() {
+    const base = me();
+    return {
+      ...base,
+      time_anchor: { server_time: "2026-10-20T03:54:10Z", counter: 1, token: "anchor-token" },
+      kiosk_settings: { ...base.kiosk_settings, offline: OFFLINE_SETTINGS },
+    };
+  }
+
+  beforeEach(() => {
+    forgetAnchorForTests();
+    // Storage with room to spare for the self-check (S-38).
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      geolocation: fakeGeolocation,
+      storage: {
+        persist: async () => true,
+        estimate: async () => ({ quota: 10_000 * 1024 * 1024, usage: 0 }),
+      },
+    });
+  });
+
+  it("saves a card punch on the device and says SAVED, with no name and no IN or OUT", async () => {
+    mockApi({ "GET /kiosk/me": { body: meWithOffline() } });
+    await openPairedKiosk();
+    await screen.findByText("Location good (±10 m)");
+    // The punch request cannot reach the server any more: the next call has no fake answer.
+    await showCard();
+
+    expect(await screen.findByText("SAVED")).toBeInTheDocument();
+    expect(screen.getByText("Saved – will be confirmed")).toBeInTheDocument();
+    expect(screen.getByText(/Your punch is saved on this attendance device\./)).toBeInTheDocument();
+    expect(screen.queryByText("IN")).not.toBeInTheDocument();
+    expect(screen.queryByText("Sunil More")).not.toBeInTheDocument();
+    expect((await queueSummary()).count).toBe(1);
+    const [saved] = await oldestQueued(5, 10_000_000);
+    expect(saved?.signedItem).not.toContain("UPS1"); // nothing readable is kept
+  });
+
+  it("shows the waiting count and the last-sync line after a punch was saved", async () => {
+    mockApi({ "GET /kiosk/me": { body: meWithOffline() } });
+    await openPairedKiosk();
+    await screen.findByText("Location good (±10 m)");
+    await showCard();
+    await screen.findByText("SAVED");
+
+    await waitForElementToBeRemoved(() => screen.queryByText("SAVED"), { timeout: 5000 });
+
+    expect(await screen.findByText("1 saved")).toBeInTheDocument();
+    expect(screen.getByText(/^1 punch waiting since \d\d:\d\d$/)).toBeInTheDocument();
+  });
+
+  it("keeps the honest 'NOT SAVED' message when this server has no offline mode", async () => {
+    mockApi({ "GET /kiosk/me": { body: me() } });
+    await openPairedKiosk();
+    await showCard();
+
+    expect(await screen.findByText("NOT SAVED")).toBeInTheDocument();
+    expect(screen.getByText("No internet. Your punch was NOT saved.")).toBeInTheDocument();
+    expect((await queueSummary()).count).toBe(0);
+  });
+
+  it("says NOT SAVED when the device has too little storage for offline punches", async () => {
+    vi.stubGlobal("navigator", {
+      ...navigator,
+      geolocation: fakeGeolocation,
+      storage: { persist: async () => false, estimate: async () => ({ quota: 10, usage: 0 }) },
+    });
+    mockApi({ "GET /kiosk/me": { body: meWithOffline() } });
+    await openPairedKiosk();
+    await screen.findByText("Location good (±10 m)");
+    await showCard();
+
+    expect(await screen.findByText("NOT SAVED")).toBeInTheDocument();
+    expect(
+      screen.getByText(
+        "This attendance device cannot save punches without internet. Your punch was NOT saved.",
+      ),
+    ).toBeInTheDocument();
+    expect((await queueSummary()).count).toBe(0);
   });
 });

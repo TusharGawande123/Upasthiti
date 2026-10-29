@@ -15,19 +15,28 @@ import uuid
 from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
+from decimal import Decimal
 
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from app.antiproxy.context import Outcome, PunchContext, PunchLimits
-from app.antiproxy.engine import EngineDecision, run_qr_rules
+from app.antiproxy.engine import (
+    OFFLINE_QR_RULES,
+    QR_RULES,
+    TEST_CARD_RULES,
+    EngineDecision,
+    run_qr_rules,
+)
+from app.antiproxy.rules.read_card import read_card
 from app.core.config import Settings, get_settings
 from app.core.crypto import decode_key, encrypt_snapshot
 from app.core.storage import Storage, StorageError, get_storage
 from app.core.time import utc_now
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees.models import Employee
+from app.modules.kiosks.location_check import Location, check_location
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches.answers import (
     ALREADY_PUNCHED_CODES,
@@ -37,11 +46,11 @@ from app.modules.punches.answers import (
 )
 from app.modules.punches.models import (
     Punch,
-    PunchDecision,
     PunchMethod,
     PunchSnapshot,
     SnapshotState,
 )
+from app.modules.punches.offline_time import OfflinePunch
 from app.modules.punches.schemas import KioskPunchRequest, KioskPunchResponse
 from app.modules.punches.snapshots import CheckedSnapshot
 from app.modules.qr_cards.models import CardKind, QrCredential
@@ -67,7 +76,19 @@ def load_limits(session: Session) -> PunchLimits:
         min_minutes_before_out=get_int_setting(session, "min_minutes_before_out"),
         open_in_max_hours=get_int_setting(session, "open_in_max_hours"),
         snapshot_dark_threshold=get_int_setting(session, "snapshot_dark_threshold"),
+        location_max_age_seconds=get_int_setting(session, "kiosk_location_max_age_seconds"),
+        impossible_travel_kmh=get_int_setting(session, "impossible_travel_kmh"),
+        impossible_travel_min_distance_m=get_int_setting(
+            session, "impossible_travel_min_distance_m"
+        ),
+        same_person_two_devices_minutes=get_int_setting(session, "same_person_two_devices_minutes"),
+        offline_max_hours=get_int_setting(session, "offline_max_hours"),
     )
+
+
+def reported_location(request: KioskPunchRequest) -> Location | None:
+    report = request.location
+    return None if report is None else Location(report.lat, report.lon, report.accuracy_m)
 
 
 def record_kiosk_punch(
@@ -77,15 +98,17 @@ def record_kiosk_punch(
     client: ClientInfo,
     storage: Storage | None = None,
     after_photo: Callable[[uuid.UUID, bytes], None] | None = None,
+    offline: OfflinePunch | None = None,
 ) -> KioskPunchResponse:
-    """`after_photo` gets the stored photo after the commit (M3 F-30: a face-in-photo check)."""
+    """`after_photo` gets the stored photo after the commit (M3 F-30: a face-in-photo check).
+    `offline` is set for a punch saved by the gate while offline and decided at sync (M4)."""
     limits = load_limits(session)
 
     already_stored = find_punch(session, kiosk, request.client_punch_id)
     if already_stored is not None:
         return punch_answer(session, already_stored, kiosk.name, limits)
 
-    now = utc_now()
+    now = offline.punch_time if offline else utc_now()
     _lock_employee_of_card(session, request.qr_payload or "")
     context = PunchContext(
         session=session,
@@ -95,8 +118,17 @@ def record_kiosk_punch(
         limits=limits,
         qr_text=request.qr_payload,
         snapshot_bytes=_decode_photo(request.snapshot_jpeg),
+        location=reported_location(request),
+        location_age_s=request.location.age_s if request.location else None,
+        is_offline=offline is not None,
+        time_proof=offline.time_proof if offline else None,
+        received_at=offline.received_at if offline else None,
     )
-    decision = run_qr_rules(context)
+    read_card(context)  # only reads which card it is; the chain below reads it again
+    is_test_card = context.card is not None and context.card.kind == CardKind.TEST.value
+    live_or_offline = OFFLINE_QR_RULES if offline else QR_RULES
+    rules = TEST_CARD_RULES if is_test_card else live_or_offline
+    decision = run_qr_rules(context, rules)
 
     if decision.outcome is Outcome.SELF_TEST:
         return _record_self_test(session, kiosk, context, client, now)
@@ -108,13 +140,14 @@ def record_kiosk_punch(
             session, kiosk, context, client, now, decision.reason_codes[0]
         )
 
-    punch = _build_punch(kiosk, request, client, context, decision, now)
+    punch = _build_punch(kiosk, request, client, context, decision, now, offline)
     snapshot = _store_snapshot(session, punch, context, decision, now, storage)
     try:
         session.add(punch)
         session.flush()  # the unique (kiosk, client_punch_id) rule is checked here
         if snapshot is not None:
             session.add(snapshot)
+        note_last_punch(kiosk, punch)
         session.commit()
     except IntegrityError:
         # Another request with the same id won the race: undo and give its answer.
@@ -188,7 +221,8 @@ def _record_self_test(
         plant_id=kiosk.plant_id,
     )
     session.commit()
-    return self_test_answer(kiosk.name, now)
+    verdict = check_location(session, kiosk.plant_id, context.location)
+    return self_test_answer(kiosk.name, now, verdict.refusal_code or "ok")
 
 
 def _record_refused_test_card(
@@ -222,8 +256,9 @@ def _build_punch(
     context: PunchContext,
     decision: EngineDecision,
     now: datetime,
+    offline: OfflinePunch | None = None,
 ) -> Punch:
-    accepted = decision.outcome is Outcome.ALLOW
+    counts = decision.outcome is Outcome.ALLOW
     location = request.location
     return Punch(
         id=uuid.uuid4(),
@@ -233,17 +268,46 @@ def _build_punch(
         employee_id=context.employee.id if context.employee else None,
         qr_credential_id=context.card.id if context.card else None,
         method=PunchMethod.QR.value,
-        direction=decision.direction.value if accepted and decision.direction else None,
-        decision=PunchDecision.ACCEPTED.value if accepted else PunchDecision.REJECTED.value,
+        direction=decision.direction.value if counts and decision.direction else None,
+        decision=decision.decision_value,
         reason_codes=decision.reason_codes,
-        server_received_at=now,
+        **offline_columns(offline, now),
         device_claimed_at=request.device_time,
         lat=location.lat if location else None,
         lon=location.lon if location else None,
         accuracy_m=location.accuracy_m if location else None,
+        location_age_s=location.age_s if location else None,
+        geofence_id=context.geofence_id,
+        geofence_distance_m=metres(context.geofence_distance_m),
+        related_punch_id=context.related_punch_id,
         ip=client.ip,
         app_version=request.app_version,
     )
+
+
+def note_last_punch(kiosk: KioskDevice, punch: Punch) -> None:
+    """The device's newest punch time, for the devices page (M4 spec §7 rule 15). Kept in the
+    same transaction as the punch row, so the two never disagree."""
+    moment = punch.offline_punch_time or punch.server_received_at
+    if kiosk.last_punch_at is None or kiosk.last_punch_at < moment:
+        kiosk.last_punch_at = moment
+
+
+def offline_columns(offline: OfflinePunch | None, now: datetime) -> dict[str, object]:
+    """The time columns of a punch row: a live punch has only the server time."""
+    if offline is None:
+        return {"server_received_at": now}
+    return {
+        "server_received_at": offline.received_at,
+        "offline_punch_time": offline.punch_time,
+        "was_offline": True,
+        "time_proof": offline.time_proof,
+        "device_counter": offline.device_counter,
+    }
+
+
+def metres(value: float | None) -> Decimal | None:
+    return None if value is None else Decimal(f"{value:.1f}")
 
 
 def _store_snapshot(

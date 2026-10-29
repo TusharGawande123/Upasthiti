@@ -1,0 +1,41 @@
+<!doctype html>
+<!-- Upasthiti - M4 design gate C: index of every admin screen and state. MOCKUP ONLY. -->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>M4 gate C mockups</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="tokens.css" />
+  <style>
+    .wrap { max-width: 1000px; margin: 0 auto; padding: 32px 20px 64px; }
+    h1 { font-size: 28px; letter-spacing: -0.02em; margin: 0 0 8px; }
+    .intro { color: var(--muted-foreground); max-width: 72ch; margin: 0 0 24px; }
+    section { margin-bottom: 16px; }
+    .card { padding: 18px 20px; }
+    .card h2 { margin: 0; font-size: 18px; }
+    .meta { margin: 2px 0 12px; font-size: 13px; color: var(--muted-foreground); }
+    .states { display: flex; flex-wrap: wrap; gap: 8px; }
+    .states a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--border-strong); background: var(--surface); color: var(--primary-soft-foreground); font-weight: 600; font-size: 13.5px; text-decoration: none; }
+    .states a:hover { background: var(--primary-soft); }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>M4 design gate C: admin screens for location, offline and flagged punches</h1>
+  <p class="intro">Static mockups with made-up data, no photo of any person. Same "Steel &amp; Signal" tokens as M1 to M3 (<code>tokens.css</code>, <code>m3.css</code>, <code>gc.css</code> copied unchanged from <code>m3/gate-c</code>; new styles in <code>m4c.css</code>), Inter, Lucide icons. "Today" is Wednesday 28/10/2026. Resize the browser to 1280, 768 or 360 px; add <code>?shot</code> before the <code>#</code> to hide the state tag. Screenshots are in <code>screenshots/</code>; notes and open questions in <code>notes.md</code>.</p>
+  <section><div class="card"><h2>01 Attendance devices</h2><p class="meta">01-devices.html - spec 4.7 (status, columns, health monitor+, revoke dialog)</p><div class="states">
+    <a href="01-devices.html#default">Super Admin, every status</a><a href="01-devices.html#filter-offline">Opened from the badge: Offline</a><a href="01-devices.html#corporate-head">Corporate Head</a><a href="01-devices.html#plant-head">Plant Head</a><a href="01-devices.html#empty">Empty</a><a href="01-devices.html#loading">Loading</a><a href="01-devices.html#error">Error</a>
+    <a href="01-devices.html#drawer-online">Drawer: Online</a><a href="01-devices.html#drawer-offline">Drawer: Offline</a><a href="01-devices.html#drawer-needs-location">Drawer: Needs location</a><a href="01-devices.html#drawer-sending">Drawer: Sending</a><a href="01-devices.html#drawer-corporate-head">Drawer: Corporate Head</a><a href="01-devices.html#revoke-waiting">Revoke: 12 waiting</a><a href="01-devices.html#revoke-clean">Revoke: nothing waiting</a></div></div></section>
+  <section><div class="card"><h2>02 Shell: badge, alert, readiness</h2><p class="meta">02-shell.html - spec 4.7 (F-36, F-46, F-17)</p><div class="states">
+    <a href="02-shell.html#default">1 offline</a><a href="02-shell.html#two-offline">2 offline</a><a href="02-shell.html#banner-hidden">Alert hidden</a><a href="02-shell.html#all-online">All online</a><a href="02-shell.html#plant-head">Plant Head</a><a href="02-shell.html#corporate-head">Corporate Head (no alert)</a><a href="02-shell.html#menu-open">Phone menu</a></div></div></section>
+  <section><div class="card"><h2>03 Punch log</h2><p class="meta">03-punch-log.html - spec 4.9</p><div class="states">
+    <a href="03-punch-log.html#default">Super Admin, today</a><a href="03-punch-log.html#filter-flagged">Chip: Flagged</a><a href="03-punch-log.html#filter-offline">Chip: Saved offline</a><a href="03-punch-log.html#filter-empty">No match</a><a href="03-punch-log.html#corporate-head">Corporate Head</a><a href="03-punch-log.html#plant-head">Plant Head</a><a href="03-punch-log.html#loading">Loading</a><a href="03-punch-log.html#export">Export columns</a>
+    <a href="03-punch-log.html#detail-edge">Detail: edge</a><a href="03-punch-log.html#detail-travel">Detail: travel</a><a href="03-punch-log.html#detail-offline-unproven">Detail: time not proven</a><a href="03-punch-log.html#detail-offline-ok">Detail: offline, anchored</a><a href="03-punch-log.html#detail-stale">Detail: stale, Confirmed</a><a href="03-punch-log.html#detail-sync-conflict">Detail: sync conflict</a><a href="03-punch-log.html#detail-too-old">Detail: too old</a><a href="03-punch-log.html#detail-reviewed-no">Detail: Not accepted</a><a href="03-punch-log.html#detail-approved">Detail: Approved as IN</a><a href="03-punch-log.html#detail-ch">Detail: Corporate Head</a><a href="03-punch-log.html#detail-ph">Detail: Plant Head</a></div></div></section>
+  <section><div class="card"><h2>04 Dashboard cards</h2><p class="meta">04-dashboard.html - spec 4.10 (F-48)</p><div class="states">
+    <a href="04-dashboard.html#default">Super Admin</a><a href="04-dashboard.html#attention">Worse morning</a><a href="04-dashboard.html#all-clear">All clear</a><a href="04-dashboard.html#digest-earlier">Digest: earlier day</a><a href="04-dashboard.html#digest-oldest">Digest: oldest day</a><a href="04-dashboard.html#plant-head">Plant Head</a><a href="04-dashboard.html#corporate-head">Corporate Head</a><a href="04-dashboard.html#loading">Loading</a><a href="04-dashboard.html#error">Error</a></div></div></section>
+  <section><div class="card"><h2>05 Settings cards</h2><p class="meta">05-settings.html - spec 4.11</p><div class="states">
+    <a href="05-settings.html#default">Both cards</a><a href="05-settings.html#gps-raised">Accuracy raised: warning</a><a href="05-settings.html#margin-raised">Margin raised: warning</a><a href="05-settings.html#alert-error">Alert shorter than offline</a><a href="05-settings.html#refresh-error">Refresh longer than max age</a><a href="05-settings.html#save-reason">Reason dialog</a><a href="05-settings.html#corporate-head">Corporate Head</a><a href="05-settings.html#plant-head">Plant Head</a><a href="05-settings.html#loading">Loading</a></div></div></section>
+</div>
+</body>
+</html>

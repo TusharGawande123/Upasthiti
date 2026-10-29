@@ -13,6 +13,7 @@ from pydantic import Field, SecretStr, ValidationError, field_validator, model_v
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.crypto import decode_key
+from app.core.offline_crypto import load_offline_key
 
 # Used only outside production when APP_PUBLIC_ORIGIN is not set: the Vite dev server.
 DEVELOPMENT_ORIGIN = "http://localhost:5173"
@@ -83,10 +84,18 @@ class Settings(BaseSettings):
     # "fake" swaps the models for painted test pictures; it is honoured ONLY when APP_ENV=test.
     face_engine: Literal["real", "fake"] = "real"
 
+    # --- M4: offline gate devices (spec §8.2) ---
+    # The server's P-256 private key that opens the evidence of offline punches. Required in
+    # production; without it in development the gate's offline mode stays off.
+    offline_evidence_key: SecretStr | None = None
+    # A letter stored in every offline punch, so a later key change stays possible.
+    offline_evidence_key_id: str = Field(default="A", pattern=r"^[A-Z]$")
+
     @field_validator(
         "qr_signing_key",
         "snapshot_encryption_key",
         "face_template_key",
+        "offline_evidence_key",
         "storage_backend",
         "supabase_url",
         "supabase_service_key",
@@ -104,6 +113,13 @@ class Settings(BaseSettings):
     def key_must_be_32_bytes(cls, key: SecretStr | None) -> SecretStr | None:
         if key is not None:
             decode_key(key.get_secret_value())  # raises ValueError; the text is never echoed
+        return key
+
+    @field_validator("offline_evidence_key")
+    @classmethod
+    def offline_key_must_be_p256(cls, key: SecretStr | None) -> SecretStr | None:
+        if key is not None:
+            load_offline_key(key.get_secret_value())  # raises ValueError; never echoed
         return key
 
     @field_validator("database_url")
@@ -135,6 +151,7 @@ class Settings(BaseSettings):
             ("qr_signing_key", self.qr_signing_key),
             ("snapshot_encryption_key", self.snapshot_encryption_key),
             ("face_template_key", self.face_template_key),
+            ("offline_evidence_key", self.offline_evidence_key),
             ("storage_backend", self.storage_backend),
         ]
         if self.storage_backend == "supabase":

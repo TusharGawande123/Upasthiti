@@ -26,6 +26,9 @@ export type Readiness = {
   active_kiosks: number;
   active_employees: number;
   ready: boolean;
+  // M4: a device of this plant works right now, and its location is good (optional on old servers).
+  device_online?: boolean;
+  location_good?: boolean;
 };
 
 export type SetupStepKey = "plants" | "geofence" | "shifts_and_categories" | "kiosk" | "employees";

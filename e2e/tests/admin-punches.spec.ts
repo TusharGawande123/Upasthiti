@@ -212,7 +212,10 @@ test("the kiosks and settings pages with the M2 additions have no serious access
 }) => {
   await openAsSuperAdmin(page);
 
-  await page.getByRole("link", { name: "Attendance devices" }).click();
+  await page
+    .getByRole("navigation", { name: "Main menu" })
+    .getByRole("link", { name: "Attendance devices" })
+    .click();
   await expect(page.getByRole("switch", { name: "Sound at Admin test gate" })).toBeVisible();
   await expectNoSeriousAccessibilityIssues(page);
 

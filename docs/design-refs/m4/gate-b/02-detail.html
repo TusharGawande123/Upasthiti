@@ -1,0 +1,40 @@
+<!doctype html>
+<!-- Upasthiti - M4 design gate B - screen 2: detail side sheet (spec 4.8). MOCKUP ONLY: static HTML, fake data (made-up names and codes; no photo of any person). State = URL hash. -->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti needs review</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4b.css" />
+</head>
+<body>
+<div class="app"><aside id="sidebar" class="sidebar"></aside><div class="main"><header id="topbar" class="topbar"></header><main class="page" id="page"></main></div></div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="rv.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Needs review";
+  window.MOCK_USER = { name: "Asha Rao", role: "Super Admin" };
+  const S = location.hash.replace("#", "") || "default";
+  /* The list sits behind the sheet. Which tab and which row is open depends on the state. */
+  const MAP = {
+    "edge": ["check", "c1"], "edge-satellite": ["check", "c1"], "map-failed": ["check", "c1"], "travel": ["check", "c2"], "offline-anchored": ["check", "c6"], "offline-unproven": ["check", "c3"], "hints": ["check", "c4"],
+    "rejected-outside": ["rejected", "r1"], "rejected-code": ["rejected", "r2"], "rejected-nobody": ["rejected", "r3"], "rejected-cooldown": ["rejected", "r6"], "history": ["reviewed", "v1"], "loading": ["check", "c1"], "error": ["check", "c1"],
+  };
+  const st = S === "default" ? "edge" : S;
+  const m = MAP[st] || ["check", "c1"];
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = listPage({ tab: m[0], openId: m[1], showCooldown: st === "rejected-cooldown" });
+    document.getElementById("layer").innerHTML = buildSheet(st); fitShot();
+    const tags = { edge: "(a) flag: at the edge of the fence + map", "edge-satellite": "(a) same, satellite view", "map-failed": "(a) map pictures failed to load", travel: "(b) flag: impossible travel, two punches + map", "offline-anchored": "(c) offline, time anchored to the server", "offline-unproven": "(c) offline, time not proven", "rejected-code": "(d) rejected, names an employee (code typed)", "rejected-outside": "(d) rejected, names an employee (card), with map", "rejected-nobody": "(e) rejected, names nobody", "rejected-cooldown": "rejected, repeat scan (no action)", hints: "(f) repeat-pattern hints (F-54)", history: "(g) reviewed punch with history", loading: "loading", error: "error loading" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[st] || st);
+  });
+</script>
+</body>
+</html>

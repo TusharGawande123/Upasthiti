@@ -111,6 +111,8 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   (`FACE_ENGINE=fake`, honoured only with APP_ENV=test).
 - Added in M3 (all free): @fontsource/jetbrains-mono 5.3 (SIL OFL, code font of the gate screen),
   onnxruntime (MIT), opencv-python-headless (Apache-2.0), numpy (BSD).
+- Added in M4 (all free): vite-plugin-pwa 2.0.0 (MIT, with Workbox: the gate page loads offline;
+  service worker scope /attendance only). No new backend package (cryptography has ECDH, HKDF, AES-GCM).
 - Tooling: uv, Ruff, pyright, pytest · Biome, Vitest, Playwright ·
   pre-commit, Dependabot, GitHub Actions.
 - M0 choices that differ from the first plan (docs/decisions/0003-dev-tooling.md):
@@ -228,7 +230,13 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
       with face", server-chosen head turn + anti-spoof, 1:N match, employee-code fallback with a
       1:1 match; face settings; duplicate-face check; accuracy tool; 512 MB container check in
       CI (spec docs/specs/M3-face-attendance.md, decisions 0016 to 0023). Model: buffalo_s.
-- [ ] M4 Anti-proxy engine + kiosk geofence + offline kiosk sync
+- [x] M4 Anti-proxy engine + location on every punch + offline gate sync (built on
+      milestone/M4-anti-proxy-offline, merged with its PR). Location on every punch (edge = flag),
+      impossible-travel and two-device flags, offline card and face punches (sealed evidence, server time
+      anchor, signed sync), attendance device status + health, Super Admin "Needs review" screen
+      (confirm / not accepted / approve), daily digest (spec docs/specs/M4-anti-proxy-offline.md,
+      decisions 0025 to 0028). Still open: real-device check (gate phone and PC, one hour offline) and
+      the open points of decision 0028.
 - [ ] M4b Optional phone punching (admin-controlled per employee) + temp workers'
       phone scan of the gate QR
 - [ ] M5 Attendance processing, dashboards, reports
@@ -278,7 +286,7 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - Backend (from backend/):
   - `uv sync`: install dependencies.
   - `uv run fastapi dev app/main.py`: run the API locally (docs at /api/docs).
-  - `uv run pytest`: run the tests (coverage floor 80% since M3, raised each milestone). Add
+  - `uv run pytest`: run the tests (coverage floor 82% since M4, raised each milestone). Add
     `-m face_models` for the tests that use the real face models.
   - `uv run ruff check . && uv run ruff format .`: lint and format.
   - `uv run pyright`: type check.
@@ -300,17 +308,19 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   - `uv run python scripts/download_models.py`: download the face models (sha256 checked) into
     `FACE_MODELS_DIR` (M3).
   - `uv run python -m app.scripts.make_face_key`: print a new `FACE_TEMPLATE_KEY` line (M3).
+  - `uv run python -m app.scripts.make_offline_key`: print a new `OFFLINE_EVIDENCE_KEY` line (M4).
   - `uv run python -m app.scripts.face_accuracy --faces <folder> [--spoof <folder>]`: false
     accept / false reject report and threshold curve; data folders must be outside the repo (M3).
   - `uv run python -m app.scripts.face_memory_check`: 20 signed face punches through the real
     models; fails above 450 MB (also the CI `docker` job).
 - Frontend (from frontend/):
   - `npm install`, then `npm run dev` (Vite; proxies /api to the local backend).
-  - `npm test` (Vitest + coverage, floor 80 since M3), `npm run lint` / `npm run lint:fix` (Biome),
+  - `npm test` (Vitest + coverage, floor 82 since M4), `npm run lint` / `npm run lint:fix` (Biome),
     `npm run typecheck`, `npm run build`.
   - `npm run i18n:check`: every text key used in code exists in
     `public/locales/en/common.json`, and every server error code has an `errors.<CODE>` text.
-  - `npm run size` (after the build): bundle budgets; the admin's first load has no kiosk code.
+  - `npm run size` (after the build): bundle budgets (the gate page has its own budget, 65 kB gzip);
+    the admin's first load has no kiosk code; it also checks the gate service worker.
 - End-to-end (from e2e/): `npx playwright test` (starts backend + frontend itself; add
   `--headed` to watch the browser; `tests/responsive.spec.ts` checks phone and tablet sizes). It needs the local Postgres (`docker compose up -d`),
   uses its own database `upasthiti_e2e` (wiped each run) and runs tests one after another.
@@ -355,6 +365,15 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - Gate devices are phones and PCs. Every kiosk must give an accurate location inside the
   geofence (pairing, and every punch from M4): location switched on, phone or PC. No
   approval route, no network check, no extra hardware (decision 0005).
+- Flags and review (M4): a punch at the edge of the fence (inside the margin), an impossible trip,
+  the same card or person at two devices soon, an offline punch with an unproven or too old time or a
+  reused old location (`LOCATION_STALE`), or one that arrives after a later punch is FLAGGED: it counts
+  at once and the gate shows a normal IN/OUT with no flag code. Only the Super Admin reviews (menu
+  "Needs review"): confirm, not accepted (stops counting), or approve a rejected punch that names an
+  employee. Reviews are new append-only rows; the punch row never changes. `punches/counting.py` is the
+  one place that says what counts. Offline: the gate saves sealed punches (locked for the server only),
+  uses the server time plus elapsed time (never its own clock) and sends them signed; the server decides.
+  Device health samples are kept 7 days.
 - Default shift 07:00–19:00; the Super Admin can add shifts (setting, never
   hard-coded). Each new plant also gets the categories Staff, Worker, Operator, Helper.
 - QR snapshot retention default: 60 days (a setting). Snapshots are encrypted (AES-256-GCM,
@@ -379,6 +398,9 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   buffalo_s; changing it means re-enrolling everyone), `FACE_DETECTOR_INPUT` (320, 480 or 640),
   `FACE_MODELS_DIR`, `FACE_ENGINE` (`fake` only with APP_ENV=test) and `E2E_PAIRING_LIMIT`
   (set by the e2e server only, honoured only with APP_ENV=test).
+  From M4, required in production: `OFFLINE_EVIDENCE_KEY` (lose it and the punches still waiting on gate
+  devices cannot be read; keep it in the password manager); optional `OFFLINE_EVIDENCE_KEY_ID`
+  (a letter, default A).
 - Face settings (Super Admin, groups "face" and "privacy"): match threshold, margin, ask-for-
   code floor, code threshold (never below the floor), anti-spoof threshold, head-turn steps
   (1 or 2), retry and code-entry times, re-enrol hints, `company_address` and `privacy_contact`

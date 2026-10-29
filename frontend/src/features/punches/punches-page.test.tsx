@@ -125,7 +125,9 @@ describe("punch log: the list", () => {
     expect(screen.getByRole("button", { name: /41\s*Accepted OUT/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /15\s*Rejected/ })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /3\s*Dark photos/ })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /3\s*Card of another plant/ })).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /3\s*Registered at another plant/ }),
+    ).toBeInTheDocument();
   });
 
   it("shows the empty state for a day without punches", async () => {
@@ -193,7 +195,7 @@ describe("punch log: the chips and filters", () => {
     await user.click(screen.getByRole("button", { name: /3\s*Dark photos/ }));
     await waitFor(() => expect(lastQuery(calls, "/punches").get("dark_only")).toBe("true"));
 
-    await user.click(screen.getByRole("button", { name: /3\s*Card of another plant/ }));
+    await user.click(screen.getByRole("button", { name: /3\s*Registered at another plant/ }));
     await waitFor(() => {
       expect(lastQuery(calls, "/punches").get("reason_code")).toBe("WRONG_PLANT");
       expect(lastQuery(calls, "/punches").get("dark_only")).toBeNull();
@@ -281,7 +283,9 @@ describe("punch log: the roles", () => {
 
     const visitorRow = screen.getAllByRole("row")[1] as HTMLElement;
     // In the employee column and again as the reason.
-    expect(within(visitorRow).getAllByText("Card of another plant")).toHaveLength(2);
+    // The person cell says the card is of another plant; the reason says where it is registered.
+    expect(within(visitorRow).getAllByText("Card of another plant")).toHaveLength(1);
+    expect(within(visitorRow).getAllByText("Registered at another plant")).toHaveLength(1);
     expect(within(visitorRow).queryByText(/T-\d+/)).not.toBeInTheDocument();
   });
 

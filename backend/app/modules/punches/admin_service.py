@@ -82,20 +82,38 @@ def read_snapshot(
 
 # --- Excel export -------------------------------------------------------------------------------
 
+# People read this file, so the gate device is an "attendance device" here (decision 0013).
 COLUMNS = (
     ("Date", 12),
     ("Time (IST)", 10),
-    ("Plant (kiosk)", 22),
+    ("Plant (attendance device)", 22),
     ("Employee code", 15),
     ("Name", 28),
-    ("Kiosk", 22),
+    ("Attendance device", 22),
     ("Direction", 10),
     ("Result", 10),
     ("Reason code", 22),
     ("Reason", 36),
     ("Photo", 22),
+    # M4 (spec §4.9): Date and Time are when the server received the punch; "Punch time" is
+    # when it was made (different only for a punch saved offline).
+    ("Punch time", 20),
+    ("Saved offline", 13),
+    ("Flags", 40),
+    ("Review", 18),
 )
 HIDDEN_EMPLOYEE = "Card of another plant"
+RESULT_TEXTS = {
+    "accepted": "Accepted",
+    "flagged": "Flagged",
+    "needs_code": "Asked for code",
+    "rejected": "Rejected",
+}
+REVIEW_TEXTS = {
+    "to_check": "To check",
+    "confirmed": "Confirmed",
+    "not_accepted": "Not accepted",
+}
 
 
 @dataclass(frozen=True)
@@ -118,15 +136,33 @@ def _photo_text(item: PunchLogItem) -> str:
             return "No photo"
 
 
+def _flag_codes(item: PunchLogItem) -> list[str]:
+    """A flagged punch's codes are all flags; a rejected punch's first code is the rejection and
+    any after it are flags collected before it (spec M4 §7 rule 2)."""
+    if item.decision == "flagged":
+        return item.reason_codes
+    if item.decision == "rejected":
+        return item.reason_codes[1:]
+    return []
+
+
+def _review_text(item: PunchLogItem) -> str:
+    if item.review_state == "approved":
+        return f"Approved as {(item.review_direction or '').upper()}".strip()
+    return REVIEW_TEXTS.get(item.review_state or "", "")
+
+
 def _row(item: PunchLogItem) -> list[str]:
     moment = to_ist(item.server_received_at)
+    made_at = to_ist(item.punch_time or item.server_received_at)
     if item.employee is not None:
         code, name = item.employee.code, item.employee.name
     elif item.employee_hidden:
         code, name = "", HIDDEN_EMPLOYEE
     else:
         code, name = "", "Unknown card"
-    reason = item.reason_codes[0] if item.reason_codes else ""
+    # A flagged punch has no rejection reason: its codes go into "Flags" only.
+    reason = item.reason_codes[0] if item.reason_codes and item.decision != "flagged" else ""
     return [
         f"{moment:%d/%m/%Y}",
         f"{moment:%H:%M:%S}",
@@ -135,10 +171,14 @@ def _row(item: PunchLogItem) -> list[str]:
         name,
         item.kiosk.name,
         (item.direction or "").upper(),
-        "Accepted" if item.decision == "accepted" else "Rejected",
+        RESULT_TEXTS.get(item.decision, "Rejected"),
         reason,
         reason_text(reason) if reason else "",
         _photo_text(item),
+        f"{made_at:%d/%m/%Y %H:%M:%S}",
+        "Yes" if item.was_offline else "No",
+        "; ".join(f"{reason_text(flag)} ({flag})" for flag in _flag_codes(item)),
+        _review_text(item),
     ]
 
 

@@ -1,4 +1,7 @@
-// The server's answers that the kiosk attendance screens use (spec M2 §5.2, M3 §5.2).
+// The server's answers that the kiosk attendance screens use (spec M2 §5.2, M3 §5.2, M4 §5.1).
+import type { KioskLocationSettings } from "../location/gate-location";
+import type { KioskOfflineSettings } from "../offline/offline-queue";
+import type { TimeAnchor } from "../offline/time-anchor";
 
 /** After a face punch the server may ask for the employee code (`needs_code`, spec M3 §4.5). */
 export type CodeEntry = { token: string; expires_at: string; tries_left: number };
@@ -19,8 +22,12 @@ export type PunchAnswer = {
     out_allowed_from?: string | null;
     /** Face rejections where trying again can help (spec M3 §4.6). */
     retry_allowed?: boolean | null;
+    /** M4 self test: "ok", or the location rule's code ("Location ✓" / "Location ✗"). */
+    location_check?: string | null;
   };
   code_entry?: CodeEntry | null;
+  /** M4: the server's time for the offline clock; also remembered by the signer. */
+  time_anchor?: TimeAnchor | null;
 };
 
 export type KioskNotice = {
@@ -53,6 +60,10 @@ export type KioskScreenSettings = {
   snapshot_retention_days: number;
   dark_threshold: number;
   face: KioskFaceSettings;
+  /** M4: how the gate judges its location, and the plant's fence (absent on an older server). */
+  location?: KioskLocationSettings;
+  /** M4: what the gate needs to save punches while offline (absent on an older server). */
+  offline?: KioskOfflineSettings;
 };
 
 /** GET /kiosk/me: the heartbeat answer. */
@@ -64,6 +75,7 @@ export type KioskMe = {
   server_time: string;
   notices: KioskNotice[];
   kiosk_settings: KioskScreenSettings;
+  time_anchor?: TimeAnchor | null;
 };
 
 /** Used until the first heartbeat answers (the server defaults, spec §7 rule 12). */

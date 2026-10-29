@@ -7,7 +7,10 @@ import { apiError, mockApi } from "../test/mock-api";
 import { renderRoute } from "../test/render";
 import { DEFAULT_SCREEN_SETTINGS } from "./attendance/punch-types";
 import { createDeviceKey } from "./device-key";
-import { forgetDevice, loadDevice, saveDevice } from "./device-store";
+import { forgetDevice, loadDevice, queueSummary, saveDevice } from "./device-store";
+import { saveOfflinePunch } from "./offline/offline-queue";
+import vector from "./offline/test-vector.json";
+import { forgetAnchorForTests, rememberAnchor } from "./offline/time-anchor";
 
 type FakeGeolocation = {
   accuracy?: number;
@@ -244,6 +247,42 @@ describe("a device that is already paired", () => {
     await user.click(screen.getByRole("button", { name: "Type a new code" }));
     expect(await screen.findByRole("heading", { name: "Pair this device" })).toBeInTheDocument();
     expect(await loadDevice()).toBeUndefined();
+  });
+
+  it("says how many saved punches were lost when a switched-off device had some (M4 §4.6)", async () => {
+    useFakeLocation();
+    await storePairedDevice();
+    rememberAnchor({ server_time: "2026-10-28T08:00:00Z", counter: 0, token: "t" });
+    const saved = await saveOfflinePunch({
+      clientPunchId: crypto.randomUUID(),
+      method: "qr",
+      evidence: { qr_payload: "x", snapshot_jpeg: "y" },
+      location: { lat: 19.85, lon: 75.25, accuracy_m: 10, age_s: 1 },
+      settings: {
+        enabled: true,
+        evidence_key_id: "A",
+        evidence_public_key: vector.server_public_key,
+        max_items: 2000,
+        max_mb: 200,
+        max_hours: 72,
+        cooldown_minutes: 2,
+        challenge_steps: 1,
+        sync_max_items: 20,
+        sync_max_bytes: 1_048_576,
+      },
+      offlineReady: true,
+    });
+    expect(saved).toBe("OFFLINE_SAVED");
+    mockApi({ "GET /kiosk/me": apiError(403, "DEVICE_REVOKED") });
+
+    renderRoute("/attendance");
+
+    expect(await screen.findByRole("heading", { name: "Switched off" })).toBeInTheDocument();
+    expect(
+      await screen.findByText("1 saved punch could not be sent. Please visit the plant office."),
+    ).toBeInTheDocument();
+    expect((await queueSummary()).count).toBe(0);
+    forgetAnchorForTests();
   });
 
   it("starts again when the server does not know this device any more", async () => {

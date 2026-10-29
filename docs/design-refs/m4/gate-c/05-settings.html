@@ -1,0 +1,142 @@
+<!doctype html>
+<!--
+  Upasthiti - M4 design gate C - Screen 5: Settings (/admin/settings), new cards "Location and anti-proxy" and "Offline attendance devices"
+  (spec 4.11, 7 rule 17). Defaults and ranges come from rule 17.
+  States (URL hash): default · gps-raised · margin-raised · alert-error · refresh-error · save-reason · corporate-head · plant-head · loading.
+  Below 768 px the sub-groups are accordions: the first is open, the others closed (a group with a change opens itself).
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Settings";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = ROLE === "sa" ? { name: "Asha Rao", role: "Super Admin" } : ROLE === "ch" ? { name: "Meera Joshi", role: "Corporate Head" } : { name: "Prakash Kale", role: "Plant Head · K134", plant: "K134" };
+  window.MOCK_SHELL = { offline: 1, review: 7, banner: ROLE === "ch" ? null : ROLE === "ph" ? { name: "Main gate phone", since: "08:12", minutes: 14 } : { name: "TP1 Gate", since: "08:12", minutes: 14 } };
+  const EDIT = ROLE === "sa";
+  const NARROW = window.innerWidth < 768;
+
+  /* key, label, help, value, default, min, max, unit, icon */
+  const CARDS = [
+    { id: "loc", title: "Location and anti-proxy", icon: "map-pin", desc: "How exact the location of an attendance device must be, and what is flagged for a look.", groups: [
+      ["Location of the device", "map-pinned", [
+        ["gps_accuracy_limit_m", "Location accuracy limit", "A location worse than this is not used. Checked at pairing and now at every punch.", "50", "50", "10", "200", "m", true],
+        ["geofence_default_buffer_m", "Fence margin for new fences", "The extra distance around a new plant fence where a punch is still accepted but flagged. Existing fences keep their own margin.", "25", "25", "0", "200", "m", true],
+        ["kiosk_location_max_age_seconds", "Oldest location allowed", "A device with a location older than this pauses punching until it has a new one.", "120", "120", "30", "600", "seconds"],
+        ["kiosk_location_refresh_seconds", "Location check every", "How often a device looks for a fresh location. It must be shorter than the oldest location allowed.", "30", "30", "10", "120", "seconds"],
+      ]],
+      ["Travel and two devices", "route", [
+        ["impossible_travel_kmh", "Fastest believable travel", "A person who punches at two places and would need to go faster than this is flagged.", "60", "60", "10", "200", "km/h"],
+        ["impossible_travel_min_distance_m", "Shortest distance checked", "Two punches closer together than this are never flagged for travel.", "500", "500", "100", "5,000", "m"],
+        ["same_person_two_devices_minutes", "Same person at two devices", "A person counted at two attendance devices within this time is flagged.", "10", "10", "1", "60", "minutes"],
+      ]],
+      ["Hints for the reviewer", "lightbulb", [
+        ["review_hint_employee_rejections", "Hint: rejected punches of one person", "In Needs review, show a hint when an employee was rejected this many times in 7 days.", "3", "3", "2", "20", "in 7 days"],
+        ["review_hint_device_edge_flags", "Hint: edge flags of one device", "Show a hint when one attendance device had this many fence-edge flags in 7 days. Check its location or the fence margin.", "20", "20", "5", "200", "in 7 days"],
+      ]],
+    ]},
+    { id: "off", title: "Offline attendance devices", icon: "wifi-off", desc: "What a device does when the internet drops, and when the office is told.", groups: [
+      ["Saving on the device", "hard-drive-download", [
+        ["offline_max_hours", "Longest time to keep a punch", "A saved punch that reaches the server later than this is flagged “Saved too long before it was sent”.", "72", "72", "24", "168", "hours"],
+        ["offline_queue_max_items", "Most saved punches", "The device stops saving when this many are waiting.", "2,000", "2,000", "200", "10,000", "punches"],
+        ["offline_queue_max_mb", "Most storage for saved punches", "A device with less free browser storage than this plus 50 MB switches offline saving off.", "200", "200", "20", "1,000", "MB"],
+        ["offline_clock_drift_seconds", "Clock difference allowed", "How far the device clock may drift from its own steady timer before the punch time is called not proven.", "120", "120", "30", "600", "seconds"],
+      ]],
+      ["Telling the office", "bell-ring", [
+        ["kiosk_offline_after_minutes", "Offline after", "No contact for this long and the device shows as Offline.", "3", "3", "2", "30", "minutes"],
+        ["kiosk_offline_alert_minutes", "Show the alert after", "The amber alert at the top of every page appears when a device has been offline this long during a shift. It cannot be shorter than “Offline after”.", "10", "10", "5", "120", "minutes"],
+      ]],
+    ]},
+  ];
+
+  const DRAFT = {};
+  if (S === "gps-raised" || S === "save-reason") DRAFT.gps_accuracy_limit_m = "100";
+  if (S === "margin-raised") DRAFT.geofence_default_buffer_m = "60";
+  if (S === "alert-error") DRAFT.kiosk_offline_alert_minutes = "2";
+  if (S === "refresh-error") { DRAFT.kiosk_location_refresh_seconds = "150"; }
+  const ERR = { kiosk_offline_alert_minutes: "The alert time cannot be shorter than the offline time.", kiosk_location_refresh_seconds: "The refresh time must be shorter than the maximum age." };
+  const WARN = `<div class="warnbox" role="alert">${ic("triangle-alert")}<span><b>Plants in MIDC Waluj are close together.</b> A larger value may let a device at a neighbouring plant punch here.</span></div>`;
+
+  function row(r) {
+    const [key, label, help, value, def, min, max, unit, warn] = r;
+    const draft = DRAFT[key];
+    const changed = draft !== undefined;
+    const v = changed ? draft : value;
+    const raised = changed && warn && Number(draft) > Number(value);
+    const err = changed && ERR[key];
+    return `<div class="srow ${changed ? "is-changed" : ""}"><div>
+      <label class="l" for="${key}">${label}${changed ? `<span class="badge badge-info chg">${ic("pencil")}Changed</span>` : ""}</label>
+      <p class="h">${help}</p><p class="d">Default: ${def} ${unit} · allowed ${min} to ${max} ${unit}</p></div>
+      <div><div class="inrow"><input class="input" id="${key}" value="${v}" ${EDIT ? "" : "readonly"} inputmode="numeric" ${err ? `aria-invalid="true" aria-describedby="err-${key}"` : ""} /><span class="unit">${unit}</span></div>
+      ${err ? `<p class="errline" id="err-${key}">${ic("circle-alert")}${ERR[key]}</p>` : ""}
+      ${changed && EDIT ? `<button class="reset">${ic("rotate-ccw")}Reset to default</button>` : ""}</div>
+      ${raised ? WARN : ""}</div>`;
+  }
+  function card(c) {
+    const groups = c.groups.map((g, i) => {
+      const n = g[2].filter((r) => DRAFT[r[0]] !== undefined).length;
+      const open = !NARROW || (i === 0 && !Object.keys(DRAFT).length) || n > 0;
+      return `<details class="subgroup" ${open ? "open" : ""}><summary><span class="sgi">${ic(g[1])}</span><span><h3>${g[0]}</h3><span class="cnt">${g[2].length} settings</span></span>${n ? `<span class="badge badge-info chg changed-n">${n} changed</span>` : ""}<i data-lucide="chevron-down" class="chev"></i></summary>${g[2].map(row).join("")}</details>`;
+    }).join("");
+    const total = c.groups.reduce((s, g) => s + g[2].length, 0);
+    const foot = c.id === "loc"
+      ? `<div class="foot-link">${ic("info")}<span>Changes reach the attendance devices with their next contact (about a minute). Punches already decided do not change.</span></div>`
+      : `<div class="foot-link">${ic("info")}<span>Rule: the alert time is never shorter than “Offline after”. A change reaches the devices with their next contact.</span></div>`;
+    return `<section class="card set-card m4set" id="${c.id}" aria-labelledby="${c.id}-t"><div class="set-head"><span class="hi">${ic(c.icon)}</span><div><h2 id="${c.id}-t">${c.title}</h2><p>${c.desc}</p></div><div class="right"><span class="badge badge-new">${ic("sparkles")}New in M4</span><span class="badge badge-neutral">${total} settings</span></div></div>${groups}${foot}</section>`;
+  }
+  function collapsed(icon, title, summary) {
+    return `<section class="card set-card collapsed-card"><div class="set-head"><span class="hi">${ic(icon)}</span><div><h2>${title}</h2><p class="summary">${summary}</p></div><div class="right"><i data-lucide="chevron-down" style="width:20px;height:20px;color:var(--muted-foreground)"></i></div></div></section>`;
+  }
+
+  function page() {
+    if (S === "loading") return `<div class="page-narrow"><div class="skeleton" style="height:40px;width:260px;margin-bottom:16px"></div><div class="skeleton" style="height:320px;margin-bottom:16px"></div><div class="skeleton" style="height:240px"></div></div>`;
+    const sub = EDIT ? "Company-wide rules. Every change is saved in the audit log with a reason." : "Company-wide rules. Only the Super Admin can change them.";
+    const banner = !EDIT ? `<div class="alert alert-info mb">${ic("eye")}<span><b>View only.</b> Only the Super Admin can change these settings. You can read them to see how the attendance devices decide.</span></div>` : "";
+    return `<div class="page-narrow" style="padding-bottom:96px"><div class="page-head anim-fade-up"><div><h1 class="page-title">Settings</h1><p class="page-desc">${sub}</p></div></div>${banner}
+      <div class="stack">${collapsed("timer", "Punch rules", "Cool-down 2 min · earliest OUT 30 min · longest open IN 20 h")}${card(CARDS[0])}${card(CARDS[1])}${collapsed("scan-face", "Face recognition", "Match threshold 0.45 · anti-spoof 0.80")}${collapsed("camera", "Snapshots", "Kept 60 days")}</div></div>`;
+  }
+  function savebar() {
+    const bad = S === "alert-error" || S === "refresh-error";
+    return `<div class="savebar"><div><p>${ic("pencil")}1 unsaved change${bad ? " · fix the error first" : ""}</p><div style="display:flex;gap:8px"><button class="btn btn-outline">Discard</button><button class="btn btn-light" ${bad ? "disabled" : ""}>Save changes</button></div></div></div>`;
+  }
+  function reasonDialog() {
+    return `<div class="overlay"></div><div class="dialog anim-scale-in" role="dialog" aria-modal="true" aria-labelledby="rt"><div class="dlg-head"><span class="dlg-icon" style="background:var(--warning-soft);color:var(--warning)">${ic("triangle-alert")}</span><div><h2 class="dlg-title" id="rt">Why are you changing this setting?</h2><p class="dlg-desc">The reason is saved in the audit log with the old and new values.</p></div></div>
+      <div class="dlg-body"><ul class="change-list"><li>${ic("map-pin")}<b>Location accuracy limit</b><span class="from tnum">50 m</span>${ic("arrow-right")}<b class="tnum">100 m</b></li></ul>${WARN.replace('class="warnbox"', 'class="warnbox" style="margin-bottom:14px"')}
+      <label class="label" for="why">Reason (required)</label><textarea class="input" id="why" style="width:100%">Gate phone at TP1 never gets better than 80 m inside the tool room; checked with the plant head</textarea>
+      <div class="field-row" style="margin-top:6px"><span class="help">At least 10 characters.</span><span class="counter">92 / 300</span></div></div>
+      <div class="dlg-foot"><button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">${ic("save")}Save changes</button></div></div>`;
+  }
+
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    const layer = document.getElementById("layer");
+    if (["gps-raised", "margin-raised", "alert-error", "refresh-error"].includes(S)) layer.innerHTML = savebar();
+    if (S === "save-reason") layer.innerHTML = reasonDialog();
+    const tags = { default: "Super Admin, both cards", "gps-raised": "accuracy limit raised: MIDC Waluj warning", "margin-raised": "fence margin raised: MIDC Waluj warning", "alert-error": "alert shorter than offline time: refused", "refresh-error": "refresh longer than max age: refused", "save-reason": "reason prompt on save", "corporate-head": "Corporate Head, read-only", "plant-head": "Plant Head, read-only", loading: "loading" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>

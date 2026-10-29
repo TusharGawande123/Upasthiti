@@ -93,6 +93,29 @@ def is_inside_geofence(
     return distance_to_geofence_m(shape, geojson, radius_m, lon, lat) <= buffer_m
 
 
+def distance_between_m(lat_a: float, lon_a: float, lat_b: float, lon_b: float) -> float:
+    """Great-circle distance in metres (haversine). Used between two gates, which may be
+    kilometres apart, so the flat projection above is not used here (M4 impossible travel)."""
+    lat_a_rad, lat_b_rad = math.radians(lat_a), math.radians(lat_b)
+    half_dlat = math.radians(lat_b - lat_a) / 2
+    half_dlon = math.radians(lon_b - lon_a) / 2
+    a = (
+        math.sin(half_dlat) ** 2
+        + math.cos(lat_a_rad) * math.cos(lat_b_rad) * math.sin(half_dlon) ** 2
+    )
+    return 2 * EARTH_RADIUS_M * math.asin(min(1.0, math.sqrt(a)))
+
+
+def geofence_centre(shape: str, geojson: dict[str, Any]) -> tuple[float, float]:
+    """(lat, lon) of a fence's centre: a circle's centre, or the average corner of a polygon.
+    Stands in for a punch that has no stored position (M2/M3 rows)."""
+    if shape == "circle":
+        lon, lat = geojson["coordinates"]
+        return float(lat), float(lon)
+    projection = _projection_for_ring(geojson["coordinates"][0])
+    return projection.lat0, projection.lon0
+
+
 def _check_polygon(geojson: dict[str, Any]) -> CheckedShape:
     if geojson.get("type") != "Polygon" or not geojson.get("coordinates"):
         raise _invalid("not_a_polygon")

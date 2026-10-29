@@ -1,0 +1,42 @@
+<!doctype html>
+<!-- Upasthiti - M4 design gate B - screen 3: review dialogs (spec 4.8, 7 rule 7). MOCKUP ONLY: static HTML, fake data (made-up names and codes; no photo of any person). State = URL hash. -->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti needs review</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4b.css" />
+</head>
+<body>
+<div class="app"><aside id="sidebar" class="sidebar"></aside><div class="main"><header id="topbar" class="topbar"></header><main class="page" id="page"></main></div></div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="rv.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Needs review";
+  window.MOCK_USER = { name: "Asha Rao", role: "Super Admin" };
+  const S = location.hash.replace("#", "") || "default";
+  /* Backdrop = list with the matching detail sheet. The dialog is a second layer on top. */
+  const D = {
+    "confirm": ["c1", "edge"], "not-accepted": ["c1", "edge"], "not-accepted-error": ["c1", "edge"], "server-error": ["c1", "edge"], "conflict": ["c1", "edge"],
+    "approve": ["r1", "rejected-outside"], "approve-error": ["r1", "rejected-outside"], "approve-submitting": ["r1", "rejected-outside"],
+    "change": ["v1", "history"], "saved-next": ["c2", "travel"],
+  };
+  const st = S === "default" ? "confirm" : S;
+  const d = D[st] || D.confirm;
+  const tab = d[0][0] === "r" ? "rejected" : d[0][0] === "v" ? "reviewed" : "check";
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = listPage({ tab: tab, openId: d[0] });
+    document.getElementById("layer").innerHTML = buildSheet(d[1]) + (st === "saved-next" ? toastHtml() : buildDialog(st)); fitShot();
+    const tags = { confirm: "Confirm (note optional)", "not-accepted": "Not accepted (reason required, warning)", "not-accepted-error": "Not accepted: reason too short", "server-error": "Confirm: save failed", conflict: "REVIEW_CHANGED conflict", approve: "Approve: Suggested OUT + warning", "approve-error": "Approve: reason missing", "approve-submitting": "Approve: saving", change: "Change review", "saved-next": "After saving: the next punch opens + toast" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[st] || st);
+  });
+</script>
+</body>
+</html>

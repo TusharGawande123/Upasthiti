@@ -193,12 +193,19 @@ def _boxed_note(pdf: FPDF, icon: str, title: str, text: str, y: float, height: f
     return y + height
 
 
-def _privacy_box(pdf: FPDF, y: float, retention_days: int, privacy_address: str) -> None:
-    """The DPDP notice: what the two punches keep, who sees it, and where to read more."""
-    text_x = MARGIN_MM + 30
-    text_width = CONTENT_WIDTH_MM - 36
-    heading = "About your face and the photo"
-    lead = "Pressing Punch with face means your face is checked."
+# M4 (spec §4.2, §4.12, §8.1): what happens to a punch when the gate has no internet.
+OFFLINE_NOTICE = (
+    "No internet? Your punch is saved on this attendance device in a locked form that only our "
+    "server can open, and it is deleted from the device once it is sent. It is checked later; "
+    "if something is wrong, the plant office will tell you."
+)
+# The privacy text is a little smaller than the "how to punch" text so the M4 offline paragraph
+# fits on the one A4 page; the face box above cannot get shorter.
+PRIVACY_SIZE, PRIVACY_LINE = 11.0, 4.9
+PARAGRAPH_AIR_MM = 2.0
+
+
+def _privacy_paragraphs(retention_days: int) -> list[str]:
     notice = (
         "Face punch: your face is checked against an encrypted record. A photo is kept for "
         f"{retention_days} days only if the punch fails or you type your code. Card punch: a "
@@ -210,24 +217,60 @@ def _privacy_box(pdf: FPDF, y: float, retention_days: int, privacy_address: str)
         "shared and never sent to any AI company. Your punch times are kept as attendance "
         "records, as the law requires."
     )
-    more = f"Full privacy notice: {privacy_address}"
-    size, line = 12.5, 5.5
-    content = (
-        _text_height(pdf, text_width, 16, 7.5, heading, True)
-        + _text_height(pdf, text_width, 13.5, 6, lead, True)
-        + _text_height(pdf, text_width, size, line, notice, False)
-        + _text_height(pdf, text_width, size, line, rights, False)
-        + _text_height(pdf, text_width, size, line, more, True)
-        + 3 * 2.0  # a little air between the paragraphs
+    return [notice, rights, OFFLINE_NOTICE]
+
+
+PRIVACY_HEADING = "About your face and the photo"
+PRIVACY_LEAD = "Pressing Punch with face means your face is checked."
+
+
+def privacy_box_height(pdf: FPDF, retention_days: int) -> float:
+    """The height the privacy box needs (a test checks it fits above the help line)."""
+    text_width = CONTENT_WIDTH_MM - 36
+    content = _text_height(pdf, text_width, 16, 7.5, PRIVACY_HEADING, True) + _text_height(
+        pdf, text_width, 13.5, 6, PRIVACY_LEAD, True
     )
-    height = min(content + 12, BOTTOM_LIMIT_MM - y)
+    for paragraph in _privacy_paragraphs(retention_days):
+        content += PARAGRAPH_AIR_MM + _text_height(
+            pdf, text_width, PRIVACY_SIZE, PRIVACY_LINE, paragraph, False
+        )
+    return content + 12
+
+
+def _privacy_box(pdf: FPDF, y: float, retention_days: int) -> None:
+    """The DPDP notice: what the punches keep, who sees it, and what happens offline. Where to
+    read more is on the help line below the box."""
+    text_x = MARGIN_MM + 30
+    text_width = CONTENT_WIDTH_MM - 36
+    height = min(privacy_box_height(pdf, retention_days), BOTTOM_LIMIT_MM - y)
     _box(pdf, MARGIN_MM, y, CONTENT_WIDTH_MM, height)
     _icon(pdf, "shield-check", MARGIN_MM + 6, y + 6, 18)
-    below = _text(pdf, text_x, y + 6, text_width, 16, 7.5, heading, bold=True)
-    below = _text(pdf, text_x, below, text_width, 13.5, 6, lead, bold=True)
-    below = _text(pdf, text_x, below + 2, text_width, size, line, notice)
-    below = _text(pdf, text_x, below + 2, text_width, size, line, rights)
-    _text(pdf, text_x, below + 2, text_width, size, line, more, bold=True)
+    below = _text(pdf, text_x, y + 6, text_width, 16, 7.5, PRIVACY_HEADING, bold=True)
+    below = _text(pdf, text_x, below, text_width, 13.5, 6, PRIVACY_LEAD, bold=True)
+    for paragraph in _privacy_paragraphs(retention_days):
+        below = _text(
+            pdf, text_x, below + PARAGRAPH_AIR_MM, text_width, PRIVACY_SIZE, PRIVACY_LINE, paragraph
+        )
+
+
+def _help_line(pdf: FPDF, privacy_address: str) -> None:
+    """ "Need help? Ask the plant office." and the address of the full privacy notice, centred
+    on one line above the bottom stripe."""
+    help_text = "Need help? Ask the plant office."
+    more = f"   Full privacy notice: {privacy_address}"
+    pdf.set_text_color(*INK)
+    for size in (12, 11, 10, 9):
+        pdf.set_font(FONT_NAME, "B", size)
+        help_width = pdf.get_string_width(help_text)
+        pdf.set_font(FONT_NAME, "", size)
+        total = help_width + pdf.get_string_width(more)
+        if total <= CONTENT_WIDTH_MM or size == 9:
+            break
+    pdf.set_xy(MARGIN_MM + max(0.0, (CONTENT_WIDTH_MM - total) / 2), 284)
+    pdf.set_font(FONT_NAME, "B", size)
+    pdf.cell(help_width, 6, help_text)
+    pdf.set_font(FONT_NAME, "", size)
+    pdf.cell(0, 6, more)
 
 
 def _plant_line(pdf: FPDF, text: str) -> None:
@@ -277,11 +320,7 @@ def gate_poster_pdf(
         y=below + 4,
         height=24,
     )
-    _privacy_box(pdf, below + 4, retention_days, privacy_address)
-
-    pdf.set_font(FONT_NAME, "B", 13)
-    pdf.set_text_color(*INK)
-    pdf.set_xy(MARGIN_MM, 284)
-    pdf.cell(CONTENT_WIDTH_MM, 6, "Need help? Ask the plant office.", align="C")
+    _privacy_box(pdf, below + 4, retention_days)
+    _help_line(pdf, privacy_address)
     _safety_stripe(pdf, 291)
     return bytes(pdf.output())

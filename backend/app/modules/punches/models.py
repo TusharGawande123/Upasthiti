@@ -14,8 +14,10 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
+    BigInteger,
     Boolean,
     CheckConstraint,
+    Computed,
     DateTime,
     ForeignKey,
     Index,
@@ -44,7 +46,8 @@ class PunchMethod(enum.StrEnum):
 class PunchDecision(enum.StrEnum):
     ACCEPTED = "accepted"
     REJECTED = "rejected"
-    FLAGGED = "flagged"  # reserved for M4 (accepted for review)
+    # M4: counts as IN/OUT like "accepted", but the Super Admin should look at it (FR-26).
+    FLAGGED = "flagged"
     # M3: the face was close to someone but not sure: the gate asks for the employee code.
     NEEDS_CODE = "needs_code"
 
@@ -63,6 +66,7 @@ class SnapshotReason(enum.StrEnum):
     QR_PUNCH = "qr_punch"
     FACE_REJECTED = "face_rejected"
     FACE_CODE = "face_code"  # the face punch that asked for the employee code
+    FACE_OFFLINE = "face_offline"  # M4: every offline face punch keeps one small photo
 
 
 class SnapshotState(enum.StrEnum):
@@ -87,10 +91,13 @@ class Punch(IdMixin, Base):
         CheckConstraint(f"method IN ({METHOD_VALUES})", name="method_known"),
         CheckConstraint(f"decision IN ({DECISION_VALUES})", name="decision_known"),
         CheckConstraint("direction IS NULL OR direction IN ('in', 'out')", name="direction_known"),
+        # A punch that counts (accepted or flagged) is an IN or an OUT.
         CheckConstraint(
-            "decision <> 'accepted' OR direction IS NOT NULL", name="accepted_has_direction"
+            "decision NOT IN ('accepted', 'flagged') OR direction IS NOT NULL",
+            name="accepted_has_direction",
         ),
-        # An accepted punch has no reason; every other punch has at least one.
+        # An accepted punch has no reason; every other punch has at least one (a flagged punch
+        # holds its flag codes).
         CheckConstraint(
             "(decision = 'accepted') = (cardinality(reason_codes) = 0)",
             name="reason_codes_match_decision",
@@ -100,15 +107,16 @@ class Punch(IdMixin, Base):
             name="location_in_range",
         ),
         Index("ix_punches_plant_id_server_received_at", "plant_id", "server_received_at"),
-        # The last accepted punch of a person decides IN or OUT (spec §7 rule 6).
+        Index("ix_punches_plant_id_punch_time", "plant_id", "punch_time"),
+        # The punches that count decide IN or OUT (M2 spec §7 rule 6, M4 spec §7 rule 5).
         Index(
-            "ix_punches_employee_last_accepted",
+            "ix_punches_employee_counted",
             "employee_id",
-            text("server_received_at DESC"),
-            postgresql_where=text("decision = 'accepted'"),
+            text("punch_time DESC"),
+            postgresql_where=text("decision IN ('accepted', 'flagged')"),
         ),
         # The card's last punches, for the side-by-side photo review (F-29).
-        Index("ix_punches_card_recent", "qr_credential_id", text("server_received_at DESC")),
+        Index("ix_punches_card_recent", "qr_credential_id", text("punch_time DESC")),
         # M3: face punches.
         CheckConstraint(
             f"match_mode IS NULL OR match_mode IN ({MATCH_MODE_VALUES})", name="match_mode_known"
@@ -134,6 +142,37 @@ class Punch(IdMixin, Base):
             text("server_received_at DESC"),
             postgresql_where=text("claimed_employee_id IS NOT NULL"),
         ),
+        # --- M4: offline punches and flags ---
+        CheckConstraint("was_offline = (offline_punch_time IS NOT NULL)", name="offline_has_time"),
+        CheckConstraint("(time_proof IS NULL) = (NOT was_offline)", name="time_proof_only_offline"),
+        CheckConstraint(
+            "time_proof IS NULL OR time_proof IN ('anchored', 'unproven')", name="time_proof_known"
+        ),
+        CheckConstraint(
+            "device_counter IS NULL OR was_offline", name="device_counter_only_offline"
+        ),
+        CheckConstraint(
+            "location_age_s IS NULL OR location_age_s BETWEEN 0 AND 604800",
+            name="location_age_in_range",
+        ),
+        CheckConstraint(
+            "geofence_distance_m IS NULL OR geofence_distance_m >= 0",
+            name="geofence_distance_not_negative",
+        ),
+        # An offline item's counter is used once per device: a re-signed copy is refused.
+        Index(
+            "uq_punches_kiosk_device_counter",
+            "kiosk_id",
+            "device_counter",
+            unique=True,
+            postgresql_where=text("device_counter IS NOT NULL"),
+        ),
+        # The "Needs review" lists (Super Admin).
+        Index(
+            "ix_punches_review_list",
+            text("punch_time DESC"),
+            postgresql_where=text("decision IN ('flagged', 'rejected')"),
+        ),
     )
 
     client_punch_id: Mapped[uuid.UUID] = mapped_column(Uuid)
@@ -153,8 +192,8 @@ class Punch(IdMixin, Base):
     server_received_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     # What the kiosk claims. Informational only, never used for a decision.
     device_claimed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
-    was_offline: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))  # M4
-    # The kiosk's reported position: stored, not checked until M4.
+    was_offline: Mapped[bool] = mapped_column(Boolean, server_default=text("false"))
+    # The kiosk's reported position; from M4 checked against the fence on every punch.
     lat: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
     lon: Mapped[Decimal | None] = mapped_column(Numeric(9, 6))
     accuracy_m: Mapped[Decimal | None] = mapped_column(Numeric(7, 1))
@@ -172,6 +211,21 @@ class Punch(IdMixin, Base):
     follows_punch_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("punches.id"))
     # Whose code was typed (only on code-path rows): "Code typed: EMP-0123, face did not match".
     claimed_employee_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"))
+    # --- M4: offline punches, location verdict, flags (spec M4 section 6) ---
+    # The server-computed time of an offline punch (time anchor + elapsed time, spec §7 rule 8).
+    offline_punch_time: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+    time_proof: Mapped[str | None] = mapped_column(String(10))  # "anchored" or "unproven"
+    device_counter: Mapped[int | None] = mapped_column(BigInteger)  # reserved at capture
+    location_age_s: Mapped[int | None] = mapped_column(Integer)
+    geofence_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("geofences.id"))
+    geofence_distance_m: Mapped[Decimal | None] = mapped_column(Numeric(7, 1))  # 0 inside
+    # The other punch of a travel, two-devices or order flag.
+    related_punch_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("punches.id"))
+    # The time the punch counts at; the database computes it (server time, or the offline time).
+    punch_time: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        Computed("COALESCE(offline_punch_time, server_received_at)", persisted=True),
+    )
 
 
 class PunchSnapshot(IdMixin, TimestampMixin, Base):
@@ -270,3 +324,48 @@ class FacePendingMatch(IdMixin, TimestampMixin, Base):
     # A retry of the same code try (lost answer) must not use up another try.
     last_try_client_punch_id: Mapped[uuid.UUID | None] = mapped_column(Uuid)
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+
+
+class ReviewAction(enum.StrEnum):
+    CONFIRMED = "confirmed"  # a flagged punch was checked and keeps counting
+    NOT_ACCEPTED = "not_accepted"  # a flagged punch stops counting
+    APPROVED = "approved"  # a rejected punch counts, with the direction the Super Admin chose
+
+
+class PunchReview(IdMixin, Base):
+    """The Super Admin's decision about a flagged or rejected punch (M4 spec section 6).
+
+    The punch itself is never changed. Changing a review adds a newer row that points to the
+    one it replaces; the database refuses UPDATE and DELETE (migration 0016)."""
+
+    __tablename__ = "punch_reviews"
+    __table_args__ = (
+        CheckConstraint("action IN ('confirmed', 'not_accepted', 'approved')", name="action_known"),
+        CheckConstraint("direction IS NULL OR direction IN ('in', 'out')", name="direction_known"),
+        CheckConstraint(
+            "(action = 'approved') = (direction IS NOT NULL)", name="direction_only_for_approved"
+        ),
+        CheckConstraint(
+            "action = 'confirmed' OR (reason IS NOT NULL AND length(trim(reason)) >= 3)",
+            name="reason_required",
+        ),
+        CheckConstraint("reason IS NULL OR length(reason) <= 300", name="reason_length"),
+        Index(
+            "uq_punch_reviews_supersedes_review_id",
+            "supersedes_review_id",
+            unique=True,
+            postgresql_where=text("supersedes_review_id IS NOT NULL"),
+        ),
+        Index("ix_punch_reviews_punch_recent", "punch_id", text("reviewed_at DESC")),
+        Index("ix_punch_reviews_employee_recent", "employee_id", text("reviewed_at DESC")),
+    )
+
+    punch_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("punches.id"))
+    action: Mapped[str] = mapped_column(String(15))
+    direction: Mapped[str | None] = mapped_column(String(3))
+    # Whom the review is about: the punch's employee, else the person whose code was typed.
+    employee_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"))
+    reason: Mapped[str | None] = mapped_column(Text)
+    reviewed_by: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    reviewed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    supersedes_review_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("punch_reviews.id"))

@@ -54,6 +54,9 @@ class Capability(enum.Enum):
     MANAGE_FACE_ENROLMENT = "manage_face_enrolment"
     # Match scores, the typed code and the claimed employee in the punch detail. Super Admin only.
     VIEW_FACE_SCORES = "view_face_scores"
+    # "Needs review" (M4): confirm or not-accept a flagged punch, approve a rejected one, the
+    # review reasons, the daily digest and the repeat-pattern hints. Super Admin only.
+    REVIEW_PUNCHES = "review_punches"
 
 
 SUPER_ADMIN = Role.SUPER_ADMIN
@@ -134,6 +137,7 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
     },
     Capability.MANAGE_FACE_ENROLMENT: {SUPER_ADMIN: Access.ALL},
     Capability.VIEW_FACE_SCORES: {SUPER_ADMIN: Access.ALL},
+    Capability.REVIEW_PUNCHES: {SUPER_ADMIN: Access.ALL},
 }
 
 

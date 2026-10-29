@@ -74,11 +74,9 @@ def test_the_eleven_m2_settings_are_editable_with_their_defaults(boss: TestClien
 def test_settings_of_later_milestones_stay_locked(boss: TestClient) -> None:
     settings = listed(boss)
 
-    for key in ("impossible_travel_kmh", "salary_day_basis"):
-        assert settings[key]["editable"] is False
-    assert change(boss, impossible_travel_kmh=80).json()["error"]["code"] == (
-        "SETTING_NOT_EDITABLE_YET"
-    )
+    assert settings["salary_day_basis"]["editable"] is False  # M7
+    assert settings["impossible_travel_kmh"]["editable"] is True  # used from M4
+    assert change(boss, salary_day_basis=26).json()["error"]["code"] == ("SETTING_NOT_EDITABLE_YET")
 
 
 @pytest.mark.parametrize(
@@ -323,6 +321,12 @@ def test_the_heartbeat_keeps_the_old_fields_and_adds_settings(
 
     assert answer["status"] == "active" and answer["plant"]["code"] == "K134"
     assert answer["notices"] == []
+    # M4 adds the location limits and the fence (tested in test_m4_location_and_flags.py).
+    assert answer["kiosk_settings"].pop("location")["accuracy_limit_m"] == 50
+    offline = answer["kiosk_settings"].pop("offline")
+    assert offline["enabled"] is True and len(offline["evidence_public_key"]) == 87  # 65 bytes
+    assert offline["max_items"] == 2000 and offline["sync_max_items"] == 20
+    assert answer.pop("time_anchor")["token"]  # M4: every signed answer carries one
     assert answer["kiosk_settings"] == {
         "voice_enabled": True,
         "sound_enabled": True,

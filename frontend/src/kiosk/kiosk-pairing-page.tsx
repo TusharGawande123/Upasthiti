@@ -31,6 +31,7 @@ import { Frame } from "./components/frame";
 import { KioskButton } from "./components/kiosk-button";
 import { ProblemScreen } from "./components/problem-screen";
 import { StatusChip } from "./components/status-chip";
+import { registerGateServiceWorker } from "./offline/register-sw";
 import { CODE_LENGTH, type PairingProblem, type PairingState, usePairing } from "./use-pairing";
 
 // Only the mark drawn on the accuracy meter. The server setting (default 50 m, Super Admin can
@@ -288,6 +289,11 @@ function PairingProblemScreen({
           <p className="tnum text-[28px] font-bold">
             {t("kiosk.problem.gps-weak.best", { metres: state.bestAccuracyM })}
           </p>
+        ) : problem === "revoked" && (state.lostPunches ?? 0) > 0 ? (
+          // M4 (spec §4.6, design gate A 06): the saved punches are gone with the device's key.
+          <p className="rounded-lg border-2 border-destructive bg-destructive-soft px-5 py-4 text-[24px] font-bold text-destructive">
+            {t("kiosk.problem.revoked.lost", { count: state.lostPunches })}
+          </p>
         ) : null
       }
       action={
@@ -321,6 +327,8 @@ export function KioskPairingPage() {
   const { t } = useTranslation();
   const pairing = usePairing();
   const { state } = pairing;
+  // M4: the gate page (and only it) installs the worker that lets it reload without internet.
+  useEffect(registerGateServiceWorker, []);
 
   // Once paired, the kiosk goes straight to scanning (zero taps, spec M2 §4.1).
   if (state.phase === "paired") {

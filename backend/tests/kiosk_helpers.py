@@ -11,7 +11,28 @@ from sqlalchemy.orm import Session
 
 from app.modules.kiosks.crypto import signed_message
 from app.modules.kiosks.models import KioskDevice
+
+# Every test plant with a gate device gets a 200 m circle fence (M4: location on every punch).
+from app.scripts.gate_fence_fixture import (  # noqa: E402
+    GATE_FENCE_MARGIN_M,
+    GATE_FENCE_RADIUS_M,
+    GATE_LAT,
+    GATE_LOCATION,
+    GATE_LON,
+    ensure_gate_fence,
+)
 from tests.people_helpers import PlantIds
+
+__all__ = [
+    "GATE_FENCE_MARGIN_M",
+    "GATE_FENCE_RADIUS_M",
+    "GATE_LAT",
+    "GATE_LOCATION",
+    "GATE_LON",
+    "Device",
+    "ensure_gate_fence",
+    "make_active_kiosk",
+]
 
 
 class Device:
@@ -46,7 +67,9 @@ class Device:
 def make_active_kiosk(
     session: Session, plant: PlantIds, device: Device, name: str = "Main gate"
 ) -> KioskDevice:
-    """A paired kiosk made straight in the database (pairing itself is tested elsewhere)."""
+    """A paired kiosk made straight in the database (pairing itself is tested elsewhere), at a
+    plant with a fence around GATE_LOCATION."""
+    ensure_gate_fence(session, uuid.UUID(plant.id))
     kiosk = KioskDevice(
         plant_id=uuid.UUID(plant.id), name=name, status="active", public_key=device.public_key
     )

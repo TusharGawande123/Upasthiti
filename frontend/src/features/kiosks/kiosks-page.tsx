@@ -4,6 +4,7 @@
 import { Ban, CircleCheck, Hourglass, Pencil, Plus, RefreshCw, Tablet } from "lucide-react";
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { useSearchParams } from "react-router";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -33,8 +34,11 @@ import { usePlants } from "@/features/plants/use-plants";
 import { ReasonDialog } from "@/features/users/user-dialogs";
 import { formatDate, formatTime } from "@/lib/format";
 import { AddKioskDialog } from "./add-kiosk-dialog";
+import { DeviceDrawer } from "./device-drawer";
+import { DeviceStateBadge } from "./device-state";
 import { LastSelfTest, SoundSwitch } from "./sound-switch";
 import {
+  type DeviceState,
   type Kiosk,
   type KioskStatus,
   type KioskWithCode,
@@ -122,7 +126,18 @@ export function KiosksPage() {
   const canManage = me.data?.role === "super_admin" || me.data?.role === "plant_head";
   const [plantId, setPlantId] = useState("");
   const [status, setStatus] = useState<KioskStatus | "">("");
-  const kiosks = useKiosks({ plant_id: plantId || undefined, status: status || undefined });
+  // The offline badge links here with ?state=offline (M4 F-36).
+  const [params, setParams] = useSearchParams();
+  const state = (params.get("state") ?? "") as DeviceState | "";
+  // Refreshes by itself every 30 s while open (spec M4 §4.7): the state, queue and last punch move.
+  const kiosks = useKiosks(
+    {
+      plant_id: plantId || undefined,
+      status: status || undefined,
+      state: state || undefined,
+    },
+    { refetchMs: 30_000 },
+  );
   const plants = usePlants();
   const revoke = useRevokeKiosk();
   const newCode = useNewPairingCode();
@@ -131,6 +146,7 @@ export function KiosksPage() {
   const [issued, setIssued] = useState<KioskWithCode | null>(null);
   const [renaming, setRenaming] = useState<Kiosk | null>(null);
   const [revoking, setRevoking] = useState<Kiosk | null>(null);
+  const [opened, setOpened] = useState<Kiosk | null>(null);
 
   const plantOf = (id: string) => plants.data?.items.find((plant) => plant.id === id);
 
@@ -179,6 +195,24 @@ export function KiosksPage() {
           <option value="pending">{t("kiosks.status.pending")}</option>
           <option value="revoked">{t("kiosks.status.revoked")}</option>
         </Select>
+        <Select
+          aria-label={t("kiosks.filter.stateLabel")}
+          value={state}
+          onChange={(event) => {
+            const next = new URLSearchParams(params);
+            if (event.target.value) next.set("state", event.target.value);
+            else next.delete("state");
+            setParams(next, { replace: true });
+          }}
+          className="w-auto"
+        >
+          <option value="">{t("kiosks.filter.anyState")}</option>
+          {(["online", "offline", "needs_location", "sending"] as const).map((value) => (
+            <option key={value} value={value}>
+              {t(`kiosks.stateName.${value}`)}
+            </option>
+          ))}
+        </Select>
       </div>
 
       {kiosks.isError ? (
@@ -211,6 +245,8 @@ export function KiosksPage() {
                 <TableHead>{t("kiosks.columns.kiosk")}</TableHead>
                 <TableHead>{t("kiosks.columns.plant")}</TableHead>
                 <TableHead>{t("kiosks.columns.status")}</TableHead>
+                <TableHead>{t("kiosks.columns.waiting")}</TableHead>
+                <TableHead>{t("kiosks.columns.lastPunch")}</TableHead>
                 <TableHead>{t("kiosks.columns.accuracy")}</TableHead>
                 <TableHead>{t("kiosks.columns.lastSeen")}</TableHead>
                 <TableHead>{t("kiosks.columns.lastSelfTest")}</TableHead>
@@ -225,18 +261,34 @@ export function KiosksPage() {
                 const plant = plantOf(kiosk.plant_id);
                 return (
                   <TableRow key={kiosk.id}>
-                    <TableCell className="font-semibold">{kiosk.name}</TableCell>
+                    <TableCell className="font-semibold">
+                      <button
+                        type="button"
+                        className="cursor-pointer text-left underline-offset-2 hover:underline"
+                        onClick={() => setOpened(kiosk)}
+                      >
+                        {kiosk.name}
+                      </button>
+                    </TableCell>
                     <TableCell>
                       <span className="code block">{plant?.code ?? "–"}</span>
                       <span className="block text-xs text-muted-foreground">{plant?.name}</span>
                     </TableCell>
                     <TableCell>
-                      <KioskStatusBadge status={kiosk.status} />
+                      <DeviceStateBadge kiosk={kiosk} />
                       {kiosk.status === "revoked" && kiosk.revoke_reason ? (
                         <span className="mt-1 block text-xs text-muted-foreground">
                           {kiosk.revoke_reason}
                         </span>
                       ) : null}
+                    </TableCell>
+                    <TableCell className="tnum">
+                      {kiosk.queue && kiosk.queue.count > 0 ? kiosk.queue.count : "–"}
+                    </TableCell>
+                    <TableCell className="tnum text-muted-foreground">
+                      {kiosk.last_punch_at
+                        ? `${formatDate(kiosk.last_punch_at)}, ${formatTime(kiosk.last_punch_at)}`
+                        : "–"}
                     </TableCell>
                     <TableCell className="tnum">
                       {kiosk.registered_accuracy_m
@@ -305,6 +357,7 @@ export function KiosksPage() {
         defaultPlantId={plantId || undefined}
       />
       {renaming ? <RenameDialog kiosk={renaming} onClose={() => setRenaming(null)} /> : null}
+      {opened ? <DeviceDrawer kiosk={opened} onClose={() => setOpened(null)} /> : null}
       <ReasonDialog
         open={revoking !== null}
         onOpenChange={(open) => {
@@ -317,6 +370,13 @@ export function KiosksPage() {
         confirmLabel={t("kiosks.revoke.button")}
         isPending={revoke.isPending}
         error={revoke.error ? describeError(revoke.error, t) : undefined}
+        details={
+          revoking?.queue && revoking.queue.count > 0 ? (
+            <Alert tone="warning">
+              <span>{t("kiosks.revokeQueueWarning", { count: revoking.queue.count })}</span>
+            </Alert>
+          ) : undefined
+        }
         onConfirm={(reason) =>
           revoking &&
           revoke.mutate({ id: revoking.id, reason }, { onSuccess: () => setRevoking(null) })

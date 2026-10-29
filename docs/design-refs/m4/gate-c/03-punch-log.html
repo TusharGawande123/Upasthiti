@@ -1,0 +1,205 @@
+<!doctype html>
+<!--
+  Upasthiti - M4 design gate C - Screen 3: punch log (/admin/punches) with the M4 additions (spec 4.9, 4.8 texts, 5.x flags).
+  States (URL hash): default · filter-flagged · filter-offline · filter-empty · corporate-head · plant-head · loading · export ·
+  detail-edge · detail-travel · detail-offline-unproven · detail-offline-ok · detail-reviewed-no · detail-approved · detail-too-old ·
+  detail-stale · detail-sync-conflict · detail-ch · detail-ph.
+  "Now" is Wednesday 28/10/2026, about 09:20 (the TP1 device was offline 08:12 to 09:02, so its punches arrive at 09:02).
+  MOCKUP ONLY - static HTML, fake data, no photo of any person.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti punch log</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Punch log";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" || S === "detail-ch" ? "ch" : S === "plant-head" || S === "detail-ph" ? "ph" : "sa";
+  window.MOCK_USER = ROLE === "sa" ? { name: "Asha Rao", role: "Super Admin" } : ROLE === "ch" ? { name: "Meera Joshi", role: "Corporate Head" } : { name: "Prakash Kale", role: "Plant Head · K134", plant: "K134" };
+  window.MOCK_SHELL = { offline: 0, review: 4 };
+  const SA = ROLE === "sa";
+  const TOO_OLD = S === "detail-too-old";
+  const DAY = TOO_OLD ? "25/10/2026" : "28/10/2026";
+
+  /* Flag texts (translation keys punchReasons.<CODE>) and the longer help text (punchReasons.<CODE>_help). */
+  const FLAG = {
+    LOCATION_AT_EDGE: ["Location at the edge of the fence", "The device was just outside the drawn fence, inside the 25 m margin. This can be a normal GPS drift at the gate."],
+    LOCATION_STALE: ["Location reading was old", "The device had no fresh location while it was offline, so the last good reading was used. It is older than 120 seconds."],
+    IMPOSSIBLE_TRAVEL: ["Too far from the last punch, too fast", "This employee punched at another place a short time before. The distance and time need a speed above 60 km/h."],
+    TWO_DEVICES_SOON: ["Also punched at another attendance device a moment ago", "The same person was counted at another attendance device within 10 minutes. A card may have been shared."],
+    OFFLINE_TIME_UNPROVEN: ["Time not proven (device restarted while offline)", "The device restarted while it had no internet, so the punch time could not be checked against the server. The time shown is an estimate."],
+    OFFLINE_TOO_OLD: ["Saved too long before it was sent", "The punch waited on the device for more than 72 hours before it reached the server."],
+    SYNC_ORDER_CONFLICT: ["Sent out of order with another punch", "Saved punches of this person reached the server in a different order than they were made. IN and OUT may be swapped."],
+  };
+  const fl = (c) => `<span class="flag-txt">${FLAG[c][0]} <span class="code">${c}</span></span>`;
+
+  /* Rows of 28/10/2026, newest punch time first. review: null | ["ok"|"no"|"todo", text, who, when, reason] */
+  const ROWS = [
+    { id: "p1", t: "09:12:40", emp: ["Sunita Jadhav", "EMP-0312"], m: "face", res: "ok", dir: "in", flags: ["LOCATION_AT_EDGE"], review: ["todo", "To check"], dev: ["Main gate phone", "K134"], kind: "edge" },
+    { id: "p2", t: "09:08:02", emp: ["Vijay Salunke", "EMP-0123"], m: "face", res: "ok", dir: "in", flags: ["IMPOSSIBLE_TRAVEL"], review: ["todo", "To check"], dev: ["Main gate phone", "K134"], kind: "travel" },
+    { id: "p3", t: "09:04:30", emp: ["Rekha Bhosale", "EMP-0204"], m: "face", res: "ok", dir: "in", flags: [], review: null, dev: ["Main gate phone", "K134"], kind: "plain" },
+    { id: "p4", t: "08:55:19", emp: ["Santosh Gaikwad", "T-2041"], m: "card", res: "ok", dir: "in", flags: ["TWO_DEVICES_SOON"], review: ["no", "Not accepted", "Asha Rao", "28/10 09:10", "Card was used at X280 Gate PC four minutes earlier. The worker says he lent it."], dev: ["Main gate phone", "K134"], kind: "reviewed-no" },
+    { id: "p5", t: "08:41:05", emp: ["Anil Pawar", "T-2058"], m: "card", res: "ok", dir: "in", flags: ["OFFLINE_TIME_UNPROVEN"], review: ["todo", "To check"], offline: { sent: "09:02", proof: "unproven", delay: "21 min" }, dev: ["TP1 Gate", "TP1"], kind: "offline-unproven" },
+    { id: "p6", t: "08:33:50", emp: ["Mohan Kulkarni", "T-2077"], m: "card", res: "ok", dir: "in", flags: [], review: null, offline: { sent: "09:02", proof: "anchored", delay: "28 min" }, dev: ["TP1 Gate", "TP1"], kind: "offline-ok" },
+    { id: "p7", t: "08:20:11", emp: ["Pooja Deshmukh", "EMP-0399"], m: "face", res: "ok", dir: "in", flags: ["LOCATION_STALE"], review: ["ok", "Confirmed", "Asha Rao", "28/10 09:14", "Gate has a weak signal; she works at TP1 every day."], offline: { sent: "09:02", proof: "anchored", delay: "42 min" }, dev: ["TP1 Gate", "TP1"], kind: "stale" },
+    { id: "p8", t: "08:14:09", emp: ["Lata Shinde", "EMP-0288"], m: "face", res: "ok", dir: "out", flags: ["SYNC_ORDER_CONFLICT"], review: ["todo", "To check"], offline: { sent: "09:02", proof: "anchored", delay: "48 min" }, dev: ["TP1 Gate", "TP1"], kind: "sync" },
+    { id: "p9", t: "07:59:10", emp: ["Ramesh Patil", "EMP-0457"], m: "face", res: "no", dir: null, flags: [], reason: ["Outside the fence", "OUTSIDE_GEOFENCE"], review: ["ok", "Approved as IN", "Asha Rao", "28/10 08:30", "Gate phone was moved to the canteen door for a minute; he was at the gate."], dev: ["Main gate phone", "K134"], kind: "approved" },
+  ];
+  if (TOO_OLD) ROWS.length = 0;
+  const OLD = { id: "p10", t: "07:41:20", emp: ["Ganesh More", "T-2102"], m: "card", res: "ok", dir: "in", flags: ["OFFLINE_TOO_OLD", "OFFLINE_TIME_UNPROVEN"], review: ["todo", "To check"], offline: { sent: "28/10 09:02", proof: "unproven", delay: "3 days 1 h" }, dev: ["TP1 Gate", "TP1"], kind: "too-old" };
+
+  const B = {
+    in: `<span class="badge badge-success">${ic("log-in")}IN</span>`,
+    out: `<span class="badge badge-info">${ic("log-out")}OUT</span>`,
+    ok: `<span class="badge badge-success">${ic("circle-check")}Accepted</span>`,
+    no: `<span class="badge badge-danger">${ic("circle-x")}Rejected</span>`,
+    face: `<span class="badge badge-method-face">${ic("scan-face")}Face</span>`,
+    card: `<span class="badge badge-method-card">${ic("id-card")}Card</span>`,
+    flag: `<span class="badge badge-flag">${ic("flag")}Flagged</span>`,
+    off: (s) => `<span class="badge badge-off">${ic("hourglass")}Saved offline, sent ${s}</span>`,
+  };
+  const rev = (r) => !r ? "" : r[0] === "todo" ? `<span class="badge badge-rev-todo">${ic("clock")}${SA ? "To check" : "Not reviewed yet"}</span>` : `<span class="badge ${r[0] === "ok" ? "badge-rev-ok" : "badge-rev-no"}">${ic(r[0] === "ok" ? "circle-check" : "circle-x")}${r[1]}</span>`;
+  const mark = (r) => r.res === "no" ? `<span class="badge badge-danger">${ic("circle-x")}Rejected</span>` : `<span class="badge ${r.dir === "in" ? "badge-success" : "badge-info"}">${ic(r.dir === "in" ? "log-in" : "log-out")}${r.dir === "in" ? "IN" : "OUT"}</span>`;
+
+  function resCell(r) {
+    const flagged = r.flags.length ? B.flag : "";
+    const why = r.reason ? `<span class="sub" style="color:var(--foreground)">${r.reason[0]} <span class="code muted">${r.reason[1]}</span></span>` : "";
+    return `<div class="res-stack"><div class="row2">${mark(r)}${flagged}${rev(r.review)}</div>${why}${r.flags.map(fl).join("")}</div>`;
+  }
+  function acts(r) {
+    const review = SA && r.review && r.review[0] === "todo" ? `<button class="btn btn-outline btn-icon" aria-label="Review the punch at ${r.t}" title="Review">${ic("flag")}</button>` : "";
+    return `<div class="act">${review}<button class="btn btn-ghost btn-icon" aria-label="Details of the punch at ${r.t}">${ic("panel-right-open")}</button></div>`;
+  }
+  function filtered() {
+    let rows = ROWS.slice();
+    if (ROLE === "ph") rows = rows.filter((r) => r.dev[1] === "K134");
+    if (S === "filter-flagged") rows = rows.filter((r) => r.flags.length);
+    if (S === "filter-offline") rows = rows.filter((r) => r.offline);
+    if (S === "filter-empty") rows = [];
+    if (TOO_OLD) rows = [OLD];
+    return rows;
+  }
+  function table(rows, open) {
+    const trs = rows.map((r) => `<tr class="${r.flags.length ? "is-flagged" : ""} ${r.res === "no" ? "is-rejected" : ""} ${open && open.id === r.id ? "is-open" : ""}">
+      <td class="time"><b class="tnum">${r.t}</b>${r.offline ? `<span class="off-line">${B.off(r.offline.sent)}</span>` : ""}</td>
+      <td><span class="emp"><b>${r.emp[0]}</b><span class="code sub">${r.emp[1]}</span></span></td><td>${B[r.m]}</td><td>${resCell(r)}</td>
+      <td><b style="font-weight:600;white-space:nowrap">${r.dev[0]}</b><span class="code sub">${r.dev[1]}</span></td><td>${acts(r)}</td></tr>`).join("");
+    return `<div class="ptable-wrap table-scroll"><table class="table ptable"><thead><tr><th>Punch time</th><th>Employee</th><th>Method</th><th>Result, flags and review <span class="badge badge-info chg" style="margin-left:4px">New</span></th><th>Device</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>${trs}</tbody></table></div>`;
+  }
+  function cards(rows) {
+    return `<div class="pcards">` + rows.map((r) => `<div class="pcard ${r.flags.length ? "is-flagged" : ""} ${r.res === "no" ? "is-rejected" : ""}">
+      <div class="pcard-top"><b>${r.emp[0]}</b><span class="time">${r.t}</span></div>
+      <div class="meta"><span class="code">${r.emp[1]}</span> · ${r.dev[0]} · ${r.dev[1]}</div>
+      <div class="badges">${B[r.m]}${mark(r)}${r.flags.length ? B.flag : ""}${rev(r.review)}${r.offline ? B.off(r.offline.sent) : ""}</div>
+      ${r.reason ? `<div class="meta" style="margin-top:6px">${r.reason[0]} <span class="code">${r.reason[1]}</span></div>` : ""}
+      ${r.flags.map((c) => `<div style="margin-top:6px">${fl(c)}</div>`).join("")}
+      <div class="acts">${SA && r.review && r.review[0] === "todo" ? `<button class="btn btn-outline">${ic("flag")}Review</button>` : ""}<button class="btn btn-outline">${ic("panel-right-open")}Details</button></div></div>`).join("") + `</div>`;
+  }
+  function chip(icon, tone, n, label, pressed) {
+    return `<button class="chip" aria-pressed="${pressed ? "true" : "false"}"><span class="ci ci-${tone}">${ic(icon)}</span><span><b>${n}</b><small>${label}</small></span></button>`;
+  }
+
+  function page(open) {
+    const ph = ROLE === "ph";
+    const n = ph ? { in: 268, out: 21, rej: 6, flag: 3, off: 0 } : { in: 412, out: 37, rej: 9, flag: 6, off: 4 };
+    const chips = `<div class="chips" role="group" aria-label="Totals of the day">
+      ${chip("log-in", "success", n.in, "Accepted IN")}${chip("log-out", "primary", n.out, "Accepted OUT")}${chip("circle-x", "danger", n.rej, "Rejected")}
+      ${chip("flag", "warning", n.flag, "Flagged", S === "filter-flagged")}${chip("hourglass", "neutral", n.off, "Saved offline", S === "filter-offline")}
+      <span class="chip-hint">Press a number to show only those punches</span></div>`;
+    const banner = !SA ? `<div class="alert alert-info mb">${ic("eye")}<span>Read-only${ph ? ", your plant only" : ""}. You see the flags and the review result. Only the Super Admin reviews flagged punches and opens photos.</span></div>` : "";
+    const selA = (txt, on) => `<div class="sel ${on ? "is-active" : ""}"><select aria-label="${txt.split(":")[0]}"><option>${txt}</option></select>${ic("chevron-down")}</div>`;
+    const fbar = `<div class="fbar"><div class="datebox"><button class="btn btn-ghost btn-icon" aria-label="Previous day">${ic("chevron-left")}</button><span>${ic("calendar-days")}${TOO_OLD ? "Sun " : "Today "}${DAY}</span><button class="btn btn-ghost btn-icon" aria-label="Next day" ${TOO_OLD ? "" : "disabled"}>${ic("chevron-right")}</button></div>
+      <div class="search-box">${ic("search")}<input class="input" placeholder="Code or name" aria-label="Search by employee code or name" /></div>
+      ${selA("Method: any")}${selA("Result: any")}${selA("Device: any")}${selA("Reason: any")}</div>
+      <div class="filters2"><span class="lbl">New filters</span>${selA(S === "filter-flagged" ? "Flagged: only flagged" : "Flagged: any", S === "filter-flagged")}${selA(S === "filter-offline" ? "Saved offline: yes" : "Saved offline: any", S === "filter-offline")}${selA("Review: any")}</div>`;
+    const rows = filtered();
+    let body;
+    if (S === "loading") body = `<div style="padding:16px;display:grid;gap:12px">${'<div class="skeleton" style="height:56px"></div>'.repeat(6)}</div>`;
+    else if (!rows.length) body = `<div class="empty-box"><span class="big">${ic("search-x")}</span><h3>No punches match these filters</h3><p>Try another day, or clear the filters “Flagged” and “Saved offline”.</p><button class="btn btn-outline btn-lg">Clear filters</button></div>`;
+    else body = table(rows, open) + cards(rows);
+    const count = S === "filter-flagged" ? "6 flagged punches · newest first" : S === "filter-offline" ? "4 punches saved offline · newest first" : ph ? "294 punches · newest first" : TOO_OLD ? "31 punches · newest first" : "464 punches · newest first";
+    return `<div class="page-head anim-fade-up"><div><h1 class="page-title">Punch log</h1><p class="page-desc">Every punch at the gate attendance devices, by card or by face, accepted or rejected. The time is the time of the punch. Times in IST.</p></div>
+      <div class="head-actions"><button class="btn btn-outline btn-lg">${ic("file-spreadsheet")}Export day (.xlsx)</button></div></div>
+      ${banner}<section aria-label="Totals of the day">${chips}</section>
+      <div class="card" style="overflow:hidden">${fbar}<div class="countbar"><span>${S === "filter-empty" ? "0 punches" : count}</span><span>${ic("radio")}<b style="color:var(--foreground)">Live</b> · updates every 30 s</span></div>${body}
+      <div class="table-foot"><span>Showing ${rows.length ? "1–" + rows.length + " of " + count.split(" ")[0] : "0 of 0"}</span><div class="pager"><button class="btn btn-outline" disabled aria-label="Previous page">${ic("chevron-left")}</button><button class="btn btn-outline" aria-label="Next page">${ic("chevron-right")}</button></div></div></div>`;
+  }
+
+  /* ---------- Detail side panel ---------- */
+  const DETAIL = { "detail-edge": "p1", "detail-travel": "p2", "detail-offline-unproven": "p5", "detail-offline-ok": "p6", "detail-reviewed-no": "p4", "detail-approved": "p9", "detail-stale": "p7", "detail-sync-conflict": "p8", "detail-ch": "p4", "detail-ph": "p1", "detail-too-old": "p10" };
+  const OPEN = DETAIL[S] ? (S === "detail-too-old" ? OLD : ROWS.find((r) => r.id === DETAIL[S])) : null;
+  const EXTRA = {
+    edge: `<dl class="kv2"><dt>Location</dt><dd>±22 m accuracy · <b>12 m outside the drawn fence, inside the 25 m margin</b></dd><dt>Reading age</dt><dd>9 seconds</dd></dl>`,
+    travel: `<dl class="kv2"><dt>Location</dt><dd>±9 m · inside the fence</dd><dt>Related punch</dt><dd><a class="linkline" href="#">08:58:41 · X280 Gate PC · X280</a><br><span class="sub muted" style="font-size:13px">5.1 km in 4 minutes = 76 km/h; the limit is 60 km/h.</span></dd></dl>`,
+  };
+  function timeBlock(r) {
+    if (!r.offline) return `<div class="timecmp"><div class="strong"><small>Punch time</small><b>${r.t}</b><span class="sm">${DAY}, IST</span></div><div><small>Received by the server</small><b>${r.t}</b><span class="sm">The same: online punch</span></div></div>`;
+    const recv = r.offline.sent;
+    const proof = r.offline.proof === "anchored"
+      ? `<div class="proof ok">${ic("shield-check")}<span><b>Time proof: anchored to server time.</b> The device kept its clock steady from its last contact with the server, so the punch time can be trusted.</span></div>`
+      : `<div class="proof bad">${ic("triangle-alert")}<span><b>Time not proven (device restarted while offline).</b> The punch time shown is an estimate, not later than the time it was received.</span></div>`;
+    return `<div class="timecmp"><div class="strong"><small>Punch time ${r.offline.proof === "anchored" ? "" : "(estimate)"}</small><b>${r.t}</b><span class="sm">${DAY}, IST</span></div><div><small>Received by the server</small><b>${recv.slice(-5)}</b><span class="sm">${recv.length > 5 ? recv.slice(0, 5) + "/2026" : DAY}, IST · ${r.offline.delay} later</span></div></div>${proof}`;
+  }
+  function reviewBlock(r) {
+    if (!r.review) return `<section class="sec"><h3>${ic("flag")}Review</h3><div class="rev-line"><span>${ic("check")}</span><div><b>Nothing to review</b><small>This punch has no flag.</small></div></div></section>`;
+    const [k, txt, who, when, why] = r.review;
+    let line;
+    if (k === "todo") line = `<div class="rev-line todo">${ic("clock")}<div><b>To check</b><small>${SA ? "Nobody has reviewed this flagged punch yet. It counts as IN for now." : "The Super Admin has not reviewed this flagged punch yet. It counts as IN for now."}</small></div></div>`;
+    else line = `<div class="rev-line ${k}">${ic(k === "ok" ? "circle-check" : "circle-x")}<div><b>${txt}</b><small>${who} · ${when}<br>“${why}”${k === "no" ? "<br><b>This punch no longer counts as IN/OUT.</b>" : ""}</small></div></div>`;
+    return `<section class="sec"><h3>${ic("flag")}Review</h3>${line}</section>`;
+  }
+  function sheet() {
+    const r = OPEN;
+    const flagged = r.flags.length > 0;
+    const tone = r.res === "no" ? "danger" : flagged ? "warning" : "success";
+    const ttl = r.res === "no" ? "Rejected · " + r.reason[0] : `Accepted ${r.dir === "in" ? "IN" : "OUT"}${flagged ? " · Flagged" : ""}`;
+    const head = `<div class="sheet-head"><div class="dlg-icon" style="background:var(--${tone}-soft);color:var(--${tone})">${ic(tone === "danger" ? "circle-x" : flagged ? "flag" : "circle-check")}</div><div><h2>${ttl}</h2><p class="tnum">${DAY} ${r.t} IST · ${r.dev[0]} · ${r.dev[1]}</p></div><button class="btn btn-ghost btn-icon" aria-label="Close">${ic("x")}</button></div>`;
+    const facts = `<section class="sec"><h3>${ic("list")}Punch</h3><dl class="kv2"><dt>Employee</dt><dd><b>${r.emp[0]}</b> · <span class="code">${r.emp[1]}</span></dd><dt>Method</dt><dd>${B[r.m]}</dd><dt>Result</dt><dd>${r.res === "no" ? `${B.no} <span class="muted" style="margin-left:6px">${r.reason[0]} <span class="code">${r.reason[1]}</span></span>` : `${B.ok} ${B[r.dir]}${r.offline ? " " + B.off(r.offline.sent) : ""}`}</dd><dt>Device</dt><dd>${r.dev[0]} · <span class="code">${r.dev[1]}</span></dd></dl></section>`;
+    const time = `<section class="sec"><h3>${ic("clock")}Time</h3>${timeBlock(r)}</section>`;
+    const flags = flagged ? `<section class="sec"><h3>${ic("flag")}Flags (${r.flags.length})</h3>${r.flags.map((c) => `<div class="flag-card"><b>${ic("flag")}${FLAG[c][0]}</b><p>${FLAG[c][1]}</p><span class="code">${c}</span></div>`).join("")}<p class="sub muted" style="margin:6px 0 0;font-size:13px">A flag does not stop the punch. It asks someone to look.</p></section>` : "";
+    const extra = EXTRA[r.kind] ? `<section class="sec"><h3>${ic("map-pin")}Location and related punch</h3>${EXTRA[r.kind]}</section>` : "";
+    const foot = SA && r.review && r.review[0] === "todo" ? `<div class="sheet-foot"><button class="btn btn-primary btn-lg">${ic("flag")}Open in Needs review</button></div>`
+      : SA && r.review ? `<div class="sheet-foot"><button class="btn btn-outline btn-lg">${ic("flag")}Open in Needs review</button></div>`
+      : !SA && flagged ? `<div class="sheet-foot"><span class="ro-line">${ic("lock")}Only the Super Admin reviews flagged punches.</span></div>` : "";
+    return `<div class="overlay"></div><aside class="sheet anim-sheet-r" role="dialog" aria-modal="true" aria-label="Punch details">${head}<div class="sheet-body">${facts}${time}${flags}${extra}${reviewBlock(r)}</div>${foot}</aside>`;
+  }
+
+  function exportDialog() {
+    const old = ["Time", "Employee code", "Employee name", "Method", "Direction", "Result", "Reason", "Device", "Plant"];
+    const neu = ["Punch time", "Saved offline", "Flags", "Review"];
+    return `<div class="overlay"></div><div class="dialog anim-scale-in" role="dialog" aria-modal="true" aria-labelledby="ex"><div class="dlg-head"><span class="dlg-icon" style="background:var(--primary-soft);color:var(--primary)">${ic("file-spreadsheet")}</span><div><h2 class="dlg-title" id="ex">Export 28/10/2026 (.xlsx)</h2><p class="dlg-desc">One row per punch. No photos and no scores are in the file.</p></div></div>
+      <div class="dlg-body"><ul class="cols-list">${old.map((c) => `<li>${ic("check")}${c}</li>`).join("")}${neu.map((c) => `<li class="new">${ic("sparkles")}${c} <span class="badge badge-info chg">New</span></li>`).join("")}</ul>
+      <p class="res-note" style="margin-top:12px;font-size:13px;color:var(--muted-foreground)">“Punch time” is the time of the punch. For a punch saved offline it differs from the time it was received. “Flags” and “Review” are words, not codes.</p></div>
+      <div class="dlg-foot"><button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">${ic("download")}Export</button></div></div>`;
+  }
+
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page(OPEN);
+    const layer = document.getElementById("layer");
+    if (OPEN) layer.innerHTML = sheet();
+    if (S === "export") layer.innerHTML = exportDialog();
+    const tags = { default: "Super Admin, today, flags and offline marks", "filter-flagged": "chip Flagged pressed", "filter-offline": "chip Saved offline pressed", "filter-empty": "filters match nothing", "corporate-head": "Corporate Head, read-only", "plant-head": "Plant Head K134, read-only", loading: "loading", export: "export dialog with the new columns", "detail-edge": "detail: location at the edge", "detail-travel": "detail: impossible travel", "detail-offline-unproven": "detail: offline, time not proven", "detail-offline-ok": "detail: offline, time anchored, no flag", "detail-reviewed-no": "detail: Not accepted by the Super Admin", "detail-approved": "detail: rejected, Approved as IN", "detail-too-old": "detail: too old (25/10, sent 28/10)", "detail-stale": "detail: stale location, Confirmed", "detail-sync-conflict": "detail: sync order conflict", "detail-ch": "detail as Corporate Head (read-only)", "detail-ph": "detail as Plant Head (read-only)" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>

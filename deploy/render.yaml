@@ -62,3 +62,14 @@ services:
       # baked into the image at build time. Changing the pack means everyone enrols again.
       - key: FACE_MODEL_PACK
         value: buffalo_s
+      # M4: offline punches saved on gate devices are sealed for this key (decision 0025).
+      # Typed in Render, never written here. Make it on your laptop:
+      # uv run python -m app.scripts.make_offline_key. Keep a copy in the password manager: if it
+      # is lost, the punches still waiting on gate devices cannot be read. The backend does not
+      # start in production without it.
+      - key: OFFLINE_EVIDENCE_KEY
+        sync: false
+      # A letter stored with every saved punch (default A); change it only when a new key
+      # replaces this one.
+      - key: OFFLINE_EVIDENCE_KEY_ID
+        value: A

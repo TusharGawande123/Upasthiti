@@ -9,6 +9,9 @@ import { Select } from "@/components/ui/select";
 import { isThreshold, REPORT_KEYS } from "./face-settings";
 import type { Setting, SettingValue } from "./use-settings";
 
+// Raising these may let a device at a neighbouring MIDC Waluj plant punch here (M4 §4.11).
+const NEIGHBOUR_RISK_KEYS = ["gps_accuracy_limit_m", "geofence_default_buffer_m"];
+
 export function sameValue(a: SettingValue, b: SettingValue) {
   return String(a) === String(b);
 }
@@ -109,6 +112,13 @@ export function SettingRow({
     isValid(setting, draft) &&
     Number(draft) > Number(setting.value);
   // Lowering a face threshold lets more strangers through (spec M3 §4.12).
+  // M4 (spec §4.11): the plants of MIDC Waluj are close together, so a looser location limit or a
+  // wider fence margin may let a device at the neighbouring plant punch here.
+  const widensLocation =
+    NEIGHBOUR_RISK_KEYS.includes(setting.key) &&
+    !locked &&
+    isValid(setting, draft) &&
+    Number(draft) > Number(setting.value);
   const lowersThreshold =
     isThreshold(setting) &&
     !locked &&
@@ -239,6 +249,17 @@ export function SettingRow({
             <span>
               <b>{t("settings.retentionRaise.title", { days: draft })}</b>{" "}
               {t("settings.retentionRaise.text", { days: draft, current: setting.value })}
+            </span>
+          </div>
+        ) : null}
+        {widensLocation ? (
+          <div
+            role="alert"
+            className="mt-2 flex items-start gap-2 rounded-md border border-warning/30 bg-warning-soft p-2 text-[13px] text-warning"
+          >
+            <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+            <span>
+              <b>{t("settings.neighbourWarning.title")}</b> {t("settings.neighbourWarning.text")}
             </span>
           </div>
         ) : null}

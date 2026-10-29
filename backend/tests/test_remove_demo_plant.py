@@ -15,11 +15,11 @@ from sqlalchemy.orm import Session
 from app.core.storage import get_storage
 from app.modules.audit.models import AuditLog
 from app.modules.employees.models import Employee
-from app.modules.kiosks.models import KioskDevice
+from app.modules.kiosks.models import KioskDevice, KioskHeartbeat
 from app.modules.org.models import Plant
-from app.modules.punches.models import Punch, PunchSnapshot
+from app.modules.punches.models import Punch, PunchReview, PunchSnapshot
 from app.modules.qr_cards.models import QrCredential
-from app.modules.users.models import Role
+from app.modules.users.models import Role, User
 from app.scripts.remove_demo_plant import (
     RemovalRefusedError,
     build_plan,
@@ -160,3 +160,73 @@ def test_face_consent_and_template_of_a_demo_employee_are_removed_too(
     db_session.commit()
 
     assert count(db_session, FaceTemplate) == 0 and count(db_session, FaceConsent) == 0
+
+
+def test_reviews_and_health_samples_of_a_demo_plant_are_removed_too(
+    boss: TestClient,
+    db_session: Session,
+    snapshot_folder: Path,  # noqa: F811
+) -> None:
+    """M4: a reviewed demo punch and the heartbeats of a demo device must not block the removal,
+    and the review table's "never change" protection is switched on again afterwards."""
+    demo = create_plant(boss, db_session, "DEMO3")
+    create_plant(boss, db_session, "K134")
+    punch_once(boss, db_session, demo, "DEMO-1")
+    punch = db_session.scalars(select(Punch)).one()
+    user = db_session.scalars(select(User)).first()
+    assert user is not None
+    db_session.add(
+        PunchReview(
+            punch_id=punch.id,
+            action="confirmed",
+            employee_id=punch.employee_id,
+            reviewed_by=user.id,
+            reviewed_at=punch.server_received_at,
+        )
+    )
+    db_session.add(
+        KioskHeartbeat(
+            kiosk_id=punch.kiosk_id,
+            received_at=punch.server_received_at,
+            queue_count=0,
+            location_state="good",
+        )
+    )
+    db_session.commit()
+
+    plan = build_plan(db_session, "DEMO3", include_test_cards=False)
+    assert plan.counts["reviews of those punches"] == 1
+    assert plan.counts["device health samples"] == 1
+    remove(db_session, plan)
+    db_session.commit()
+
+    assert count(db_session, PunchReview) == 0 and count(db_session, KioskHeartbeat) == 0
+    assert count(db_session, Punch) == 0
+    states = db_session.scalars(
+        text(
+            "SELECT tgenabled FROM pg_trigger "
+            "WHERE tgrelid = 'punch_reviews'::regclass AND NOT tgisinternal"
+        )
+    ).all()
+    assert states and set(states) == {"O"}  # the never-change protection is on again
+
+
+def test_it_refuses_when_a_real_punch_points_at_a_demo_punch(
+    boss: TestClient,
+    db_session: Session,
+    snapshot_folder: Path,  # noqa: F811
+) -> None:
+    demo = create_plant(boss, db_session, "DEMO4")
+    real = create_plant(boss, db_session, "K134")
+    punch_once(boss, db_session, demo, "DEMO-1")
+    punch_once(boss, db_session, real, "REAL-1")
+    demo_punch = db_session.scalars(select(Punch).where(Punch.plant_id == uuid.UUID(demo.id))).one()
+    real_punch = db_session.scalars(select(Punch).where(Punch.plant_id == uuid.UUID(real.id))).one()
+    # Punch rows never change; the test links them the way a stored flag would have.
+    db_session.execute(text("ALTER TABLE punches DISABLE TRIGGER USER"))
+    real_punch.related_punch_id = demo_punch.id
+    db_session.commit()
+    db_session.execute(text("ALTER TABLE punches ENABLE TRIGGER USER"))
+
+    with pytest.raises(RemovalRefusedError, match="point at punches of this demo plant"):
+        build_plan(db_session, "DEMO4", include_test_cards=False)

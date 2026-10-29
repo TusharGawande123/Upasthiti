@@ -1,0 +1,221 @@
+<!doctype html>
+<!--
+  Upasthiti - M4 design gate C - Screen 1: attendance devices page (/admin/kiosks, spec 4.7, FR-24, F-3, F-36, S-38).
+  States (URL hash): default · filter-offline · corporate-head · plant-head · empty · loading · error ·
+  drawer-online · drawer-offline · drawer-needs-location · drawer-sending · drawer-corporate-head · revoke-waiting · revoke-clean.
+  "Today" in the mockup is Wednesday 28/10/2026, 08:26 IST. MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti attendance devices</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Attendance devices";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" || S === "drawer-corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = ROLE === "sa" ? { name: "Asha Rao", role: "Super Admin" } : ROLE === "ch" ? { name: "Meera Joshi", role: "Corporate Head" } : { name: "Prakash Kale", role: "Plant Head · K134", plant: "K134" };
+  const SA = ROLE === "sa";
+  const NOW = 8 * 60 + 26;           /* 08:26 in minutes */
+
+  /* Which devices this person sees. The Plant Head sees only K134 (and there the main gate phone is the one that is offline). */
+  let LIST = DEV.slice();
+  if (ROLE === "ph") {
+    LIST = [Object.assign({}, DEV[0], { status: "offline", since: "08:12", contact: "14 min ago", punch: "08:09", battery: null, offlineReady: true }), DEV[7]];
+  }
+  if (S === "empty") LIST = [];
+  const offlineCount = LIST.filter((d) => d.status === "offline").length;
+  window.MOCK_SHELL = {
+    offline: S === "empty" || S === "loading" ? 0 : offlineCount, review: 7,
+    banner: ROLE === "ch" || S === "empty" || S === "loading" ? null : ROLE === "ph" ? { name: "Main gate phone", since: "08:12", minutes: 14 } : { name: "TP1 Gate", since: "08:12", minutes: 14 },
+  };
+
+  /* ---------- 7-day timeline: offline stretches (minutes since midnight) per day, 0 = Thu 22/10 ... 6 = today ---------- */
+  const DAYS = [["Thu", "22/10"], ["Fri", "23/10"], ["Sat", "24/10"], ["Sun", "25/10"], ["Mon", "26/10"], ["Tue", "27/10"], ["Wed", "28/10"]];
+  const OFFL = {
+    d1: { 3: [[840, 880]], 5: [[660, 680]] },
+    d3: { 1: [[420, 470]], 4: [[780, 840]], 5: [[600, 640]] },
+    d4: { 2: [[540, 570]], 5: [[900, 925]] },
+    d6: { 1: [[580, 630]], 3: [[840, 930]], 5: [[660, 685]], 6: [[492, NOW]] },
+  };
+  const SHIFT = [420, 1140];
+  function weekData(id) {
+    const off = OFFL[id] || {};
+    let shiftMin = 0, offMin = 0;
+    const rows = DAYS.map((d, i) => {
+      const end = i === 6 ? NOW : 1440;
+      const segs = [];
+      let cursor = 0;
+      (off[i] || []).forEach(([a, b]) => { if (a > cursor) segs.push(["on", cursor, a]); segs.push(["off", a, Math.min(b, end)]); cursor = Math.min(b, end); });
+      if (cursor < end) segs.push(["on", cursor, end]);
+      const sh = Math.max(0, Math.min(end, SHIFT[1]) - SHIFT[0]);
+      let o = 0;
+      segs.forEach(([k, a, b]) => { if (k === "off") o += Math.max(0, Math.min(b, SHIFT[1]) - Math.max(a, SHIFT[0])); });
+      shiftMin += sh; offMin += o;
+      return { d, segs, pct: sh ? Math.round(((sh - o) / sh) * 100) : 100, today: i === 6 };
+    });
+    return { rows, pct: Math.round(((shiftMin - offMin) / shiftMin) * 100) };
+  }
+  function timeline(id) {
+    const w = weekData(id);
+    const pos = (m) => (m / 1440) * 100;
+    const rows = w.rows.map((r) => {
+      const bars = r.segs.map(([k, a, b]) => `<i class="${k}" style="left:${pos(a)}%;width:${pos(b - a)}%"></i>`).join("");
+      const offTxt = r.segs.filter((s) => s[0] === "off").map((s) => `offline ${hm(s[1])} to ${hm(s[2])}`).join(", ") || "no offline time";
+      return `<div class="tr" role="img" aria-label="${r.d[0]} ${r.d[1]}: online ${r.pct}% of shift time, ${offTxt}"><span class="d">${r.today ? "Today" : r.d[0]}<small>${r.d[1]}</small></span><div class="tbar">${bars}</div><span class="p">${r.pct}%</span></div>`;
+    }).join("");
+    const axis = [0, 6, 12, 18, 24].map((h) => `<em style="left:${(h / 24) * 100}%">${String(h).padStart(2, "0")}</em>`).join("");
+    const band = `<span class="shiftband" style="left:calc(58px + 8px + (100% - 58px - 52px - 16px) * ${SHIFT[0] / 1440});width:calc((100% - 58px - 52px - 16px) * ${(SHIFT[1] - SHIFT[0]) / 1440})"></span>`;
+    return { html: `<div class="tline">${band}<div class="rows">${rows}</div><div class="axis"><span></span><span class="s">${axis}</span><span></span></div></div>
+      <div class="legend"><span><i class="on"></i>Online</span><span><i class="off"></i>Offline</span><span><i class="sh"></i>Shift 07:00 to 19:00</span></div>`, pct: w.pct };
+  }
+  function hm(m) { return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); }
+
+  /* ---------- Map of the last reported position against the fence (a drawing; the real page uses Leaflet + OpenStreetMap) ---------- */
+  function minimap(d) {
+    const s = d.loc[0], acc = d.loc[1];
+    const pos = { in: [200, 120], edge: [312, 118], out: [352, 212] }[s];
+    const r = Math.min(acc, 70) * 0.55;
+    const verdict = { in: "inside the fence", edge: "at the edge: outside the fence, inside the 25 m margin", out: "outside the fence and the margin" }[s];
+    const cap = { in: `${acc} m accuracy · ${verdict}`, edge: `${acc} m accuracy · ${verdict}`, out: `${acc} m accuracy · ${verdict}` }[s];
+    const svg = `<svg viewBox="0 0 400 250" role="img" aria-label="Map drawing: the last reported position is ${verdict}">
+      <rect width="400" height="250" fill="#eaeef3"/>
+      <path d="M0 215 L400 205 M70 0 L90 250 M330 0 L350 250" stroke="#fff" stroke-width="10" fill="none"/>
+      <path d="M0 215 L400 205 M70 0 L90 250 M330 0 L350 250" stroke="#d3d9e2" stroke-width="1" fill="none"/>
+      <polygon points="352,70 398,66 398,190 356,186" fill="url(#hatch)" stroke="#9aa3b2" stroke-dasharray="3 3"/>
+      <text x="360" y="130" font-size="10" fill="#4a5567" font-weight="600" transform="rotate(-90 366 130)">Neighbouring plant</text>
+      <defs><pattern id="hatch" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="8" height="8" fill="#e3e7ee"/><line x1="0" y1="0" x2="0" y2="8" stroke="#c3cad6" stroke-width="3"/></pattern></defs>
+      <polygon points="96,56 304,44 322,186 104,196" fill="none" stroke="#c9962f" stroke-width="2" stroke-dasharray="7 5"/>
+      <polygon points="110,70 290,60 305,170 120,180" fill="rgba(31,58,147,.14)" stroke="#1f3a93" stroke-width="2.5"/>
+      <text x="125" y="95" font-size="12" font-weight="700" fill="#1a3282">${d.plant} fence</text>
+      <circle cx="${pos[0]}" cy="${pos[1]}" r="${r}" fill="rgba(180,35,24,.12)" stroke="#b42318" stroke-width="1.5" stroke-dasharray="3 3"/>
+      <circle cx="${pos[0]}" cy="${pos[1]}" r="8" fill="${s === "in" ? "#04694b" : s === "edge" ? "#8f5300" : "#b42318"}" stroke="#fff" stroke-width="3"/>
+    </svg>`;
+    return `<div class="minimap">${svg}<div class="map-legend"><span><i style="background:rgba(31,58,147,.3);border:2px solid #1f3a93"></i>Fence</span><span><i style="border:2px dashed #c9962f"></i>Margin (25 m)</span><span><i style="background:#8f5300;border-radius:99px"></i>Last position</span><span><i style="border:1.5px dashed #b42318;border-radius:99px"></i>Accuracy</span></div>
+      <div class="map-cap"><b>Last position: ${verdict.split(":")[0]}</b><span>${cap}. Reported at ${d.contact === "14 min ago" ? "08:11" : "08:25"}.</span><span class="map-note">Satellite view and “Show my location” work as on the fence page.</span></div></div>`;
+  }
+
+  /* ---------- Page pieces ---------- */
+  function waitCell(d) { return d.wait ? `<b>${d.wait}</b><span class="sub"> · oldest ${d.oldest}</span>` : `<span class="dim">–</span>`; }
+  function row(d, sel) {
+    return `<tr class="${sel ? "is-sel" : ""}"><td><span class="nm"><b>${d.name}</b><span class="code sub">${d.plant} · ${d.kind}</span></span></td>
+      <td class="stk">${statusChip(d)}</td><td>${d.contact || '<span class="dim">–</span>'}</td><td class="tnum">${d.punch || '<span class="dim">–</span>'}</td><td class="tnum">${waitCell(d)}</td>
+      <td class="tnum">${d.sync || '<span class="dim">–</span>'}</td><td>${d.status === "pending" ? `<span class="sub">${d.code}</span>` : locText(d)}</td><td class="code">${d.ver || '<span class="dim">–</span>'}</td>
+      <td><button class="btn btn-outline btn-sm2" aria-label="Details of ${d.name}">${ic("panel-right-open")}Details</button></td></tr>`;
+  }
+  function dcard(d) {
+    return `<div class="dcard"><div class="dcard-top"><div><b>${d.name}</b><span class="code sub">${d.plant} · ${d.kind}</span></div>${statusChip(d)}</div>
+      <dl><dt>Last contact</dt><dd>${d.contact || "–"}</dd><dt>Last punch</dt><dd class="tnum">${d.punch || "–"}</dd><dt>Waiting to send</dt><dd>${d.wait ? `<b>${d.wait}</b> · oldest ${d.oldest}` : "–"}</dd><dt>Last sync</dt><dd class="tnum">${d.sync || "–"}</dd><dt>Location</dt><dd>${d.status === "pending" ? d.code : locText(d)}</dd><dt>App version</dt><dd class="code">${d.ver || "–"}</dd></dl>
+      <button class="btn btn-outline">${ic("panel-right-open")}Details</button></div>`;
+  }
+  function count(k) { return LIST.filter((d) => (k === "all" ? true : k === "online" ? d.status === "online" || d.status === "sending" : d.status === k)).length; }
+  function seg() {
+    const f = S === "filter-offline" ? "offline" : "all";
+    const b = (k, icon, label) => `<button aria-pressed="${f === k}">${ic(icon)}${label}<b>${count(k)}</b></button>`;
+    return `<div class="seg" role="group" aria-label="Filter by status">${b("all", "layers", "All")}${b("online", "wifi", "Online")}${b("offline", "wifi-off", "Offline")}${b("location", "map-pin-off", "Needs location")}${b("off", "power-off", "Switched off")}${b("pending", "hourglass", "Waiting for pairing")}</div>`;
+  }
+  const TH = `<tr><th>Attendance device</th><th>Status</th><th>Last contact</th><th>Last punch</th><th>Saved punches waiting</th><th>Last sync</th><th>Location</th><th>App version</th><th><span class="sr-only">Actions</span></th></tr>`;
+
+  function listCard() {
+    if (S === "loading") return `<div class="card" style="padding:16px;display:grid;gap:12px" aria-busy="true">${'<div class="skeleton" style="height:48px"></div>'.repeat(6)}</div>`;
+    if (S === "error") return `<div class="card" style="padding:20px"><div class="alert alert-danger">${ic("circle-alert")}<span><b>The attendance devices could not be loaded.</b> Check your internet and try again.</span><button class="btn btn-outline" style="margin-left:auto">${ic("rotate-cw")}Try again</button></div></div>`;
+    if (S === "empty") {
+      return `<div class="card"><div class="empty-box"><span class="big">${ic("tablet-smartphone")}</span><h3>No attendance devices yet</h3>${SA
+        ? `<p>An attendance device is the phone, tablet or PC at the plant gate where everyone punches in and out. Add one and pair it with a code.</p><ol><li>Draw the plant fence on the map (Plants)</li><li>Add an attendance device here and note its pairing code</li><li>Open the code on the device at the gate</li></ol><button class="btn btn-primary btn-lg" style="margin-top:10px">${ic("plus")}Add an attendance device</button>`
+        : `<p>No attendance device has been added for ${ROLE === "ph" ? "your plant" : "these plants"} yet. The Super Admin adds them.</p>`}</div></div>`;
+    }
+    let rows = LIST;
+    if (S === "filter-offline") rows = LIST.filter((d) => d.status === "offline");
+    const open = { "drawer-online": "d1", "drawer-offline": "d6", "drawer-needs-location": "d3", "drawer-sending": "d4", "drawer-corporate-head": "d1" }[S];
+    return `<div class="card" style="overflow:hidden"><div class="fbar" style="justify-content:space-between">${seg()}<span class="upd-note">${ic("radio")}<b style="color:var(--foreground)">Live</b> · updates every 30 s</span></div>
+      <div class="dwrap"><table class="table dtable"><thead>${TH}</thead><tbody>${rows.map((d) => row(d, d.id === open)).join("")}</tbody></table></div>
+      <div class="dcards">${rows.map(dcard).join("")}</div>
+      <div class="table-foot"><span>${rows.length} attendance device${rows.length === 1 ? "" : "s"}${S === "filter-offline" ? " · filtered: Offline" : ""}</span><span>Times in IST · “Saved punches waiting” comes from the last contact</span></div></div>`;
+  }
+
+  function page() {
+    const ph = ROLE === "ph";
+    const desc = SA ? "The phones, tablets and PCs at the plant gates where everyone punches. Add, pair and switch off here." : ph ? "The attendance devices of your plant. You can see their state; the Super Admin changes them." : "The attendance devices of all plants. You can see their state; the Super Admin changes them.";
+    const ro = !SA ? `<div class="alert alert-info mb">${ic("eye")}<span><b>View only.</b> You see the state of the attendance devices${ph ? " of your plant" : ""}. Only the Super Admin adds or switches off a device.</span></div>` : "";
+    const filtNote = S === "filter-offline" ? `<div class="alert alert-info mb">${ic("filter")}<span style="flex:1">Showing only attendance devices that are <b>offline</b>, as you opened it from the badge at the top.</span><button class="btn btn-outline">Show all</button></div>` : "";
+    return `<div class="page-head anim-fade-up"><div><h1 class="page-title">Attendance devices</h1><p class="page-desc">${desc}</p></div>
+      <div class="head-actions">${SA ? `<button class="btn btn-primary btn-lg">${ic("plus")}Add an attendance device</button>` : ""}</div></div>${ro}${filtNote}${listCard()}`;
+  }
+
+  /* ---------- Drawer ---------- */
+  function battery(d) {
+    if (!d.battery) return `<div class="tile"><div class="tl-top">${ic("battery")}Battery</div><div class="val na"><span class="batt none" aria-hidden="true"></span>Not reported</div><small>${d.kind === "PC" ? "A PC on mains power." : "This browser does not share battery information."}</small></div>`;
+    const [lvl, chg] = d.battery;
+    const cls = lvl < 20 ? "bad" : lvl < 40 ? "warn" : "ok";
+    return `<div class="tile"><div class="tl-top">${ic("battery-medium")}Battery</div><div class="val ${cls}"><span class="batt" aria-hidden="true"><i style="width:${lvl}%"></i></span>${lvl}%</div><small>${chg ? "Charging" : "Not charging"}${lvl < 20 && !chg ? " · connect a charger" : ""}</small></div>`;
+  }
+  function mb(v) { return v >= 1000 ? (v / 1000).toFixed(1).replace(/\.0$/, "") + " GB" : v + " MB"; }
+  function drawer(d) {
+    const tl = timeline(d.id);
+    const lowStorage = d.storage && d.storage[1] < 250;
+    const camOk = d.camera;
+    const health = `<div class="tiles">${battery(d)}
+      <div class="tile"><div class="tl-top">${ic("camera")}Camera</div><div class="val ${camOk ? "ok" : "bad"}">${ic(camOk ? "circle-check" : "circle-x")}${camOk ? "Working" : "Not working"}</div><small>${camOk ? "Seen working at the last contact." : "Check the camera permission."}</small></div>
+      <div class="tile"><div class="tl-top">${ic("hard-drive")}Storage</div><div class="val">${d.storage ? `${mb(d.storage[1])} free` : "–"}</div><small>${d.storage ? `Used ${mb(d.storage[0])} of the browser's space` : ""}</small></div>
+      <div class="tile"><div class="tl-top">${ic("history")}Offline saving</div><div class="val ${lowStorage ? "warn" : "ok"}">${ic(lowStorage ? "triangle-alert" : "circle-check")}${lowStorage ? "Off" : "Ready"}</div><small>${lowStorage ? "Not enough storage: the browser has less than 250 MB free." : "Punches are saved here if the internet drops."}</small></div>
+      <div class="tile wide"><div class="tl-top">${ic("package")}App version</div><div class="val code">${d.ver}</div><small>${d.ver === "1.4.0" ? "Latest version" : "Old version"}</small></div></div>`;
+    const waits = d.wait ? `<dd><b>${d.wait}</b> · oldest ${d.oldest}</dd>` : `<dd>–</dd>`;
+    const facts = `<dl class="kv2"><dt>Plant</dt><dd>${d.plantName} · <span class="code">${d.plant}</span></dd><dt>Type</dt><dd>${d.kind}</dd><dt>Last contact</dt><dd>${d.contact}</dd><dt>Last punch</dt><dd class="tnum">${d.punch}</dd>
+      <dt>Saved punches waiting</dt>${waits}<dt>Last sync</dt><dd class="tnum">${d.sync}</dd><dt>Location</dt><dd>${locText(d)}</dd><dt>App version</dt><dd class="code">${d.ver}</dd><dt>Storage kept by the browser</dt><dd>Yes</dd></dl>`;
+    const why = d.status === "offline" ? `<div class="why-box">${ic("wifi-off")}<span><b>No contact since ${d.since}.</b> Check the power and the internet at the gate. If the gate has no internet, punches are saved on the device and sent when it is back. Values below are from its last contact.</span></div>`
+      : d.status === "location" ? `<div class="why-box">${ic("map-pin-off")}<span><b>This device has no good location.</b> The last reading was ±${d.loc[1]} m, worse than the 50 m limit. Punches here are held until it is good again. Ask the gate staff to switch location on and go near a window or outside.</span></div>`
+      : d.status === "sending" ? `<div class="why-box" style="background:var(--primary-soft);border-color:#b9c6ef;color:#1a2c6b">${ic("refresh-cw")}<span><b>Sending ${d.wait} saved punches.</b> Oldest was saved at ${d.oldest}. This takes about a minute. The number goes down as they arrive.</span></div>` : "";
+    const mapHtml = ROLE === "ch"
+      ? `<div class="noMap">${ic("lock")}<span>The map of the position is shown to the Super Admin and to the Plant Head of the plant.</span></div>`
+      : d.loc ? minimap(d) : `<div class="noMap">${ic("map-pin-off")}<span>No position reported yet.</span></div>`;
+    const head = `<div class="sheet-head"><div class="dlg-icon" style="background:var(--primary-soft);color:var(--primary)">${ic("tablet-smartphone")}</div><div><h2>${d.name}</h2><p>${d.plantName} · ${d.kind}</p><div style="margin-top:8px">${statusChip(d)}</div></div><button class="btn btn-ghost btn-icon" aria-label="Close">${ic("x")}</button></div>`;
+    const weekCls = tl.pct < 95 ? "is-low" : "";
+    const body = `<div class="sheet-body">${why}
+      <section class="sec"><h3>${ic("list")}Facts</h3>${facts}</section>
+      <section class="sec"><h3>${ic("heart-pulse")}Health</h3>${health}</section>
+      <section class="sec"><h3>${ic("chart-no-axes-gantt")}Last 7 days</h3>${tl.html}<div class="week-sum ${weekCls}">${ic(tl.pct < 95 ? "triangle-alert" : "circle-check")}Online ${tl.pct}% of shift time this week</div></section>
+      <section class="sec"><h3>${ic("map-pin")}Last position and the fence</h3>${mapHtml}</section></div>`;
+    const foot = SA && d.status !== "off" ? `<div class="sheet-foot"><button class="btn btn-danger-outline btn-lg">${ic("power-off")}Switch off this attendance device</button></div>` : `<div class="sheet-foot"><span class="ro-line">${ic("eye")}View only. The Super Admin can switch a device off.</span></div>`;
+    return `<div class="overlay"></div><aside class="sheet anim-sheet-r" role="dialog" aria-modal="true" aria-label="Details of ${d.name}">${head}${body}${foot}</aside>`;
+  }
+
+  function revoke(d) {
+    const waiting = d.wait > 0;
+    return `<div class="overlay"></div><div class="dialog anim-scale-in" role="alertdialog" aria-modal="true" aria-labelledby="rv"><div class="dlg-head"><span class="dlg-icon" style="background:var(--danger-soft);color:var(--danger)">${ic("power-off")}</span><div><h2 class="dlg-title" id="rv">Switch off “${d.name}”?</h2><p class="dlg-desc">It stops taking punches at once. To use it again you pair it with a new code.</p></div></div>
+      <div class="dlg-body"><div class="dlg-who"><span class="round-ic" style="background:var(--primary-soft);color:var(--primary)">${ic("tablet-smartphone")}</span><div><b>${d.name}</b><span class="sub">${d.plantName} · ${d.kind}</span></div><span style="margin-left:auto">${statusChip(d)}</span></div>
+      ${waiting ? `<div class="why-box" role="alert">${ic("triangle-alert")}<span><b>${d.wait} punches are still waiting on this attendance device.</b> If you switch it off now, they are lost. Wait until it shows 0 if you can.<br><span style="font-size:13px">Oldest saved punch: ${d.oldest}. If the device is lost or stolen, switch it off now.</span></span></div>` : `<p style="margin:0;color:var(--muted-foreground);font-size:14.5px">No punches are waiting on this attendance device.</p>`}</div>
+      <div class="dlg-foot"><button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-danger btn-lg">${ic("power-off")}Switch off now</button></div></div>`;
+  }
+
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    const layer = document.getElementById("layer");
+    const pick = { "drawer-online": "d1", "drawer-offline": "d6", "drawer-needs-location": "d3", "drawer-sending": "d4", "drawer-corporate-head": "d1", "revoke-waiting": "d4", "revoke-clean": "d1" }[S];
+    if (pick) {
+      const d = DEV.find((x) => x.id === pick);
+      layer.innerHTML = S.startsWith("revoke") ? revoke(d) : drawer(d);
+    }
+    const tags = { default: "Super Admin, every status shown", "filter-offline": "opened from the badge: Offline", "corporate-head": "Corporate Head, read-only", "plant-head": "Plant Head K134, read-only", empty: "no attendance devices yet", loading: "loading", error: "could not load", "drawer-online": "drawer: Online", "drawer-offline": "drawer: Offline, storage too small", "drawer-needs-location": "drawer: Needs location", "drawer-sending": "drawer: Sending saved punches", "drawer-corporate-head": "drawer as Corporate Head, no map", "revoke-waiting": "revoke dialog, 12 punches waiting", "revoke-clean": "revoke dialog, nothing waiting" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>

@@ -13,39 +13,56 @@ import segno
 from fastapi import APIRouter, Depends, Query, Request, Response
 from sqlalchemy.orm import Session
 
+from app.core.body_limit import SYNC_BODY_LIMIT
 from app.core.client_ip import get_client_ip
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import ApiError
+from app.core.offline_crypto import b64url_encode, load_offline_key, public_point
 from app.core.time import utc_now
 from app.face.engine import FaceEngine
 from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
-from app.modules.auth.rate_limit import report_limiter
+from app.modules.auth.rate_limit import heartbeat_limiter, report_limiter
 from app.modules.auth.scope import ensure_plant_in_scope, plant_filter
 from app.modules.face.engine_provider import engine_state, get_face_engine, running_model_id
 from app.modules.face.state import common_code_prefixes, plant_has_enrolled_faces
-from app.modules.kiosks import service
+from app.modules.kiosks import service, status_service
 from app.modules.kiosks.dependencies import require_kiosk
+from app.modules.kiosks.heartbeat_service import HeartbeatRequest, record_heartbeat
 from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.schemas import (
     CreateKioskRequest,
+    HealthDay,
+    HealthLatest,
+    HealthResponse,
+    HealthStretch,
     KioskFaceSettings,
+    KioskFence,
+    KioskLocationSettings,
     KioskMeResponse,
     KioskNoticeItem,
+    KioskOfflineSettings,
     KioskReportRequest,
     KioskResponse,
     KioskScreenSettings,
     KioskWithCodeResponse,
+    OfflineAlertItem,
     PlantSummary,
     ReasonRequest,
     RegisterKioskRequest,
     RegisterKioskResponse,
+    StatusSummaryResponse,
     UpdateKioskRequest,
 )
+from app.modules.kiosks.status_service import kiosk_view
+from app.modules.kiosks.time_anchor import anchor_for_request
 from app.modules.notices.queries import visible_notices
+from app.modules.org.geofence_service import current_geofence
 from app.modules.org.plants_service import get_plant
+from app.modules.punches.sync_schemas import MAX_SYNC_ITEMS
 from app.modules.settings.service import get_int_setting, get_setting
+from app.modules.users.models import Role
 
 logger = logging.getLogger(__name__)
 router = APIRouter(tags=["kiosks"])
@@ -69,10 +86,19 @@ def _with_code(issued: service.IssuedCode) -> KioskWithCodeResponse:
     )
 
 
+def _shows_position(current_user: CurrentUser, kiosk: KioskDevice) -> bool:
+    """The Super Admin and the plant's own Plant Head may see where a device is (spec §7 rule 1);
+    the Corporate Head sees the device without its position."""
+    if current_user.role == Role.SUPER_ADMIN.value:
+        return True
+    return current_user.role == Role.PLANT_HEAD.value and kiosk.plant_id in current_user.plant_ids
+
+
 @router.get("/kiosks", response_model=list[KioskResponse])
 def list_kiosks(
     plant_id: uuid.UUID | None = None,
     status: str | None = Query(default=None, max_length=10),
+    state: str | None = Query(default=None, max_length=20),
     current_user: CurrentUser = Depends(viewer),
     session: Session = Depends(get_session),
 ) -> list[KioskResponse]:
@@ -82,7 +108,81 @@ def list_kiosks(
         plant_id=plant_id,
         status=status,
     )
-    return [KioskResponse.from_model(kiosk) for kiosk in kiosks]
+    now = utc_now()
+    rows = [
+        kiosk_view(session, kiosk, now, show_position=_shows_position(current_user, kiosk))
+        for kiosk in kiosks
+    ]
+    return [row for row in rows if state is None or row.state == state]
+
+
+@router.get("/kiosks/status-summary", response_model=StatusSummaryResponse)
+def kiosks_status_summary(
+    current_user: CurrentUser = Depends(viewer),
+    session: Session = Depends(get_session),
+) -> StatusSummaryResponse:
+    """The offline badge, the dashboard card and the offline alerts (M4 spec §5.4; F-36, F-46).
+    Alerts are for the Super Admin and the Plant Head only, never the Corporate Head."""
+    kiosks = status_service.active_kiosks(
+        session, plant_filter(current_user, Capability.VIEW_KIOSKS)
+    )
+    summary = status_service.status_summary(
+        session, kiosks, utc_now(), with_alerts=current_user.role != Role.CORPORATE_HEAD.value
+    )
+    return StatusSummaryResponse(
+        online=summary.online,
+        offline=summary.offline,
+        needs_location=summary.needs_location,
+        sending=summary.sending,
+        alerts=[
+            OfflineAlertItem(
+                kiosk={"id": alert.kiosk.id, "name": alert.kiosk.name},
+                plant={
+                    "id": alert.plant.id,
+                    "code": alert.plant.code,
+                    "name": alert.plant.name,
+                },
+                offline_since=alert.offline_since,
+            )
+            for alert in summary.alerts
+        ],
+    )
+
+
+@router.get("/kiosks/{kiosk_id}/health", response_model=HealthResponse)
+def kiosk_health(
+    kiosk_id: uuid.UUID,
+    days: int = Query(default=7, ge=1, le=7),
+    current_user: CurrentUser = Depends(viewer),
+    session: Session = Depends(get_session),
+) -> HealthResponse:
+    """Battery, camera, storage and the online / offline timeline of the last days (F-3)."""
+    kiosk = _kiosk_in_scope(session, current_user, Capability.VIEW_KIOSKS, kiosk_id)
+    now = utc_now()
+    timeline, sample = status_service.health_days(session, kiosk, now, days)
+    view = kiosk_view(session, kiosk, now, show_position=False)
+    return HealthResponse(
+        days=[
+            HealthDay(
+                date=entry.day.isoformat(),
+                online_minutes=entry.online_minutes,
+                offline_minutes=entry.offline_minutes,
+                shift_minutes=entry.shift_minutes,
+                stretches=[
+                    HealthStretch(start=s.start, end=s.end, state=s.state)  # type: ignore[arg-type]
+                    for s in entry.stretches
+                ],
+            )
+            for entry in timeline
+        ],
+        latest=HealthLatest(
+            battery=view.battery,
+            camera_ok=view.camera_ok,
+            storage=view.storage,
+            app_version=kiosk.app_version,
+            at=sample.received_at if sample else kiosk.last_heartbeat_at,
+        ),
+    )
 
 
 @router.post("/kiosks", response_model=KioskWithCodeResponse, status_code=201)
@@ -200,11 +300,34 @@ def register_kiosk(
 
 @router.get("/kiosk/me", response_model=KioskMeResponse)
 def kiosk_me(
+    request: Request,
     kiosk: KioskDevice = Depends(require_kiosk),
     session: Session = Depends(get_session),
     engine: FaceEngine = Depends(get_face_engine),
 ) -> KioskMeResponse:
-    """The kiosk's heartbeat (every 60 s): who it is, plus the notices and settings it shows."""
+    """Who the gate is, plus the notices and settings it shows (start-up, and old gates)."""
+    return _me_answer(request, kiosk, session, engine)
+
+
+@router.post("/kiosk/heartbeat", response_model=KioskMeResponse)
+def kiosk_heartbeat(
+    body: HeartbeatRequest,
+    request: Request,
+    kiosk: KioskDevice = Depends(require_kiosk),
+    session: Session = Depends(get_session),
+    engine: FaceEngine = Depends(get_face_engine),
+) -> KioskMeResponse:
+    """The gate's heartbeat (every 60 s, M4 spec §5.2): it reports its queue, location, storage,
+    battery and camera, and gets the same answer as /kiosk/me (so one call does both)."""
+    if not heartbeat_limiter.allow(str(kiosk.id)):
+        raise ApiError("TOO_MANY_REQUESTS", "Too many heartbeats. Wait a moment.", 429)
+    record_heartbeat(session, kiosk, body, utc_now())
+    return _me_answer(request, kiosk, session, engine)
+
+
+def _me_answer(
+    request: Request, kiosk: KioskDevice, session: Session, engine: FaceEngine
+) -> KioskMeResponse:
     plant = get_plant(session, kiosk.plant_id)
     now = utc_now()
     return KioskMeResponse(
@@ -223,6 +346,7 @@ def kiosk_me(
             for notice in visible_notices(session, kiosk.plant_id, now)
         ],
         kiosk_settings=_screen_settings(session, kiosk, engine),
+        time_anchor=anchor_for_request(request, kiosk.id, now),
     )
 
 
@@ -247,6 +371,46 @@ def _screen_settings(
             code_entry_seconds=get_int_setting(session, "face_code_entry_seconds"),
             min_yaw_degrees=get_int_setting(session, "face_min_yaw_degrees"),
             code_prefixes=common_code_prefixes(session, kiosk.plant_id, running_model_id()),
+        ),
+        location=_location_settings(session, kiosk),
+        offline=_offline_settings(session),
+    )
+
+
+def _offline_settings(session: Session) -> KioskOfflineSettings:
+    settings = get_settings()
+    key = settings.offline_evidence_key
+    public_key = (
+        b64url_encode(public_point(load_offline_key(key.get_secret_value()))) if key else ""
+    )
+    return KioskOfflineSettings(
+        enabled=key is not None,
+        evidence_key_id=settings.offline_evidence_key_id,
+        evidence_public_key=public_key,
+        max_items=get_int_setting(session, "offline_queue_max_items"),
+        max_mb=get_int_setting(session, "offline_queue_max_mb"),
+        max_hours=get_int_setting(session, "offline_max_hours"),
+        cooldown_minutes=get_int_setting(session, "punch_cooldown_minutes"),
+        challenge_steps=get_int_setting(session, "face_challenge_steps"),
+        sync_max_items=MAX_SYNC_ITEMS,
+        sync_max_bytes=SYNC_BODY_LIMIT,
+    )
+
+
+def _location_settings(session: Session, kiosk: KioskDevice) -> KioskLocationSettings:
+    fence = current_geofence(session, kiosk.plant_id)
+    return KioskLocationSettings(
+        accuracy_limit_m=get_int_setting(session, "gps_accuracy_limit_m"),
+        max_age_seconds=get_int_setting(session, "kiosk_location_max_age_seconds"),
+        refresh_seconds=get_int_setting(session, "kiosk_location_refresh_seconds"),
+        geofence=None
+        if fence is None
+        else KioskFence(
+            version_id=fence.id,
+            shape=fence.shape,  # type: ignore[arg-type]
+            geojson=fence.geojson,
+            radius_m=float(fence.radius_m) if fence.radius_m is not None else None,
+            buffer_m=fence.buffer_m,
         ),
     )
 

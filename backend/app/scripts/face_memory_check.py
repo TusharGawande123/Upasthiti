@@ -54,6 +54,7 @@ from app.face.images import decode_jpeg
 from app.face.models import FaceModels
 from app.face.quality import estimate_yaw
 from app.modules.kiosks.crypto import signed_message
+from app.scripts.gate_fence_fixture import GATE_LOCATION, ensure_gate_fence
 
 DATABASE_NAME_ENDING = "_memcheck"
 GATE_WIDTH, GATE_HEIGHT = 640, 480
@@ -270,6 +271,7 @@ def prepare(fixture_path: Path) -> int:
         spki = private_key.public_key().public_bytes(
             serialization.Encoding.DER, serialization.PublicFormat.SubjectPublicKeyInfo
         )
+        ensure_gate_fence(session, plant.id)  # M4: every punch reports a place in the fence
         kiosk = KioskDevice(
             plant_id=plant.id,
             name="Memory check gate",
@@ -407,6 +409,7 @@ def punch_body(face: dict[str, str], challenge: dict) -> dict:
             {"role": "frontal", "jpeg": face["frontal"]},
         ],
         "device_time": datetime.now(UTC).isoformat(),
+        "location": GATE_LOCATION,
         "app_version": "memcheck",
     }
 

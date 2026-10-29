@@ -39,7 +39,7 @@ from app.modules.punches.models import (
 from app.modules.users.models import Role
 from tests.conftest import clear_cached_settings
 from tests.face_helpers import enrol, frame, new_employee, set_privacy
-from tests.kiosk_helpers import Device, make_active_kiosk
+from tests.kiosk_helpers import GATE_LOCATION, Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant
 
 PUNCH = "/api/v1/punch/kiosk"
@@ -109,6 +109,7 @@ def face_punch(
     client_punch_id: str | None = None,
     turn_person: int | None = None,
     problem: Problem = Problem.NONE,
+    location: dict | None = GATE_LOCATION,
 ):
     given = challenge(client, device) if nonce is None else None
     if frames is None:
@@ -123,6 +124,7 @@ def face_punch(
         "method": "face",
         "challenge_nonce": nonce or (given or {})["challenge_nonce"],
         "frames": frames,
+        "location": location,
     }
     return signed_post(client, device, PUNCH, body)
 
@@ -749,3 +751,52 @@ def test_nothing_secret_is_left_in_the_database_or_the_storage_folder(
         for item in stranger + unsure:
             assert base64.b64decode(item["jpeg"]) not in content, "a raw frame is on disk"
         assert b"SECRETCODE" not in content
+
+
+# --- M4: location on every face punch (spec M4 §7 rules 2 and 4) --------------------------------
+
+
+def _outside_gate(metres: float) -> dict:
+    return GATE_LOCATION | {"lat": GATE_LOCATION["lat"] + metres / 111_195.0}
+
+
+def test_a_face_punch_from_outside_the_fence_is_refused_before_any_face_work(
+    db_client: TestClient, db_session: Session, device: Device, kiosk: KioskDevice, ravi: str
+) -> None:
+    answer = face_punch(db_client, device, person=1, location=_outside_gate(600)).json()
+
+    assert answer["decision"] == "rejected" and answer["reason_code"] == "OUTSIDE_GEOFENCE"
+    punch = db_session.scalars(select(Punch)).one()
+    assert punch.employee_id is None and punch.match_score is None  # the face was never checked
+
+
+def test_a_face_punch_at_the_edge_counts_and_is_flagged(
+    db_client: TestClient, db_session: Session, device: Device, kiosk: KioskDevice, ravi: str
+) -> None:
+    answer = face_punch(db_client, device, person=1, location=_outside_gate(215)).json()
+
+    assert (answer["decision"], answer["direction"]) == ("accepted", "in")
+    punch = db_session.scalars(select(Punch)).one()
+    assert punch.decision == "flagged" and punch.reason_codes == ["LOCATION_AT_EDGE"]
+    assert db_session.scalars(select(PunchSnapshot)).all() == []  # it counts: no photo kept
+
+
+def test_the_code_path_keeps_the_place_and_the_edge_flag_of_the_first_punch(
+    db_client: TestClient,
+    db_session: Session,
+    device: Device,
+    kiosk: KioskDevice,
+    look_alikes: tuple[str, str],
+) -> None:
+    first = face_punch(db_client, device, person=14, location=_outside_gate(215)).json()
+
+    answer = code_try(db_client, device, first["code_entry"]["token"], "2001").json()
+
+    assert (answer["decision"], answer["direction"]) == ("accepted", "in")
+    asked, final = (
+        db_session.scalars(select(Punch).where(Punch.decision == decision)).one()
+        for decision in ("needs_code", "flagged")
+    )
+    assert asked.reason_codes == ["NEED_EMPLOYEE_CODE", "LOCATION_AT_EDGE"]
+    assert final.reason_codes == ["LOCATION_AT_EDGE"]
+    assert final.geofence_id == asked.geofence_id and final.lat == asked.lat

@@ -157,7 +157,7 @@ def test_the_kiosks_location_and_address_are_stored_as_sent(
         "UPDATE punches SET decision = 'rejected'",
         "DELETE FROM punches",
         # The face tables that point to punches are named too, so the trigger is what refuses.
-        "TRUNCATE punches, punch_snapshots, face_pending_matches",
+        "TRUNCATE punches, punch_snapshots, face_pending_matches, punch_reviews",
     ],
 )
 def test_the_database_refuses_to_change_or_delete_a_punch(
@@ -417,10 +417,12 @@ def test_the_indexes_that_the_queries_rely_on_exist(db_session: Session) -> None
     ).all()
     definitions = {name: definition for name, definition in rows}
 
-    accepted = definitions["ix_punches_employee_last_accepted"]
-    assert "server_received_at DESC" in accepted
-    assert "decision" in accepted.split("WHERE", 1)[1]  # only accepted punches
-    assert "server_received_at DESC" in definitions["ix_punches_card_recent"]
+    # M4: the punches that count (accepted and flagged) are looked up by punch time.
+    counted = definitions["ix_punches_employee_counted"]
+    assert "punch_time DESC" in counted
+    assert "flagged" in counted.split("WHERE", 1)[1]
+    assert "punch_time DESC" in definitions["ix_punches_card_recent"]
+    assert "plant_id, punch_time" in definitions["ix_punches_plant_id_punch_time"]
     assert "plant_id, server_received_at" in definitions["ix_punches_plant_id_server_received_at"]
     assert (
         "state" in definitions["ix_punch_snapshots_due"].split("WHERE", 1)[1]

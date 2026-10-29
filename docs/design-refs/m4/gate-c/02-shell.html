@@ -1,0 +1,80 @@
+<!doctype html>
+<!--
+  Upasthiti - M4 design gate C - Screen 2: admin shell additions (spec 4.7): top-bar badge F-36, sidebar count, amber offline alert F-46,
+  and the plant readiness card F-17 with two new lines. Shown on the Plants page.
+  States (URL hash): default · two-offline · banner-hidden · all-online · plant-head · corporate-head · menu-open.
+  MOCKUP ONLY - static HTML, fake data. Which older readiness lines exist is a guess (see notes.md).
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti plants</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Plants";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = ROLE === "sa" ? { name: "Asha Rao", role: "Super Admin" } : ROLE === "ch" ? { name: "Meera Joshi", role: "Corporate Head" } : { name: "Prakash Kale", role: "Plant Head · K134", plant: "K134" };
+
+  const offline = S === "all-online" ? 0 : S === "two-offline" ? 2 : 1;
+  window.MOCK_SHELL = {
+    offline, review: 7, menu: S === "menu-open",
+    banner: ROLE === "ch" || S === "all-online" || S === "banner-hidden" ? null
+      : ROLE === "ph" ? { name: "Main gate phone", since: "08:12", minutes: 14 }
+      : S === "two-offline" ? { name: "TP1 Gate", since: "08:12", minutes: 14, more: 1 } : { name: "TP1 Gate", since: "08:12", minutes: 14 },
+  };
+
+  /* Each plant: [code, name, device state, location state]. Older lines are all done in the sample. */
+  const ALL = [
+    ["K134", "Sheet Shapers K-134", "online", "good"],
+    ["PC1", "Press shop 1", "online", "edge"],
+    ["TP1", "Tool plant 1", S === "all-online" ? "online" : "offline", S === "all-online" ? "good" : "unknown"],
+  ];
+  if (S === "two-offline") ALL.push(["X280", "Sheet Shapers X-280", "offline", "unknown"]);
+  if (S === "all-online") ALL[1][3] = "good";
+  const PLANTS = ROLE === "ph" ? [["K134", "Sheet Shapers K-134", "offline", "unknown"]] : ALL;
+
+  function li(state, label, why, status, isNew) {
+    const icon = { ok: "check", no: "x", warn: "minus" }[state];
+    return `<li class="${state} ${isNew ? "is-new" : ""}"><span class="ri">${ic(icon)}</span><span>${label}${isNew ? '<span class="newtag">New</span>' : ""}${why ? `<span class="why">${why}</span>` : ""}</span><span class="st">${status}</span></li>`;
+  }
+  function card(p) {
+    const [code, name, dev, loc] = p;
+    const devLine = dev === "online" ? li("ok", "Attendance device online", "", "Yes", true) : li("no", "Attendance device online", "No device of this plant has been in contact for 3 minutes.", "Offline", true);
+    const locLine = loc === "good" ? li("ok", "Location good", "", "Inside", true)
+      : loc === "edge" ? li("no", "Location good", "Last reading ±64 m, worse than the 50 m limit. Punches wait.", "Not good", true)
+      : li("warn", "Location good", "Not known: the device is offline.", "Unknown", true);
+    const ready = dev === "online" && loc === "good";
+    const badge = ready ? `<span class="badge badge-success">${ic("circle-check")}Ready for the gate</span>` : `<span class="badge badge-warning">${ic("triangle-alert")}Needs attention</span>`;
+    return `<section class="card ready" aria-label="Readiness of ${code}"><div class="ready-head"><div><h2>${name}</h2><p class="code">${code}</p></div>${badge}</div><ul>
+      ${li("ok", "Fence drawn", "", "Done")}${li("ok", "Shift added", "", "Done")}${li("ok", "Categories added", "", "Done")}${li("ok", "Attendance device paired", "", "Done")}${devLine}${locLine}</ul></section>`;
+  }
+
+  window.mockStart(function () {
+    const ph = ROLE === "ph";
+    document.getElementById("page").innerHTML = `<div class="page-head anim-fade-up"><div><h1 class="page-title">Plants</h1><p class="page-desc">${ph ? "Your plant and what is still needed before its gate works." : "Plants and what is still needed before each gate works."}</p></div></div>
+      <div class="ready-grid">${PLANTS.map(card).join("")}</div>
+      ${S === "banner-hidden" ? `<div class="alert alert-info" style="margin-top:16px">${ic("info")}<span>You pressed “Hide” on the alert for “TP1 Gate”. It stays hidden in this browser until the device is back online. The badge at the top stays.</span></div>` : ""}`;
+    const tags = { default: "Super Admin: 1 offline, banner, readiness", "two-offline": "2 devices offline: banner names the first", "banner-hidden": "alert hidden with Hide; badge stays", "all-online": "all online: no badge, no banner, all ready", "plant-head": "Plant Head K134: banner and badge, own plant", "corporate-head": "Corporate Head: badge, NO banner", "menu-open": "phone menu open: count on the entry" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>

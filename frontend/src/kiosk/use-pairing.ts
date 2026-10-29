@@ -6,7 +6,13 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { ApiError, apiPost } from "@/lib/api-client";
 import type { KioskMe } from "./attendance/punch-types";
 import { browserCanPair, createDeviceKey } from "./device-key";
-import { forgetDevice, loadDevice, type PairedKiosk, saveDevice } from "./device-store";
+import {
+  dropQueueOfRevokedDevice,
+  forgetDevice,
+  loadDevice,
+  type PairedKiosk,
+  saveDevice,
+} from "./device-store";
 import { LocationError, type LocationReading, measureLocation } from "./location";
 import { signedRequest } from "./signer";
 
@@ -31,7 +37,14 @@ export type PairingState =
   | { phase: "checking" }
   // `me` is the server's first heartbeat answer (null right after pairing, or when offline).
   | { phase: "paired"; kiosk: PairedKiosk; serverOffsetMs: number; me: KioskMe | null }
-  | { phase: "problem"; problem: PairingProblem; code: string; bestAccuracyM: number | null };
+  | {
+      phase: "problem";
+      problem: PairingProblem;
+      code: string;
+      bestAccuracyM: number | null;
+      // M4: saved punches deleted because the device was switched off (shown on that screen).
+      lostPunches?: number;
+    };
 
 type RegisterResponse = {
   kiosk_id: string;
@@ -108,11 +121,14 @@ export function usePairing() {
         } catch (error) {
           if (cancelled) return;
           if (error instanceof ApiError && error.code === "DEVICE_REVOKED") {
+            const lostPunches = await dropQueueOfRevokedDevice();
+            if (cancelled) return;
             setState({
               phase: "problem",
               problem: "revoked",
               code: "DEVICE_REVOKED",
               bestAccuracyM: null,
+              lostPunches,
             });
             return;
           }
@@ -248,7 +264,15 @@ export function usePairing() {
 
   /** The attendance screen learned the admin switched this device off. */
   const markRevoked = useCallback(() => {
-    setState({ phase: "problem", problem: "revoked", code: "DEVICE_REVOKED", bestAccuracyM: null });
+    void dropQueueOfRevokedDevice().then((lostPunches) =>
+      setState({
+        phase: "problem",
+        problem: "revoked",
+        code: "DEVICE_REVOKED",
+        bestAccuracyM: null,
+        lostPunches,
+      }),
+    );
   }, []);
 
   /** The server no longer knows this device's key (for example after a reset): pair again. */

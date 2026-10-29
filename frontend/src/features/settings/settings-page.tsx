@@ -37,6 +37,8 @@ const GROUP_ORDER = [
   "kiosk",
   "security",
   "punch",
+  "antiproxy",
+  "offline",
   "snapshots",
   "cards",
   "kiosk_screen",

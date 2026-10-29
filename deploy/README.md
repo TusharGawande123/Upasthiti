@@ -148,6 +148,27 @@ pull request is merged (spec M3 §7 rule 10, decision 0016).
 Privacy tasks for the client (consent texts, data requests, incident steps) are in
 [docs/guides/face-privacy-handover.md](../docs/guides/face-privacy-handover.md).
 
+### 10. Offline punches at the gate (M4)
+The live backend **refuses to start** without `OFFLINE_EVIDENCE_KEY`, so set it before the M4
+pull request is merged (spec M4 §8.2, decision 0025). Gate devices seal the punches they save
+without internet with this key's public half; only the server can open them.
+
+1. **Make the key on your laptop** (from `backend/`):
+   ```powershell
+   uv run python -m app.scripts.make_offline_key   # prints OFFLINE_EVIDENCE_KEY=...
+   ```
+   Store it in the password manager at once. **If it is lost, the punches still waiting on gate
+   devices at that moment cannot be read** (each becomes a rejected punch
+   `OFFLINE_EVIDENCE_UNREADABLE`); punches already sent are not affected. Never paste it in chat,
+   an issue or the repository. It is a different key from the other three.
+2. **Render → upasthiti-backend → Environment**, add:
+   - `OFFLINE_EVIDENCE_KEY`: the value from step 1;
+   - `OFFLINE_EVIDENCE_KEY_ID`: `A` (the default, also in `render.yaml`; change it only when a
+     new key replaces this one).
+3. Save (Render redeploys). Deploy outside shift change: a gate page that has not reloaded yet
+   sends no location and its punches are refused until it reloads itself (a few minutes). Then
+   open each gate page once (docs/guides/kiosk-setup.md).
+
 ## Every later deployment
 Merging a pull request into `main` deploys both automatically. The post-deploy smoke test
 (`.github/workflows/post-deploy-smoke.yml`) then checks the live site.

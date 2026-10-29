@@ -214,6 +214,7 @@ jobs:
             -e QR_SIGNING_KEY="$(make_key)" \
             -e SNAPSHOT_ENCRYPTION_KEY="$(make_key)" \
             -e FACE_TEMPLATE_KEY="$(make_key)" \
+            -e OFFLINE_EVIDENCE_KEY="$(docker run --rm upasthiti-backend:ci python -m app.scripts.make_offline_key | head -n 1 | cut -d= -f2-)" \
             -e STORAGE_BACKEND=local \
             upasthiti-backend:ci
       - name: Health endpoint answers
@@ -245,6 +246,10 @@ jobs:
             echo "::add-mask::${key}"
             echo "${name}=${key}" >> "$GITHUB_ENV"
           done
+          # M4: a throw-away P-256 key for the offline evidence (made by the image's own script).
+          offline_key="$(docker run --rm upasthiti-backend:ci python -m app.scripts.make_offline_key | head -n 1 | cut -d= -f2-)"
+          echo "::add-mask::${offline_key}"
+          echo "OFFLINE_EVIDENCE_KEY=${offline_key}" >> "$GITHUB_ENV"
           echo "MEMCHECK_DATABASE_URL=postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_memcheck" >> "$GITHUB_ENV"
           mkdir -m 777 "$RUNNER_TEMP/memcheck"
       - name: Face memory check - prepare (one plant, one gate, the sample faces)
@@ -252,7 +257,7 @@ jobs:
           docker run --rm --network host -v "$RUNNER_TEMP/memcheck:/work" \
             -e APP_ENV=test -e DATABASE_URL="$MEMCHECK_DATABASE_URL" \
             -e APP_SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123 \
-            -e QR_SIGNING_KEY -e SNAPSHOT_ENCRYPTION_KEY -e FACE_TEMPLATE_KEY \
+            -e QR_SIGNING_KEY -e SNAPSHOT_ENCRYPTION_KEY -e FACE_TEMPLATE_KEY -e OFFLINE_EVIDENCE_KEY \
             -e STORAGE_BACKEND=local \
             upasthiti-backend:ci python -m app.scripts.face_memory_check prepare --fixture /work/fixture.json
       - name: Face memory check - start the backend with 512 MB
@@ -262,7 +267,7 @@ jobs:
             -e DATABASE_URL="$MEMCHECK_DATABASE_URL" -e RUN_SCHEDULER=false \
             -e APP_SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123 \
             -e APP_PUBLIC_ORIGIN=https://ci.example.invalid \
-            -e QR_SIGNING_KEY -e SNAPSHOT_ENCRYPTION_KEY -e FACE_TEMPLATE_KEY \
+            -e QR_SIGNING_KEY -e SNAPSHOT_ENCRYPTION_KEY -e FACE_TEMPLATE_KEY -e OFFLINE_EVIDENCE_KEY \
             -e STORAGE_BACKEND=local \
             upasthiti-backend:ci
           for attempt in $(seq 1 120); do

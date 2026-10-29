@@ -103,7 +103,9 @@
         "steps": [
           "To use it again, the admin adds it as a new attendance device.",
           "Then type the new code on this device."
-        ]
+        ],
+        "lost_one": "{{count}} saved punch could not be sent. Please visit the plant office.",
+        "lost_other": "{{count}} saved punches could not be sent. Please visit the plant office."
       },
       "network": {
         "title": "No connection",
@@ -351,6 +353,54 @@
         "message": "Face punch is not available here.",
         "next": "Please visit the plant office.",
         "voice": "Face punch is not available. Please visit the plant office."
+      },
+      "LOCATION_REQUIRED": {
+        "title": "NOT ACCEPTED",
+        "message": "This attendance device did not send its location.",
+        "next": "Please visit the plant office.",
+        "voice": "Not accepted. Please visit the plant office."
+      },
+      "GPS_ACCURACY_TOO_LOW": {
+        "title": "NOT ACCEPTED",
+        "message": "The location of this attendance device is not exact enough.",
+        "next": "Please visit the plant office.",
+        "voice": "Not accepted. Please visit the plant office."
+      },
+      "OUTSIDE_GEOFENCE": {
+        "title": "NOT ACCEPTED",
+        "message": "This attendance device is not at the plant gate.",
+        "next": "Please visit the plant office.",
+        "voice": "Not accepted. Please visit the plant office."
+      },
+      "GEOFENCE_NOT_SET": {
+        "title": "NOT ACCEPTED",
+        "message": "This attendance device is not set up yet.",
+        "next": "Please visit the plant office.",
+        "voice": "Not accepted. Please visit the plant office."
+      },
+      "OFFLINE_SAVED": {
+        "title": "SAVED",
+        "message": "Saved – will be confirmed",
+        "next": "Your punch is saved on this attendance device. It will be checked when the internet is back.",
+        "voice": "Saved."
+      },
+      "OFFLINE_ALREADY_SAVED": {
+        "title": "ALREADY SAVED",
+        "message": "Already saved. No need to punch again.",
+        "next": "Your first punch is saved and will be checked when the internet is back.",
+        "voice": "Already saved."
+      },
+      "QUEUE_FULL": {
+        "title": "NOT SAVED",
+        "message": "This attendance device cannot save more punches. Your punch was NOT saved.",
+        "next": "Please visit the plant office.",
+        "voice": "Not saved. Please visit the plant office."
+      },
+      "OFFLINE_STORAGE_TOO_SMALL": {
+        "title": "NOT SAVED",
+        "message": "This attendance device cannot save punches without internet. Your punch was NOT saved.",
+        "next": "Please visit the plant office.",
+        "voice": "Not saved. Please visit the plant office."
       }
     },
     "attendance": {
@@ -403,7 +453,9 @@
       "alreadyOutAt": "Already OUT at {{time}}. No need to punch again.",
       "outAfter": "Already IN at {{time}}. You can punch OUT after {{outTime}}.",
       "selfTestChecks": "Camera ✓ · Server ✓ · Clock ✓ (server time {{time}})",
-      "noAttendance": "No attendance was recorded."
+      "selfTestChecksLocation": "Camera ✓ · Server ✓ · Clock ✓ · {{location}} (server time {{time}})",
+      "noAttendance": "No attendance was recorded.",
+      "savedAt": "Time"
     },
     "voice": {
       "in": "Checked in.",
@@ -450,6 +502,55 @@
       "triesLeft_one": "{{count}} try left",
       "triesLeft_other": "{{count}} tries left",
       "tryAgain": "Try again"
+    },
+    "location": {
+      "chip": {
+        "finding": "Finding location…",
+        "good": "Location good (±{{metres}} m)",
+        "weak": "Location weak (±{{metres}} m)",
+        "none": "No location",
+        "stale": "Last location (offline)",
+        "outside": "Not at the gate"
+      },
+      "title": "This attendance device needs its location",
+      "message": "Punching is paused. Please wait a moment. If this stays, please visit the plant office.",
+      "cause": {
+        "LOCATION_DENIED": "Location is blocked for this website. Ask the plant office to allow it.",
+        "LOCATION_UNAVAILABLE": "Location is switched off or not available on this attendance device.",
+        "LOCATION_WEAK": "Waiting for a better location signal (now ±{{now}} m, needed ±{{needed}} m).",
+        "LOCATION_OUTSIDE": "This attendance device does not seem to be at the plant gate."
+      },
+      "checkingAgain": "Checking again…",
+      "selfTestLocation": {
+        "ok": "Location ✓",
+        "bad": "Location ✗ ({{code}})"
+      },
+      "sketch": {
+        "title": "Why paused?",
+        "weakLine": "±{{now}} m now, ±{{needed}} m needed",
+        "outsideLine": "About {{metres}} m outside the fence",
+        "fence": "Plant fence (blue)",
+        "margin": "Allowed margin (dashed)",
+        "device": "This device and its accuracy (dot and circle)",
+        "needed": "Accuracy needed (dotted circle)"
+      }
+    },
+    "offline": {
+      "chipOffline": "No internet – punches are saved",
+      "chipWaiting": "{{count}} saved",
+      "chipSending": "Sending saved punches… {{count}} left",
+      "lastSync": {
+        "allSent": "All punches sent ✓ {{time}}",
+        "waiting_one": "{{count}} punch waiting since {{time}}",
+        "waiting_other": "{{count}} punches waiting since {{time}}"
+      },
+      "privacy": "When the internet is down, your punch is saved on this attendance device in a locked form that only our server can open, and it is deleted from the device once it is sent.",
+      "privacyOpen": "Privacy",
+      "privacyClose": "Hide privacy",
+      "typeCodeTitle": "Type your employee code",
+      "typeCodeLine": "No internet right now. Type your code, then look at the camera.",
+      "storageAlmostFull": "Storage almost full. Please tell the plant office.",
+      "clockOffline": "(offline)"
     }
   },
   "health": {
@@ -620,7 +721,14 @@
     "FACE_SERVICE_UNAVAILABLE": "Face checks are not available right now. Try again in a minute.",
     "PAYLOAD_TOO_LARGE": "The picture could not be read. Try again.",
     "PRIVACY_CONTACT_MISSING": "Set the privacy contact in Settings first.",
-    "SETTING_INVALID": "The code-entry floor must be lower than the match threshold."
+    "SETTING_INVALID": "The code-entry floor must be lower than the match threshold.",
+    "OFFLINE_NOT_CONFIGURED": "Offline punches are not set up on this server yet.",
+    "ITEM_SIGNATURE_INVALID": "A saved punch was not signed by this device.",
+    "ITEM_COUNTER_INVALID": "A saved punch was already used or is out of order.",
+    "ITEM_INVALID": "A saved punch could not be read.",
+    "REVIEW_CHANGED": "This punch was reviewed in the meantime. Nothing was saved. Load the latest and decide again.",
+    "REVIEW_NOT_ALLOWED": "This action does not fit this punch. Nothing was saved.",
+    "REVIEW_NO_EMPLOYEE": "No employee is known for this punch, so it cannot be approved."
   },
   "nav": {
     "label": "Main menu",
@@ -641,7 +749,10 @@
     "qrCards": "QR cards",
     "endingSoon": "cards end soon",
     "punches": "Punch log",
-    "notices": "Gate notices"
+    "notices": "Gate notices",
+    "offline": "offline",
+    "review": "Needs review",
+    "toCheck": "to check"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -714,6 +825,13 @@
       },
       "error": "The numbers could not be loaded.",
       "retry": "Try again"
+    },
+    "devices": {
+      "title": "Attendance devices",
+      "text": "{{online}} online · {{offline}} offline · {{needsLocation}} need location",
+      "loading": "Loading…",
+      "error": "The device list could not be loaded.",
+      "link": "View devices"
     }
   },
   "users": {
@@ -818,16 +936,24 @@
       "privacy": {
         "title": "Privacy",
         "description": "Printed in the face consent text and on the public privacy notice page."
+      },
+      "antiproxy": {
+        "title": "Anti-proxy checks",
+        "description": "Flags for punches that need a second look: impossible trips, two devices, review hints."
+      },
+      "offline": {
+        "title": "Offline attendance devices",
+        "description": "How long a gate device may work without internet, and when it counts as offline."
       }
     },
     "items": {
       "gps_accuracy_limit_m": {
         "label": "GPS accuracy limit",
-        "help": "A device must report its location at least this precisely to pair."
+        "help": "A device must report its location at least this precisely to pair and to punch. Plants in MIDC Waluj are close together: a larger value may let a device at a neighbouring plant punch here."
       },
       "geofence_default_buffer_m": {
         "label": "Default geofence margin",
-        "help": "Extra metres around a drawn geofence, so GPS jitter at the edge does not refuse a device."
+        "help": "Extra metres around a drawn geofence, so GPS jitter at the edge does not refuse a device. A punch inside this margin is accepted but flagged for review."
       },
       "pairing_code_minutes": {
         "label": "Pairing code life",
@@ -867,7 +993,7 @@
       },
       "impossible_travel_kmh": {
         "label": "Impossible travel speed",
-        "help": "Punches at two plants that would need a faster trip are flagged."
+        "help": "A punch that would need a faster trip from the same person's punch at another attendance device is flagged for review."
       },
       "salary_day_basis": {
         "label": "Salary day basis",
@@ -984,6 +1110,54 @@
       "privacy_contact": {
         "label": "Privacy contact (grievance officer)",
         "help": "Who employees contact about their data: name, role and how to reach them (phone or email)."
+      },
+      "impossible_travel_min_distance_m": {
+        "label": "Impossible travel: shortest distance",
+        "help": "Closer punches are never flagged as impossible travel (GPS jitter, gates of one plant)."
+      },
+      "same_person_two_devices_minutes": {
+        "label": "Same person at two devices",
+        "help": "The same card or person at another attendance device within this time is flagged for review."
+      },
+      "review_hint_employee_rejections": {
+        "label": "Hint: rejections of one person",
+        "help": "The review screen points out a person rejected this often in 7 days."
+      },
+      "review_hint_device_edge_flags": {
+        "label": "Hint: edge flags of one device",
+        "help": "The review screen points out a device with this many fence-edge flags in 7 days."
+      },
+      "kiosk_location_max_age_seconds": {
+        "label": "Oldest location reading",
+        "help": "A gate device pauses punching when its last good reading is older than this."
+      },
+      "kiosk_location_refresh_seconds": {
+        "label": "Location refresh",
+        "help": "How often a gate device asks for a fresh reading. Must be shorter than the oldest reading."
+      },
+      "kiosk_offline_after_minutes": {
+        "label": "Offline after",
+        "help": "A device that has not been heard from for this long shows as offline."
+      },
+      "kiosk_offline_alert_minutes": {
+        "label": "Offline alert after",
+        "help": "During a shift, an alert is shown when a device has been offline this long. Not shorter than “Offline after”."
+      },
+      "offline_max_hours": {
+        "label": "Longest offline time",
+        "help": "Punches saved offline for longer than this are flagged for review when they arrive."
+      },
+      "offline_queue_max_items": {
+        "label": "Saved punches per device",
+        "help": "The most punches one device keeps while offline."
+      },
+      "offline_queue_max_mb": {
+        "label": "Offline storage per device",
+        "help": "The most storage saved punches may use on one device."
+      },
+      "offline_clock_drift_seconds": {
+        "label": "Allowed clock difference",
+        "help": "If the device's two clocks disagree by more than this, the time of an offline punch is marked as not proven."
       }
     },
     "units": {
@@ -998,10 +1172,10 @@
       "of 255": "of 255"
     },
     "choices": {
-      "on": "On",
-      "off": "Off",
       "26": "26 days",
       "30": "30 days",
+      "on": "On",
+      "off": "Off",
       "actual": "Actual days"
     },
     "retentionRaise": {
@@ -1054,7 +1228,11 @@
     "fromConsent": "You came from the consent dialog of {{name}}. Set the company address and the privacy contact, save, then go back.",
     "backTo": "Back to {{name}}",
     "textChanged": "(text changed)",
-    "changedTo": "changed to"
+    "changedTo": "changed to",
+    "neighbourWarning": {
+      "title": "Plants in MIDC Waluj are close together.",
+      "text": "A larger value may let a device at a neighbouring plant punch here."
+    }
   },
   "audit": {
     "title": "Audit log",
@@ -1233,7 +1411,9 @@
         "shifts": "Shifts",
         "categories": "Employee categories",
         "kiosk": "Attendance device at the gate",
-        "employees": "Employees"
+        "employees": "Employees",
+        "deviceOnline": "Attendance device online",
+        "locationGood": "Location good"
       },
       "geofenceOk": "A geofence is set.",
       "geofenceNo": "No geofence. Draw it on the Geofence tab.",
@@ -1245,7 +1425,11 @@
       "kioskCount_other": "{{count}} active devices",
       "kioskNo": "No active attendance device. Pair a phone, tablet or PC at the gate.",
       "employeesCount_one": "{{count}} active employee",
-      "employeesCount_other": "{{count}} active employees"
+      "employeesCount_other": "{{count}} active employees",
+      "deviceOnlineYes": "At least one device is in contact now.",
+      "deviceOnlineNo": "No device has been in contact in the last minutes.",
+      "locationGoodYes": "The device's last location was inside the fence.",
+      "locationGoodNo": "The device's last location is not good."
     },
     "departments": {
       "description": "Departments of this plant (for example Press shop or Stores).",
@@ -1331,7 +1515,9 @@
     "newCode": "New code",
     "filter": {
       "allPlants": "All plants",
-      "anyStatus": "Any status"
+      "anyStatus": "Any status",
+      "stateLabel": "State",
+      "anyState": "Any state"
     },
     "columns": {
       "kiosk": "Device",
@@ -1340,7 +1526,10 @@
       "accuracy": "Location at pairing",
       "lastSeen": "Last seen",
       "lastSelfTest": "Last self-test",
-      "sound": "Sound"
+      "sound": "Sound",
+      "waiting": "Saved punches waiting",
+      "lastPunch": "Last punch",
+      "version": "App version"
     },
     "status": {
       "active": "Active",
@@ -1397,7 +1586,62 @@
     },
     "selfTest": {
       "never": "Never tested"
-    }
+    },
+    "state": {
+      "online": "Online",
+      "offline": "Offline",
+      "offlineSince": "Offline since {{time}}",
+      "needsLocation": "Needs location",
+      "sending": "Sending saved punches ({{count}})",
+      "revoked": "Switched off",
+      "pending": "Waiting for pairing"
+    },
+    "stateName": {
+      "online": "Online",
+      "offline": "Offline",
+      "needs_location": "Needs location",
+      "sending": "Sending saved punches"
+    },
+    "offlineAlert": "Attendance device “{{name}}” has been offline since {{time}} ({{minutes}} min). Check its power and internet.",
+    "offlineAlertView": "View",
+    "offlineAlertHide": "Hide",
+    "drawer": {
+      "lastContact": "Last contact",
+      "lastPunch": "Last punch",
+      "waiting": "Saved punches waiting",
+      "waitingSince": "{{count}} waiting since {{time}}",
+      "location": "Location",
+      "locationState": {
+        "inside": "Inside the fence (±{{metres}} m)",
+        "edge": "At the edge of the fence (±{{metres}} m)",
+        "outside": "Outside the fence (±{{metres}} m)",
+        "unknown": "Not known (±{{metres}} m)"
+      },
+      "mapLabel": "Last position of this attendance device and the plant fence"
+    },
+    "health": {
+      "battery": "Battery",
+      "batteryLevel": "{{percent}}%",
+      "batteryCharging": "{{percent}}% (charging)",
+      "notReported": "Not reported",
+      "camera": "Camera",
+      "cameraWorking": "Working",
+      "cameraNotWorking": "Not working",
+      "storage": "Storage",
+      "storageLine": "{{used}} MB used, {{free}} MB free",
+      "offlineReady": "Offline saving ready",
+      "offlineOff": "Offline saving off: not enough storage",
+      "notPersisted": "the browser may clear it",
+      "timeline": "Last 7 days",
+      "timelineHelp": "Green: the device was in contact. Grey: no contact.",
+      "noData": "No data",
+      "dayLine": "Online {{online}}% of the time",
+      "dayLabel": "Online {{online}} min, offline {{offline}} min"
+    },
+    "offlineBadge_one": "{{count}} attendance device offline",
+    "offlineBadge_other": "{{count}} attendance devices offline",
+    "revokeQueueWarning_one": "{{count}} punch is still waiting on this attendance device. If you switch it off now, it is lost. Wait until it shows 0 if you can.",
+    "revokeQueueWarning_other": "{{count}} punches are still waiting on this attendance device. If you switch it off now, they are lost. Wait until it shows 0 if you can."
   },
   "plantFilter": {
     "label": "Plant filter",
@@ -1445,6 +1689,14 @@
       "reenrol": {
         "label": "Re-enrol suggested",
         "hint": "Open the employees whose face should be enrolled again"
+      },
+      "review": {
+        "label": "Needs review",
+        "hint": "Flagged punches to check"
+      },
+      "rejected": {
+        "label": "Rejected punches",
+        "hint": "Rejected punches you may approve"
       }
     }
   },
@@ -2114,7 +2366,7 @@
     "QR_EXPIRED": "Card expired",
     "EMPLOYEE_INACTIVE": "Employee has left",
     "EMPLOYEE_NOT_QR": "Employee punches by face",
-    "WRONG_PLANT": "Card of another plant",
+    "WRONG_PLANT": "Registered at another plant",
     "COOLDOWN_ACTIVE": "Already punched (scanned again too soon)",
     "OUT_TOO_SOON": "Already IN (OUT not allowed yet)",
     "NO_FACE": "No face seen",
@@ -2130,7 +2382,29 @@
     "FACE_NOT_RECOGNISED": "Face not recognised",
     "CODE_ENTRY_EXPIRED": "Code pad timed out",
     "NEED_EMPLOYEE_CODE": "Asked for the employee code",
-    "CODE_NOT_MATCHED": "Code did not match the face"
+    "CODE_NOT_MATCHED": "Code did not match the face",
+    "LOCATION_REQUIRED": "Device sent no location",
+    "GPS_ACCURACY_TOO_LOW": "Device location not exact enough",
+    "OUTSIDE_GEOFENCE": "Device outside the plant fence",
+    "GEOFENCE_NOT_SET": "Plant has no fence",
+    "OFFLINE_CHALLENGE_INVALID": "Offline face check not valid",
+    "OFFLINE_EVIDENCE_UNREADABLE": "Saved punch could not be opened",
+    "LOCATION_AT_EDGE": "At the edge of the fence",
+    "LOCATION_AT_EDGE_help": "The device was outside the drawn fence but inside the allowed margin. Usually GPS jitter; check the map.",
+    "LOCATION_STALE": "Last known location reused (offline)",
+    "LOCATION_STALE_help": "The device had no internet and no fresh location, so it reused its last good reading of the same session.",
+    "IMPOSSIBLE_TRAVEL": "Impossible travel",
+    "IMPOSSIBLE_TRAVEL_help": "The same person punched at another attendance device too far away for the time between the two punches.",
+    "TWO_DEVICES_SOON": "Same person at two devices",
+    "TWO_DEVICES_SOON_help": "The same card or person was used at another attendance device a few minutes before or after. A copied card shows up like this.",
+    "OFFLINE_TIME_UNPROVEN": "Time not proven (offline)",
+    "OFFLINE_TIME_UNPROVEN_help": "The device restarted or its clocks disagreed while offline, so the punch time is the device's own estimate.",
+    "OFFLINE_TOO_OLD": "Saved offline for too long",
+    "OFFLINE_TOO_OLD_help": "The punch was saved on the device longer than the allowed offline time before it was sent.",
+    "SYNC_ORDER_CONFLICT": "Arrived after a later punch",
+    "SYNC_ORDER_CONFLICT_help": "This offline punch arrived after a later punch of the same person was already counted, so IN and OUT may not alternate.",
+    "OFFLINE_CHALLENGE_INVALID_help": "The saved face punch did not carry a valid head-turn instruction, so it was not checked further.",
+    "OFFLINE_EVIDENCE_UNREADABLE_help": "The saved punch could not be opened (damaged, or locked with an old key). Ask the person when they came."
   },
   "punches": {
     "title": "Punch log",
@@ -2162,7 +2436,9 @@
       "because": "Rejected because:",
       "asked": "Asked for code",
       "noFace": "No face in photo",
-      "acceptedBy": "Accepted by:"
+      "acceptedBy": "Accepted by:",
+      "flagged": "Flagged",
+      "offline": "Saved offline"
     },
     "filter": {
       "date": "Date",
@@ -2178,7 +2454,12 @@
       "reason": "Reason",
       "anyReason": "Reason: any",
       "method": "Method",
-      "anyMethod": "Method: any"
+      "anyMethod": "Method: any",
+      "offline": "Saved offline",
+      "anyOffline": "Saved offline: any",
+      "savedOffline": "Saved offline only",
+      "review": "Review",
+      "anyReview": "Review: any"
     },
     "columns": {
       "time": "Time",
@@ -2199,7 +2480,8 @@
     "result": {
       "accepted": "Accepted",
       "rejected": "Rejected",
-      "needsCode": "Asked for code"
+      "needsCode": "Asked for code",
+      "flagged": "Flagged"
     },
     "photoState": {
       "stored": "Photo stored",
@@ -2293,7 +2575,26 @@
       "proxy": "Someone typed this employee's code, but the face was not alike enough. Check the photo: this can be a proxy attempt.",
       "photo": "Photo",
       "noPhotoKept": "No photo is kept for an accepted face punch.",
-      "notShown": "Scores, the typed code and photos are shown to the Super Admin only."
+      "notShown": "Scores, the typed code and photos are shown to the Super Admin only.",
+      "punchTime": "Punch time",
+      "review": "Review",
+      "openReview": "Open in Needs review"
+    },
+    "review": {
+      "toCheck": "To check",
+      "confirmed": "Confirmed",
+      "notAccepted": "Not accepted",
+      "approved": "Approved",
+      "approvedAs": "Approved as {{direction}}"
+    },
+    "offlineSent": "Offline, sent {{time}}",
+    "resultLine": {
+      "accepted": "Accepted {{direction}}",
+      "flagged": "Flagged {{direction}}",
+      "flaggedWhy": "Flagged {{direction}} · {{reason}}",
+      "rejected": "Rejected · {{reason}}",
+      "rejectedPlain": "Rejected",
+      "needsCode": "Asked for the employee code"
     }
   },
   "notices": {
@@ -2555,7 +2856,8 @@
       "pictures": "Pictures at each face punch. The device takes a few pictures. The server compares them with your template and then deletes them.",
       "photo": "One small photo when a face punch fails or you type your employee code, so the plant office can check what happened.",
       "cardLead": "If you punch with a QR card: one photo at each card punch, checked automatically to see that a face is present.",
-      "everyone": "For everyone: your name, employee code, plant, and the time and device of each punch."
+      "everyone": "For everyone: your name, employee code, plant, and the time and device of each punch.",
+      "offline": "When the attendance device has no internet: your punch is saved on the device, together with the pictures it took (your card photo, or your face pictures and the employee code you typed). It is locked in a form only our server can open, so the device itself cannot read it. It is sent and checked as soon as the internet is back."
     },
     "why": {
       "title": "Why",
@@ -2575,7 +2877,9 @@
       "punchesWhen": "As labour law requires",
       "consent": "Your consent record (proof of consent)",
       "consentWhen": "With your employee record",
-      "after": "When you leave the company or withdraw your consent, your template is deleted at once."
+      "after": "When you leave the company or withdraw your consent, your template is deleted at once.",
+      "offline": "A punch saved while the internet was down",
+      "offlineWhen": "Deleted from the device once it is sent"
     },
     "where": {
       "title": "Where it is processed",
@@ -2606,5 +2910,213 @@
     "loading": "Loading the notice…",
     "error": "The notice could not be loaded. Please try again, or ask at your plant office.",
     "footer": "Upasthiti · Sheet Shapers · Smart Attendance"
+  },
+  "review": {
+    "title": "Needs review",
+    "description": "Punches the system flagged or rejected. Flagged punches already count; decide whether they should. Times in IST.",
+    "badge": "{{count}} to check",
+    "tabs": {
+      "label": "Review lists",
+      "to_check": "To check",
+      "rejected": "Rejected",
+      "reviewed": "Reviewed"
+    },
+    "filters": {
+      "from": "From",
+      "to": "To",
+      "search": "Employee code or name",
+      "toggle": "Filters ({{count}})",
+      "device": "Attendance device",
+      "anyDevice": "Attendance device: any",
+      "code": "Code",
+      "anyCode": "Code: any",
+      "method": "Method",
+      "anyMethod": "Method: card or face",
+      "offline": "Saved offline",
+      "offlineAny": "Saved offline: any",
+      "offlineYes": "Saved offline: yes",
+      "offlineNo": "Saved offline: no",
+      "names": "Names an employee",
+      "namesAny": "Names an employee: any",
+      "namesYes": "Names an employee: yes",
+      "namesNo": "Names nobody",
+      "showRepeats": "Show already-punched",
+      "showRepeatsHelp": "Include scans that came a moment after a punch that already counts. They have nothing to approve.",
+      "clear": "Clear filters"
+    },
+    "count_one": "{{formatted}} punch · newest first",
+    "count_other": "{{formatted}} punches · newest first",
+    "liveEvery": "Updates every 30 s",
+    "empty": {
+      "check": "Nothing to check. Well done.",
+      "rejected": "No rejected punches in these dates.",
+      "reviewed": "No reviewed punches in these dates.",
+      "filters": "No punches match these filters."
+    },
+    "previousPage": "Previous",
+    "nextPage": "Next",
+    "duration": {
+      "minutes": "{{minutes}} min",
+      "hours": "{{hours}} h {{minutes}} min"
+    },
+    "row": {
+      "savedOffline": "Saved offline, sent {{delay}} later",
+      "codeTyped": "code typed",
+      "alreadyCounted": "Already counted: nothing to approve",
+      "namesEmployee": "Names an employee",
+      "namesNobody": "Names nobody",
+      "photoStored": "Photo stored",
+      "noPhoto": "No photo kept",
+      "unknown": "Unknown",
+      "review": "Review",
+      "open": "Open",
+      "details": "Details",
+      "openFor": "Review the punch of {{name}} at {{time}}"
+    },
+    "toast": {
+      "confirm": "Confirmed",
+      "not_accepted": "Marked not accepted",
+      "approve": "Approved",
+      "next": "Next: {{time}} {{name}}",
+      "left_one": "{{count}} punch left to check",
+      "left_other": "{{count}} punches left to check"
+    },
+    "sheet": {
+      "loading": "Loading the punch…",
+      "previous": "Previous punch",
+      "next": "Next punch",
+      "position": "{{index}} of {{total}}",
+      "punch": "Punch",
+      "device": "Attendance device",
+      "countsAs": "Counts as {{direction}} until you decide",
+      "doesNotCount": "Does not count",
+      "codeTyped": "Code typed: {{code}} ({{name}}). The face did not match this person: it can be a proxy attempt.",
+      "twoPunches": "The two punches",
+      "thisPunch": "This punch",
+      "otherPunch": "Other punch",
+      "speed": "{{km}} km in {{minutes}} min = {{speed}} km/h; limit {{limit}} km/h",
+      "where": "Where the punch was made",
+      "whereBoth": "Where the two punches were made",
+      "insideFence": "Inside the drawn fence",
+      "insideMargin": "{{metres}} m outside the drawn fence, inside the {{margin}} m margin",
+      "beyondMargin": "{{metres}} m outside the drawn fence, {{beyond}} m beyond the {{margin}} m margin",
+      "fenceVersion": "Fence version {{version}} (current at the punch time)",
+      "accuracy": "Location accuracy ±{{metres}} m, reading {{seconds}} s old",
+      "legendFence": "Drawn fence",
+      "legendMargin": "Margin",
+      "legendPoint": "Punch position",
+      "legendAccuracy": "Accuracy",
+      "mapStreet": "Map",
+      "mapSatellite": "Satellite",
+      "streetCredit": "Map © OpenStreetMap contributors",
+      "satelliteCredit": "Tiles © Esri — Source: Esri, Maxar, Earthstar Geographics and the GIS User Community",
+      "time": "Time",
+      "serverReceived": "Server received",
+      "punchTime": "Punch time",
+      "delay": "Delay",
+      "timeAnchored": "Time proof: anchored to server time",
+      "timeUnproven": "Time not proven (the device restarted or its clock moved while offline)",
+      "timeUnprovenHelp": "The punch time is the device's own estimate. Check it against the photo and the other punches of the day.",
+      "sameAsServer": "Same as the server time (online punch).",
+      "photoAudited": "Opening the photo is recorded in the audit log.",
+      "history": "Review history",
+      "notReviewed": "Not reviewed yet.",
+      "current": "current",
+      "nobody": "No employee is known for this punch.",
+      "repeatScan": "This punch was a repeat scan. It has nothing to approve.",
+      "nextOpens": "After you decide, the next punch opens.",
+      "mapFailed": "The map could not be drawn. The distance is written below.",
+      "countsDecided": "Counts as {{direction}}"
+    },
+    "relation": {
+      "travel": "Impossible travel between these two punches",
+      "two_devices": "The same person at two attendance devices",
+      "order": "This punch was sent after a later punch was already decided"
+    },
+    "hints": {
+      "title": "Seen before",
+      "note": "Seen in the last 7 days. Hints only: nothing is blocked.",
+      "show": "Show those punches",
+      "employee_rejections_one": "{{code}} was rejected once this week",
+      "employee_rejections_other": "{{code}} was rejected {{count}} times this week",
+      "device_edge_flags_one": "This attendance device had {{count}} fence-edge flag this week – check its location or the fence margin",
+      "device_edge_flags_other": "This attendance device had {{count}} fence-edge flags this week – check its location or the fence margin",
+      "card_two_devices_one": "This card was used at two attendance devices once this week",
+      "card_two_devices_other": "This card was used at two attendance devices {{count}} times this week"
+    },
+    "action": {
+      "confirmed": "Confirmed",
+      "not_accepted": "Not accepted",
+      "approved": "Approved"
+    },
+    "actions": {
+      "confirm": "Confirm",
+      "notAccepted": "Not accepted",
+      "approve": "Approve",
+      "change": "Change review"
+    },
+    "dialog": {
+      "title": {
+        "confirm": "Confirm this punch",
+        "not_accepted": "Not accepted",
+        "approve": "Approve this punch",
+        "change": "Change review"
+      },
+      "description": {
+        "confirm": "The flag was checked. The punch keeps counting.",
+        "not_accepted": "The punch stays in the log but no longer counts.",
+        "approve": "The rejected punch will count, with the direction you choose.",
+        "change": "The old review stays in the history."
+      },
+      "now": "Now: {{action}}",
+      "newDecision": "New decision",
+      "choice": {
+        "confirm": "Confirm: the punch counts",
+        "not_accepted": "Not accepted: the punch does not count",
+        "approve": "Approve: the punch counts"
+      },
+      "countAs": "Count it as",
+      "countAs_in": "Count as IN",
+      "countAs_out": "Count as OUT",
+      "countAsHelp_in": "The person came in at this time.",
+      "countAsHelp_out": "The person went out at this time.",
+      "suggested": "Suggested",
+      "nearby": "There is a counted {{direction}} at {{time}}.",
+      "nearbyHelp": "Approving may count this person twice. You can still approve.",
+      "reason": "Reason",
+      "note": "Note",
+      "optional": "(optional)",
+      "required": "(required)",
+      "reasonHelp": "3 to 300 characters. It is saved in the audit log.",
+      "reasonTooShort": "Write at least 3 characters.",
+      "reasonTooLong": "The reason is too long. Use at most 300 characters.",
+      "stopsCounting": "This punch will no longer count as IN/OUT.",
+      "loadLatest": "Load the latest",
+      "saving": "Saving…",
+      "approveAs": "Approve as {{direction}}",
+      "button": {
+        "confirm": "Confirm",
+        "not_accepted": "Not accepted"
+      }
+    },
+    "cards": {
+      "toCheckTitle_one": "To check: {{count}} flagged punch",
+      "toCheckTitle_other": "To check: {{count}} flagged punches",
+      "toCheckText": "Flagged punches already count. Check them in Needs review.",
+      "error": "The numbers could not be loaded.",
+      "open": "Open Needs review"
+    },
+    "digest": {
+      "title": "Daily review digest",
+      "yesterday": "Yesterday",
+      "day": "Day",
+      "earlier": "Earlier day",
+      "later": "Later day",
+      "none": "No plants yet.",
+      "flagged": "Flagged {{count}}",
+      "rejected": "Rejected with an employee {{count}}",
+      "toCheck": "Still to check {{count}}",
+      "offline": "Attendance device offline in shifts: {{time}}"
+    }
   }
 }
