@@ -19,7 +19,7 @@ from sqlalchemy.orm import Session
 from app.core.config import get_settings
 from app.core.crypto import SnapshotDecryptionError, decode_key, decrypt_snapshot
 from app.core.storage import StorageError, get_storage
-from app.core.time import utc_now
+from app.core.time import today_ist, utc_now
 from app.modules.audit.models import AuditLog
 from app.modules.auth.rate_limit import punch_limiter
 from app.modules.kiosks.models import KioskDevice
@@ -81,9 +81,22 @@ class Worker:
         self.qr_text = build_payload(get_settings(), self.serial)
 
 
+def make_worker(boss: TestClient, db_session: Session, plant: PlantIds) -> Worker:
+    """A worker whose card started two days ago. A new card is valid from today (IST), but offline
+    tests send punches minutes or hours in the past, and just after midnight IST that is
+    "yesterday": the card would be refused as not yet valid. The issue screen never allows a past
+    start, so the test sets it in the database; the tests then give the same answer at any hour."""
+    worker = Worker(boss, plant)
+    card = db_session.get(QrCredential, worker.card_id)
+    assert card is not None
+    card.valid_from = today_ist() - timedelta(days=2)
+    db_session.commit()
+    return worker
+
+
 @pytest.fixture
-def worker(boss: TestClient, k134: PlantIds) -> Worker:
-    return Worker(boss, k134)
+def worker(boss: TestClient, db_session: Session, k134: PlantIds) -> Worker:
+    return make_worker(boss, db_session, k134)
 
 
 def photo_text(**kwargs: object) -> str:
@@ -961,7 +974,6 @@ def test_a_card_follows_a_dated_transfer_once_the_daily_job_has_moved_the_person
 ) -> None:
     """AC-11, the transfer part. The employee's plant changes when the daily job runs on the
     effective day (00:05 IST), so until then the card still belongs to the old plant."""
-    from app.core.time import today_ist
     from app.modules.employees.operations import apply_due_transfers
 
     tomorrow = today_ist() + timedelta(days=1)

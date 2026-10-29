@@ -29,7 +29,7 @@ from tests.kiosk_helpers import (
     make_active_kiosk,
 )
 from tests.people_helpers import PlantIds, client_for, create_plant
-from tests.test_punch_api import Worker, punch_rows, send
+from tests.test_punch_api import Worker, make_worker, punch_rows, send
 
 METRES_PER_DEGREE_LAT = 111_195.0
 
@@ -72,8 +72,8 @@ def kiosk(db_session: Session, k134: PlantIds, device: Device) -> KioskDevice:
 
 
 @pytest.fixture
-def worker(boss: TestClient, k134: PlantIds) -> Worker:
-    return Worker(boss, k134)
+def worker(boss: TestClient, db_session: Session, k134: PlantIds) -> Worker:
+    return make_worker(boss, db_session, k134)
 
 
 def set_setting(session: Session, key: str, value: int) -> None:
