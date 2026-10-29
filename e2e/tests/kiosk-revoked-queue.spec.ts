@@ -6,13 +6,13 @@
 import { expect, type Page, test } from "@playwright/test";
 import {
   adminApi,
+  INSIDE,
   logIn,
   makeKioskCode,
   makePlant,
   makeWorkerWithCard,
   openKioskWithCard,
   SUPER_ADMIN_LOGIN,
-  type TestPlant,
 } from "./helpers";
 
 test.describe.configure({ mode: "serial" });
@@ -22,8 +22,6 @@ const SIZES = [
   { label: "360 px phone", width: 360, height: 740, suffix: "A" },
   { label: "768 px tablet", width: 768, height: 1024, suffix: "B" },
 ] as const;
-
-let plant: TestPlant;
 
 async function expectNoSidewaysScroll(page: Page, where: string) {
   const widths = await page.evaluate(() => ({
@@ -39,14 +37,22 @@ async function expectNoSidewaysScroll(page: Page, where: string) {
 for (const size of SIZES) {
   test(`a switched-off gate says how many saved punches were lost (${size.label})`, async ({
     page,
-  }) => {
-    test.setTimeout(300_000);
+  }, testInfo) => {
+    test.setTimeout(420_000);
     await logIn(page, SUPER_ADMIN_LOGIN);
     await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
     const api = adminApi(page);
-    plant ??= await makePlant(api, "XQ7");
-    const name = `Revoked gate ${size.suffix}`;
-    const card = await makeWorkerWithCard(api, plant, `XQ-70${size.suffix}`, "Mangal Jadhav");
+    // The database keeps what an earlier attempt made (a retry reruns the whole serial group),
+    // so every test and attempt has its own plant and codes: a plain retry would fail with 409.
+    const attempt = testInfo.retry;
+    const plant = await makePlant(api, `X${size.suffix}${attempt}`);
+    const name = `Revoked gate ${size.suffix}${attempt}`;
+    const card = await makeWorkerWithCard(
+      api,
+      plant,
+      `XQ-7${attempt}${size.suffix}`,
+      "Mangal Jadhav",
+    );
     const code = await makeKioskCode(api, plant, name);
 
     const { device, close } = await openKioskWithCard(card.serial, code, {
@@ -57,8 +63,9 @@ for (const size of SIZES) {
       // 1. Online: the first scan is an IN (it also gives the gate its server time anchor).
       await expect(device.getByText("IN", { exact: true })).toBeVisible(NEXT_SCAN);
 
-      // The gate reports its position with the next heartbeat (one a minute); wait until the
-      // admin side knows it, so the drawer has a last position to show.
+      // The gate reports its position with the next heartbeat (one a minute, the first one a
+      // minute after the page opened); wait until the admin side knows it, so the drawer has a
+      // last position to show. Three beats of room, because a busy CI machine can be slow.
       await expect
         .poll(
           async () => {
@@ -67,11 +74,14 @@ for (const size of SIZES) {
             >(`/kiosks?plant_id=${plant.id}`);
             return list.find((item) => item.name === name)?.location?.lat ?? null;
           },
-          { timeout: 120_000, intervals: [5_000] },
+          { timeout: 200_000, intervals: [5_000] },
         )
         .not.toBeNull();
 
-      // 2. The network goes away: the next scan is saved on the device.
+      // 2. The network goes away: the next scan is saved on the device. The browser's pretend
+      // location never updates by itself, so the gate's reading has grown old while it waited
+      // for the heartbeat; send a fresh one first (a real phone keeps updating).
+      await device.context().setGeolocation(INSIDE);
       await device.context().setOffline(true);
       // The SAVED screen only shows for a few seconds (kiosk-offline.spec.ts looks at it); what
       // stays is the waiting line in the footer, so this test waits for that.
