@@ -81,17 +81,22 @@ class Worker:
         self.qr_text = build_payload(get_settings(), self.serial)
 
 
-@pytest.fixture
-def worker(boss: TestClient, db_session: Session, k134: PlantIds) -> Worker:
-    worker = Worker(boss, k134)
-    # A new card is valid from today (IST). Offline tests send punches a few minutes or hours in the
-    # past, and just after midnight IST that is "yesterday": the card would be refused as not yet
-    # valid. Start the test card two days back so the tests give the same answer at any hour.
+def make_worker(boss: TestClient, db_session: Session, plant: PlantIds) -> Worker:
+    """A worker whose card started two days ago. A new card is valid from today (IST), but offline
+    tests send punches minutes or hours in the past, and just after midnight IST that is
+    "yesterday": the card would be refused as not yet valid. The issue screen never allows a past
+    start, so the test sets it in the database; the tests then give the same answer at any hour."""
+    worker = Worker(boss, plant)
     card = db_session.get(QrCredential, worker.card_id)
     assert card is not None
     card.valid_from = today_ist() - timedelta(days=2)
     db_session.commit()
     return worker
+
+
+@pytest.fixture
+def worker(boss: TestClient, db_session: Session, k134: PlantIds) -> Worker:
+    return make_worker(boss, db_session, k134)
 
 
 def photo_text(**kwargs: object) -> str:

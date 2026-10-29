@@ -24,7 +24,7 @@ from app.modules.users.plant_access import set_user_plant
 from tests.conftest import clear_cached_settings
 from tests.kiosk_helpers import GATE_LAT, GATE_LON, Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant
-from tests.test_punch_api import Worker, send
+from tests.test_punch_api import Worker, make_worker, send
 
 REVIEWS = "/api/v1/reviews"
 PUNCHES = "/api/v1/punches"
@@ -57,8 +57,8 @@ def kiosk(db_session: Session, k134: PlantIds, device: Device) -> KioskDevice:
 
 
 @pytest.fixture
-def worker(boss: TestClient, k134: PlantIds) -> Worker:
-    return Worker(boss, k134)
+def worker(boss: TestClient, db_session: Session, k134: PlantIds) -> Worker:
+    return make_worker(boss, db_session, k134)
 
 
 @pytest.fixture
