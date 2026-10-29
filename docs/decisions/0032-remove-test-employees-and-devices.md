@@ -30,3 +30,10 @@ not start with DEMO, and the screens never delete people or punches (labour-law 
 The rule "never hard-delete attendance, audit or employee records" stays for everyone and everything
 else. This tool is not linked from any screen or API and never runs by itself. CLAUDE.md section 9 gets
 one line for it in the next milestone's CLAUDE.md update (not edited outside a milestone PR).
+
+## Addition (2026-10-30): refused scans that name nobody
+The first live run refused: 5 punches at `plant1` / `plant2` named nobody (refused scans of unknown
+cards or failed faces during the test). They are test noise at a test device, not anybody's attendance.
+The tool now lists such punches (time, decision, reason code, no names) and deletes them only when the
+run adds `--include-unidentified-punches`. A punch that names another employee is still always refused,
+with or without the flag (tested).

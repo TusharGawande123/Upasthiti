@@ -32,7 +32,7 @@ import argparse
 import sys
 import uuid
 
-from sqlalchemy import delete, func, or_, select, text
+from sqlalchemy import and_, delete, func, or_, select, text
 from sqlalchemy.orm import Session
 
 from app.core.config import load_settings_or_exit
@@ -72,7 +72,11 @@ def _find_ids_by_value(
 
 
 def build_plan(
-    session: Session, plant_code: str, employee_codes: list[str], device_names: list[str]
+    session: Session,
+    plant_code: str,
+    employee_codes: list[str],
+    device_names: list[str],
+    include_unidentified: bool = False,
 ) -> RemovalPlan:
     """Finds everything that belongs to the named employees and devices. Changes nothing."""
     code = plant_code.strip().upper()
@@ -122,27 +126,7 @@ def build_plan(
         ),
     )
 
-    # A punch of another person at a typed device is not ours to delete.
-    strangers = session.scalar(
-        select(func.count())
-        .select_from(punches)
-        .where(
-            punches.c.id.in_(plan.punch_ids),
-            or_(
-                punches.c.employee_id.is_(None),
-                punches.c.employee_id.not_in(plan.employee_ids),
-            ),
-            or_(
-                punches.c.claimed_employee_id.is_(None),
-                punches.c.claimed_employee_id.not_in(plan.employee_ids),
-            ),
-        )
-    )
-    if strangers:
-        raise RemovalRefusedError(
-            f"{strangers} punch(es) at the typed devices belong to people who are not in your list "
-            "(or to nobody). Remove those devices from the list, or deal with those punches first."
-        )
+    _refuse_punches_of_other_people(session, plan, include_unidentified)
 
     reviews, heartbeats = _table("punch_reviews"), _table("kiosk_heartbeats")
     plan.review_ids = _ids(
@@ -197,6 +181,66 @@ def build_plan(
         "device health samples": plan.heartbeat_count,
     }
     return plan
+
+
+def _refuse_punches_of_other_people(
+    session: Session, plan: RemovalPlan, include_unidentified: bool
+) -> None:
+    """A punch at a typed device that is not about our employees is not ours to delete, with ONE
+    exception the caller must ask for: a punch that names nobody (a refused scan of an unknown
+    card, a failed face) at a typed test device is test noise, not anybody's attendance."""
+    punches, employees = _table("punches"), _table("employees")
+    not_ours = and_(
+        or_(punches.c.employee_id.is_(None), punches.c.employee_id.not_in(plan.employee_ids)),
+        or_(
+            punches.c.claimed_employee_id.is_(None),
+            punches.c.claimed_employee_id.not_in(plan.employee_ids),
+        ),
+    )
+    names_nobody = and_(
+        punches.c.employee_id.is_(None),
+        punches.c.claimed_employee_id.is_(None),
+        or_(punches.c.qr_credential_id.is_(None), punches.c.qr_credential_id.in_(plan.card_ids)),
+    )
+    # What is shown is only a time, a decision and a reason code, plus the employee code when the
+    # punch names a person: no names, no photos.
+    rows = session.execute(
+        select(
+            punches.c.punch_time,
+            punches.c.decision,
+            punches.c.reason_codes,
+            punches.c.employee_id,
+            employees.c.employee_code,
+            names_nobody.label("names_nobody"),
+        )
+        .select_from(punches.outerjoin(employees, employees.c.id == punches.c.employee_id))
+        .where(punches.c.id.in_(plan.punch_ids), not_ours)
+        .order_by(punches.c.punch_time)
+    ).all()
+    other_people = [row for row in rows if not row.names_nobody]
+    unidentified = [row for row in rows if row.names_nobody]
+    if other_people or (unidentified and not include_unidentified):
+        shown = other_people or unidentified
+        lines = "\n".join(
+            f"    {row.punch_time:%d/%m/%Y %H:%M} UTC  {row.decision}  "
+            f"{','.join(row.reason_codes or []) or '-'}  "
+            f"{'employee ' + row.employee_code if row.employee_code else 'names nobody'}"
+            for row in shown[:15]
+        )
+        if other_people:
+            advice = (
+                "These belong to people who are not in your list. Remove those devices from the "
+                "list, or deal with those punches first."
+            )
+        else:
+            advice = (
+                "They name nobody (refused scans). If this device was only used for testing, run "
+                "again with --include-unidentified-punches to delete them as well."
+            )
+        raise RemovalRefusedError(
+            f"{len(shown)} punch(es) at the typed devices are not about your employees:\n"
+            f"{lines}\n  {advice}"
+        )
 
 
 def remove(session: Session, plan: RemovalPlan) -> None:
@@ -275,6 +319,11 @@ def main() -> int:
     parser.add_argument("--plant-code", required=True, help="the plant they belong to, e.g. K134")
     parser.add_argument("--employee-codes", nargs="*", default=[], help="e.g. 101 102 103")
     parser.add_argument("--device-names", nargs="*", default=[], help="e.g. plant1 plant2")
+    parser.add_argument(
+        "--include-unidentified-punches",
+        action="store_true",
+        help="also delete refused scans at the typed devices that name nobody (test noise)",
+    )
     parser.add_argument("--skip-photos", action="store_true", help="do not delete the photo files")
     parser.add_argument("--confirm", action="store_true", help="really delete (default: only show)")
     arguments = parser.parse_args()
@@ -284,7 +333,11 @@ def main() -> int:
     with get_session_factory()() as session:
         try:
             plan = build_plan(
-                session, arguments.plant_code, arguments.employee_codes, arguments.device_names
+                session,
+                arguments.plant_code,
+                arguments.employee_codes,
+                arguments.device_names,
+                arguments.include_unidentified_punches,
             )
         except RemovalRefusedError as error:
             print(f"Refused: {error}")
