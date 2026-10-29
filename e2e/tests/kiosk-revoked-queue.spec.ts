@@ -73,10 +73,9 @@ for (const size of SIZES) {
 
       // 2. The network goes away: the next scan is saved on the device.
       await device.context().setOffline(true);
-      await expect(device.getByText("SAVED", { exact: true })).toBeVisible(NEXT_SCAN);
-      await expect(device.getByText(/^1 punch waiting since \d\d:\d\d$/)).toBeVisible({
-        timeout: 15_000,
-      });
+      // The SAVED screen only shows for a few seconds (kiosk-offline.spec.ts looks at it); what
+      // stays is the waiting line in the footer, so this test waits for that.
+      await expect(device.getByText(/^1 punch waiting since \d\d:\d\d$/)).toBeVisible(NEXT_SCAN);
       await expectNoSidewaysScroll(device, `gate ${size.label} with a saved punch`);
 
       // 3. The admin looks at the device: its drawer shows the last position on a map.
