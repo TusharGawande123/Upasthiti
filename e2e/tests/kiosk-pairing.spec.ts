@@ -37,7 +37,10 @@ async function drawGeofenceAroundMapCentre(page: Page) {
 }
 
 async function addKiosk(page: Page, name: string): Promise<string> {
-  await page.getByRole("navigation", { name: "Main menu" }).getByRole("link", { name: "Attendance devices" }).click();
+  await page
+    .getByRole("navigation", { name: "Main menu" })
+    .getByRole("link", { name: "Attendance devices" })
+    .click();
   await page.getByRole("button", { name: "Add device" }).click();
   const dialog = page.getByRole("dialog");
   await dialog.getByLabel("Plant").selectOption({ label: "KT1 · Kiosk Test Plant" });

@@ -83,7 +83,9 @@ test("a punch at the edge of the fence is flagged, and the Super Admin confirms 
   await expect(page.getByText(/^Confirmed/).first()).toBeVisible();
 
   await page.getByRole("tab", { name: /Reviewed/ }).click();
-  await expect(page.getByRole("button", { name: /Review the punch of Sunita Pawar/ })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: /Review the punch of Sunita Pawar/ }),
+  ).toBeVisible();
   const log = await api.get<{ items: Array<{ decision: string; review_state: string }> }>(
     `/punches?plant_id=${plant.id}&q=XQ-101`,
   );
