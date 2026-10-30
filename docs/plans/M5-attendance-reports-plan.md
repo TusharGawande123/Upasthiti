@@ -196,5 +196,7 @@ a real phone at 360 px, report downloads opened in Excel.
 
 ## Status (kept updated after every slice)
 - Spec M5 and M4b approved and committed (d87cc3a, 2fc29fc). Plan approved (2026-10-31).
-- Next: slice 0.
+- 2026-10-31: handed over to Anuradha (Tushar delegated the build). No code written yet; local DB not checked.
+- Model choice by Tushar for slices 0-3: Opus + medium. Plan advice for screens (slice 7, P4): Sonnet + medium.
+- Next: slice 0, step 1.
 - Open questions: none.
