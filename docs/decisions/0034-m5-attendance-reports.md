@@ -6,7 +6,8 @@ Decision numbers: 0030 is reserved for the M4 real-device results, 0031 is unuse
 
 ## Order of milestones
 1. **M5 is built before M4b** (optional phone punching). The lead chose this order. CLAUDE.md §7 keeps M4b
-   in the list; it comes after M5.
+   in the list; it comes after M5. **Amended 2026-10-31:** M4b is built in the same branch and the same PR
+   as M5, after the M5 slices (decision 0035).
 
 ## Lead's decisions in chat (morning of 2026-10-30)
 2. **Weekly off and holidays:** one weekly off per plant for everyone (default Sunday) plus a holiday

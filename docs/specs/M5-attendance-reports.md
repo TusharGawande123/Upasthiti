@@ -1,6 +1,8 @@
 # M5 – Attendance processing, corrections, live dashboard and reports: Specification
 
 Status: Approved (lead, 2026-10-30) · Author: spec-writer · Date: 2026-10-30
+Amended 2026-10-31 by M4b, lead approved: §7 rules 17, 19 and 29 leave "Outside plant" phone INs out of
+"inside now", the muster, the still-inside alert and the gate count (docs/specs/M4b-phone-punch.md §7 rule 22).
 Lead's answers: all §14 questions and every §12 row were answered by the lead (Tushar Gawande) in chat
 on 2026-10-30 and are written into §2, §7, §8, §10 and §12; §14 has no open question.
 Decisions: the lead's M5 decisions of 2026-10-30 (Tushar Gawande, in chat) are written as rules in
@@ -977,6 +979,12 @@ The storage meter idea (S-25) becomes more useful; see §12.
 17. **Inside now, dashboard and muster** (FR-33, FR-34, decision 9).
     - **Inside now** = active employees (not left) whose latest counted punch (rule 2) within the last
       `open_in_max_hours` is an **IN**, at the plant of that punch. Computed on read in one bulk query.
+      **Amended 2026-10-31 by M4b (lead approved):** an IN whose punch carries the flag `OUTSIDE_PLANT`
+      (phone punch outside every plant fence) is **not** inside any plant: it is left out of "Inside now"
+      and the muster. The dashboard shows a small line **"On outside work: N"** (same bulk query, no extra
+      list; a named "On outside work" muster section is F-81, Later). For a phone punch made inside a plant
+      fence, "the plant of that punch" is the plant where the person stands (`punches.location_plant_id`,
+      M4b §7 rule 22).
     - **Expected today** = active employees of the plant whose today's day kind is working and who are
       not on leave today (for all of today's shifts). **Arrived** = expected with a counted IN in
       today's window. **Late** = arrived permanent employees past shift start + grace. **Not arrived
@@ -1026,6 +1034,8 @@ The storage meter idea (S-25) becomes more useful; see §12.
     muster filtered to them; the count is updated while open and the notification is resolved when
     nobody is left. Overtime workers legitimately inside also appear (the alert asks to check, it
     accuses nobody). Recipients: Super Admin, Corporate Head (read), the plant's Plant Head.
+    **Amended 2026-10-31 by M4b (lead approved):** a day whose open IN is an `OUTSIDE_PLANT` punch is not
+    part of this alert (the person is not inside a plant).
 
 20. **Notification centre and email (F-7, FR-41).**
     - Kinds and triggers: `device_offline` (the M4 F-46 rule, now also stored, one per device
@@ -1215,7 +1225,8 @@ The storage meter idea (S-25) becomes more useful; see §12.
 
 29. **Gate lines (F-28, F-37, F-2).** Server-made numbers only; the gate never computes them.
     - F-28: `inside_now` = the plant's inside-now count of rule 17, added to the heartbeat / `/kiosk/me`
-      answer when `kiosk_show_inside_count` is on.
+      answer when `kiosk_show_inside_count` is on. **Amended 2026-10-31 by M4b (lead approved):**
+      `OUTSIDE_PLANT` INs are not counted (rule 17).
     - F-37: `late_minutes` = rule 9 late minutes of an accepted online IN of a permanent employee on a
       working day, only when beyond grace and `kiosk_late_hint` is on.
     - F-2: `month_days_present` = number of IST dates in the current calendar month with a counted IN of

@@ -145,3 +145,19 @@ Chosen by the lead (Tushar Gawande) in chat on 2026-10-30 (decision 0034).
   check, F-66 holiday list helpers, F-67 TV wall screen, F-8 overtime approval, F-16 shift roster planner,
   F-12 weekly digest, F-44 office-verified correction, S-44 nightly recompute check, S-25 storage meter
 - Rejected: F-68 per-employee "Test" flag (only DEMO plants are left out of reports) · 2026-10-30
+
+## M4b – Optional phone punching (docs/specs/M4b-phone-punch.md)
+Chosen by the lead (Tushar Gawande) in chat on 2026-10-31 (decision 0035). Built in the M5 PR.
+
+- M4b · F-69 · "Outside work until" date on the outside-work switch · Approved · 2026-10-31
+- M4b · F-70 · Bell alert when one employee signs in on many phones · Approved · 2026-10-31
+- M4b · F-73 · "My attendance" on the phone (last 31 days) · Approved · 2026-10-31
+- M4b · F-74 · Add-to-home-screen manifest for /phone (no service worker) · Approved · 2026-10-31
+- M4b · F-76 · Bulk confirm of clean outside-plant punches · Approved · 2026-10-31
+- M4b · F-80 · Passkey (WebAuthn) as an optional sign-in; py_webauthn, BSD-3-Clause · Approved · 2026-10-31
+- M4b · S-46 · Playwright mobile project with a fake camera · Approved · 2026-10-31
+- M4b · S-47 · Strict CSP + Permissions-Policy for /phone · Approved · 2026-10-31
+- M4b · S-49 · argon2 memory guard test (512 MB) · Approved · 2026-10-31
+- Later: F-71 outside punch photo, F-72 near-the-device check, F-75 planned outside site, F-77 selfie
+  compare, F-78/F-79 Marathi and Hindi phone pages and notice, F-81 muster "On outside work" list,
+  S-45 gate-code load test, S-48 password strength meter
