@@ -119,3 +119,29 @@ Chosen by the lead (Tushar Gawande) in chat on 2026-10-28 (decision 0025).
   F-50 sync history per device, F-52 flag every offline face punch, S-34 outage simulation helper,
   S-35 spoof-test suite tool (the attack tests themselves stay core), S-36 property tests,
   S-37 sync load test · 2026-10-28
+
+## M5 – Attendance processing, dashboards, reports (docs/specs/M5-attendance-reports.md)
+Chosen by the lead (Tushar Gawande) in chat on 2026-10-30 (decision 0034).
+
+- M5 · F-4 · Still-inside safety alert · Approved (2026-10-12) · in scope
+- M5 · F-7 · Notification centre: in-app bell; email only when SMTP variables are set · Approved · in scope
+- M5 · F-9 · Punctuality analytics · Approved (2026-10-12) · in scope
+- M5 · F-26 · Emergency muster list · Approved (2026-10-13) · in scope
+- M5 · F-58 · One-day shift swap · Approved · 2026-10-30
+- M5 · F-59 · Bulk correction after a gate outage · Approved · 2026-10-30
+- M5 · F-60 · Attendance calendar heatmap on the employee page · Approved · 2026-10-30
+- M5 · F-61 · "Explain this day" sentence in the timeline · Approved · 2026-10-30
+- M5 · F-62 · Absence streak alert · Approved · 2026-10-30
+- M5 · F-65 · Monthly register email (only when SMTP is set) · Approved · 2026-10-30
+- M5 · F-28 · "Inside now" count on the gate idle screen · Approved · 2026-10-30
+- M5 · F-37 · Gentle late hint at the gate (default off) · Approved · 2026-10-30
+- M5 · F-2 · "My month" line at the gate (no name, default off) · Approved · 2026-10-30
+- M5 · S-39 · Golden scenario table · Approved · 2026-10-30
+- M5 · S-40 · Midnight-IST CI run + time-machine (MIT, dev only) · Approved · 2026-10-30
+- M5 · S-41 · Report read-back tests · Approved · 2026-10-30
+- M5 · S-42 · Register performance check in 512 MB · Approved · 2026-10-30
+- M5 · S-43 · Hypothesis property tests (MPL-2.0, dev only) · Approved · 2026-10-30
+- Later: F-56 month close, F-57 muster roll-call ticks, F-63 overtime limit warning, F-64 weekly rest
+  check, F-66 holiday list helpers, F-67 TV wall screen, F-8 overtime approval, F-16 shift roster planner,
+  F-12 weekly digest, F-44 office-verified correction, S-44 nightly recompute check, S-25 storage meter
+- Rejected: F-68 per-employee "Test" flag (only DEMO plants are left out of reports) · 2026-10-30
