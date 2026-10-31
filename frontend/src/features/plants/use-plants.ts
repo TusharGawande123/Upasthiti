@@ -16,6 +16,8 @@ export type Plant = {
   geofence_set: boolean;
   active_kiosks: number;
   active_employees: number;
+  // M5: attendance is worked out from this day (empty until the plant starts using the devices).
+  attendance_start_date?: string | null;
 };
 
 export type Readiness = {
@@ -96,6 +98,14 @@ export type ShiftInput = {
   rules_effective_from?: string; // edit only: today (default) or a later date
 };
 
+// One entry of a plant's weekly-off history: from that date this ISO weekday is the day off.
+export type WeeklyOffItem = {
+  weekday: number; // 1 Monday ... 7 Sunday
+  effective_from: string;
+  created_at: string;
+};
+export type WeeklyOff = { current: WeeklyOffItem | null; history: WeeklyOffItem[] };
+
 // Departments and categories behave the same; only the address differs.
 export type NamedItemKind = "departments" | "categories";
 
@@ -140,6 +150,22 @@ export function useNamedItems(plantId: string, kind: NamedItemKind) {
   return useQuery({
     queryKey: [...PLANTS_KEY, plantId, kind],
     queryFn: () => apiGet<NamedItem[]>(`/plants/${plantId}/${kind}`),
+  });
+}
+
+export function useWeeklyOff(plantId: string) {
+  return useQuery({
+    queryKey: [...PLANTS_KEY, plantId, "weekly-off"],
+    queryFn: () => apiGet<WeeklyOff>(`/plants/${plantId}/weekly-off`),
+    enabled: Boolean(plantId),
+  });
+}
+
+export function useShiftRuleVersions(shiftId: string | undefined) {
+  return useQuery({
+    queryKey: [...PLANTS_KEY, "rule-versions", shiftId],
+    queryFn: () => apiGet<ShiftRules[]>(`/shifts/${shiftId}/rule-versions`),
+    enabled: Boolean(shiftId),
   });
 }
 
@@ -242,6 +268,24 @@ export function useShiftActiveToggle() {
   return useMutation({
     mutationFn: ({ id, active, reason }: { id: string; active: boolean; reason: string }) =>
       apiPost<Shift>(`/shifts/${id}/${active ? "reactivate" : "deactivate"}`, { reason }),
+    onSuccess: refresh,
+  });
+}
+
+export function useSetWeeklyOff(plantId: string) {
+  const refresh = useRefreshPlants();
+  return useMutation({
+    mutationFn: (input: { weekday: number; effective_from: string }) =>
+      apiPost<{ weekly_off: WeeklyOffItem }>(`/plants/${plantId}/weekly-off`, input),
+    onSuccess: refresh,
+  });
+}
+
+export function useSetAttendanceStartDate(plantId: string) {
+  const refresh = useRefreshPlants();
+  return useMutation({
+    mutationFn: (attendanceStartDate: string) =>
+      apiPatch<Plant>(`/plants/${plantId}`, { attendance_start_date: attendanceStartDate }),
     onSuccess: refresh,
   });
 }

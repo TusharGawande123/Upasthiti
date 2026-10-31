@@ -31,6 +31,8 @@ const ADMIN_PAGES = [
   "/admin/attendance",
   "/admin/attendance/register",
   "/admin/corrections",
+  "/admin/leave",
+  "/admin/holidays",
   "/admin/plants",
   "/admin/kiosks",
   "/admin/approvals",

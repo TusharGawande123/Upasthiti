@@ -2,6 +2,7 @@
 // The menu shows only what the user's role may use; the server checks it again anyway.
 import {
   CalendarCheck,
+  CalendarHeart,
   CircleDashed,
   CircleX,
   ClipboardCheck,
@@ -15,6 +16,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Megaphone,
+  Plane,
   Printer,
   QrCode,
   ScanFace,
@@ -73,6 +75,9 @@ const NAV_ITEMS: NavItem[] = [
     roles: ALL_ROLES,
     badge: "pendingCorrections",
   },
+  // M5: the days a person is away and the days the plants are closed (every role reads).
+  { to: "/admin/leave", labelKey: "nav.leave", icon: Plane, roles: ALL_ROLES },
+  { to: "/admin/holidays", labelKey: "nav.holidays", icon: CalendarHeart, roles: ALL_ROLES },
   { to: "/admin/setup", labelKey: "nav.setup", icon: ListChecks, roles: ["super_admin"] },
   {
     to: "/admin/approvals",
@@ -137,7 +142,9 @@ function AdminShell({ user }: { user: Me }) {
     pathname === "/admin" ||
     pathname === "/admin/muster" ||
     pathname === "/admin/attendance" ||
-    pathname === "/admin/attendance/register";
+    pathname === "/admin/attendance/register" ||
+    pathname === "/admin/leave" ||
+    pathname === "/admin/holidays";
   const pending = usePendingCount(user.role === "super_admin");
   const expiring = useExpiringCount(user.role === "super_admin");
   const deviceSummary = useOfflineSummary();

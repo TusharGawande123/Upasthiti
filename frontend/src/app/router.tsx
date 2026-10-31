@@ -139,6 +139,20 @@ const adminPages: RouteObject[] = [
     ),
   },
   {
+    path: "/admin/leave",
+    lazy: page(
+      () => import("../features/leave/leave-page"),
+      (m) => m.LeavePage,
+    ),
+  },
+  {
+    path: "/admin/holidays",
+    lazy: page(
+      () => import("../features/holidays/holidays-page"),
+      (m) => m.HolidaysPage,
+    ),
+  },
+  {
     path: "/admin/review",
     lazy: page(
       () => import("../features/review/review-page"),

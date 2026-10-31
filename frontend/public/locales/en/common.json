@@ -802,7 +802,9 @@
     "muster": "Emergency muster",
     "attendance": "Attendance",
     "register": "Monthly register",
-    "corrections": "Corrections"
+    "corrections": "Corrections",
+    "leave": "Leave",
+    "holidays": "Holidays"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -3749,5 +3751,300 @@
       "reverseWarn": "Reversing the batch undoes all {{count}} corrections at once. You must give a reason, and it is saved in the audit log.",
       "reversed": "The batch was reversed: {{count}} corrections undone."
     }
+  },
+  "leave": {
+    "title": "Leave",
+    "subtitle": {
+      "admin": "Days a person is away, paid or unpaid. Add leave here; people do not apply for it.",
+      "readOnly": "Leave of your plant. You can read it; the Super Admin changes it."
+    },
+    "add": "Add leave",
+    "cancel": "Cancel leave",
+    "keep": "Keep leave",
+    "save": "Save leave",
+    "change": "Change",
+    "col": {
+      "employee": "Employee",
+      "from": "From",
+      "to": "To",
+      "workingDays": "Working days",
+      "pay": "Pay",
+      "reason": "Reason",
+      "enteredBy": "Entered by",
+      "state": "State"
+    },
+    "pay": {
+      "all": "All",
+      "paid": "Paid",
+      "unpaid": "Unpaid"
+    },
+    "state": {
+      "active": "Active",
+      "cancelled": "Cancelled",
+      "all": "All"
+    },
+    "workingDaysNote": "Working days = days that are not a weekly off or a holiday",
+    "count_one": "{{count}} leave",
+    "count_other": "{{count}} leaves",
+    "filter": {
+      "search": "Employee name or code",
+      "plant": "Plant",
+      "allPlants": "All plants",
+      "month": "Month",
+      "pay": "Pay",
+      "state": "State",
+      "clear": "Clear filters"
+    },
+    "previewDays_one": "{{count}} working day.",
+    "previewDays_other": "{{count}} working days.",
+    "previewWeeklyOff": "{{date}} is a weekly off and is not counted as leave.",
+    "previewHoliday": "{{date}} is a holiday and is not counted as leave.",
+    "previewMore_one": "{{count}} more day is not counted.",
+    "previewMore_other": "{{count}} more days are not counted.",
+    "dialog": {
+      "add": {
+        "title": "Add leave",
+        "desc": "For one person, for whole days. Paid or unpaid. No approval needed."
+      },
+      "cancel": {
+        "title": "Cancel this leave?",
+        "desc": "The leave stays in the list as Cancelled. The attendance of those days is worked out again.",
+        "summary": "{{name}} · {{from}} to {{to}}"
+      }
+    },
+    "field": {
+      "employee": "Employee",
+      "firstDay": "First day",
+      "lastDay": "Last day",
+      "pay": "Pay",
+      "reason": "Reason",
+      "searchPeople": "Search employee name or code"
+    },
+    "pickEmployee": "Choose an employee",
+    "noPeople": "No active employee matches.",
+    "reasonHint": "Only the Super Admin can read this.",
+    "reasonCount": "{{count}} / 300",
+    "reasonRange": "3 to 300 characters",
+    "paid": {
+      "title": "Paid leave",
+      "hint": "Counts as a paid day"
+    },
+    "unpaid": {
+      "title": "Unpaid leave",
+      "hint": "Does not count as paid"
+    },
+    "cancelReason": {
+      "label": "Why is it cancelled? (required)",
+      "hint": "3 to 300 characters. It is saved in the audit log.",
+      "placeholder": "For example: she is coming to work"
+    },
+    "cancelledWithReason": "Cancelled: {{reason}}",
+    "cancelledBy": "Cancelled by {{name}}",
+    "readOnly": "View only. Only the Super Admin can add or cancel leave. A leave reason can be personal, so reasons are shown to the Super Admin only.",
+    "error": {
+      "dates": "The last day cannot be before the first day."
+    },
+    "toast": {
+      "added": "Leave saved.",
+      "cancelled": "Leave cancelled."
+    },
+    "empty": {
+      "title": "No leave entered yet",
+      "body": "When a person is away, add the leave here so the days are not counted as absent."
+    },
+    "filterEmpty": {
+      "title": "No leave matches these filters",
+      "body": "Try another month or clear the filters."
+    },
+    "loadError": "Leave could not be loaded",
+    "notCounted_one": "{{count}} day not counted",
+    "notCounted_other": "{{count}} days not counted"
+  },
+  "holidays": {
+    "title": "Holidays",
+    "subtitle": {
+      "admin": "The days the plants are closed. Weekly offs are set on each plant page.",
+      "readOnly": "The days your plant is closed. You can read them; the Super Admin changes them."
+    },
+    "add": "Add holiday",
+    "cancel": "Cancel",
+    "keep": "Keep holiday",
+    "save": "Save holiday",
+    "year": "Year",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "plant": "Plant",
+    "allPlants": "All plants",
+    "scope": {
+      "all": "All plants",
+      "chosen": "Chosen plants",
+      "chosenCount_one": "{{count}} plant chosen",
+      "chosenCount_other": "{{count}} plants chosen",
+      "label": "Applies to",
+      "pickOne": "Choose at least one plant."
+    },
+    "pay": {
+      "label": "Pay",
+      "paid": "Paid holiday",
+      "paidHint": "Counts as a paid day",
+      "unpaid": "Unpaid holiday",
+      "unpaidHint": "Closed, but not paid",
+      "paidBadge": "Paid",
+      "unpaidBadge": "Unpaid"
+    },
+    "state": {
+      "active": "Active",
+      "past": "Past",
+      "cancelled": "Cancelled"
+    },
+    "cancelledWithReason": "Cancelled: {{reason}}",
+    "footer": "A holiday on the weekly off stays a weekly off",
+    "count_one": "{{count}} holiday in {{year}}",
+    "count_other": "{{count}} holidays in {{year}}",
+    "cancelledCount": "{{count}} cancelled",
+    "field": {
+      "date": "Date",
+      "name": "Name"
+    },
+    "dialog": {
+      "add": {
+        "title": "Add holiday",
+        "desc": "A day the plants are closed."
+      },
+      "cancel": {
+        "title": "Cancel this holiday?",
+        "desc": "The day becomes a normal working day again. Attendance for that day is worked out again.",
+        "summary": "{{name}} · {{date}}"
+      }
+    },
+    "cancelReason": {
+      "label": "Why is it cancelled? (required)",
+      "hint": "3 to 300 characters. It is saved in the audit log."
+    },
+    "error": {
+      "name": "The name needs 2 to 80 characters."
+    },
+    "toast": {
+      "added": "Holiday saved.",
+      "cancelled": "Holiday cancelled."
+    },
+    "empty": {
+      "title": "No holidays for {{year}} yet",
+      "bodyAdmin": "Add the days the plants are closed. A paid holiday counts as a paid day for everyone it covers.",
+      "bodyReader": "No holidays are entered for this year."
+    },
+    "readOnly": "View only. Only the Super Admin can add or cancel a holiday.",
+    "loadError": "The holidays could not be loaded"
+  },
+  "plantWeekly": {
+    "title": "Weekly off",
+    "change": "Change weekly off",
+    "history": "History",
+    "inForce": "In force",
+    "upcoming": "Upcoming",
+    "earlier": "Earlier",
+    "from": "from {{date}}",
+    "row": "From {{date}}",
+    "notSet": "Not set. Sunday is used until you set it.",
+    "upcomingNote": "Changes to {{day}} from {{date}}. Until then {{old}} stays the weekly off.",
+    "pastError": "The date must be today or later. A past weekly off cannot be changed.",
+    "dialogDesc": "Choose the weekday the plant is closed every week.",
+    "weekday": "Weekday",
+    "applyFrom": "Applies from",
+    "applyHint": "Today or later.",
+    "warning": "From {{date}} {{day}} is the weekly off and {{old}} becomes a working day at {{plant}}.",
+    "save": "Save weekly off",
+    "saved": "Weekly off saved.",
+    "day": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    }
+  },
+  "plantStart": {
+    "title": "Attendance start date",
+    "change": "Change start date",
+    "notSet": "Not set yet",
+    "hint": "Attendance is worked out from this day. Earlier days show no status. Once days exist, the date can only move later.",
+    "dialogDesc": "Attendance is worked out from this date.",
+    "field": "Start date",
+    "laterWarning": "Moving the date later hides {{from}} to {{to}}. Those days stay stored but show no status and leave the reports.",
+    "save": "Save start date",
+    "saved": "Start date saved."
+  },
+  "shiftForm": {
+    "new": "Add a shift",
+    "edit": "Edit shift: {{name}}",
+    "desc": "{{plant}}. Times are 24 hour, India time.",
+    "name": "Shift name",
+    "start": "Shift starts",
+    "end": "Shift ends",
+    "endsNextDay": "Ends the next day",
+    "fullDayLabel": "Full day",
+    "fullDayValue": "Full day: {{duration}}",
+    "fullDayNote": "= start to end. Not typed.",
+    "grace": "Grace after the start",
+    "graceHint": "Arriving this late still counts as on time. Default 30.",
+    "halfDay": "Half-day hours",
+    "halfDayHint": "Worked from this long counts as a half-day. Default 4 h.",
+    "hours": "hours",
+    "minutes": "minutes",
+    "overtimeMin": "Smallest overtime that counts",
+    "overtimeMinHint": "Staying less than this after the shift end is not overtime. Default 120 (2 h).",
+    "applyFrom": "These rules apply from",
+    "applyFromHint": "Today or later. Default today.",
+    "save": "Save rules",
+    "add": "Add shift",
+    "onTime": "On time until {{time}}. Arriving up to {{time}} counts from {{start}}.",
+    "fullDay": "Full day: {{duration}}. Arrive by {{time}} and stay until {{end}}.",
+    "earlyExit": "Leaving before {{end}} is an early exit. The real hours count; there is no grace at the end.",
+    "halfDayLine": "Half-day from {{half}}. Below {{half}} is Short hours: you decide that day with a correction.",
+    "overtimeHint": "Overtime from {{end}}, only when you stay {{ot}} or more after the shift end.",
+    "nightNote": "This shift ends the next morning. The attendance day is the day it starts.",
+    "helperTitle": "What these times mean",
+    "live": "updates as you type",
+    "helperInvite": "Enter the start and end times to see what they mean.",
+    "timeline": {
+      "onTime": "On time (grace)",
+      "hours": "Shift hours",
+      "overtime": "Overtime counts if you stay until {{time}} or later",
+      "alt": "Shift from {{start}} to {{end}}. On time until {{onTime}}. Overtime counts from {{overtime}}."
+    },
+    "futureNote": "Starts on {{date}}. Until then the rules in force today stay. The gate poster should be printed again after that date.",
+    "history": {
+      "title": "Rule history",
+      "row": "From {{date}}",
+      "summary": "Grace {{grace}} min · Half-day {{half}} · Overtime from {{ot}}",
+      "saved": "Saved on {{date}}",
+      "inForce": "In force",
+      "willApply": "Will apply",
+      "earlier": "Earlier",
+      "footnote": "Days already worked keep the rules of their day. A new rule starts on its date and never changes the past.",
+      "error": "The rule history could not be loaded."
+    },
+    "list": {
+      "fullDay": "Full day {{duration}}",
+      "grace": "Grace {{count}} min",
+      "halfDay": "Half-day {{duration}}",
+      "overtime": "Overtime from {{duration}}",
+      "editRules": "Edit rules",
+      "switchedOff": "Switched off",
+      "footer": "Rules shown are the ones in force today",
+      "count_one": "{{count}} shift",
+      "count_other": "{{count}} shifts",
+      "upcoming": "New rules from {{date}}"
+    },
+    "error": {
+      "grace": "Grace can be 0 to 120 minutes.",
+      "halfDay": "Half-day must be shorter than the full day ({{fullDay}}).",
+      "applyFrom": "Choose today or a later date.",
+      "name": "Enter a shift name."
+    },
+    "savedPoster": "Shift times changed. Print the gate poster again.",
+    "openPoster": "Open the gate poster"
   }
 }
