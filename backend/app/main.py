@@ -16,6 +16,7 @@ from app.core.logging import add_request_id_middleware, setup_logging
 from app.core.security_headers import add_security_headers_middleware
 from app.jobs.daily import run_daily_jobs_logged, start_scheduler
 from app.modules.approvals.router import router as approvals_router
+from app.modules.attendance.router import router as attendance_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.dependencies import check_same_origin
 from app.modules.auth.router import router as auth_router
@@ -35,6 +36,7 @@ from app.modules.punches.admin_router import router as punch_log_router
 from app.modules.punches.review_router import router as review_router
 from app.modules.punches.router import router as punches_router
 from app.modules.qr_cards.router import router as qr_cards_router
+from app.modules.regularisations.router import router as regularisations_router
 from app.modules.settings.privacy_router import router as privacy_router
 from app.modules.settings.router import router as settings_router
 from app.modules.users.router import router as users_router
@@ -108,6 +110,8 @@ def create_app() -> FastAPI:
     api_router.include_router(search_router)
     api_router.include_router(holidays_router)
     api_router.include_router(leave_router)
+    api_router.include_router(regularisations_router)
+    api_router.include_router(attendance_router)
     app.include_router(api_router)
     return app
 

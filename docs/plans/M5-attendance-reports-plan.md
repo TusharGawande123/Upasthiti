@@ -220,9 +220,17 @@ a real phone at 360 px, report downloads opened in Excel.
   catch-up / nightly-close jobs are built and pushed (aa5b4af). Decision 0036 lines 6-10 added; **lines 8
   (grace only at the start) and 9 (early OUT: warning + Agree / Cancel) change the approved spec: to confirm
   with Tushar and the client.**
-- Still open in slice 1-2: corrections service + API (step 4), attendance read endpoints (daily, register,
-  employee, day, undecided, recompute), `GET /punch-approvals`, a test that lists the commit points, full suite.
+- Slice 1 and 2 are now built (commit after the full suite): corrections service + API (request, preview,
+  approve, reject, withdraw, direct, reverse; every §9 code), `GET /punch-approvals`, attendance read
+  endpoints (daily, register, employee month, day timeline, undecided, recompute), the commit-point list
+  test. Tests: `test_m5_corrections.py` (17), `test_m5_attendance_api.py` (9), `test_m5_stale_hooks.py`.
+- Left out on purpose, comes later: F-61 "Explain this day" (`explanation` is an empty list), F-58 shift swap
+  (`shift_swap` is null; slice 5), bulk correction (slice 5), notifications for requests and decisions
+  (slice 4, the `notifications` tables do not exist yet), `GET /attendance/employee/{id}/year` (heatmap, slice 7).
+- Known limit: the daily list and the register read through `ensure_fresh`, which recomputes at most a
+  plant's people at a time; the 650 x 31 register speed and memory check (S-42) is done with the reports.
 - Slice 3 now also contains the early-OUT confirmation (decision 0036 line 9): gate dialog (mockup image
   first), server confirmation mark, offline path.
-- Next: corrections service (step 4).
-- Open questions: none (decision 0036 line 1 waits for Tushar's confirmation).
+- Next: slice 3 (gate rule `shift_closed` + early-OUT confirmation), then slice 4. Before the PR, remember the
+  frontend coverage floor (82 -> 84, spec §2 item 17).
+- Open questions: decision 0036 lines 1, 6, 8, 9 wait for Tushar's (and for 8 and 9 the client's) confirmation.

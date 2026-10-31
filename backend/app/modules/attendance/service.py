@@ -533,3 +533,37 @@ def mark_punch_stale(
         employees.append(punch.employee_id)
         moment = punch.offline_punch_time or punch.server_received_at
         mark_punch_days_stale(session, employees, moment)
+
+
+# --- For one day: validation and preview of a correction ----------------------------------------
+
+
+def load_one_day(session: Session, employee_id: uuid.UUID, day: date, now: datetime) -> _Loader:
+    """The inputs of one employee's day (and the days around it), for a correction check."""
+    return _Loader.load(session, [employee_id], day, day, now)
+
+
+def add_hypothetical_correction(loader: _Loader, correction: Regularisation, now: datetime) -> None:
+    """Treat a not yet approved correction as approved, in memory only (the correction preview)."""
+    key = (correction.employee_id, correction.attendance_date)
+    loader.corrections[key].append(_Correction(correction, now))
+
+
+def mark_days_stale_counted(
+    session: Session, employee_ids: list[uuid.UUID], date_from: date, date_to: date
+) -> int:
+    """Like `mark_days_stale`, and says how many stored days are now stale (the recompute tool)."""
+    mark_days_stale(session, employee_ids, date_from, date_to)
+    session.flush()
+    return (
+        session.scalar(
+            select(func.count())
+            .select_from(AttendanceDay)
+            .where(
+                AttendanceDay.employee_id.in_(employee_ids),
+                AttendanceDay.attendance_date.between(date_from, date_to),
+                AttendanceDay.stale.is_(True),
+            )
+        )
+        or 0
+    )
