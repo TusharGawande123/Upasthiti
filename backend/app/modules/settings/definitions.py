@@ -8,7 +8,7 @@ screen shows it read-only, because changing it would have no effect yet.
 from dataclasses import dataclass
 
 # Bump this in each milestone, so its settings become editable.
-CURRENT_MILESTONE = 4
+CURRENT_MILESTONE = 5
 
 SettingValueType = int | float | str | None
 
