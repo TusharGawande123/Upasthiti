@@ -1,10 +1,12 @@
 // The admin shell: left menu, top bar (search, plant filter, user menu) and the page itself.
 // The menu shows only what the user's role may use; the server checks it again anyway.
 import {
+  CalendarCheck,
   CircleDashed,
   CircleX,
   ClipboardCheck,
   Factory,
+  FilePenLine,
   FileSpreadsheet,
   Flag,
   HardHat,
@@ -21,6 +23,7 @@ import {
   Send,
   Settings,
   Siren,
+  Table2,
   Tablet,
   TriangleAlert,
   UserRound,
@@ -30,6 +33,7 @@ import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Outlet, useLocation } from "react-router";
 import { usePendingCount } from "@/features/approvals/use-approvals";
+import { useCorrectionSummary } from "@/features/attendance/use-attendance-admin";
 import { BrandMark } from "@/features/auth/brand-mark";
 import { type Me, type Role, useMe } from "@/features/auth/use-auth";
 import {
@@ -52,6 +56,23 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/admin", labelKey: "nav.dashboard", icon: LayoutDashboard, roles: ALL_ROLES, end: true },
   // M5: everyone inside the plant now, for roll call in an emergency (every role).
   { to: "/admin/muster", labelKey: "nav.muster", icon: Siren, roles: ALL_ROLES },
+  // M5: the day-by-day list, the month register and the requests to correct a day (every role;
+  // only the Super Admin decides).
+  {
+    to: "/admin/attendance",
+    labelKey: "nav.attendance",
+    icon: CalendarCheck,
+    roles: ALL_ROLES,
+    end: true,
+  },
+  { to: "/admin/attendance/register", labelKey: "nav.register", icon: Table2, roles: ALL_ROLES },
+  {
+    to: "/admin/corrections",
+    labelKey: "nav.corrections",
+    icon: FilePenLine,
+    roles: ALL_ROLES,
+    badge: "pendingCorrections",
+  },
   { to: "/admin/setup", labelKey: "nav.setup", icon: ListChecks, roles: ["super_admin"] },
   {
     to: "/admin/approvals",
@@ -112,11 +133,16 @@ function AdminShell({ user }: { user: Me }) {
   const items = visibleNavItems(user.role);
   // The dashboard and the muster have their own plant picker on the page (design gate A).
   const { pathname } = useLocation();
-  const pickerOnPage = pathname === "/admin" || pathname === "/admin/muster";
+  const pickerOnPage =
+    pathname === "/admin" ||
+    pathname === "/admin/muster" ||
+    pathname === "/admin/attendance" ||
+    pathname === "/admin/attendance/register";
   const pending = usePendingCount(user.role === "super_admin");
   const expiring = useExpiringCount(user.role === "super_admin");
   const deviceSummary = useOfflineSummary();
   const reviews = useReviewSummary(user.role === "super_admin");
+  const corrections = useCorrectionSummary(user.role === "super_admin");
 
   // Ctrl+K (or Cmd+K on a Mac) opens the palette from anywhere in the admin area.
   useEffect(() => {
@@ -135,6 +161,7 @@ function AdminShell({ user }: { user: Me }) {
     if (item.badge === "expiringCards") return expiring.data?.count ?? 0;
     if (item.badge === "offlineDevices") return deviceSummary?.offline ?? 0;
     if (item.badge === "toCheck") return reviews.data?.to_check ?? 0;
+    if (item.badge === "pendingCorrections") return corrections.data?.pending ?? 0;
     return 0;
   };
 

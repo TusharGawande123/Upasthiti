@@ -799,7 +799,10 @@
     "offline": "offline",
     "review": "Needs review",
     "toCheck": "to check",
-    "muster": "Emergency muster"
+    "muster": "Emergency muster",
+    "attendance": "Attendance",
+    "register": "Monthly register",
+    "corrections": "Corrections"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -3331,6 +3334,144 @@
       "noOvertime": "No overtime: you left at or before the shift end ({{end}}).",
       "extraPunches": "{{count}} extra punch(es) are not used for the hours.",
       "corrected": "This day was corrected by an admin."
+    },
+    "title": "Attendance",
+    "subtitle": "One row for every person and day, worked out by the server from the punches.",
+    "toolsRegister": "Monthly register",
+    "downloadMuster": "Download daily muster",
+    "excel": "Excel",
+    "pdf": "PDF",
+    "downloadExcel": "Download Excel",
+    "downloadPdf": "Download PDF",
+    "decideBanner": {
+      "title": "{{count}} days to decide",
+      "text": "Short-hours days wait for a decision. Set each one to Present, Half-day or Absent.",
+      "show": "Show them"
+    },
+    "show": {
+      "from": "From the dashboard: {{tile}}.",
+      "closest": "This is the closest list. It may also show people the number does not count.",
+      "inside": "Inside now",
+      "expected": "Expected today",
+      "arrived": "Arrived",
+      "late": "Late",
+      "not_arrived": "Not arrived yet",
+      "on_leave": "On leave",
+      "off_today": "Off today",
+      "exceptions": "With exceptions",
+      "to_decide": "Days to decide"
+    },
+    "filter": {
+      "date": "Date",
+      "plant": "Plant",
+      "status": "Status",
+      "search": "Code or name",
+      "type": "Type",
+      "department": "Department",
+      "category": "Category",
+      "contractor": "Contractor",
+      "shift": "Shift",
+      "exceptions": "Has exceptions",
+      "corrected": "Corrected",
+      "clear": "Clear filters",
+      "all": "All",
+      "previousDay": "Previous day",
+      "nextDay": "Next day"
+    },
+    "tolerance": "{{shift}} {{start}}-{{end}}: On time until {{onTime}}. Leave from {{leave}}.",
+    "status": {
+      "present": "Present",
+      "half_day": "Half-day",
+      "short_hours": "Short hours",
+      "absent": "Absent",
+      "incomplete": "Incomplete",
+      "leave": "Leave",
+      "weekly_off": "Weekly off",
+      "holiday": "Holiday",
+      "worked_off_day": "Worked on off day",
+      "in_progress": "In progress"
+    },
+    "inProgress": {
+      "inside": "Inside since {{time}}",
+      "notArrived": "Not arrived yet",
+      "left": "Left at {{time}}"
+    },
+    "col": {
+      "employee": "Employee",
+      "status": "Status",
+      "in": "IN",
+      "out": "OUT",
+      "hours": "Hours",
+      "late": "Late",
+      "earlyExit": "Early exit",
+      "overtime": "Overtime",
+      "marks": "Marks"
+    },
+    "hoursOf": "{{worked}} of {{shift}}",
+    "mark": {
+      "corrected": "Corrected",
+      "pending": "Correction pending",
+      "flagged": "Flagged punch, not checked yet",
+      "extra": "Extra punches",
+      "exceptionsLegend": "Exceptions (count)"
+    },
+    "openDay": "Open day",
+    "showing": "Showing {{shown}} of {{total}} people",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{pages}}",
+    "empty": {
+      "title": "No attendance for these filters",
+      "text": "Nobody matches the date and filters you chose. Try another date, or clear the filters."
+    },
+    "error": {
+      "title": "The list could not be loaded",
+      "text": "Check your internet connection and try again. Nothing was changed.",
+      "tryAgain": "Try again"
+    },
+    "type": {
+      "permanent": "Permanent",
+      "temporary": "Temporary"
+    },
+    "register": {
+      "title": "Monthly register",
+      "subtitle": "One cell for every person and day. Open a cell to see the day.",
+      "month": "Month",
+      "correctedDot": "A black dot means the day was corrected.",
+      "scrollHint": "Scroll sideways inside this card to see all 31 days and the month totals. The name stays in place.",
+      "total": {
+        "present": "Present days",
+        "halfDay": "Half-days",
+        "shortHours": "Short-hours days",
+        "absent": "Absent",
+        "leave": "Leave paid / unpaid",
+        "weeklyOff": "Weekly offs",
+        "holiday": "Holidays",
+        "workedOffDay": "Worked on off days",
+        "incomplete": "Incomplete",
+        "workedHours": "Worked hours",
+        "overtimeHours": "Overtime hours",
+        "lateCount": "Late count"
+      },
+      "legend": "Legend",
+      "legendNone": "No result (future day or not employed)",
+      "none": "none",
+      "cellLabel": "{{name}}, day {{day}}, {{code}}{{corrected}}",
+      "correctedWord": ", corrected",
+      "empty": "No employees for this plant and month"
+    },
+    "code": {
+      "P": "Present",
+      "HD": "Half-day",
+      "SH": "Short hours",
+      "A": "Absent",
+      "INC": "Incomplete (OUT missing)",
+      "PL": "Paid leave",
+      "UL": "Unpaid leave",
+      "WO": "Weekly off",
+      "H": "Holiday",
+      "WO-W": "Worked on a weekly off",
+      "H-W": "Worked on a holiday"
     }
   },
   "muster": {
@@ -3371,6 +3512,75 @@
       "rollCall": "Roll call done by: ______  Time: ______  Assembly point: ______",
       "tick": "Tick",
       "printedBy": "Printed {{time}} by {{name}}"
+    }
+  },
+  "attendanceExceptions": {
+    "OUT_MISSING": "IN is there but the OUT is missing.",
+    "OUT_WITHOUT_IN": "An OUT without an IN.",
+    "EXTRA_PUNCHES": "Extra punches are not used for the hours.",
+    "PUNCHES_ON_LEAVE": "Punches on a day of leave.",
+    "SHIFT_CHANGE_SHORT_DAY": "The shift changed, so this day is short.",
+    "POSSIBLE_DOUBLE_ENTRY": "Possible double entry."
+  },
+  "corrections": {
+    "title": "Corrections",
+    "subtitleSuper": "Requests from the Plant Heads and the Corporate Head wait here for your decision.",
+    "subtitleHead": "Ask for a change to a day. The Super Admin decides.",
+    "tab": {
+      "pending": "Pending",
+      "decided": "Decided",
+      "approvals": "Punch approvals",
+      "mine": "My requests"
+    },
+    "kind": {
+      "add_punch": "Add a punch",
+      "add_in_out": "Add IN and OUT",
+      "ignore_punch": "Ignore a punch",
+      "set_status": "Set the status"
+    },
+    "state": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
+      "reversed": "Reversed"
+    },
+    "in": "IN",
+    "out": "OUT",
+    "status": {
+      "present": "Present",
+      "half_day": "Half-day",
+      "absent": "Absent"
+    },
+    "approve": "Approve",
+    "reject": "Reject",
+    "withdraw": "Withdraw",
+    "reverse": "Reverse",
+    "cancel": "Cancel",
+    "rejectReason": "Why is it rejected? (shown to the requester)",
+    "rejectConfirm": "Reject this request",
+    "reverseReason": "Why is it reversed?",
+    "reverseConfirm": "Reverse this correction",
+    "reasonRange": "3 to 300 characters",
+    "askedBy": "Asked by {{name}}",
+    "waiting": "Waiting for the Super Admin",
+    "decidedBy": "Decided by {{name}} on {{date}}",
+    "done": {
+      "approve": "Request approved",
+      "reject": "Request rejected",
+      "withdraw": "Request withdrawn",
+      "reverse": "Correction reversed"
+    },
+    "empty": {
+      "title": "No requests waiting",
+      "text": "When a correction is asked for, it appears here."
+    },
+    "approvals": {
+      "title": "Punch approvals",
+      "hidden": "Reasons are only for the Super Admin",
+      "approved": "Approved",
+      "notAccepted": "Not accepted",
+      "open": "Open Needs review"
     }
   }
 }

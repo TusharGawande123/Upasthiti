@@ -118,6 +118,27 @@ const adminPages: RouteObject[] = [
     ),
   },
   {
+    path: "/admin/attendance",
+    lazy: page(
+      () => import("../features/attendance/daily-page"),
+      (m) => m.DailyPage,
+    ),
+  },
+  {
+    path: "/admin/attendance/register",
+    lazy: page(
+      () => import("../features/attendance/register-page"),
+      (m) => m.RegisterPage,
+    ),
+  },
+  {
+    path: "/admin/corrections",
+    lazy: page(
+      () => import("../features/attendance/corrections-page"),
+      (m) => m.CorrectionsPage,
+    ),
+  },
+  {
     path: "/admin/review",
     lazy: page(
       () => import("../features/review/review-page"),
