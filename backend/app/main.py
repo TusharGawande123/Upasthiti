@@ -25,7 +25,9 @@ from app.modules.employees.search_router import router as search_router
 from app.modules.face.engine_provider import get_face_engine
 from app.modules.face.router import router as face_router
 from app.modules.health.router import router as health_router
+from app.modules.holidays.router import router as holidays_router
 from app.modules.kiosks.router import router as kiosks_router
+from app.modules.leave.router import router as leave_router
 from app.modules.notices.router import router as notices_router
 from app.modules.org.router import router as org_router
 from app.modules.printing.router import router as printing_router
@@ -104,6 +106,8 @@ def create_app() -> FastAPI:
     api_router.include_router(notices_router)
     api_router.include_router(approvals_router)
     api_router.include_router(search_router)
+    api_router.include_router(holidays_router)
+    api_router.include_router(leave_router)
     app.include_router(api_router)
     return app
 

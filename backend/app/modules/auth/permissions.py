@@ -57,6 +57,16 @@ class Capability(enum.Enum):
     # "Needs review" (M4): confirm or not-accept a flagged punch, approve a rejected one, the
     # review reasons, the daily digest and the repeat-pattern hints. Super Admin only.
     REVIEW_PUNCHES = "review_punches"
+    # M5 (spec M5 §7 rule 1). Attendance days, register, timeline, leave and holiday lists.
+    VIEW_ATTENDANCE = "view_attendance"
+    # Ask for a correction; the Super Admin corrects directly instead (DECIDE_CORRECTIONS).
+    REQUEST_CORRECTIONS = "request_corrections"
+    DECIDE_CORRECTIONS = "decide_corrections"  # approve, reject, direct correction, reverse
+    MANAGE_LEAVE = "manage_leave"
+    MANAGE_HOLIDAYS = "manage_holidays"
+    VIEW_REPORTS = "view_reports"  # Excel / PDF reports; Plant Head: own plant only
+    RECOMPUTE_ATTENDANCE = "recompute_attendance"
+    SHOW_DEMO_PLANTS = "show_demo_plants"  # include DEMO plants in screens and reports
 
 
 SUPER_ADMIN = Role.SUPER_ADMIN
@@ -138,6 +148,22 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
     Capability.MANAGE_FACE_ENROLMENT: {SUPER_ADMIN: Access.ALL},
     Capability.VIEW_FACE_SCORES: {SUPER_ADMIN: Access.ALL},
     Capability.REVIEW_PUNCHES: {SUPER_ADMIN: Access.ALL},
+    Capability.VIEW_ATTENDANCE: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,
+    },
+    Capability.REQUEST_CORRECTIONS: {CORPORATE_HEAD: Access.ALL, PLANT_HEAD: Access.OWN_PLANT},
+    Capability.DECIDE_CORRECTIONS: {SUPER_ADMIN: Access.ALL},
+    Capability.MANAGE_LEAVE: {SUPER_ADMIN: Access.ALL},
+    Capability.MANAGE_HOLIDAYS: {SUPER_ADMIN: Access.ALL},
+    Capability.VIEW_REPORTS: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,
+    },
+    Capability.RECOMPUTE_ATTENDANCE: {SUPER_ADMIN: Access.ALL},
+    Capability.SHOW_DEMO_PLANTS: {SUPER_ADMIN: Access.ALL},
 }
 
 

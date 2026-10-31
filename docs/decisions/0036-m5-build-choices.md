@@ -21,3 +21,11 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
 5. **Attendance start date:** saved and audited from slice 0; the "only later once attendance days exist"
    check (`ATTENDANCE_START_INVALID`) comes in slice 2 with the `attendance_days` table. It is not part of
    the readiness `ready` flag (that flag still means "the gate can take punches").
+6. **Whole minutes: every time is cut down to its minute first** (fixes M5 spec AC-6b; **to confirm with
+   Tushar**). Durations (worked, payable, worked for status, late, early exit, overtime) are measured between
+   times cut down to the whole minute; whether a time is inside grace is decided to the second. So "OUT
+   16:29:59" is 31 minutes early (as spec §7 rule 9 says) and "IN 09:30:01" is late 30 with worked for status
+   **450**, not 479 (AC-6b's 479 was a typo; E4 "IN 09:40 → 440" follows the same rule).
+7. **Leave reasons are shown only to the Super Admin.** Leave reasons can be personal (illness, family); the
+   Corporate Head and Plant Head see the leave itself, not its reason or cancel reason (DPDP data minimisation;
+   spec §8.3 left it open). Holiday names and cancel reasons are not personal and are shown to everyone.

@@ -52,8 +52,10 @@ def test_temporary_passwords_are_long_and_different() -> None:
 
 
 def test_super_admin_can_do_everything_except_own_requests_view() -> None:
+    # The Super Admin never asks: employee changes and corrections are made directly (M5 §7 rule 1).
+    never_for_super_admin = {Capability.VIEW_OWN_CHANGE_REQUESTS, Capability.REQUEST_CORRECTIONS}
     for capability in Capability:
-        expected = None if capability is Capability.VIEW_OWN_CHANGE_REQUESTS else Access.ALL
+        expected = None if capability in never_for_super_admin else Access.ALL
         assert PERMISSIONS[capability].get(Role.SUPER_ADMIN) == expected
 
 

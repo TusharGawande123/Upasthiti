@@ -9,7 +9,9 @@ from app.modules.auth import models as auth_models
 from app.modules.contractors import models as contractors_models
 from app.modules.employees import models as employees_models
 from app.modules.face import models as face_models
+from app.modules.holidays import models as holidays_models
 from app.modules.kiosks import models as kiosks_models
+from app.modules.leave import models as leave_models
 from app.modules.notices import models as notices_models
 from app.modules.org import models as org_models
 from app.modules.punches import models as punches_models
@@ -24,7 +26,9 @@ __all__ = [
     "contractors_models",
     "employees_models",
     "face_models",
+    "holidays_models",
     "kiosks_models",
+    "leave_models",
     "notices_models",
     "org_models",
     "punches_models",
