@@ -178,7 +178,11 @@ describe("plant detail", () => {
       await within(dialog).findByText("Night: starts 19:00, ends next day at 07:00 (12 h 00 min)."),
     ).toBeInTheDocument();
     // M5: grace 30 at both ends, the shift length is the full day, overtime from the shift end.
-    expect(within(dialog).getByText("On time until 19:30. Leave from 06:30.")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "On time until 19:30. Leave from 07:00: an OUT before that is an early exit.",
+      ),
+    ).toBeInTheDocument();
     expect(
       within(dialog).getByText("Full day: 12 h 00 min (the shift length)."),
     ).toBeInTheDocument();

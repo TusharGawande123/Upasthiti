@@ -278,7 +278,7 @@ describe("shifts", () => {
     await user.click(await screen.findByRole("tab", { name: "Shifts" }));
     await user.click(await screen.findByRole("button", { name: "Edit General" }));
     const dialog = await screen.findByRole("dialog");
-    fireEvent.change(within(dialog).getByLabelText("Grace (start and end)"), {
+    fireEvent.change(within(dialog).getByLabelText("Grace after the start"), {
       target: { value: "15" },
     });
     fireEvent.change(within(dialog).getByLabelText("These rules apply from"), {

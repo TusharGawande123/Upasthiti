@@ -1,12 +1,14 @@
 """Reads and changes settings. Other modules call get_int_setting() for rule values."""
 
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
+from app.core.time import today_ist
 from app.modules.audit.service import Actor, record_audit
 from app.modules.org.models import Shift
 from app.modules.org.shift_rules_service import shift_length_minutes
@@ -89,6 +91,12 @@ def update_settings(
             after={"key": key, "value": value},
             reason=reason,
         )
+        if key == "attendance_window_before_hours":
+            # Every window moves: the last 62 days of all plants are recomputed (rule 14).
+            from app.modules.attendance.service import mark_plant_days_stale
+
+            today = today_ist()
+            mark_plant_days_stale(session, None, today - timedelta(days=62), today)
         if key == "snapshot_retention_days" and isinstance(value, int):
             # Lowering the retention also shortens photos that are already stored (spec §7
             # rule 4). Raising it only affects new photos.

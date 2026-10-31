@@ -17,6 +17,7 @@ from app.core.errors import ApiError
 from app.core.pagination import PageParams, fetch_page
 from app.core.time import utc_now
 from app.modules.attendance.calendar import count_working_days
+from app.modules.attendance.service import mark_days_stale
 from app.modules.audit.service import record_audit
 from app.modules.auth.dependencies import CurrentUser
 from app.modules.auth.permissions import Access, Capability
@@ -68,6 +69,7 @@ def create_leave(
         reason=leave.reason,
         plant_id=employee.plant_id,
     )
+    mark_days_stale(session, [employee.id], leave.from_date, leave.to_date)
     session.commit()
     return leave
 
@@ -95,6 +97,7 @@ def cancel_leave(
         reason=leave.cancel_reason,
         plant_id=employee.plant_id if employee else None,
     )
+    mark_days_stale(session, [leave.employee_id], leave.from_date, leave.to_date)
     session.commit()
     return leave
 

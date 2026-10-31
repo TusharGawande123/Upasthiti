@@ -5,6 +5,9 @@
 3. Card-punch photos past their retention are deleted from storage (M2; the rows stay).
 4. Shift rule versions that start today are copied into the shift row (M5, decision 0036).
 A second job removes short-lived face data every 5 minutes (M3, app/modules/face/cleanup.py).
+M5 adds two scheduled jobs of their own, because they can be long and must not slow a cold
+start: the nightly close of the attendance days (00:05 IST, and once after start-up) and the
+5-minute catch-up that recomputes stale days (app/modules/attendance/service.py).
 
 Render's free backend sleeps, so the job also runs once at start-up and is safe to repeat:
 doing it twice changes nothing the second time.
@@ -20,6 +23,7 @@ from sqlalchemy.orm import Session
 from app.core.db import get_session_factory
 from app.core.storage import Storage, StorageError, get_storage
 from app.core.time import IST, today_ist, utc_now
+from app.modules.attendance.service import close_recent_days, recompute_stale
 from app.modules.auth.models import LoginSession
 from app.modules.employees.operations import apply_due_transfers
 from app.modules.face.cleanup import run_face_cleanup
@@ -96,12 +100,55 @@ def run_face_cleanup_logged() -> None:
         logger.exception("Face cleanup failed")
 
 
+def run_attendance_catch_up_logged() -> None:
+    """Recompute stale attendance days, batch after batch, until none are left (M5 rule 14)."""
+    try:
+        with get_session_factory()() as session:
+            total = 0
+            while True:
+                done = recompute_stale(session, utc_now())
+                total += done
+                if done == 0:
+                    break
+            if total:
+                logger.info("Attendance catch-up finished", extra={"fields": {"days": total}})
+    except Exception:
+        logger.exception("Attendance catch-up failed")
+
+
+def run_attendance_close_logged() -> None:
+    """Every active employee gets a stored day for each of the last days (M5 rule 14 c)."""
+    try:
+        with get_session_factory()() as session:
+            days = close_recent_days(session, utc_now())
+        logger.info("Attendance close finished", extra={"fields": {"days": days}})
+    except Exception:
+        logger.exception("Attendance close failed")
+
+
 def start_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone=IST)
     scheduler.add_job(run_daily_jobs_logged, "cron", hour=0, minute=5, id="daily")
     # Runs at once (catch up after a sleep), then every 5 minutes.
     scheduler.add_job(
         run_face_cleanup_logged, "interval", minutes=5, id="face-cleanup", next_run_time=utc_now()
+    )
+    # Also at once, then every 5 minutes. `next_run_time`, not a call at start-up, so a Render
+    # cold start does not wait for it.
+    scheduler.add_job(
+        run_attendance_catch_up_logged,
+        "interval",
+        minutes=5,
+        id="attendance-catch-up",
+        next_run_time=utc_now(),
+    )
+    scheduler.add_job(run_attendance_close_logged, "cron", hour=0, minute=5, id="attendance-close")
+    # Once after start-up too: days missed while the free server slept are closed.
+    scheduler.add_job(
+        run_attendance_close_logged,
+        "date",
+        run_date=utc_now() + timedelta(seconds=30),
+        id="attendance-close-at-start",
     )
     scheduler.start()
     return scheduler

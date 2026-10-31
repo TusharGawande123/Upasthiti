@@ -41,6 +41,7 @@ from app.core.time import to_ist
 from app.face.engine import FaceEngine
 from app.face.matcher import EMBEDDING_SIZE, Gallery
 from app.face.models import FaceModels
+from app.modules.attendance.service import mark_punch_stale
 from app.modules.employees.models import Employee, PunchMethod
 from app.modules.employees.rules import clean_code
 from app.modules.face.engine_provider import face_key
@@ -187,6 +188,7 @@ def record_offline_face_punch(
         if snapshot is not None:
             session.add(snapshot)
         note_last_punch(kiosk, punch)
+        mark_punch_stale(session, punch)
         session.commit()
     except IntegrityError:
         session.rollback()

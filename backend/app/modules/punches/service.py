@@ -34,6 +34,7 @@ from app.core.config import Settings, get_settings
 from app.core.crypto import decode_key, encrypt_snapshot
 from app.core.storage import Storage, StorageError, get_storage
 from app.core.time import utc_now
+from app.modules.attendance.service import mark_punch_stale
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees.models import Employee
 from app.modules.kiosks.location_check import Location, check_location
@@ -148,6 +149,7 @@ def record_kiosk_punch(
         if snapshot is not None:
             session.add(snapshot)
         note_last_punch(kiosk, punch)
+        mark_punch_stale(session, punch)
         session.commit()
     except IntegrityError:
         # Another request with the same id won the race: undo and give its answer.

@@ -126,6 +126,10 @@ def add_rule_version(
         after={"effective_from": effective_from, **rules.__dict__},
         plant_id=shift.plant_id,
     )
+    # Imported here: the attendance service itself reads shift rules from this module.
+    from app.modules.attendance.service import mark_plant_days_stale
+
+    mark_plant_days_stale(session, [shift.plant_id], effective_from, today_ist())
     return version
 
 
@@ -263,6 +267,9 @@ def set_weekly_off(
         after={"weekday": weekday, "effective_from": effective_from},
         plant_id=plant.id,
     )
+    from app.modules.attendance.service import mark_plant_days_stale
+
+    mark_plant_days_stale(session, [plant.id], effective_from, today_ist())
     session.commit()
     return weekly_off
 
@@ -275,12 +282,22 @@ def set_attendance_start_date(
 ) -> None:
     """Record the day the plant starts using the attendance devices (spec §7 rule 3).
 
-    The caller commits. Moving it earlier once attendance days exist is refused from slice 2 on,
-    when the `attendance_days` table exists.
+    The caller commits. Once attendance days exist it may only move later; days before the new
+    date become not employed.
     """
+    from app.modules.attendance.service import mark_plant_days_stale, plant_has_attendance_days
+
     if start_date == plant.attendance_start_date:
         return
     before = plant.attendance_start_date
+    moves_earlier = before is not None and start_date < before
+    if moves_earlier and plant_has_attendance_days(session, plant.id):
+        raise ApiError(
+            "ATTENDANCE_START_INVALID",
+            "Attendance days already exist: the start date can only move later.",
+            422,
+            {"current": str(before)},
+        )
     plant.attendance_start_date = start_date
     record_audit(
         session,
@@ -292,3 +309,5 @@ def set_attendance_start_date(
         after={"attendance_start_date": start_date},
         plant_id=plant.id,
     )
+    earliest = min(start_date, before) if before else start_date
+    mark_plant_days_stale(session, [plant.id], earliest, today_ist())

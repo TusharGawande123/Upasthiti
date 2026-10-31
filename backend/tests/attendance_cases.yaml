@@ -17,8 +17,18 @@
   events: [in 09:00, out 17:00]
   expect: {status: present, status_min: 480, worked_min: 480}
 - id: E3
-  events: [in 09:30:00, out 16:30:00]
-  expect: {status: present, status_min: 480, late_min: 0, early_exit_min: 0, worked_min: 420}
+  events: [in 09:30:00, out 17:00]
+  expect: {status: present, status_min: 480, late_min: 0, early_exit_min: 0, worked_min: 450}
+# No grace before the shift end (decision 0036 line 8): 16:30 is an early exit now.
+- id: E3-out-at-grace-edge-is-early
+  events: [in 09:00, out 16:30:00]
+  expect: {status: half_day, status_min: 450, early_exit_min: 30, worked_min: 450}
+- id: out-five-minutes-early
+  events: [in 09:00, out 16:55]
+  expect: {status: half_day, status_min: 475, early_exit_min: 5}
+- id: out-after-the-end-is-normal
+  events: [in 09:00, out 17:20]
+  expect: {status: present, status_min: 480, early_exit_min: 0, overtime_min: 0, worked_min: 500}
 - id: E4
   events: [in 09:40, out 17:00]
   expect: {status: half_day, status_min: 440, late_min: 40, worked_min: 440, overtime_min: 0}
@@ -123,8 +133,8 @@
   events: [in 09:30:01, out 17:00]
   expect: {status: half_day, late_min: 30, status_min: 450}
 - id: AC6b-out-one-second-early
-  events: [in 09:00, out 16:29:59]
-  expect: {status: half_day, early_exit_min: 31, status_min: 449}
+  events: [in 09:00, out 16:59:59]
+  expect: {status: half_day, early_exit_min: 1, status_min: 479}
 
 # AC-6: exact thresholds (grace 0 so that every minute counts).
 - id: AC6-480-present

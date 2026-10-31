@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 from app.core.errors import ApiError
 from app.core.time import today_ist
 from app.modules.approvals.models import ChangeRequest, RequestStatus
+from app.modules.attendance.service import mark_days_stale
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees.models import (
     Employee,
@@ -145,6 +146,7 @@ def create_employee(session: Session, context: AuditContext, values: EmployeeVal
         )
     )
     session.flush()
+    _mark_attendance_stale(session, employee, values.joined_on)
     _audit(session, context, employee, "employee.create", before=None)
     return employee
 
@@ -182,6 +184,10 @@ def update_employee(
     if new_values.shift_id != current.shift_id:
         _move_to_shift(session, employee, new_values.shift_id, shift_from or today_ist())
     session.flush()
+    changed_from = [today_ist(), current.joined_on, new_values.joined_on]
+    if new_values.shift_id != current.shift_id and shift_from:
+        changed_from.append(shift_from)
+    _mark_attendance_stale(session, employee, min(changed_from))
     _audit(session, context, employee, "employee.update", before=before, reason=reason)
     if leaves_face:
         # Face -> QR by an edit or an approved request: the template is deleted at once; the
@@ -253,6 +259,7 @@ def transfer_employee(
             department_id,
         )
     session.flush()
+    _mark_attendance_stale(session, employee, effective_from)
     _audit(
         session,
         context,
@@ -282,6 +289,7 @@ def apply_due_transfers(session: Session, today: date) -> int:
         employee.plant_id = history_row.plant_id
         employee.category_id = history_row.category_id
         employee.department_id = history_row.department_id
+        _mark_attendance_stale(session, employee, today)
     return len(due_rows)
 
 
@@ -302,6 +310,7 @@ def mark_left(
     _close_open_rows(session, employee.id, left_on)
     _fail_pending_requests(session, employee.id)
     session.flush()
+    _mark_attendance_stale(session, employee, left_on)
     _audit(session, context, employee, "employee.mark_left", before=before, reason=reason)
     # FR-10: the working QR card and the face data stop in the same transaction (AC-19).
     revoke_card_of_leaver(session, context.actor, employee)
@@ -347,6 +356,7 @@ def reactivate(
         )
     )
     session.flush()
+    _mark_attendance_stale(session, employee, joined_on)
     _audit(session, context, employee, "employee.reactivate", before=before, reason=reason)
     return employee
 
@@ -442,6 +452,12 @@ def _apply_bulk(
 
 
 # --- Helpers ---
+
+
+def _mark_attendance_stale(session: Session, employee: Employee, from_date: date) -> None:
+    """Joining, leaving, a shift or plant change: the stored days from that date on are
+    recomputed (M5 spec §7 rule 14). The caller's transaction commits it."""
+    mark_days_stale(session, [employee.id], from_date, today_ist())
 
 
 def _check_active(employee: Employee) -> None:

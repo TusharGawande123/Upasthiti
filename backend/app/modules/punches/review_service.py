@@ -20,6 +20,7 @@ from sqlalchemy.orm import Session, aliased
 
 from app.core.errors import ApiError
 from app.core.time import IST, to_ist, today_ist, utc_now
+from app.modules.attendance.service import mark_punch_stale
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees.models import Employee
 from app.modules.kiosks.location_check import geofence_at
@@ -637,6 +638,10 @@ def add_review(
         },
         reason=review.reason,
         plant_id=punch.plant_id,
+    )
+    # The review can change which day (and whose day) the punch counts for (M5 §7 rule 14).
+    mark_punch_stale(
+        session, punch, also_for=[review.employee_id, latest.employee_id if latest else None]
     )
     session.commit()
     return presenter.review_outputs(session, [review])[review.id]

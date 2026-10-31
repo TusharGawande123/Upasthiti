@@ -51,6 +51,7 @@ from app.face.engine import FaceEngine
 from app.face.images import ImageInvalidError, decode_jpeg
 from app.face.matcher import cosine
 from app.face.models import FaceModels
+from app.modules.attendance.service import mark_punch_stale
 from app.modules.employees.models import Employee, EmployeeStatus, PunchMethod
 from app.modules.employees.rules import clean_code
 from app.modules.face.engine_provider import face_key, ready_model_id, run_face_job
@@ -225,6 +226,7 @@ def record_face_punch(
         if pending is not None:
             session.add(pending)
         note_last_punch(kiosk, punch)
+        mark_punch_stale(session, punch)
         session.commit()
     except IntegrityError:
         session.rollback()
@@ -677,6 +679,7 @@ def _final_code_row(
         if pending is not None:
             session.delete(pending)
         note_last_punch(kiosk, punch)
+        mark_punch_stale(session, punch)
         session.commit()
     except IntegrityError:
         session.rollback()

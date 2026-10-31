@@ -29,3 +29,14 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
 7. **Leave reasons are shown only to the Super Admin.** Leave reasons can be personal (illness, family); the
    Corporate Head and Plant Head see the leave itself, not its reason or cancel reason (DPDP data minimisation;
    spec §8.3 left it open). Holiday names and cancel reasons are not personal and are shown to everyone.
+8. **Grace only at the start; no grace before the shift end** (Anuradha, 2026-10-31; **changes decision 0034
+   line 10 and spec §7 rule 9, to confirm with Tushar and the client**). IN until shift start + grace is on time.
+   An OUT before the shift end is an early exit and the day is Half-day (or Short hours) as the real minutes
+   say; the old "OUT from 16:30 is not early" is gone. The time after the end is a normal OUT window: nothing
+   is counted there (overtime still starts at the end and counts only from 2 h). `grace_min` is therefore
+   "grace after the start". Spec examples E3, AC-6b, the shift-form helper text and the poster ("leave from")
+   change with it.
+9. **Gate refuses an OUT before the shift end** (Anuradha, same chat; **to confirm with Tushar and the
+   client**; built in slice 3). The refusal shows the time left ("Your shift ends at 17:00, 32 minutes left").
+   The Super Admin can still approve such a punch in "Needs review" and corrections cover real early leaves.
+   Open: how this applies to temporary workers (spec example T2 leaves at 12:00) and to offline punches.

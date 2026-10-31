@@ -177,7 +177,7 @@ function ShiftDialog({ plantId, plantLabel, shift, onClose }: DialogProps) {
               <span>
                 {t("plants.shifts.graceRule", {
                   onTime: fromMinutes(toMinutes(start) + grace),
-                  leaveFrom: fromMinutes(toMinutes(end) - grace),
+                  end,
                 })}
               </span>
               <span>

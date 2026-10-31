@@ -9,6 +9,11 @@ turns them into the stored day. Tests call it directly with fixed dates (golden 
 Words used below (rule 9): S = shift start, E = shift end (next day for a night shift), g = grace,
 L = shift length (the full day), H = half-day limit, m = smallest overtime.
 
+Grace is at the START only (decision 0036 line 8, Anuradha 2026-10-31, to confirm with Tushar and
+the client): IN until S+g is on time; an OUT before E is an early exit, and there is no grace
+before the shift end. The time after E up to E+30 min is just a normal OUT: nothing is counted
+there (overtime starts at E and counts only from m).
+
 Minutes: every punch time is cut down to its whole minute before a duration is measured, so
 "OUT 16:29:59" leaves 31 minutes early and "IN 09:30:01" is 30 minutes late. Whether a time is
 inside grace is decided to the second (IN 09:30:00 is on time, 09:30:01 is late). Decision 0036.
@@ -219,12 +224,12 @@ def _measure_complete_day(
     grace = timedelta(minutes=rules.grace_min)
     if first_in > start + grace:
         result.late_min = _minutes_between(start, first_in)
-    if last_out < end - grace:
+    if last_out < end:
         result.early_exit_min = _minutes_between(last_out, end)
-    # Worked for status (rule 9): inside grace counts as the shift start / end; arriving early or
-    # staying late never adds to it.
+    # Worked for status (rule 9): an IN inside grace counts as the shift start; arriving early or
+    # staying late never adds to it. The end counts only when the person stays until E.
     status_from = start if first_in <= start + grace else first_in
-    status_to = end if last_out >= end - grace else last_out
+    status_to = end if last_out >= end else last_out
     status_min = max(0, min(_minutes_between(status_from, status_to), rules.length_min))
     result.status_min = status_min
     if status_min == rules.length_min:

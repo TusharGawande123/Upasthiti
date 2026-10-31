@@ -14,6 +14,7 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
 from app.core.time import today_ist, utc_now
+from app.modules.attendance.service import mark_plant_days_stale
 from app.modules.audit.service import record_audit
 from app.modules.auth.dependencies import CurrentUser
 from app.modules.auth.permissions import Capability
@@ -65,6 +66,7 @@ def create_holiday(
             "plant_ids": sorted(str(plant_id) for plant_id in plant_ids or []),
         },
     )
+    mark_plant_days_stale(session, plant_ids, holiday.date, holiday.date)
     session.commit()
     return holiday
 
@@ -90,6 +92,8 @@ def cancel_holiday(
         after={"cancelled": True, "date": holiday.date},
         reason=holiday.cancel_reason,
     )
+    listed = None if holiday.all_plants else _listed_plants(session, holiday.id)
+    mark_plant_days_stale(session, listed, holiday.date, holiday.date)
     session.commit()
     return holiday
 
@@ -164,6 +168,12 @@ def present(session: Session, holidays: Iterable[Holiday]) -> list[HolidayRespon
         )
         for holiday in holidays
     ]
+
+
+def _listed_plants(session: Session, holiday_id: uuid.UUID) -> list[uuid.UUID]:
+    return list(
+        session.scalars(select(HolidayPlant.plant_id).where(HolidayPlant.holiday_id == holiday_id))
+    )
 
 
 # --- Checks -------------------------------------------------------------------------------------
