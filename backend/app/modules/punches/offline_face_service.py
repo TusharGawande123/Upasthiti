@@ -50,6 +50,7 @@ from app.modules.face.template_service import active_template
 from app.modules.kiosks.location_check import Location
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches.answers import punch_answer
+from app.modules.punches.early_out import EARLY_OUT_OFFLINE, punch_early_out
 from app.modules.punches.face_service import (
     NO_PHOTO_CODES,
     decode_frame,
@@ -181,6 +182,16 @@ def record_offline_face_punch(
         kiosk, client_punch_id, client, context, candidate, decision, place, offline, model_id
     )
     punch.app_version = app_version
+    if (
+        punch_early_out(
+            session,
+            punch,
+            offline.punch_time,
+            window_before_hours=limits.attendance_window_before_hours,
+        )
+        is not None
+    ):
+        punch.early_out_mark = EARLY_OUT_OFFLINE  # no alert was possible offline (decision 0036)
     snapshot = _offline_photo(session, punch, frames, decision, now, storage)
     try:
         session.add(punch)

@@ -194,3 +194,19 @@ def fresh_rate_limits() -> Iterator[None]:
     challenge_limiter.reset()
     code_try_limiter.reset()
     yield
+
+
+@pytest.fixture
+def early_out_alert_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Switch the early-OUT alert off (M5 decision 0036 line 9) for a test about something else.
+
+    Without it, an OUT before the end of the plant's default shift 07:00-19:00 answers "needs
+    confirmation" at most times of the day, which has nothing to do with what such a test checks.
+    The alert has its own tests (test_m5_early_out.py), which do not use this fixture.
+    """
+    for module in (
+        "app.modules.punches.service",
+        "app.modules.punches.face_service",
+        "app.modules.punches.early_out",
+    ):
+        monkeypatch.setattr(f"{module}.early_out_info", lambda *args, **kwargs: None)

@@ -19,6 +19,10 @@ from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant
 from tests.test_punch_api import Worker, make_worker, send
 
+# This module tests the shift-closed rule, not the early-OUT alert (test_m5_early_out.py): its
+# OUTs at 12:00 or 17:00 would otherwise ask for a confirmation first.
+pytestmark = pytest.mark.usefixtures("early_out_alert_off")
+
 THURSDAY = date(2026, 10, 29)
 FRIDAY = THURSDAY + timedelta(days=1)
 

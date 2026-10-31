@@ -664,6 +664,7 @@
     "CORRECTION_ALREADY_REVERSED": "This correction was already reversed.",
     "RECOMPUTE_RANGE_TOO_LONG": "Choose at most 62 days.",
     "REPORT_RANGE_TOO_LONG": "Choose at most 92 days.",
+    "EARLY_OUT_TOKEN_INVALID": "The confirmation is too old. Please punch again.",
     "LEAVE_RANGE_INVALID": "Leave can be up to 92 days, inside the employment dates.",
     "LEAVE_OVERLAPS": "Leave already exists for part of these dates.",
     "LEAVE_NOT_ACTIVE": "This leave is already cancelled.",
@@ -3206,6 +3207,27 @@
       "rejected": "Rejected with an employee {{count}}",
       "toCheck": "Still to check {{count}}",
       "offline": "Attendance device offline in shifts: {{time}}"
+    }
+  },
+  "gate": {
+    "earlyOut": {
+      "tag": "Leaving early",
+      "half": {
+        "title": "Your half shift is not complete yet",
+        "consequence": "If you leave now, your day may count as short hours."
+      },
+      "full": {
+        "title": "Your full shift is not over yet",
+        "consequence": "If you leave now, your day may count as a half day."
+      },
+      "halfRemaining": "Half shift complete in",
+      "fullRemaining": "Full shift ends in",
+      "atTime": "at {{time}}",
+      "duration": "{{hours}} h {{minutes}} min",
+      "durationMinutes": "{{minutes}} min",
+      "cancelsIn": "Cancels in {{seconds}} s",
+      "agree": "Agree",
+      "cancel": "Cancel"
     }
   }
 }

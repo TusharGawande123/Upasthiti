@@ -234,3 +234,22 @@ a real phone at 360 px, report downloads opened in Excel.
 - Next: slice 3 (gate rule `shift_closed` + early-OUT confirmation), then slice 4. Before the PR, remember the
   frontend coverage floor (82 -> 84, spec §2 item 17).
 - Open questions: decision 0036 lines 1, 6, 8, 9 wait for Tushar's (and for 8 and 9 the client's) confirmation.
+- 2026-10-31 slice 3 (server): gate rule `shift_closed` (5a1dc1d); early-OUT alert, server side: migration 0023
+  (`punches.early_out_mark`; so notifications are now 0024, shift swaps 0025, M4b 0026-0027),
+  `punches/early_out.py` (time left, signed 90-second token), `early_out_service.py` and
+  `POST /punch/kiosk/early-out/confirm`; card, face and code paths hold the punch (nothing stored) and answer
+  `needs_confirmation`; offline punches get the mark `EARLY_OUT_OFFLINE` at sync. Tests:
+  `test_m5_shift_closed.py` (6), `test_m5_early_out.py` (8). Mockups approved (decision 0036 line 11).
+- Still open in slice 3: gate frontend (alert dialog from the approved mockups for card, face and code, the
+  SHIFT_CLOSED screen is texts only), face and code path tests, offline mark test, `min_minutes_before_out`
+  tests for all four paths (AC-40), min-OUT texts, punch log shows the mark.
+- 2026-10-31 slice 3 (gate frontend): `early-out-view.tsx` (approved mockups: amber before the half shift,
+  blue after it, Agree / Cancel / Escape / 20 s auto-cancel, no name), state `early-out` in
+  `attendance-machine.ts`, `sendEarlyOutConfirm` in `punch-client.ts`, Agree / Cancel in `use-attendance.ts`
+  (a card punch sends its photo again; the prompt carries the `client_punch_id` the token is bound to),
+  texts `gate.earlyOut.*`. Tests: `early-out.test.tsx` (11); backend `test_m5_early_out_paths.py` (5: face,
+  code, wrong device, offline mark). Gate bundle 62.3 kB of 63.5 kB.
+- Test note: tests of other things that punch OUT at any time of day use the fixture `early_out_alert_off`
+  (tests/conftest.py); the alert has its own tests.
+- Still open in slice 3: AC-40 tests of `min_minutes_before_out` for card, face, online and offline; the punch
+  log shows the mark (admin screens, slice 7); responsive / e2e check of the gate dialog (slice 8).

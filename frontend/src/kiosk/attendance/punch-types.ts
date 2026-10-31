@@ -6,9 +6,26 @@ import type { TimeAnchor } from "../offline/time-anchor";
 /** After a face punch the server may ask for the employee code (`needs_code`, spec M3 §4.5). */
 export type CodeEntry = { token: string; expires_at: string; tries_left: number };
 
+/**
+ * Before an OUT that is earlier than the shift end the server stores nothing and asks first
+ * (`needs_confirmation`, M5 decision 0036 line 9). Agree sends `token` back; Cancel sends nothing.
+ */
+export type EarlyOutPrompt = {
+  token: string;
+  /** The id the confirmation must use: the token belongs to it. */
+  client_punch_id: string;
+  expires_at: string;
+  /** "before_half": the half shift is not complete; "before_end": only the full shift is left. */
+  tier: "before_half" | "before_end";
+  half_remaining_min: number | null;
+  half_at: string | null;
+  full_remaining_min: number;
+  shift_end: string;
+};
+
 export type PunchAnswer = {
   punch_id: string | null;
-  decision: "accepted" | "rejected" | "self_test" | "needs_code";
+  decision: "accepted" | "rejected" | "self_test" | "needs_code" | "needs_confirmation";
   direction: "in" | "out" | null;
   employee: { display_name: string; employee_code: string } | null;
   server_time: string;
@@ -26,6 +43,8 @@ export type PunchAnswer = {
     location_check?: string | null;
   };
   code_entry?: CodeEntry | null;
+  /** Only with decision "needs_confirmation". */
+  early_out?: EarlyOutPrompt | null;
   /** M4: the server's time for the offline clock; also remembered by the signer. */
   time_anchor?: TimeAnchor | null;
 };

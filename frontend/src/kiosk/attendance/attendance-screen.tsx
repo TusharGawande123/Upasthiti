@@ -23,6 +23,7 @@ import { LocationChip, NeedsLocationScreen } from "../location/needs-location";
 import { QUEUE_ALMOST_FULL_SHARE, queueFillShare } from "../offline/offline-queue";
 import { useOfflineGate } from "../offline/use-offline";
 import { CodePad } from "./code-pad";
+import { EarlyOutView } from "./early-out-view";
 import { FaceView, showsFaceView } from "./face-view";
 import { buildHeartbeat, emptyFacts, type HeartbeatFacts } from "./heartbeat-report";
 import { type CodeEntry, canTryAgain, canTryAgainAfterFailure, type KioskMe } from "./punch-types";
@@ -296,6 +297,13 @@ export function AttendanceScreen({
           onSubmit={(code) => void attendance.face.submitCode(code)}
           onCancel={attendance.face.cancel}
           onExpired={attendance.face.expireCode}
+        />
+      ) : null}
+      {screen.name === "early-out" ? (
+        <EarlyOutView
+          prompt={screen.prompt}
+          onAgree={() => void attendance.earlyOut.agree()}
+          onCancel={attendance.earlyOut.cancel}
         />
       ) : null}
       {screen.name === "result" || screen.name === "failed" ? (

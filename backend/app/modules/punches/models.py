@@ -91,6 +91,11 @@ class Punch(IdMixin, Base):
         CheckConstraint(f"method IN ({METHOD_VALUES})", name="method_known"),
         CheckConstraint(f"decision IN ({DECISION_VALUES})", name="decision_known"),
         CheckConstraint("direction IS NULL OR direction IN ('in', 'out')", name="direction_known"),
+        CheckConstraint(
+            "early_out_mark IS NULL OR "
+            "early_out_mark IN ('EARLY_OUT_CONFIRMED', 'EARLY_OUT_OFFLINE')",
+            name="early_out_mark_known",
+        ),
         # A punch that counts (accepted or flagged) is an IN or an OUT.
         CheckConstraint(
             "decision NOT IN ('accepted', 'flagged') OR direction IS NOT NULL",
@@ -221,6 +226,10 @@ class Punch(IdMixin, Base):
     geofence_distance_m: Mapped[Decimal | None] = mapped_column(Numeric(7, 1))  # 0 inside
     # The other punch of a travel, two-devices or order flag.
     related_punch_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("punches.id"))
+    # M5 (decision 0036 lines 9, 13): an OUT before the shift end. Information only: the punch
+    # counts and is not flagged. EARLY_OUT_CONFIRMED = the person agreed at the gate;
+    # EARLY_OUT_OFFLINE = found at sync of an offline punch.
+    early_out_mark: Mapped[str | None] = mapped_column(String(20))
     # The time the punch counts at; the database computes it (server time, or the offline time).
     punch_time: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),

@@ -28,12 +28,13 @@ from app.modules.face.engine_provider import get_face_engine
 from app.modules.kiosks.dependencies import require_kiosk
 from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.time_anchor import anchor_for_request
-from app.modules.punches import face_service, service, sync_service
+from app.modules.punches import early_out_service, face_service, service, sync_service
 from app.modules.punches.photo_check import SessionMaker, check_face_in_photo, get_task_sessions
 from app.modules.punches.schemas import (
     ChallengeRequest,
     ChallengeResponse,
     CodeTryRequest,
+    EarlyOutConfirmRequest,
     KioskPunchRequest,
     KioskPunchResponse,
 )
@@ -109,6 +110,20 @@ def punch_challenge(
     answer = face_service.issue_challenge(session, kiosk, engine)
     answer.time_anchor = anchor_for_request(request, kiosk.id, utc_now())
     return answer
+
+
+@router.post("/punch/kiosk/early-out/confirm", response_model=KioskPunchResponse)
+def confirm_early_out(
+    body: EarlyOutConfirmRequest,
+    request: Request,
+    kiosk: KioskDevice = Depends(require_kiosk),
+    session: Session = Depends(get_session),
+) -> KioskPunchResponse:
+    """Agree at the early-OUT alert (decision 0036 line 9): the OUT is stored now."""
+    _limit(punch_limiter, kiosk, "Too many punches. Wait a moment.")
+    client = service.ClientInfo(ip=_ip_or_none(getattr(request.state, "client_ip", None)))
+    answer = early_out_service.confirm_early_out(session, kiosk, body, client)
+    return _with_anchor(answer, request, kiosk)
 
 
 @router.post("/punch/kiosk/code", response_model=KioskPunchResponse)

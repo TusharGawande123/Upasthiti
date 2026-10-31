@@ -8,6 +8,8 @@
 //   Face punch (spec M3 §4.2 to §4.6), started by the "Punch with face" button:
 //   scanning -> face-guide -> face-challenge -> checking -> result -> scanning
 //   checking -> code-entry (the server was not sure) -> checking -> result
+//   Early OUT (M5, decision 0036 line 9): checking -> early-out (the alert: Agree / Cancel) ->
+//   checking -> result on Agree, or -> scanning on Cancel or after 20 seconds
 //   (a result that allows a retry goes back to face-guide when the person taps "Try again")
 //   Offline face punch (M4 spec §4.4): the code pad comes FIRST (no server to ask), then the face:
 //   scanning -> code-entry (local) -> face-guide -> face-challenge -> failed "OFFLINE_SAVED"
@@ -21,6 +23,7 @@ import {
   type CodeEntry,
   canTryAgain,
   canTryAgainAfterFailure,
+  type EarlyOutPrompt,
   type PunchAnswer,
   resultKind,
 } from "./punch-types";
@@ -36,6 +39,7 @@ export type AttendanceScreen =
   | { name: "code-entry"; entry: CodeEntry; wrong: boolean }
   // `entry` is kept while a typed code is checked, so the code pad stays on the screen.
   | { name: "checking"; slow: boolean; via?: "face" | "code"; entry?: CodeEntry }
+  | { name: "early-out"; prompt: EarlyOutPrompt; via?: "face" | "code" }
   | { name: "result"; answer: PunchAnswer; via?: "face" | "code" }
   | { name: "failed"; code: string };
 
@@ -59,6 +63,8 @@ export type AttendanceEvent =
   | { type: "face-cancel" }
   | { type: "code-sent" }
   | { type: "slow" }
+  | { type: "early-out-agree" }
+  | { type: "early-out-cancel" }
   | { type: "answered"; answer: PunchAnswer }
   | { type: "failed"; code: string }
   | { type: "screen-over" };
@@ -133,8 +139,21 @@ export function nextScreen(screen: AttendanceScreen, event: AttendanceEvent): At
         : screen;
     case "slow":
       return screen.name === "checking" ? { ...screen, slow: true } : screen;
+    case "early-out-agree":
+      return screen.name === "early-out"
+        ? { name: "checking", slow: false, ...(screen.via ? { via: screen.via } : {}) }
+        : screen;
+    case "early-out-cancel":
+      return screen.name === "early-out" ? { name: "scanning", notACard: false } : screen;
     case "answered":
       if (screen.name !== "checking") return screen;
+      if (event.answer.decision === "needs_confirmation" && event.answer.early_out) {
+        return {
+          name: "early-out",
+          prompt: event.answer.early_out,
+          ...(screen.via ? { via: screen.via } : {}),
+        };
+      }
       if (event.answer.decision === "needs_code" && event.answer.code_entry) {
         return {
           name: "code-entry",

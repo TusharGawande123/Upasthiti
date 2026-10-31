@@ -56,6 +56,31 @@ class CodeEntry(BaseModel):
     tries_left: int
 
 
+class EarlyOutPrompt(BaseModel):
+    """The warning the gate shows before an OUT that is earlier than the shift end (decision
+    0036 line 9). Nothing has been stored yet: Agree sends `token` to the confirm endpoint."""
+
+    token: str
+    client_punch_id: uuid.UUID  # the id the confirmation must use (the token is bound to it)
+    expires_at: datetime
+    tier: Literal["before_half", "before_end"]
+    half_remaining_min: int | None  # only before the half shift is complete
+    half_at: datetime | None
+    full_remaining_min: int
+    shift_end: datetime
+
+
+class EarlyOutConfirmRequest(BaseModel):
+    """Agree at the early-OUT alert. A card punch sends its photo again (it was never stored)."""
+
+    client_punch_id: uuid.UUID
+    token: str = Field(min_length=20, max_length=2000)
+    snapshot_jpeg: str | None = Field(default=None, max_length=6 * MAX_BODY_BYTES)
+    device_time: datetime | None = None
+    location: LocationReport | None = None
+    app_version: str | None = Field(default=None, max_length=40)
+
+
 class PunchEmployee(BaseModel):
     display_name: str
     employee_code: str
@@ -74,7 +99,7 @@ class PunchDetails(BaseModel):
 
 class KioskPunchResponse(BaseModel):
     punch_id: uuid.UUID | None  # none for a self test: nothing is recorded
-    decision: Literal["accepted", "rejected", "self_test", "needs_code"]
+    decision: Literal["accepted", "rejected", "self_test", "needs_code", "needs_confirmation"]
     direction: Literal["in", "out"] | None
     employee: PunchEmployee | None
     server_time: datetime
@@ -83,6 +108,7 @@ class KioskPunchResponse(BaseModel):
     voice_key: str
     details: PunchDetails
     code_entry: CodeEntry | None = None  # only with decision "needs_code"
+    early_out: EarlyOutPrompt | None = None  # only with decision "needs_confirmation"
     time_anchor: TimeAnchor | None = None  # M4 §7 rule 8: set by the route
 
 

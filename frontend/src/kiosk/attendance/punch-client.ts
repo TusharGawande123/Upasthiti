@@ -11,7 +11,7 @@
 import { ApiError } from "@/lib/api-client";
 import type { LocationReport } from "../location/gate-location";
 import { signedRequest } from "../signer";
-import type { PunchAnswer } from "./punch-types";
+import type { EarlyOutPrompt, PunchAnswer } from "./punch-types";
 
 const APP_VERSION = import.meta.env.VITE_APP_VERSION ?? "dev";
 export const SLOW_AFTER_MS = 5_000;
@@ -141,6 +141,30 @@ async function deliver<Answer>(
     clearTimeout(slowTimer);
     clearTimeout(giveUpTimer);
   }
+}
+
+/** Agree at the early-OUT alert: the server stores the OUT now (decision 0036 line 9). */
+export async function sendEarlyOutConfirm(
+  input: {
+    prompt: EarlyOutPrompt;
+    /** A card punch sends its photo again; the first request stored nothing. */
+    snapshotBase64: string | null;
+    location: LocationReport | null;
+  },
+  options: { onSlow?: () => void } = {},
+): Promise<PunchOutcome> {
+  const body = {
+    client_punch_id: input.prompt.client_punch_id,
+    token: input.prompt.token,
+    snapshot_jpeg: input.snapshotBase64,
+    device_time: new Date().toISOString(),
+    app_version: APP_VERSION,
+    location: input.location,
+  };
+  return deliver(
+    () => signedRequest<PunchAnswer>("POST", "/punch/kiosk/early-out/confirm", body),
+    options,
+  );
 }
 
 export async function sendPunch(

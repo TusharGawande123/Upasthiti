@@ -33,6 +33,9 @@ from tests.image_helpers import make_jpeg
 from tests.kiosk_helpers import GATE_LOCATION, Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant, temporary_body
 
+# These tests are about something else than the early-OUT alert (M5).
+pytestmark = pytest.mark.usefixtures("early_out_alert_off")
+
 PUNCH = "/api/v1/punch/kiosk"
 REPORT = "/api/v1/kiosk/report"
 

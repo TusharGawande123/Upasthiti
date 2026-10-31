@@ -61,3 +61,9 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
 12. **Gate rule `shift_closed` built** (spec §7 rule 24): after `check_in_out` for card, face, code and offline
     chains; the Super Admin's review suggests OUT and lists the closing OUT (new relation `closing_out`).
     `punches.related_punch_id` of a refused punch is that OUT.
+13. **Offline early OUT: no dialog, a mark afterwards** (Anuradha, 2026-10-31; replaces the "offline too" part
+    of line 9; **to confirm with Tushar**). An attendance device without internet cannot know who the person is,
+    which shift they work or whether the punch is an IN or an OUT: the server decides all three at sync (M4).
+    So no remaining time can be shown offline. At sync, an OUT before the shift end is stored as a normal
+    accepted punch with the mark `EARLY_OUT_OFFLINE` (not a flag: it counts at once), the day becomes
+    Half-day or Short hours by the real minutes, and the Super Admin sees the mark in the punch log.

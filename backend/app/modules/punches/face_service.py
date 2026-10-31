@@ -61,7 +61,14 @@ from app.modules.face.template_service import active_template
 from app.modules.kiosks.location_check import Location
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches.answers import ALREADY_PUNCHED_CODES, punch_answer
+from app.modules.punches.early_out import (
+    early_out_info,
+    face_hold,
+    prompt_for,
+    punch_early_out,
+)
 from app.modules.punches.models import (
+    Direction,
     FacePendingMatch,
     MatchMode,
     Punch,
@@ -210,11 +217,18 @@ def record_face_punch(
         result, context = run_face_job(engine, job)
         if result.outcome is Outcome.ALLOW and context.employee is not None:
             place.employee = context.employee
-            decision = combine(place_decision, _after_identity(session, place))
+            decision = combine(place_decision, after_identity(session, place))
         else:
             decision = rejected_after(place_decision, result.reason_code or "INTERNAL_ERROR")
 
     punch = _face_punch_row(kiosk, request, client, context, decision, place, now, model_id)
+    early_out = punch_early_out(
+        session, punch, now, window_before_hours=limits.attendance_window_before_hours
+    )
+    if early_out is not None:
+        # Nothing is stored; the commit keeps the challenge used. Agree sends the token back.
+        session.commit()
+        return prompt_for(kiosk, now, early_out, face_hold(punch), request.client_punch_id)
     first_code = decision.reason_codes[0] if decision.outcome is Outcome.REJECT else None
     snapshot = _face_snapshot(session, punch, frames, first_code, now, storage)
     pending, token = _pending_match(session, kiosk, punch, context, first_code, now, model_id, key)
@@ -277,7 +291,7 @@ def place_context(
     )
 
 
-def _after_identity(session: Session, context: PunchContext) -> EngineDecision:
+def after_identity(session: Session, context: PunchContext) -> EngineDecision:
     """IN/OUT and the flag rules, with the employee's row locked (two gates at once)."""
     employee = context.employee
     if employee is None:
@@ -533,7 +547,7 @@ def record_code_try(
             )
         place = _origin_place(session, kiosk, now, limits, pending)
         place.employee = claimed
-        decision = combine(_origin_flags(session, pending), _after_identity(session, place))
+        decision = combine(_origin_flags(session, pending), after_identity(session, place))
         return _final_code_row(
             session,
             kiosk,
@@ -649,6 +663,30 @@ def _final_code_row(
         place = _origin_place(session, kiosk, now, limits, pending)
     counts = decision.outcome is Outcome.ALLOW
     origin = session.get(Punch, pending.origin_punch_id) if pending else None
+    counted_out = counts and decision.direction == Direction.OUT and employee is not None
+    early_out = (
+        early_out_info(
+            session,
+            employee.id,  # type: ignore[union-attr]
+            now,
+            window_before_hours=limits.attendance_window_before_hours,
+        )
+        if counted_out
+        else None
+    )
+    if early_out is not None and pending is not None:
+        hold = {
+            "method": PunchMethod.FACE.value,
+            "employee_id": str(employee.id),  # type: ignore[union-attr]
+            "match_mode": MatchMode.CODE.value,
+            "match_score": None if score is None else str(score_decimal(score)),
+            "face_model_id": pending.model_id,
+            "follows_punch_id": str(pending.origin_punch_id),
+            "claimed_employee_id": str(claimed.id) if claimed else None,
+        }
+        session.delete(pending)  # the person was found; the alert continues without the pad
+        session.commit()
+        return prompt_for(kiosk, now, early_out, hold, request.client_punch_id)
     punch = Punch(
         id=uuid.uuid4(),
         client_punch_id=request.client_punch_id,

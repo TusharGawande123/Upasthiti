@@ -19,7 +19,7 @@ import {
   stopCamera,
 } from "./camera";
 import { loadFacing, saveFacing } from "./camera-preference";
-import { type PunchOutcome, sendPunch } from "./punch-client";
+import { type PunchOutcome, sendEarlyOutConfirm, sendPunch } from "./punch-client";
 import type { KioskScreenSettings } from "./punch-types";
 import { createQrDetector, isUpasthitiCard, type QrDetector, SameCardFilter } from "./qr-reader";
 import { takeSnapshot } from "./snapshot";
@@ -73,6 +73,8 @@ export function useAttendance({
   const streamRef = useRef<MediaStream | null>(null);
   const activeFacing = useRef<Facing>(scanFacing);
   const sending = useRef(false);
+  // The last card photo: an early-OUT "Agree" sends it again (the first request stored nothing).
+  const lastPhoto = useRef<string | null>(null);
   const detectorRef = useRef<QrDetector | null>(null);
   const sameCard = useRef(new SameCardFilter());
   // Kept in a ref: a new function from the parent must never restart a punch in progress.
@@ -260,6 +262,7 @@ export function useAttendance({
       const video = videoRef.current;
       // Without a photo the server answers SNAPSHOT_MISSING, which is the honest result.
       const snapshotBase64 = video ? await takeSnapshot(video).catch(() => "") : "";
+      lastPhoto.current = snapshotBase64;
       dispatch({ type: "photo-taken" });
       const clientPunchId = crypto.randomUUID();
       const location = handlers.current.location.report();
@@ -279,6 +282,23 @@ export function useAttendance({
       sending.current = false;
     }
   }, [payload, cameraReady, finishPunch, saveCardPunch]);
+
+  // Agree at the early-OUT alert (decision 0036 line 9): the server stores the OUT now. A card
+  // punch sends its photo again (the first request stored nothing); a face punch has none.
+  const agreeEarlyOut = useCallback(async () => {
+    if (screen.name !== "early-out") return;
+    const photo = screen.via === undefined ? lastPhoto.current : null;
+    const prompt = screen.prompt;
+    dispatch({ type: "early-out-agree" });
+    const outcome = await sendEarlyOutConfirm(
+      { prompt, snapshotBase64: photo, location: handlers.current.location.report() },
+      { onSlow: () => dispatch({ type: "slow" }) },
+    );
+    finishPunch(outcome);
+  }, [screen, finishPunch]);
+
+  // Cancel, Escape or 20 seconds without an answer: nothing was stored, so nothing is sent.
+  const cancelEarlyOut = useCallback(() => dispatch({ type: "early-out-cancel" }), []);
 
   const cancelPhoto = useCallback(() => {
     if (payload === null || sending.current) return;
@@ -377,6 +397,7 @@ export function useAttendance({
     lowLight,
     holdSeconds,
     face: { ...facePunch, expireCode },
+    earlyOut: { agree: agreeEarlyOut, cancel: cancelEarlyOut },
     startCameraAfterTap,
     retryCamera,
     // For the "get ready" screen.
