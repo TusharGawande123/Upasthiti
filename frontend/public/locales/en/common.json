@@ -2082,6 +2082,10 @@
       "description": "The person becomes active again from the joining date you choose.",
       "confirm": "Reactivate",
       "done": "Reactivated."
+    },
+    "tabs": {
+      "details": "Details",
+      "attendance": "Attendance"
     }
   },
   "contractors": {
@@ -3333,7 +3337,11 @@
       "overtimeNotReached": "{{duration}} after {{end}} did not reach the overtime minimum of {{minimum}}.",
       "noOvertime": "No overtime: you left at or before the shift end ({{end}}).",
       "extraPunches": "{{count}} extra punch(es) are not used for the hours.",
-      "corrected": "This day was corrected by an admin."
+      "corrected": "This day was corrected by an admin.",
+      "title": "Explain this day",
+      "source": "Worked out by the server, the same way as the list and the register.",
+      "paid": "paid",
+      "unpaid": "unpaid"
     },
     "title": "Attendance",
     "subtitle": "One row for every person and day, worked out by the server from the punches.",
@@ -3472,6 +3480,88 @@
       "H": "Holiday",
       "WO-W": "Worked on a weekly off",
       "H-W": "Worked on a holiday"
+    },
+    "day": {
+      "title": "Day",
+      "at": "{{time}} on {{date}}",
+      "rulesLine": "{{shift}} {{start}}-{{end}} · full day {{full}}",
+      "toleranceLine": "On time until {{onTime}}. Leave from {{leave}}.",
+      "halfDayLine": "Half-day from {{half}}. Overtime from {{end}}, only when it is {{minimum}} or more.",
+      "window": "Punches from {{from}} to {{to}} count for this day.",
+      "pendingCount": "{{count}} correction pending",
+      "openPunchLog": "Open in punch log",
+      "correct": "Correct",
+      "ask": "Ask for a correction",
+      "roleSuper": "You are the Super Admin: you can correct this day directly.",
+      "roleHead": "You can ask for a correction. The Super Admin decides.",
+      "footSuper": "You correct directly. Every change is saved in the audit log.",
+      "footHead": "The Super Admin decides. Nothing changes until it is approved.",
+      "result": {
+        "in": "IN (first)",
+        "out": "OUT (last)",
+        "worked": "Worked",
+        "status": "Worked for the status",
+        "payable": "Payable",
+        "late": "Late",
+        "earlyExit": "Early exit",
+        "overtime": "Overtime"
+      }
+    },
+    "timeline": {
+      "title": "Timeline",
+      "count": "{{count}} items",
+      "counts": "Counts",
+      "notCounted": "Does not count",
+      "firstIn": "First IN: starts the hours",
+      "lastOut": "Last OUT: ends the hours",
+      "extra": "Extra punch: not used for the hours",
+      "notUsed": "Not used for this day",
+      "flagged": "Flagged, not checked yet",
+      "offline": "Saved offline",
+      "carryOver": "Punch of the next day's window, counted here",
+      "review": "Review",
+      "reasonSuperOnly": "Reason (Super Admin only)",
+      "reasonHidden": "Reason: only the Super Admin can see it"
+    },
+    "employee": {
+      "last12": "Last 12 months",
+      "last12Hint": "Each square has its register code, so colour is never the only cue.",
+      "presentCount": "{{count}} present",
+      "openDayHint": "Open a day to see its timeline.",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "monthTotals": "Month totals",
+      "corrections": "Corrections and leave",
+      "noneThisMonth": "No leave and no corrections this month.",
+      "weekday": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      }
+    },
+    "swap": {
+      "cardTitle": "One-day shift swap",
+      "superOnly": "Super Admin only",
+      "title": "Work another shift on one day",
+      "button": "Work another shift on one day",
+      "explain": "On that day the person follows the rules of the shift you choose.",
+      "date": "Date (today or later)",
+      "shift": "Shift (same plant)",
+      "chooseShift": "Choose a shift",
+      "reason": "Reason",
+      "save": "Save the swap",
+      "created": "Shift swap saved",
+      "line": "Swapped to {{shift}} on {{date}}",
+      "by": "By {{name}}. Reason: {{reason}}",
+      "none": "No shift swap planned.",
+      "cancel": "Cancel the swap",
+      "cancelReason": "Why is the swap cancelled?",
+      "cancelConfirm": "Cancel this swap",
+      "cancelled": "Shift swap cancelled"
     }
   },
   "muster": {
@@ -3536,7 +3626,12 @@
       "add_punch": "Add a punch",
       "add_in_out": "Add IN and OUT",
       "ignore_punch": "Ignore a punch",
-      "set_status": "Set the status"
+      "set_status": "Set the status",
+      "add_punchHint": "One missing IN or OUT",
+      "add_in_outHint": "Both are missing, for example when the attendance device was off",
+      "ignore_punchHint": "Hide a wrong punch",
+      "set_statusHint": "Present, Half-day or Absent",
+      "ignoreDisabled": "This day has no punches to ignore."
     },
     "state": {
       "pending": "Pending",
@@ -3581,6 +3676,78 @@
       "approved": "Approved",
       "notAccepted": "Not accepted",
       "open": "Open Needs review"
+    },
+    "before": "Before",
+    "after": "After",
+    "serverResult": "Day result worked out by the server",
+    "dialog": {
+      "titleSuper": "Correct this day",
+      "titleHead": "Ask for a correction",
+      "what": "What do you want to do?",
+      "direction": "Which punch is missing?",
+      "whichPunch": "Which punch should be ignored?",
+      "statusLabel": "Set the day to",
+      "dateAndTime": "date and time",
+      "nightHint": "For a night shift the OUT can be on the next day.",
+      "reason": "Reason",
+      "preview": "Preview of the day",
+      "previewWait": "Fill in the form and the day is shown here before you save.",
+      "previewLoading": "The server is working out the day...",
+      "infoSuper": "You are the Super Admin: this takes effect at once and is saved in the audit log.",
+      "infoHead": "The Super Admin decides. Nothing changes until it is approved.",
+      "save": "Save the correction",
+      "send": "Send the request",
+      "savedNow": "Correction saved",
+      "sent": "Request sent to the Super Admin"
+    },
+    "skipReason": {
+      "CORRECTION_NEAR_PUNCH": "A counted punch is too close to this time",
+      "ON_LEAVE": "On paid leave that day"
+    },
+    "bulk": {
+      "button": "Correct many people",
+      "title": "Correct many people",
+      "finished": "Finished.",
+      "stepOf": "Step {{step}} of 5",
+      "step": {
+        "plantDay": "Plant and day",
+        "what": "What to add",
+        "people": "People",
+        "reason": "Reason",
+        "preview": "Preview"
+      },
+      "choosePlant": "Choose a plant",
+      "option": {
+        "in_out": "Add IN and OUT",
+        "in": "Add IN only",
+        "out": "Add OUT only"
+      },
+      "what": {
+        "in_out": "Add IN {{inTime}} and OUT {{outTime}}",
+        "in": "Add IN {{inTime}}",
+        "out": "Add OUT {{outTime}}"
+      },
+      "inTime": "IN time",
+      "outTime": "OUT: date and time",
+      "outDate": "OUT date",
+      "chooseAbsent": "Choose everyone marked Absent that day",
+      "chosenCount": "{{count}} chosen, up to {{max}} allowed",
+      "limitReached": "You have chosen {{max}} people, the most one batch can hold.",
+      "back": "Back",
+      "next": "Next",
+      "summary": "Plant {{plant}}, {{date}}. {{what}}. Reason: \"{{reason}}\"",
+      "willChange": "people will change",
+      "willSkip": "will be skipped",
+      "chosen": "chosen, up to 200 allowed",
+      "skipped": "Skipped",
+      "skippedCount": "{{count}} people were skipped.",
+      "createSuper": "Create {{count}} corrections and approve all",
+      "sendHead": "Send {{count}} requests",
+      "doneSuper": "{{count}} corrections made and approved",
+      "doneHead": "{{count}} requests sent to the Super Admin",
+      "reverseBatch": "Reverse the whole batch",
+      "reverseWarn": "Reversing the batch undoes all {{count}} corrections at once. You must give a reason, and it is saved in the audit log.",
+      "reversed": "The batch was reversed: {{count}} corrections undone."
     }
   }
 }

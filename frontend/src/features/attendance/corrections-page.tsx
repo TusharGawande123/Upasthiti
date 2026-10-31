@@ -1,7 +1,7 @@
 // Corrections (/admin/corrections, spec M5 §4.7, design gate B screen 5): the requests to change an
 // attendance day. Tabs Pending, Decided, Punch approvals and (heads only) My requests. The Super
 // Admin approves, rejects (with a reason) and reverses; a requester withdraws a pending request.
-// Making a new correction and the bulk wizard are built in M5 slice 7 group C, not here.
+// "Correct many people" opens the bulk wizard (F-59); one day is corrected from the day drawer.
 import {
   Ban,
   Check,
@@ -12,9 +12,10 @@ import {
   Pencil,
   Undo,
   Undo2,
+  Users,
   X,
 } from "lucide-react";
-import { useState } from "react";
+import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { toast } from "sonner";
@@ -39,6 +40,11 @@ import {
   useCorrections,
   usePunchApprovals,
 } from "./use-attendance-admin";
+
+// The wizard is loaded only when it is opened.
+const BulkCorrectionWizard = lazy(() =>
+  import("./bulk-correction-wizard").then((module) => ({ default: module.BulkCorrectionWizard })),
+);
 
 const PAGE_SIZE = 25;
 const REASON_MIN = 3;
@@ -486,6 +492,7 @@ export function CorrectionsPage() {
   const isHead = role === "corporate_head" || role === "plant_head";
   const myId = me.data?.id;
   const { plantId } = usePlantFilter();
+  const [wizardOpen, setWizardOpen] = useState(false);
   // Only the number for the tab: the same first page the Pending tab shows.
   const pendingCount = useCorrections({
     state: "pending",
@@ -496,12 +503,23 @@ export function CorrectionsPage() {
 
   return (
     <div className="mx-auto max-w-4xl space-y-4">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">{t("corrections.title")}</h1>
-        <p className="text-muted-foreground">
-          {isSuperAdmin ? t("corrections.subtitleSuper") : t("corrections.subtitleHead")}
-        </p>
+      <header className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight">{t("corrections.title")}</h1>
+          <p className="text-muted-foreground">
+            {isSuperAdmin ? t("corrections.subtitleSuper") : t("corrections.subtitleHead")}
+          </p>
+        </div>
+        <Button onClick={() => setWizardOpen(true)}>
+          <Users aria-hidden />
+          {t("corrections.bulk.button")}
+        </Button>
       </header>
+      {wizardOpen ? (
+        <Suspense fallback={null}>
+          <BulkCorrectionWizard isSuperAdmin={isSuperAdmin} onClose={() => setWizardOpen(false)} />
+        </Suspense>
+      ) : null}
 
       <Tabs defaultValue="pending">
         <TabsList>
