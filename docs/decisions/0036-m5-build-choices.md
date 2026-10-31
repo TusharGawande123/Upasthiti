@@ -55,3 +55,9 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
 10. **Early IN: no gate limit for now** (asked 2026-10-31): the attendance day window opens
     `attendance_window_before_hours` (4 h) before the shift; an earlier IN counts for the day before.
     Whether the gate should also refuse a very early IN is open (asked of Anuradha).
+11. **Early-OUT dialog design approved** (Anuradha, 2026-10-31, images at 360 / 768 / 1280 px):
+    docs/design-refs/m5/gate-early-out/ (two variants: before the half shift, amber; after it, blue). Agree
+    records the OUT, Cancel or 20 seconds of silence records nothing, no name on the screen, text at least 24 px.
+12. **Gate rule `shift_closed` built** (spec §7 rule 24): after `check_in_out` for card, face, code and offline
+    chains; the Super Admin's review suggests OUT and lists the closing OUT (new relation `closing_out`).
+    `punches.related_punch_id` of a refused punch is that OUT.
