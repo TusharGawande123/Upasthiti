@@ -214,5 +214,15 @@ a real phone at 360 px, report downloads opened in Excel.
 - Order change inside the plan (no spec change): slice 1 step 3 (leave, holidays), then slice 2 step 5
   (`counted_for_employees`, `day_window`, `compute_day`), then step 4 (corrections: their checks and preview need
   the day window and the calculation), then step 6. Migration numbers stay 0020, 0021, 0022.
-- Next: slice 1, step 3 (migration 0020 holidays + leave).
+- 2026-10-31 later: leave + holidays (0020), counting bulk, `compute_day` + golden table, `day_window`, M5
+  settings, corrections tables (0021), `attendance_days` (0022) with stale marking at every commit point
+  (punch paths, reviews, employee operations, leave, holiday, weekly off, shift rules, window setting) and the
+  catch-up / nightly-close jobs are built and pushed (aa5b4af). Decision 0036 lines 6-10 added; **lines 8
+  (grace only at the start) and 9 (early OUT: warning + Agree / Cancel) change the approved spec: to confirm
+  with Tushar and the client.**
+- Still open in slice 1-2: corrections service + API (step 4), attendance read endpoints (daily, register,
+  employee, day, undecided, recompute), `GET /punch-approvals`, a test that lists the commit points, full suite.
+- Slice 3 now also contains the early-OUT confirmation (decision 0036 line 9): gate dialog (mockup image
+  first), server confirmation mark, offline path.
+- Next: corrections service (step 4).
 - Open questions: none (decision 0036 line 1 waits for Tushar's confirmation).

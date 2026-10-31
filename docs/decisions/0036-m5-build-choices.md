@@ -36,7 +36,22 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
    is counted there (overtime still starts at the end and counts only from 2 h). `grace_min` is therefore
    "grace after the start". Spec examples E3, AC-6b, the shift-form helper text and the poster ("leave from")
    change with it.
-9. **Gate refuses an OUT before the shift end** (Anuradha, same chat; **to confirm with Tushar and the
-   client**; built in slice 3). The refusal shows the time left ("Your shift ends at 17:00, 32 minutes left").
-   The Super Admin can still approve such a punch in "Needs review" and corrections cover real early leaves.
-   Open: how this applies to temporary workers (spec example T2 leaves at 12:00) and to offline punches.
+9. **Early OUT: warning with remaining time, then Agree or Cancel** (Anuradha, 2026-10-31; **replaces the
+   first idea "refuse the OUT"; changes the gate rules of M2/M4, to confirm with Tushar and the client**; built
+   in slice 3 after a design gate with a mockup image). When a person punches OUT before the shift end, the
+   gate shows an alert box with **Agree** and **Cancel**:
+   - OUT before the half shift is complete (worked for status below the shift's half-day limit; 09:00 shift,
+     half day 4 h: before 13:00): "Your half shift is not complete yet." + the remaining time to the half
+     and to the full shift;
+   - OUT after the half but before the shift end (before 17:00): "Your full shift is not over yet." + the
+     remaining time.
+   **Agree** records the OUT as a normal accepted punch (not flagged); the day is then Half-day or Short hours
+   by the real minutes. **Cancel** records nothing. For permanent AND temporary workers, online and offline
+   (offline: the gate uses the shift times it has stored, and the confirmation is saved with the punch).
+   The server stays the judge: the gate only shows the dialog; the early-OUT confirmation is checked and
+   recorded by the server (new reason mark `EARLY_OUT_CONFIRMED`, shown in the punch log).
+   Open points for slice 3: how card and face punches carry the confirmation without a second photo or
+   head-turn; the gate screen text and the texts for the warnings.
+10. **Early IN: no gate limit for now** (asked 2026-10-31): the attendance day window opens
+    `attendance_window_before_hours` (4 h) before the shift; an earlier IN counts for the day before.
+    Whether the gate should also refuse a very early IN is open (asked of Anuradha).
