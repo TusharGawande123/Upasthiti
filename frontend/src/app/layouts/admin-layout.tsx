@@ -1,12 +1,14 @@
 // The admin shell: left menu, top bar (search, plant filter, user menu) and the page itself.
 // The menu shows only what the user's role may use; the server checks it again anyway.
 import {
+  Bell,
   CalendarCheck,
   CalendarHeart,
   CircleDashed,
   CircleX,
   ClipboardCheck,
   Factory,
+  FileBarChart,
   FilePenLine,
   FileSpreadsheet,
   Flag,
@@ -27,6 +29,7 @@ import {
   Siren,
   Table2,
   Tablet,
+  TrendingUp,
   TriangleAlert,
   UserRound,
   Users,
@@ -43,6 +46,8 @@ import {
   OfflineBadge,
   useOfflineSummary,
 } from "@/features/kiosks/offline-alert";
+import { NotificationBell } from "@/features/notifications/notification-bell";
+import { useUnreadCount } from "@/features/notifications/use-notifications";
 import { useExpiringCount } from "@/features/qr-cards/use-qr-cards";
 import { useReviewSummary } from "@/features/review/use-review";
 import { CommandPalette, type PaletteCommand } from "@/features/search/command-palette";
@@ -78,6 +83,22 @@ const NAV_ITEMS: NavItem[] = [
   // M5: the days a person is away and the days the plants are closed (every role reads).
   { to: "/admin/leave", labelKey: "nav.leave", icon: Plane, roles: ALL_ROLES },
   { to: "/admin/holidays", labelKey: "nav.holidays", icon: CalendarHeart, roles: ALL_ROLES },
+  // M5: how on time people are, the seven reports, and the alerts (every role; the server limits
+  // what a Plant Head or Corporate Head sees).
+  {
+    to: "/admin/insights/punctuality",
+    labelKey: "nav.punctuality",
+    icon: TrendingUp,
+    roles: ALL_ROLES,
+  },
+  { to: "/admin/reports", labelKey: "nav.reports", icon: FileBarChart, roles: ALL_ROLES },
+  {
+    to: "/admin/notifications",
+    labelKey: "nav.notifications",
+    icon: Bell,
+    roles: ALL_ROLES,
+    badge: "unreadNotifications",
+  },
   { to: "/admin/setup", labelKey: "nav.setup", icon: ListChecks, roles: ["super_admin"] },
   {
     to: "/admin/approvals",
@@ -144,12 +165,14 @@ function AdminShell({ user }: { user: Me }) {
     pathname === "/admin/attendance" ||
     pathname === "/admin/attendance/register" ||
     pathname === "/admin/leave" ||
-    pathname === "/admin/holidays";
+    pathname === "/admin/holidays" ||
+    pathname === "/admin/insights/punctuality";
   const pending = usePendingCount(user.role === "super_admin");
   const expiring = useExpiringCount(user.role === "super_admin");
   const deviceSummary = useOfflineSummary();
   const reviews = useReviewSummary(user.role === "super_admin");
   const corrections = useCorrectionSummary(user.role === "super_admin");
+  const unreadNotifications = useUnreadCount();
 
   // Ctrl+K (or Cmd+K on a Mac) opens the palette from anywhere in the admin area.
   useEffect(() => {
@@ -169,6 +192,7 @@ function AdminShell({ user }: { user: Me }) {
     if (item.badge === "offlineDevices") return deviceSummary?.offline ?? 0;
     if (item.badge === "toCheck") return reviews.data?.to_check ?? 0;
     if (item.badge === "pendingCorrections") return corrections.data?.pending ?? 0;
+    if (item.badge === "unreadNotifications") return unreadNotifications.data?.unread ?? 0;
     return 0;
   };
 
@@ -298,6 +322,7 @@ function AdminShell({ user }: { user: Me }) {
           {pickerOnPage ? null : <PlantFilterSelect />}
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <OfflineBadge summary={deviceSummary} />
+            <NotificationBell />
             <UserMenu user={user} />
           </div>
         </header>

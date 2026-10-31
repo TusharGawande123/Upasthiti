@@ -18,7 +18,8 @@ export type NavItem = {
     | "expiringCards"
     | "offlineDevices"
     | "toCheck"
-    | "pendingCorrections";
+    | "pendingCorrections"
+    | "unreadNotifications";
 };
 
 type NavLinksProps = {
@@ -37,6 +38,7 @@ const BADGE_WORDS = {
   offlineDevices: "nav.offline",
   toCheck: "nav.toCheck",
   pendingCorrections: "nav.waiting",
+  unreadNotifications: "nav.unread",
 } as const;
 
 export function NavLinks({ items, badgeFor, alwaysShowLabels, onNavigate }: NavLinksProps) {

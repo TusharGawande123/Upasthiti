@@ -7,7 +7,7 @@
   {
     "name": "Admin menu and layout",
     "pattern": "^admin-layout-.*.js$",
-    "maxGzipBytes": 24400
+    "maxGzipBytes": 26300
   },
   {
     "name": "Kiosk screen (loaded only on /kiosk)",

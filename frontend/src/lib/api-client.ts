@@ -124,3 +124,14 @@ export async function apiBlob(
   const response = await send(path, options, options.accept ?? "application/pdf");
   return await response.blob();
 }
+
+/**
+ * Downloads a report file and also returns the file name the server chose (from the
+ * Content-Disposition header), so the saved file has the name the server made.
+ */
+export async function apiFile(path: string): Promise<{ blob: Blob; fileName: string | null }> {
+  const response = await send(path, { method: "GET" }, "*/*");
+  const header = response.headers.get("Content-Disposition") ?? "";
+  const fileName = /filename="?([^";]+)"?/.exec(header)?.[1] ?? null;
+  return { blob: await response.blob(), fileName };
+}

@@ -13,7 +13,7 @@ import {
 } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Link, useNavigate, useParams } from "react-router";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -59,6 +59,8 @@ export function EmployeeDetailPage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { employeeId = "" } = useParams();
+  // Alert links open the Attendance tab with ?tab=attendance.
+  const [searchParams] = useSearchParams();
   const me = useMe();
   const role = me.data?.role;
   const detail = useEmployee(employeeId);
@@ -174,7 +176,10 @@ export function EmployeeDetailPage() {
         </Alert>
       ) : null}
 
-      <Tabs defaultValue="details" className="space-y-5">
+      <Tabs
+        defaultValue={searchParams.get("tab") === "attendance" ? "attendance" : "details"}
+        className="space-y-5"
+      >
         <TabsList>
           <TabsTrigger value="details">{t("employees.tabs.details")}</TabsTrigger>
           <TabsTrigger value="attendance">{t("employees.tabs.attendance")}</TabsTrigger>

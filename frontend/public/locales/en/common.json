@@ -668,8 +668,8 @@
     "RECOMPUTE_RANGE_TOO_LONG": "Choose at most 62 days.",
     "REPORT_RANGE_TOO_LONG": "This period is too long. Please choose fewer days.",
     "REPORT_KIND_UNKNOWN": "This report does not exist.",
-    "REPORT_BUSY": "Your other report is still being made. Please wait a moment.",
-    "REPORT_TOO_LARGE": "This report is too big for a PDF. Choose one plant, or use Excel.",
+    "REPORT_BUSY": "Another report is still being built. Please wait for it to finish, then try again.",
+    "REPORT_TOO_LARGE": "This PDF would have more than 3,000 rows. Download the Excel file, or choose one plant.",
     "EARLY_OUT_TOKEN_INVALID": "The confirmation is too old. Please punch again.",
     "SHIFT_SWAP_INVALID": "This shift cannot be used for this person on this day.",
     "SHIFT_SWAP_EXISTS": "This person already has a swap on this day.",
@@ -804,7 +804,11 @@
     "register": "Monthly register",
     "corrections": "Corrections",
     "leave": "Leave",
-    "holidays": "Holidays"
+    "holidays": "Holidays",
+    "punctuality": "Punctuality",
+    "reports": "Reports",
+    "notifications": "Notifications",
+    "unread": "unread"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -1068,6 +1072,10 @@
       "alerts": {
         "title": "Alerts and email",
         "description": "When the bell warns you, and how long alerts are kept."
+      },
+      "gate_lines": {
+        "title": "Attendance device screen: extra lines",
+        "description": "Short lines under a punch result on the attendance device."
       }
     },
     "items": {
@@ -1337,7 +1345,9 @@
       "km/h": "km/h",
       "months": "months",
       "s": "seconds",
-      "of 255": "of 255"
+      "of 255": "of 255",
+      "rejections": "punches",
+      "working days": "working days"
     },
     "choices": {
       "26": "26 days",
@@ -1400,7 +1410,22 @@
     "neighbourWarning": {
       "title": "Plants in MIDC Waluj are close together.",
       "text": "A larger value may let a device at a neighbouring plant punch here."
-    }
+    },
+    "newBadge": "New in this version",
+    "gate": {
+      "previewLabel": "On the screen:",
+      "inside": "Inside now: 214",
+      "late": "You are 40 minutes late today.",
+      "month": "This month: 18 days present",
+      "neverSpoken": "Never spoken · never shows a name",
+      "monthWarning": "People standing behind can read it. Tell the workers before you switch it on."
+    },
+    "email": {
+      "ready": "Email is set up on this server. Each person chooses their own alerts in Notifications.",
+      "sendTest": "Send a test email",
+      "testSent": "Test email sent to your address."
+    },
+    "windowError": "Must be below {{max}} hours. The longest active shift is {{longest}} hours (24 - {{longest}} = {{max}})."
   },
   "audit": {
     "title": "Audit log",
@@ -1581,7 +1606,9 @@
         "kiosk": "Attendance device at the gate",
         "employees": "Employees",
         "deviceOnline": "Attendance device online",
-        "locationGood": "Location good"
+        "locationGood": "Location good",
+        "attendanceStart": "Attendance start date",
+        "weeklyOff": "Weekly off"
       },
       "geofenceOk": "A geofence is set.",
       "geofenceNo": "No geofence. Draw it on the Geofence tab.",
@@ -1597,7 +1624,11 @@
       "deviceOnlineYes": "At least one device is in contact now.",
       "deviceOnlineNo": "No device has been in contact in the last minutes.",
       "locationGoodYes": "The device's last location was inside the fence.",
-      "locationGoodNo": "The device's last location is not good."
+      "locationGoodNo": "The device's last location is not good.",
+      "attendanceStartYes": "Attendance is worked out from the start date.",
+      "attendanceStartNo": "Attendance has not started. Set the start date on the Overview tab.",
+      "weeklyOffYes": "The weekly off is set.",
+      "weeklyOffNo": "No weekly off is set. Set it on the Overview tab."
     },
     "departments": {
       "description": "Departments of this plant (for example Press shop or Stores).",
@@ -4046,5 +4077,261 @@
     },
     "savedPoster": "Shift times changed. Print the gate poster again.",
     "openPoster": "Open the gate poster"
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Download attendance reports as Excel or PDF. Demo plants are not included.",
+    "limit": {
+      "oneAtATime": {
+        "title": "One file at a time",
+        "body": "Wait for a file before you ask for the next one."
+      },
+      "rate": {
+        "title": "20 files in 10 minutes",
+        "body": "For each person. A file takes up to 30 seconds."
+      },
+      "pdfRows": {
+        "title": "PDF up to 3,000 rows",
+        "body": "A bigger report: use Excel, it has no row limit."
+      }
+    },
+    "kind": {
+      "daily-muster": {
+        "title": "Daily muster",
+        "body": "Who came on one day: first IN, last OUT, hours, late, early exit and overtime.",
+        "limit": "One day. Portrait A4 for PDF."
+      },
+      "register": {
+        "title": "Monthly register",
+        "body": "A month for every person: one code per day (present, absent, leave, holiday, weekly off) and totals.",
+        "limit": "One month. The PDF is landscape A4."
+      },
+      "contractor-hours": {
+        "title": "Contractor hours",
+        "body": "Hours of temporary workers, grouped by contractor, with overtime hours. No rates and no money.",
+        "limit": "One month. PDF is landscape A4."
+      },
+      "late-early-overtime": {
+        "title": "Late, early and overtime",
+        "body": "Every day a permanent employee came late, left early or stayed for overtime, with totals per person.",
+        "limit": "Up to 31 days."
+      },
+      "exceptions": {
+        "title": "Exceptions",
+        "body": "Days that need a look: missing OUT, short hours, unchecked flagged punches. Written in plain words.",
+        "limit": "Up to 31 days."
+      },
+      "rejected-punches": {
+        "title": "Rejected punches",
+        "body": "Punches the attendance device refused, with the reason, the device and the method. No photos.",
+        "limit": "Up to 31 days."
+      },
+      "corrections": {
+        "title": "Corrections",
+        "body": "Correction requests and decisions, and punch approvals from the review screen.",
+        "limit": "Up to 31 days. Reasons written in the review screen appear only in the Super Admin's file."
+      }
+    },
+    "field": {
+      "day": "Day",
+      "month": "Month",
+      "from": "From",
+      "to": "To",
+      "plant": "Plant",
+      "contractor": "Contractor"
+    },
+    "allContractors": "All contractors",
+    "yourPlant": "Your plant",
+    "excel": "Excel",
+    "pdf": "PDF",
+    "building": "Building…",
+    "buildingNote": "Building the file… Large months can take up to 30 seconds. Please keep this page open.",
+    "done": "Downloaded {{file}}",
+    "toast": "File downloaded.",
+    "excelAllPdfLimited": "Excel covers all plants you may see. PDF is limited to 3,000 rows.",
+    "footer": "Every file shows who made it and when. Every download is saved in the audit log. The files contain personal data: keep them on company computers.",
+    "error": {
+      "range": "That is {{days}} days. This report covers up to 31 days.",
+      "order": "The last day cannot be before the first day.",
+      "rateLimit": "You have made 20 files in the last 10 minutes. Please wait a few minutes and try again.",
+      "load": "The reports page could not be loaded"
+    }
+  },
+  "insights": {
+    "punctuality": {
+      "title": "Punctuality",
+      "subtitle": "How on time permanent employees come, by week, group and weekday.",
+      "last30": "Last 30 days",
+      "groupBy": "Group by",
+      "group": {
+        "department": "Department",
+        "category": "Category",
+        "shift": "Shift",
+        "weekday": "Weekday"
+      },
+      "kpi": {
+        "onTime": "On time",
+        "late": "Late arrivals",
+        "averageLate": "Average late",
+        "earlyExits": "Early exits"
+      },
+      "minShort": "min",
+      "noComparison": "No arrivals in the period before.",
+      "delta": {
+        "pointsUp": "{{value}} points higher than the period before",
+        "pointsDown": "{{value}} points lower than the period before",
+        "more": "{{value}} more than before",
+        "fewer": "{{value}} fewer than before",
+        "longer": "{{value}} min longer than before",
+        "shorter": "{{value}} min shorter than before",
+        "same": "No change from before"
+      },
+      "chart": {
+        "weekly": "On time each week",
+        "weekday": "On time by weekday",
+        "weekStart": "Week starting (Monday)",
+        "weeklyAlt": "On time each week: {{values}}",
+        "weekdayAlt": "On time by weekday: {{values}}"
+      },
+      "by": {
+        "department": "By department",
+        "category": "By category",
+        "shift": "By shift",
+        "weekday": "By weekday"
+      },
+      "barNote": "On time = came by shift start plus grace · below 90% is marked ▼",
+      "below": "Below 90%",
+      "noValue": "Not set",
+      "col": {
+        "daysWithIn": "Days with an IN",
+        "onTime": "On time",
+        "lateArrivals": "Late arrivals",
+        "averageLate": "Average late",
+        "employee": "Employee",
+        "late": "Late",
+        "totalLate": "Total late"
+      },
+      "top": {
+        "title": "Most late arrivals",
+        "subtitle": "Top 10 in this period"
+      },
+      "lateDays_one": "{{count}} day",
+      "lateDays_other": "{{count}} days",
+      "viewMonth": "View month",
+      "weekday": {
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday",
+        "7": "Sunday"
+      },
+      "weekdayShort": {
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat",
+        "7": "Sun"
+      },
+      "note": "Permanent employees on working days only. Temporary workers have no late rule. Weekly offs, holidays and leave days are left out. Demo plants are not included.",
+      "chooseShorter": "Choose a shorter period",
+      "empty": {
+        "title": "No arrivals in this period",
+        "body": "Punctuality needs permanent employees with an IN on working days. Try a longer period or another plant."
+      },
+      "error": {
+        "range": "That is {{days}} days. Choose up to 92 days.",
+        "load": "Punctuality could not be loaded"
+      }
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Alerts for the plants you can see. The bell in the top bar shows the newest.",
+    "loading": "Loading…",
+    "bell": {
+      "label": "Notifications, {{count}} unread",
+      "none": "Notifications, none unread"
+    },
+    "markAll": "Mark all as read",
+    "seeAll": "See all",
+    "unread": "Unread",
+    "urgent": "Urgent",
+    "unreadCount_one": "{{count}} unread",
+    "unreadCount_other": "{{count}} unread",
+    "allPlants": "All plants",
+    "yesterday": "Yesterday {{time}}",
+    "kind": {
+      "still_inside": "Still inside",
+      "device_offline": "Device offline",
+      "many_rejections": "Many rejections",
+      "incomplete_days": "Incomplete days",
+      "review_digest": "Review digest",
+      "correction_requested": "Correction asked",
+      "correction_decided": "Correction decided",
+      "absence_streak": "Long absence",
+      "monthly_register": "Register ready"
+    },
+    "text": {
+      "still_inside": "{{count}} people are still inside {{plant}}, {{minutes}} minutes after the shift ended.",
+      "device_offline": "Attendance device '{{device}}' at {{plant}} is offline. Check its power and internet.",
+      "many_rejections": "{{count}} punches were refused at {{plant}} in {{minutes}} minutes. Please check the device.",
+      "incomplete_days": "{{count}} days at {{plant}} are missing an OUT (yesterday {{date}}).",
+      "review_digest": "{{count}} punches are waiting in Needs review ({{flagged}} flagged, {{rejected}} refused).",
+      "absence_streak": "A person at {{plant}} has been absent for {{count}} working days in a row, since {{since}}.",
+      "correction_requested": "A correction was asked for {{date}} at {{plant}}.",
+      "correction_decided_approved": "Your correction for {{date}} was approved.",
+      "correction_decided_rejected": "Your correction for {{date}} was not approved. {{reason}}",
+      "monthly_register": "The register of {{month}} is ready for {{plant}}."
+    },
+    "link": {
+      "list": "Open the list",
+      "devices": "Open attendance devices",
+      "rejected": "Open rejected punches",
+      "review": "Open Needs review",
+      "month": "Open the month",
+      "request": "Open the request",
+      "correction": "Open the correction",
+      "register": "Open the register"
+    },
+    "filter": {
+      "kind": "All kinds",
+      "kindLabel": "Kind of alert",
+      "show": "Show",
+      "all": "All",
+      "clear": "Clear filters"
+    },
+    "empty": {
+      "bellTitle": "You are all caught up",
+      "bellBody": "Alerts about devices, people still inside and corrections appear here.",
+      "pageTitle": "No notifications yet",
+      "filterTitle": "No notifications match these filters",
+      "filterBody": "Try another kind, or show all notifications."
+    },
+    "error": {
+      "title": "Notifications could not be loaded",
+      "bell": "Check the internet. The bell tries again in a minute."
+    },
+    "footer": "{{count}} notifications. Old alerts are removed after the keeping time in Settings.",
+    "newestFirst": "Newest first · times in IST",
+    "showMore": "Show more",
+    "emailNotSetUp": {
+      "title": "Email is not set up on this server.",
+      "body": "Alerts are shown in the bell and on this page."
+    },
+    "email": {
+      "title": "My email alerts",
+      "intro": "Choose which alerts you also want by email. An email has no names or codes, only a short line and a link.",
+      "noAddress": "Add your email address to your user first. Then you can choose email alerts here.",
+      "master": "Send me alerts by email",
+      "registerByEmail": "Monthly register by email (Excel, your plants)",
+      "on": "On",
+      "off": "Off",
+      "save": "Save my email alerts",
+      "saved": "Email alerts saved."
+    }
   }
 }

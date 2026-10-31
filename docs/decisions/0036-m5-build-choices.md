@@ -109,3 +109,13 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     `arrived`, `late`, `not_arrived`, `on_leave`, `off_today`, `exceptions`, `to_decide`. The "On outside work"
     hero line is left out until the API has the number (M4b). Show more on the muster is client-side (the API
     has no paging). The count-up animation of the tiles is not built.
+21. **Slice 7 group E (reports, punctuality, notifications, settings):** the "Admin menu and layout" budget in
+    `frontend/size-budgets.json` went from 24400 to 26300 bytes (+1900; measured 25.2 kB): the bell button with its
+    popover, the unread count and three more menu items are in the layout file; the bell panel itself, the
+    notification list and every new page are lazy. Recharts 3.10.1 (MIT) is a new dependency named in the approved
+    stack; it is imported only by the lazy punctuality page (about 100 kB gzip, never in the first load). Differences
+    from the mock-ups, caused by the API: the notification list has no plant filter and no "Read" filter (the API
+    filters by kind and unread only); notification texts carry no names (decision 0036 line 7 and the backend), so
+    "Prakash asked..." reads "A correction was asked for 29/10/2026 at K134."; the report "done" line has no row
+    count (the API sends none); the 20-files limit has no minutes in its text (the API sends none, it uses the
+    existing code `TOO_MANY_REQUESTS`); the punctuality arrows come from a second request for the period before.
