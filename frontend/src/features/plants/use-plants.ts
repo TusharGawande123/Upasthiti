@@ -65,10 +65,25 @@ export type Shift = {
   start_time: string; // "07:00:00"
   end_time: string;
   crosses_midnight: boolean;
+  shift_length_min: number; // the full day (M5)
+  grace_min: number; // the same at the start and the end
+  half_day_min: number;
+  overtime_min_minutes: number; // overtime counts from the shift end, only from this many minutes
+  is_active: boolean;
+  rules_from: string | null; // date of the rules in force today
+  upcoming_rules: ShiftRules | null;
+};
+
+export type ShiftRules = {
+  effective_from: string;
+  start_time: string;
+  end_time: string;
+  crosses_midnight: boolean;
+  shift_length_min: number;
   grace_min: number;
   half_day_min: number;
-  ot_after_min: number;
-  is_active: boolean;
+  overtime_min_minutes: number;
+  created_at: string;
 };
 
 export type ShiftInput = {
@@ -77,7 +92,8 @@ export type ShiftInput = {
   end_time: string;
   grace_min: number;
   half_day_min: number;
-  ot_after_min: number;
+  overtime_min_minutes: number;
+  rules_effective_from?: string; // edit only: today (default) or a later date
 };
 
 // Departments and categories behave the same; only the address differs.

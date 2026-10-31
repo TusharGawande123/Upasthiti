@@ -199,6 +199,10 @@ def _remove_face_data(session: Session, plan: RemovalPlan) -> None:
     )
 
 
+# Tables whose "never change or delete" trigger is switched off inside the removal transaction only.
+APPEND_ONLY_TABLES = ("punches", "punch_reviews", "shift_rule_versions", "plant_weekly_offs")
+
+
 def remove(session: Session, plan: RemovalPlan) -> None:
     """Deletes the plan's rows. The caller commits (or rolls everything back on an error)."""
     plant_id = plan.plant_id
@@ -206,8 +210,8 @@ def remove(session: Session, plan: RemovalPlan) -> None:
 
     # Only inside this transaction: switch the punches "never change or delete" trigger off, and
     # make sure it is on again (a rollback would undo this too).
-    session.execute(text("ALTER TABLE punches DISABLE TRIGGER USER"))
-    session.execute(text("ALTER TABLE punch_reviews DISABLE TRIGGER USER"))
+    for table in APPEND_ONLY_TABLES:
+        session.execute(text(f"ALTER TABLE {table} DISABLE TRIGGER USER"))
     try:
         t = _table
         _remove_face_data(session, plan)
@@ -247,7 +251,15 @@ def remove(session: Session, plan: RemovalPlan) -> None:
             )
         )
         session.execute(delete(t("kiosk_devices")).where(t("kiosk_devices").c.id.in_(kiosk_ids)))
+        # M5: the dated shift rules and weekly offs of the plant (append-only, triggers off above).
+        plant_shift_ids = select(t("shifts").c.id).where(t("shifts").c.plant_id == plant_id)
+        session.execute(
+            delete(t("shift_rule_versions")).where(
+                t("shift_rule_versions").c.shift_id.in_(plant_shift_ids)
+            )
+        )
         for table in (
+            "plant_weekly_offs",
             "kiosk_notices",
             "user_plant_access",
             "geofences",
@@ -258,8 +270,8 @@ def remove(session: Session, plan: RemovalPlan) -> None:
             session.execute(delete(t(table)).where(t(table).c.plant_id == plant_id))
         session.execute(delete(t("plants")).where(t("plants").c.id == plant_id))
     finally:
-        session.execute(text("ALTER TABLE punches ENABLE TRIGGER USER"))
-        session.execute(text("ALTER TABLE punch_reviews ENABLE TRIGGER USER"))
+        for table in APPEND_ONLY_TABLES:
+            session.execute(text(f"ALTER TABLE {table} ENABLE TRIGGER USER"))
 
     # One line that says it happened (counts only: no names, no codes of people).
     record_audit(
@@ -290,7 +302,8 @@ def _show(plan: RemovalPlan) -> None:
         print(f"  {count:>5}  {label}")
     for label in plan.test_card_labels:
         print(f"         test card {label}")
-    print("  Also: its geofences, shifts, departments, categories, notices, pairing codes,")
+    print("  Also: its geofences, shifts and their rule versions, weekly offs, departments,")
+    print("        categories, notices, pairing codes,")
     print("        change requests and plant history. The audit log is not touched.")
 
 

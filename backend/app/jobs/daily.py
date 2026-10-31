@@ -3,6 +3,7 @@
 1. Future-dated plant transfers take effect on their day.
 2. Login sessions that ended more than 30 days ago are deleted (they are not audit records).
 3. Card-punch photos past their retention are deleted from storage (M2; the rows stay).
+4. Shift rule versions that start today are copied into the shift row (M5, decision 0036).
 A second job removes short-lived face data every 5 minutes (M3, app/modules/face/cleanup.py).
 
 Render's free backend sleeps, so the job also runs once at start-up and is safe to repeat:
@@ -24,6 +25,7 @@ from app.modules.employees.operations import apply_due_transfers
 from app.modules.face.cleanup import run_face_cleanup
 from app.modules.kiosks.heartbeat_service import KEEP_SAMPLES_DAYS
 from app.modules.kiosks.models import KioskHeartbeat
+from app.modules.org.shift_rules_service import apply_due_rule_versions
 from app.modules.punches.retention import purge_expired_snapshots
 
 logger = logging.getLogger(__name__)
@@ -51,6 +53,7 @@ def purge_old_heartbeats(session: Session, now: datetime, batch_size: int = 5000
 def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str, int]:
     """Do all daily work and say how much it did."""
     transfers = apply_due_transfers(session, today_ist())
+    shift_rules = apply_due_rule_versions(session, today_ist())
     cutoff = utc_now() - timedelta(days=SESSION_KEEP_DAYS)
     old_sessions = session.scalars(
         delete(LoginSession).where(LoginSession.expires_at < cutoff).returning(LoginSession.id)
@@ -58,6 +61,7 @@ def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str
     session.commit()
     return {
         "transfers_applied": transfers,
+        "shift_rules_applied": shift_rules,
         "sessions_deleted": len(old_sessions),
         "snapshots_purged": _purge_snapshots(session, storage),
         "heartbeats_deleted": purge_old_heartbeats(session, utc_now()),

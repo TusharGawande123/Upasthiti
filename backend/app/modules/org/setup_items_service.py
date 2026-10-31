@@ -1,19 +1,35 @@
 """Departments, shifts and employee categories of a plant (spec §5.2, §7 rule 9).
 
+Since M5 a change of a shift's times, grace, half day or smallest overtime also adds a dated
+rule version (shift_rules_service), so past attendance days keep their rules.
+
 Only the Super Admin changes them (decision 0005). Nothing is deleted: "remove" means
 "deactivate", and an item still used by active employees cannot be deactivated.
 """
 
 import uuid
-from datetime import time
+from dataclasses import replace
+from datetime import date
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
+from app.core.time import today_ist
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees.models import Employee, EmployeeStatus, ShiftAssignment
 from app.modules.org.models import Department, EmployeeCategory, Shift
+from app.modules.org.shift_rules_service import (
+    RULE_FIELDS,
+    ShiftRules,
+    add_rule_version,
+    check_day_limits,
+    check_rules_date,
+    copy_rules_into_shift,
+    rule_version_on,
+    rules_of_shift,
+    rules_of_version,
+)
 
 SetupItem = Department | Shift | EmployeeCategory
 
@@ -82,54 +98,57 @@ def create_shift(
     actor: Actor,
     plant_id: uuid.UUID,
     name: str,
-    start_time: time,
-    end_time: time,
-    grace_min: int,
-    half_day_min: int,
-    ot_after_min: int,
+    rules: ShiftRules,
 ) -> Shift:
     name = name.strip()
     _check_name_free(session, Shift, plant_id, name)
-    shift = Shift(
-        plant_id=plant_id,
-        name=name,
-        start_time=start_time,
-        end_time=end_time,
-        crosses_midnight=shift_crosses_midnight(start_time, end_time),
-        grace_min=grace_min,
-        half_day_min=half_day_min,
-        ot_after_min=ot_after_min,
-    )
+    check_day_limits(rules)
+    shift = Shift(plant_id=plant_id, name=name)
+    copy_rules_into_shift(shift, rules)
     session.add(shift)
     session.flush()
+    add_rule_version(session, actor=actor, shift=shift, rules=rules, effective_from=today_ist())
     _audit(session, actor, shift, "create", before=None)
     session.commit()
     return shift
 
 
 def update_shift(
-    session: Session, *, actor: Actor, shift: Shift, changes: dict[str, object]
+    session: Session,
+    *,
+    actor: Actor,
+    shift: Shift,
+    changes: dict[str, object],
+    rules_effective_from: date | None = None,
 ) -> Shift:
-    """Apply the given fields. Past attendance keeps its computed values (spec §7 rule 9)."""
+    """Rename, or change the rules from a date (today or later; default today).
+
+    The new rules are the ones in force on that date with the given fields changed. Only rules in
+    force today are copied into the shift row; a later date waits for the daily job.
+    """
     before = _snapshot(shift)
     new_name = changes.get("name")
     if isinstance(new_name, str) and new_name.strip().lower() != shift.name.lower():
         _check_name_free(session, Shift, shift.plant_id, new_name.strip())
-    for field_name, value in changes.items():
-        setattr(shift, field_name, value.strip() if isinstance(value, str) else value)
-    shift.crosses_midnight = shift_crosses_midnight(shift.start_time, shift.end_time)
+        shift.name = new_name.strip()
+
+    rule_changes = {key: value for key, value in changes.items() if key in RULE_FIELDS}
+    if rule_changes:
+        effective_from = rules_effective_from or today_ist()
+        check_rules_date(effective_from)
+        version_then = rule_version_on(session, shift.id, effective_from)
+        rules_then = rules_of_version(version_then) if version_then else rules_of_shift(shift)
+        new_rules = replace(rules_then, **rule_changes)
+        check_day_limits(new_rules)
+        if new_rules != rules_then:
+            add_rule_version(
+                session, actor=actor, shift=shift, rules=new_rules, effective_from=effective_from
+            )
+            if effective_from == today_ist():
+                copy_rules_into_shift(shift, new_rules)
     _audit(session, actor, shift, "update", before=before)
     session.commit()
     return shift
-
-
-def shift_crosses_midnight(start_time: time, end_time: time) -> bool:
-    """A shift that ends at or before its start time ends on the next day (night shift)."""
-    if start_time == end_time:
-        raise ApiError(
-            "SHIFT_TIMES_INVALID", "Start and end cannot be the same.", 422, {"rule": "same"}
-        )
-    return end_time < start_time
 
 
 # --- Switching off and on -----------------------------------------------------------------------
@@ -208,7 +227,7 @@ def _snapshot(item: SetupItem) -> dict[str, object]:
             "crosses_midnight": item.crosses_midnight,
             "grace_min": item.grace_min,
             "half_day_min": item.half_day_min,
-            "ot_after_min": item.ot_after_min,
+            "overtime_min_minutes": item.overtime_min_minutes,
         }
     return values
 

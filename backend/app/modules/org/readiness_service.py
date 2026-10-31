@@ -16,7 +16,7 @@ from app.core.time import utc_now
 from app.modules.employees.models import Employee, EmployeeStatus
 from app.modules.kiosks.models import KioskDevice, KioskStatus, LocationState
 from app.modules.kiosks.status import device_state, is_working, offline_after_minutes
-from app.modules.org.models import EmployeeCategory, Geofence, Plant, Shift
+from app.modules.org.models import EmployeeCategory, Geofence, Plant, PlantWeeklyOff, Shift
 
 
 @dataclass(frozen=True)
@@ -30,6 +30,10 @@ class PlantReadiness:
     # M4 (spec §7 rule 15): worked out from the heartbeat when asked, never stored.
     device_online: bool = False
     location_good: bool = False
+    # M5 (spec §5.8): shown as lines on the readiness card; not part of `ready`, which says
+    # whether the gate can take punches.
+    attendance_start_set: bool = False
+    weekly_off_set: bool = False
 
     @property
     def ready(self) -> bool:
@@ -73,6 +77,14 @@ def plant_readiness(session: Session, plant_id: uuid.UUID) -> PlantReadiness:
         active_categories=_count_active(session, EmployeeCategory, plant_id),
         active_kiosks=count_active_kiosks(session, plant_id),
         active_employees=count_active_employees(session, plant_id),
+        attendance_start_set=session.scalar(
+            select(Plant.attendance_start_date).where(Plant.id == plant_id)
+        )
+        is not None,
+        weekly_off_set=session.scalar(
+            select(PlantWeeklyOff.id).where(PlantWeeklyOff.plant_id == plant_id).limit(1)
+        )
+        is not None,
     )
 
 

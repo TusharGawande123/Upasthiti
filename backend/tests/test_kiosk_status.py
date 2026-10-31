@@ -212,9 +212,9 @@ def make_shift_now(session: Session, plant: PlantIds) -> None:
             name="Now",
             start_time=start_time,
             end_time=end_time,
-            grace_min=10,
-            half_day_min=240,
-            ot_after_min=480,
+            grace_min=30,
+            half_day_min=60,
+            overtime_min_minutes=120,
             crosses_midnight=start_time > end_time,  # near midnight the shift wraps
             is_active=True,
         )

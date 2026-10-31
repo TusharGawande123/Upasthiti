@@ -155,9 +155,9 @@ describe("plant detail", () => {
             start_time: "07:00:00",
             end_time: "19:00:00",
             crosses_midnight: false,
-            grace_min: 10,
+            grace_min: 30,
             half_day_min: 240,
-            ot_after_min: 480,
+            overtime_min_minutes: 120,
             is_active: true,
           },
         ],
@@ -177,7 +177,16 @@ describe("plant detail", () => {
     expect(
       await within(dialog).findByText("Night: starts 19:00, ends next day at 07:00 (12 h 00 min)."),
     ).toBeInTheDocument();
-    expect(within(dialog).getByText("Late if the first punch is after 19:10.")).toBeInTheDocument();
+    // M5: grace 30 at both ends, the shift length is the full day, overtime from the shift end.
+    expect(within(dialog).getByText("On time until 19:30. Leave from 06:30.")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Full day: 12 h 00 min (the shift length)."),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "Overtime: from 07:00, only when the person stays 2 h 00 min or more.",
+      ),
+    ).toBeInTheDocument();
   });
 
   it("refuses a shift whose start and end time are the same", async () => {

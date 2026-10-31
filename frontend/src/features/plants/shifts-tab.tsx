@@ -1,5 +1,7 @@
 // Shifts of a plant: a table plus the add/edit dialog. The dialog explains the shift in one
 // live sentence ("starts 19:00, ends next day at 07:00 (12 h 00 min)") so mistakes are obvious.
+// M5: grace counts at both ends, the shift length is the full day, overtime starts at the shift
+// end and counts only from the smallest overtime; rule changes apply from a date.
 import type { TFunction } from "i18next";
 import { Ban, CircleCheck, Moon, Pencil, Plus, Sun } from "lucide-react";
 import { useState } from "react";
@@ -28,6 +30,7 @@ import {
 } from "@/components/ui/table";
 import { describeError } from "@/features/auth/error-message";
 import { ReasonDialog } from "@/features/users/user-dialogs";
+import { todayIst } from "@/lib/format";
 import {
   endsNextDay,
   fromMinutes,
@@ -56,9 +59,11 @@ function ShiftDialog({ plantId, plantLabel, shift, onClose }: DialogProps) {
   const [name, setName] = useState(shift?.name ?? "");
   const [start, setStart] = useState(shift ? shortTime(shift.start_time) : "07:00");
   const [end, setEnd] = useState(shift ? shortTime(shift.end_time) : "19:00");
-  const [grace, setGrace] = useState(shift?.grace_min ?? 10);
+  const [grace, setGrace] = useState(shift?.grace_min ?? 30);
   const [halfDay, setHalfDay] = useState(shift?.half_day_min ?? 240);
-  const [overtimeAfter, setOvertimeAfter] = useState(shift?.ot_after_min ?? 480);
+  const [overtimeMin, setOvertimeMin] = useState(shift?.overtime_min_minutes ?? 120);
+  const today = todayIst();
+  const [rulesFrom, setRulesFrom] = useState(today);
 
   const sameTimes = start === end;
   const nextDay = endsNextDay(start, end);
@@ -74,7 +79,8 @@ function ShiftDialog({ plantId, plantLabel, shift, onClose }: DialogProps) {
           end_time: end,
           grace_min: grace,
           half_day_min: halfDay,
-          ot_after_min: overtimeAfter,
+          overtime_min_minutes: overtimeMin,
+          ...(shift ? { rules_effective_from: rulesFrom } : {}),
         },
       },
       { onSuccess: onClose },
@@ -169,26 +175,49 @@ function ShiftDialog({ plantId, plantLabel, shift, onClose }: DialogProps) {
                 })}
               </span>
               <span>
-                {t("plants.shifts.lateIf", { time: fromMinutes(toMinutes(start) + grace) })}
+                {t("plants.shifts.graceRule", {
+                  onTime: fromMinutes(toMinutes(start) + grace),
+                  leaveFrom: fromMinutes(toMinutes(end) - grace),
+                })}
+              </span>
+              <span>
+                {t("plants.shifts.fullDayRule", {
+                  length: formatLength(shiftLengthMinutes(start, end), t),
+                })}
               </span>
               <span>{t("plants.shifts.halfDayRule", { length: formatLength(halfDay, t) })}</span>
               <span>
-                {t("plants.shifts.overtimeRule", { length: formatLength(overtimeAfter, t) })}
+                {t("plants.shifts.overtimeRule", {
+                  time: end,
+                  length: formatLength(overtimeMin, t),
+                })}
               </span>
             </Alert>
           )}
 
           <div className="grid grid-cols-3 gap-3">
-            {numberField("shift-grace", t("plants.shifts.grace"), grace, setGrace, 240)}
+            {numberField("shift-grace", t("plants.shifts.grace"), grace, setGrace, 120)}
             {numberField("shift-half", t("plants.shifts.halfDay"), halfDay, setHalfDay, 1440)}
             {numberField(
               "shift-ot",
-              t("plants.shifts.overtimeAfter"),
-              overtimeAfter,
-              setOvertimeAfter,
-              1440,
+              t("plants.shifts.overtimeMin"),
+              overtimeMin,
+              setOvertimeMin,
+              480,
             )}
           </div>
+          {shift ? (
+            <Field id="shift-rules-from" label={t("plants.shifts.rulesFrom")}>
+              <Input
+                id="shift-rules-from"
+                type="date"
+                min={today}
+                value={rulesFrom}
+                className="tnum"
+                onChange={(event) => setRulesFrom(event.target.value)}
+              />
+            </Field>
+          ) : null}
           <p className="text-[13px] text-muted-foreground">{t("plants.shifts.futureOnly")}</p>
 
           <DialogFooter>
@@ -238,7 +267,7 @@ export function ShiftsTab({ plantId, plantLabel, canEdit }: TabProps) {
                 <TableHead>{t("plants.shifts.name")}</TableHead>
                 <TableHead>{t("plants.shifts.times")}</TableHead>
                 <TableHead>{t("plants.shifts.grace")}</TableHead>
-                <TableHead>{t("plants.shifts.overtimeAfter")}</TableHead>
+                <TableHead>{t("plants.shifts.overtimeMin")}</TableHead>
                 <TableHead>{t("plants.columns.status")}</TableHead>
                 <TableHead>
                   <span className="sr-only">{t("common.actions")}</span>
@@ -260,7 +289,9 @@ export function ShiftsTab({ plantId, plantLabel, canEdit }: TabProps) {
                   <TableCell className="tnum">
                     {t("plants.shifts.minutes", { count: shift.grace_min })}
                   </TableCell>
-                  <TableCell className="tnum">{formatLength(shift.ot_after_min, t)}</TableCell>
+                  <TableCell className="tnum">
+                    {formatLength(shift.overtime_min_minutes, t)}
+                  </TableCell>
                   <TableCell>
                     {shift.is_active ? (
                       <Badge tone="success">

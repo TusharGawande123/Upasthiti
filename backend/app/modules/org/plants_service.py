@@ -2,12 +2,13 @@
 
 Every new plant gets the defaults the client asked for (spec §7 rule 16): the shift
 "General 07:00–19:00" and the categories Staff, Worker, Operator, Helper. All of them can be
-changed later.
+changed later. Since M5 a new plant also gets Sunday as its weekly off and the first rule version
+of its shift (M5 spec §6).
 """
 
 import re
 import uuid
-from datetime import time
+from datetime import date, time
 from decimal import Decimal
 
 from sqlalchemy import func, or_, select
@@ -15,18 +16,27 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
 from app.core.pagination import PageParams, fetch_page
+from app.core.time import today_ist
 from app.modules.audit.service import Actor, record_audit
 from app.modules.org.client_plants import CLIENT_PLANTS
 from app.modules.org.models import EmployeeCategory, Plant, Shift
 from app.modules.org.readiness_service import count_active_kiosks
+from app.modules.org.shift_rules_service import (
+    ShiftRules,
+    add_default_weekly_off,
+    add_rule_version,
+    copy_rules_into_shift,
+    set_attendance_start_date,
+)
 
 PLANT_CODE_PATTERN = re.compile(r"^[A-Z0-9]{2,10}$")
 DEFAULT_SHIFT_NAME = "General"
 DEFAULT_SHIFT_START = time(7, 0)
 DEFAULT_SHIFT_END = time(19, 0)
-DEFAULT_GRACE_MIN = 10
+# Client call of 2026-10-30 (decision 0034): grace 30 at both ends, overtime counts from 2 hours.
+DEFAULT_GRACE_MIN = 30
 DEFAULT_HALF_DAY_MIN = 240
-DEFAULT_OT_AFTER_MIN = 480  # overtime after 8 worked hours (client answer Q5)
+DEFAULT_OVERTIME_MIN_MINUTES = 120
 DEFAULT_CATEGORIES = ("Staff", "Worker", "Operator", "Helper")
 
 
@@ -38,6 +48,7 @@ def plant_snapshot(plant: Plant) -> dict[str, object]:
         "lat": plant.lat,
         "lon": plant.lon,
         "is_active": plant.is_active,
+        "attendance_start_date": plant.attendance_start_date,
     }
 
 
@@ -87,7 +98,7 @@ def create_plant(
     plant = Plant(name=name.strip(), code=code, address=address.strip(), lat=lat, lon=lon)
     session.add(plant)
     session.flush()
-    _add_new_plant_defaults(session, plant)
+    _add_new_plant_defaults(session, plant, actor)
     record_audit(
         session,
         actor=actor,
@@ -111,8 +122,13 @@ def update_plant(
     lat: Decimal | None,
     lon: Decimal | None,
     position_given: bool,
+    attendance_start_date: date | None = None,
 ) -> Plant:
     before = plant_snapshot(plant)
+    if attendance_start_date is not None:
+        set_attendance_start_date(
+            session, actor=actor, plant=plant, start_date=attendance_start_date
+        )
     if name is not None:
         plant.name = name.strip()
     if address is not None:
@@ -166,7 +182,7 @@ def add_client_plants(session: Session, *, actor: Actor) -> tuple[int, int]:
         plant = Plant(name=client_plant.name, code=client_plant.code, address=client_plant.address)
         session.add(plant)
         session.flush()
-        _add_new_plant_defaults(session, plant)
+        _add_new_plant_defaults(session, plant, actor)
         record_audit(
             session,
             actor=actor,
@@ -182,19 +198,20 @@ def add_client_plants(session: Session, *, actor: Actor) -> tuple[int, int]:
     return created, len(CLIENT_PLANTS) - created
 
 
-def _add_new_plant_defaults(session: Session, plant: Plant) -> None:
-    session.add(
-        Shift(
-            plant_id=plant.id,
-            name=DEFAULT_SHIFT_NAME,
-            start_time=DEFAULT_SHIFT_START,
-            end_time=DEFAULT_SHIFT_END,
-            crosses_midnight=False,
-            grace_min=DEFAULT_GRACE_MIN,
-            half_day_min=DEFAULT_HALF_DAY_MIN,
-            ot_after_min=DEFAULT_OT_AFTER_MIN,
-        )
+def _add_new_plant_defaults(session: Session, plant: Plant, actor: Actor) -> None:
+    rules = ShiftRules(
+        start_time=DEFAULT_SHIFT_START,
+        end_time=DEFAULT_SHIFT_END,
+        grace_min=DEFAULT_GRACE_MIN,
+        half_day_min=DEFAULT_HALF_DAY_MIN,
+        overtime_min_minutes=DEFAULT_OVERTIME_MIN_MINUTES,
     )
+    shift = Shift(plant_id=plant.id, name=DEFAULT_SHIFT_NAME)
+    copy_rules_into_shift(shift, rules)
+    session.add(shift)
+    session.flush()
+    add_rule_version(session, actor=actor, shift=shift, rules=rules, effective_from=today_ist())
+    add_default_weekly_off(session, actor=actor, plant=plant)
     for category_name in DEFAULT_CATEGORIES:
         session.add(EmployeeCategory(plant_id=plant.id, name=category_name))
 

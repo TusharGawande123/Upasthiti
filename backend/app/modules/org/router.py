@@ -1,5 +1,6 @@
 """Organisation setup endpoints (spec §5.2): plants, setup wizard, readiness, geofence,
-departments, shifts and employee categories.
+departments, shifts and employee categories; since M5 also shift rule versions, the weekly off
+and the attendance start date (M5 spec §5.3).
 
 Reading follows the plant scope (a Plant Head sees only their plant); every change is
 Super Admin only (decision 0005).
@@ -12,10 +13,16 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_session
 from app.core.pagination import Page, PageParams, page_params
+from app.core.time import today_ist
 from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
 from app.modules.auth.scope import ensure_plant_in_scope, plant_filter
-from app.modules.org import geofence_service, plants_service, readiness_service
+from app.modules.org import (
+    geofence_service,
+    plants_service,
+    readiness_service,
+    shift_rules_service,
+)
 from app.modules.org import setup_items_service as items
 from app.modules.org.models import Department, EmployeeCategory, Plant, Shift
 from app.modules.org.schemas import (
@@ -32,8 +39,13 @@ from app.modules.org.schemas import (
     SetupStatusResponse,
     SetupStepResponse,
     ShiftResponse,
+    ShiftRulesResponse,
     UpdatePlantRequest,
     UpdateShiftRequest,
+    WeeklyOffCreatedResponse,
+    WeeklyOffItem,
+    WeeklyOffRequest,
+    WeeklyOffResponse,
     plant_response,
 )
 
@@ -127,6 +139,7 @@ def update_plant(
         lat=body.lat,
         lon=body.lon,
         position_given="lat" in body.model_fields_set or "lon" in body.model_fields_set,
+        attendance_start_date=body.attendance_start_date,
     )
     return _to_plant_response(session, plant)
 
@@ -183,6 +196,8 @@ def plant_readiness(
         ready=readiness.ready,
         device_online=readiness.device_online,
         location_good=readiness.location_good,
+        attendance_start_set=readiness.attendance_start_set,
+        weekly_off_set=readiness.weekly_off_set,
     )
 
 
@@ -412,6 +427,15 @@ def reactivate_category(
 # --- Shifts ---
 
 
+def _shift_response(session: Session, shift: Shift) -> ShiftResponse:
+    today = today_ist()
+    return ShiftResponse.from_model(
+        shift,
+        current=shift_rules_service.rule_version_on(session, shift.id, today),
+        upcoming=shift_rules_service.upcoming_rule_version(session, shift.id, today),
+    )
+
+
 @router.get("/plants/{plant_id}/shifts", response_model=list[ShiftResponse])
 def list_shifts(
     plant_id: uuid.UUID,
@@ -419,7 +443,7 @@ def list_shifts(
     session: Session = Depends(get_session),
 ) -> list[ShiftResponse]:
     _visible_plant(session, current_user, plant_id)
-    return [ShiftResponse.from_model(shift) for shift in items.list_items(session, Shift, plant_id)]
+    return [_shift_response(session, shift) for shift in items.list_items(session, Shift, plant_id)]
 
 
 @router.post("/plants/{plant_id}/shifts", response_model=ShiftResponse, status_code=201)
@@ -435,13 +459,15 @@ def create_shift(
         actor=current_user.actor,
         plant_id=plant_id,
         name=body.name,
-        start_time=body.start_time,
-        end_time=body.end_time,
-        grace_min=body.grace_min,
-        half_day_min=body.half_day_min,
-        ot_after_min=body.ot_after_min,
+        rules=shift_rules_service.ShiftRules(
+            start_time=body.start_time,
+            end_time=body.end_time,
+            grace_min=body.grace_min,
+            half_day_min=body.half_day_min,
+            overtime_min_minutes=body.overtime_min_minutes,
+        ),
     )
-    return ShiftResponse.from_model(shift)
+    return _shift_response(session, shift)
 
 
 @router.patch("/shifts/{shift_id}", response_model=ShiftResponse)
@@ -453,9 +479,29 @@ def update_shift(
 ) -> ShiftResponse:
     shift = items.get_item(session, Shift, shift_id)
     changes = body.model_dump(exclude_unset=True, exclude_none=True)
-    return ShiftResponse.from_model(
-        items.update_shift(session, actor=current_user.actor, shift=shift, changes=changes)
+    rules_effective_from = changes.pop("rules_effective_from", None)
+    shift = items.update_shift(
+        session,
+        actor=current_user.actor,
+        shift=shift,
+        changes=changes,
+        rules_effective_from=rules_effective_from,
     )
+    return _shift_response(session, shift)
+
+
+@router.get("/shifts/{shift_id}/rule-versions", response_model=list[ShiftRulesResponse])
+def list_shift_rule_versions(
+    shift_id: uuid.UUID,
+    current_user: CurrentUser = Depends(viewer),
+    session: Session = Depends(get_session),
+) -> list[ShiftRulesResponse]:
+    shift = items.get_item(session, Shift, shift_id)
+    _visible_plant(session, current_user, shift.plant_id)
+    return [
+        ShiftRulesResponse.from_model(version)
+        for version in shift_rules_service.list_rule_versions(session, shift.id)
+    ]
 
 
 @router.post("/shifts/{shift_id}/deactivate", response_model=ShiftResponse)
@@ -469,7 +515,7 @@ def deactivate_shift(
     items.set_item_active(
         session, actor=current_user.actor, item=shift, active=False, reason=body.reason
     )
-    return ShiftResponse.from_model(shift)
+    return _shift_response(session, shift)
 
 
 @router.post("/shifts/{shift_id}/reactivate", response_model=ShiftResponse)
@@ -483,4 +529,47 @@ def reactivate_shift(
     items.set_item_active(
         session, actor=current_user.actor, item=shift, active=True, reason=body.reason
     )
-    return ShiftResponse.from_model(shift)
+    return _shift_response(session, shift)
+
+
+# --- Weekly off (M5) ---
+
+
+def _weekly_off_response(session: Session, plant_id: uuid.UUID) -> WeeklyOffResponse:
+    current = shift_rules_service.weekly_off_on(session, plant_id, today_ist())
+    return WeeklyOffResponse(
+        current=WeeklyOffItem.from_model(current) if current else None,
+        history=[
+            WeeklyOffItem.from_model(item)
+            for item in shift_rules_service.list_weekly_offs(session, plant_id)
+        ],
+    )
+
+
+@router.get("/plants/{plant_id}/weekly-off", response_model=WeeklyOffResponse)
+def get_weekly_off(
+    plant_id: uuid.UUID,
+    current_user: CurrentUser = Depends(viewer),
+    session: Session = Depends(get_session),
+) -> WeeklyOffResponse:
+    _visible_plant(session, current_user, plant_id)
+    return _weekly_off_response(session, plant_id)
+
+
+@router.post(
+    "/plants/{plant_id}/weekly-off", response_model=WeeklyOffCreatedResponse, status_code=201
+)
+def set_weekly_off(
+    plant_id: uuid.UUID,
+    body: WeeklyOffRequest,
+    current_user: CurrentUser = Depends(editor),
+    session: Session = Depends(get_session),
+) -> WeeklyOffCreatedResponse:
+    weekly_off = shift_rules_service.set_weekly_off(
+        session,
+        actor=current_user.actor,
+        plant=plants_service.get_plant(session, plant_id),
+        weekday=body.weekday,
+        effective_from=body.effective_from,
+    )
+    return WeeklyOffCreatedResponse(weekly_off=WeeklyOffItem.from_model(weekly_off))

@@ -198,5 +198,21 @@ a real phone at 360 px, report downloads opened in Excel.
 - Spec M5 and M4b approved and committed (d87cc3a, 2fc29fc). Plan approved (2026-10-31).
 - 2026-10-31: handed over to Anuradha (Tushar delegated the build). No code written yet; local DB not checked.
 - Model choice by Tushar for slices 0-3: Opus + medium. Plan advice for screens (slice 7, P4): Sonnet + medium.
-- Next: slice 0, step 1.
-- Open questions: none.
+- 2026-10-31 (Anuradha, Opus + medium): **slice 0 done.**
+  - Step 1: time-machine 3.6 (MIT) + hypothesis 6.170 (MPL-2.0) as dev deps; `tests/clock_helpers.py`
+    (`PINNED_DAY` = Wed 28/10/2026, `ist()`, `frozen_at()`); `CURRENT_MILESTONE = 5`; backend floor 84
+    (frontend stays 82 for now, as the hand-over says; spec §2 item 17 wants 84 for both: raise it in slice 7).
+  - Step 2: migration 0019 (`shift_rule_versions`, `plant_weekly_offs`, `plants.attendance_start_date`,
+    `overtime_min_minutes`, `ot_after_min` dropped, grace 30, audit `shift.rules_migrated`); new
+    `org/shift_rules_service.py`; shift create/update write versions; weekly-off API; attendance start date in
+    PATCH /plants; readiness `attendance_start_set` / `weekly_off_set`; daily job copies due versions; demo
+    removal tool learns the two tables; frontend shift form swapped to the M5 fields (minimal, Gate C later).
+  - Tests: `test_m5_shift_rules.py` (14), `test_m5_migration_0019.py` (AC-24, own `_m0019_test` database),
+    old shift tests updated. AC-23 is proven at the version level now and fully (days) in slice 2.
+  - Decisions: docs/decisions/0036 lines 1–5 (**line 1 changes spec §6: same-day versions, latest save wins —
+    to confirm with Tushar**).
+- Order change inside the plan (no spec change): slice 1 step 3 (leave, holidays), then slice 2 step 5
+  (`counted_for_employees`, `day_window`, `compute_day`), then step 4 (corrections: their checks and preview need
+  the day window and the calculation), then step 6. Migration numbers stay 0020, 0021, 0022.
+- Next: slice 1, step 3 (migration 0020 holidays + leave).
+- Open questions: none (decision 0036 line 1 waits for Tushar's confirmation).

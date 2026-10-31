@@ -241,9 +241,55 @@ describe("shifts", () => {
         name: "Night",
         start_time: "19:00",
         end_time: "07:00",
-        grace_min: 10,
+        grace_min: 30,
         half_day_min: 240,
-        ot_after_min: 480,
+        overtime_min_minutes: 120,
+      }),
+    );
+  });
+
+  it("sends the date the changed rules apply from when a shift is edited", async () => {
+    const calls = mockApi({
+      ...base,
+      "GET /plants/p-1/shifts": {
+        body: [
+          {
+            id: "s-1",
+            plant_id: "p-1",
+            name: "General",
+            start_time: "07:00:00",
+            end_time: "19:00:00",
+            crosses_midnight: false,
+            shift_length_min: 720,
+            grace_min: 30,
+            half_day_min: 240,
+            overtime_min_minutes: 120,
+            is_active: true,
+            rules_from: "2026-10-20",
+            upcoming_rules: null,
+          },
+        ],
+      },
+      "PATCH /shifts/s-1": { body: {} },
+    });
+    const user = userEvent.setup();
+
+    renderRoute("/admin/plants/p-1");
+    await user.click(await screen.findByRole("tab", { name: "Shifts" }));
+    await user.click(await screen.findByRole("button", { name: "Edit General" }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Grace (start and end)"), {
+      target: { value: "15" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("These rules apply from"), {
+      target: { value: "2099-01-05" },
+    });
+    await user.click(within(dialog).getByRole("button", { name: "Save shift" }));
+
+    await vi.waitFor(() =>
+      expect(body(calls, "PATCH", "/shifts/s-1")).toMatchObject({
+        grace_min: 15,
+        rules_effective_from: "2099-01-05",
       }),
     );
   });
