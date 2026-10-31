@@ -97,7 +97,7 @@ def test_bulk_and_single_counting_agree_on_a_random_mix(
     kiosk = make_active_kiosk(db_session, plant, Device())
     workers: list[Worker] = [Worker(boss, plant, f"W-{n}") for n in range(4)]
     employee_ids = [worker.employee_id for worker in workers]
-    chooser = random.Random(5)  # fixed seed: the same mix on every run
+    chooser = random.Random(5)  # noqa: S311  (test data, fixed seed: the same mix on every run)
 
     for number in range(60):
         moment = START + timedelta(minutes=37 * number)
