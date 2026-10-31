@@ -96,3 +96,10 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     mock-up's `REPORT_RATE_LIMIT` was only a proposal); the leave overlap code stays `LEAVE_OVERLAPS`; "Leave from" on
     screens and the poster is the shift end (decision line 8). Spec §4.10 and §4.17 (old "leave from 16:30")
     are updated in the closing step.
+19. **Gate poster layout (slice 4, built from the approved gate C mock-up):** the "Your shift times" box is
+    built from the plant's active shifts and their rules of today (start + grace = "on time until", shift end =
+    "leave from"). To make room, the card/face boxes are shorter and "See IN or OUT" and "NOT ACCEPTED" sit side
+    by side. The M4 offline paragraph stays on the poster (the mock-up left it out) and the privacy text stays
+    at 11 pt, so with more than six shifts the box lists FIVE and the sixth line says "and N more shifts: ask
+    the plant office" (the mock-up listed six plus that line, which does not fit with the offline paragraph).
+    New icon `clock.svg` (Lucide, ISC). **To confirm with Tushar** (changes the mock-up and spec §4.17 slightly).
