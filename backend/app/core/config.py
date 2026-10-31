@@ -68,6 +68,15 @@ class Settings(BaseSettings):
     supabase_service_key: SecretStr | None = None
     snapshot_bucket: str = "punch-snapshots"
 
+    # --- M5: optional email for alerts (spec §8.2, decision 0034 line 16) ---
+    # All unset on the free tiers: email is then silently off and the bell is the only channel.
+    smtp_host: str | None = None
+    smtp_port: int = Field(default=587, ge=1, le=65535)
+    smtp_username: str | None = None
+    smtp_password: SecretStr | None = None
+    smtp_from: str | None = None
+    smtp_security: Literal["starttls", "ssl", "none"] = "starttls"
+
     # --- M3: face recognition (spec §7 rules 9 and 10, §8.2) ---
     # Encrypts the face templates. Separate from the snapshot key (decision 0016). Required in
     # production; in development the face endpoints then answer FACE_NOT_CONFIGURED.

@@ -18,6 +18,9 @@ from app.modules.users.models import Role, User
 from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant
 
+# These tests are about something else than the early-OUT alert (M5).
+pytestmark = pytest.mark.usefixtures("early_out_alert_off")
+
 SETTINGS = "/api/v1/settings"
 ME = "/api/v1/kiosk/me"
 

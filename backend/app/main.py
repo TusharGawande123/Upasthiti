@@ -30,6 +30,7 @@ from app.modules.holidays.router import router as holidays_router
 from app.modules.kiosks.router import router as kiosks_router
 from app.modules.leave.router import router as leave_router
 from app.modules.notices.router import router as notices_router
+from app.modules.notifications.router import router as notifications_router
 from app.modules.org.router import router as org_router
 from app.modules.printing.router import router as printing_router
 from app.modules.punches.admin_router import router as punch_log_router
@@ -112,6 +113,7 @@ def create_app() -> FastAPI:
     api_router.include_router(leave_router)
     api_router.include_router(regularisations_router)
     api_router.include_router(attendance_router)
+    api_router.include_router(notifications_router)
     app.include_router(api_router)
     return app
 

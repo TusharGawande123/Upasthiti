@@ -34,6 +34,7 @@ from app.modules.auth.permissions import Access, Capability
 from app.modules.auth.scope import plant_filter
 from app.modules.employees.models import Employee
 from app.modules.notices.schemas import NoticePerson as Person
+from app.modules.notifications.service import create_notification
 from app.modules.org.models import Plant, Shift
 from app.modules.punches.models import Punch, PunchReview
 from app.modules.regularisations.models import (
@@ -483,6 +484,7 @@ def create_correction(
         _mark_stale(session, employee.id, row.attendance_date)
     else:
         action = "attendance_correction.request"
+        _notify_requested(session, row, employee, now)
     record_audit(
         session,
         actor=current_user.actor,
@@ -552,6 +554,7 @@ def approve(
             {"reason_code": error.code},
         ) from error
     _decide(session, row, DecisionAction.APPROVED, current_user, now, note=note)
+    _notify_decided(session, row, "approved", None, employee, now)
     _mark_stale(session, row.employee_id, row.attendance_date)
     record_audit(
         session,
@@ -572,7 +575,10 @@ def reject(
 ) -> Regularisation:
     row = _pending_row(session, correction_id)
     employee = session.get(Employee, row.employee_id)
-    _decide(session, row, DecisionAction.REJECTED, current_user, utc_now(), reason=reason)
+    now = utc_now()
+    _decide(session, row, DecisionAction.REJECTED, current_user, now, reason=reason)
+    if employee is not None:
+        _notify_decided(session, row, "rejected", reason, employee, now)
     record_audit(
         session,
         actor=current_user.actor,
@@ -655,6 +661,53 @@ def reverse(
     )
     session.commit()
     return row
+
+
+# --- Notifications (F-7) -------------------------------------------------------------------------
+
+
+def _notify_requested(
+    session: Session, row: Regularisation, employee: Employee, now: datetime
+) -> None:
+    """A new request notifies the Super Admins (the bell); no names are stored."""
+    create_notification(
+        session,
+        kind="correction_requested",
+        severity="info",
+        plant_id=employee.plant_id,
+        text_key="notification.correction_requested",
+        params={"date": row.attendance_date.isoformat()},
+        link="/admin/corrections",
+        dedupe_key=f"correction_requested:{row.id}",
+        subject_ids=[row.id],
+        now=now,
+    )
+
+
+def _notify_decided(
+    session: Session,
+    row: Regularisation,
+    result: str,
+    reason: str | None,
+    employee: Employee | None,
+    now: datetime,
+) -> None:
+    """A decision notifies the person who asked (with the reason when it was rejected)."""
+    if row.is_direct:
+        return
+    create_notification(
+        session,
+        kind="correction_decided",
+        severity="info",
+        plant_id=employee.plant_id if employee else None,
+        target_user_id=row.requested_by,
+        text_key="notification.correction_decided",
+        params={"date": row.attendance_date.isoformat(), "result": result, "reason": reason},
+        link="/admin/corrections",
+        dedupe_key=f"correction_decided:{row.id}",
+        subject_ids=[row.id],
+        now=now,
+    )
 
 
 # --- Preview ------------------------------------------------------------------------------------

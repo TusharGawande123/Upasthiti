@@ -67,3 +67,10 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     So no remaining time can be shown offline. At sync, an OUT before the shift end is stored as a normal
     accepted punch with the mark `EARLY_OUT_OFFLINE` (not a flag: it counts at once), the day becomes
     Half-day or Short hours by the real minutes, and the Super Admin sees the mark in the punch log.
+14. **Heads and notifications:** the Corporate Head and Plant Head also see `absence_streak` and
+    `monthly_register` (plant scope; spec §7 rule 20 names them "per plant"), beside device offline, still
+    inside, many rejections and incomplete days. `review_digest` and `correction_requested` are for the Super
+    Admin only; `correction_decided` only for the person who asked. An email that fails is recorded once
+    (state `failed`, the error class only, never an address) and not retried: the unique delivery key keeps
+    it at one try, inside the "at most 3" of the spec. Migration numbers: early-OUT mark 0023, notifications
+    0024, shift swaps 0025, M4b 0026-0027.

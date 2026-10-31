@@ -14,6 +14,7 @@ from app.modules.holidays import models as holidays_models
 from app.modules.kiosks import models as kiosks_models
 from app.modules.leave import models as leave_models
 from app.modules.notices import models as notices_models
+from app.modules.notifications import models as notifications_models
 from app.modules.org import models as org_models
 from app.modules.punches import models as punches_models
 from app.modules.qr_cards import models as qr_cards_models
@@ -33,6 +34,7 @@ __all__ = [
     "kiosks_models",
     "leave_models",
     "notices_models",
+    "notifications_models",
     "org_models",
     "punches_models",
     "qr_cards_models",
