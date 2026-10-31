@@ -1,0 +1,131 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate C - Screen 6: Notifications (F-7), spec 4.13, 7 rule 20: the bell with unread count, its dropdown, the full page
+  (/admin/notifications) with filters, "Mark all as read", and "Email is not set up on this server".
+  States (URL hash): bell-open · bell-empty · bell-loading · bell-error · page-default · page-filtered · page-unread-only · page-empty · page-filter-empty ·
+                     page-loading · page-error · page-email-on · email-alerts · email-alerts-not-set-up · corporate-head · plant-head
+  MOCKUP ONLY - static HTML, fake data. Names are looked up when the page is read (never stored in the notification).
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti notifications</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Notifications";
+  const S = location.hash.replace("#", "") || "page-default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = USERS[ROLE];
+  const SA = ROLE === "sa";
+
+  /* kind -> icon, label, soft background, ink colour */
+  const KIND = {
+    still_inside: ["siren", "Still inside", "var(--danger-soft)", "var(--danger)"],
+    device_offline: ["wifi-off", "Device offline", "var(--warning-soft)", "var(--warning)"],
+    many_rejections: ["shield-alert", "Many rejections", "var(--warning-soft)", "var(--warning)"],
+    incomplete_days: ["clock-alert", "Incomplete days", "var(--muted)", "var(--foreground)"],
+    review_digest: ["flag", "Review digest", "var(--primary-soft)", "var(--primary)"],
+    correction_requested: ["file-pen", "Correction asked", "var(--primary-soft)", "var(--primary)"],
+    correction_decided: ["circle-check", "Correction decided", "var(--success-soft)", "var(--success)"],
+    absence_streak: ["user-x", "Absent 3 days", "var(--warning-soft)", "var(--warning)"],
+    monthly_register: ["file-spreadsheet", "Register ready", "var(--success-soft)", "var(--success)"],
+  };
+  /* kind, plant, text, time, link text, unread, urgent */
+  const ALL = [
+    ["still_inside", "K134", "2 people are still inside K134, 1 hour after the shift ended.", "19:05", "Open the list", true, true],
+    ["device_offline", "TP1", "Attendance device 'TP1 Gate' has been offline since 08:12. Check its power and internet.", "08:26", "Open attendance devices", true],
+    ["many_rejections", "PC2", "12 punches were refused at 'Gate tablet' in 30 minutes. Please check the device.", "07:48", "Open rejected punches", true],
+    ["correction_requested", "K134", "Prakash Kale asked for a correction for 29/10/2026 at K134.", "Yesterday 17:40", "Open the request", true],
+    ["incomplete_days", "K135", "3 days at K135 are missing an OUT (yesterday 30/10/2026).", "07:00", "Open the list", false],
+    ["review_digest", "All plants", "7 punches are waiting in Needs review. The oldest is 3 days old.", "07:00", "Open Needs review", false],
+    ["absence_streak", "SPI", "Imran Shaikh (E0559) has been absent for 3 working days in a row.", "Yesterday 07:00", "Open the month", false],
+    ["correction_decided", "K134", "Your correction for 27/10/2026 was approved by Asha Rao.", "29/10/2026", "Open the correction", false],
+    ["monthly_register", "K134", "The register of September 2026 is ready.", "02/10/2026", "Download the register", false],
+  ];
+  let ITEMS = ALL;
+  if (ROLE === "ph") ITEMS = ALL.filter((i) => i[1] === "K134" && i[0] !== "correction_requested").map((i, n) => { const c = i.slice(); if (n > 0) c[5] = false; return c; });
+  if (ROLE === "ch") ITEMS = ALL.filter((i) => i[0] !== "correction_requested");
+  const unreadOf = (arr) => arr.filter((i) => i[5]).length;
+  let SHOWN = ITEMS;
+  if (S === "page-filtered") SHOWN = ITEMS.filter((i) => i[0] === "still_inside");
+  if (S === "page-unread-only") SHOWN = ITEMS.filter((i) => i[5]);
+  if (S === "page-empty" || S === "page-filter-empty" || S === "bell-empty") SHOWN = [];
+  const UNREAD = S.indexOf("empty") >= 0 || S === "page-all-read" ? 0 : unreadOf(ITEMS);
+  window.MOCK_SHELL = { offline: 1, bell: UNREAD, menu: false };
+
+  function item(i) {
+    const k = KIND[i[0]];
+    return `<article class="nitem ${i[5] ? "is-unread" : ""} ${i[6] ? "is-urgent" : ""}" aria-label="${i[5] ? "Unread. " : ""}${k[1]}"><span class="ni" style="background:${k[2]};color:${k[3]}">${ic(k[0])}</span>
+      <div><div class="nk"><span class="badge ${i[6] ? "badge-urgent" : "badge-outline"}">${ic(k[0] === "siren" ? "siren" : k[0])}${i[6] ? "Urgent · " : ""}${k[1]}</span><span class="badge badge-neutral">${ic("factory")}${i[1]}</span></div>
+      <p class="nt">${i[2]}</p><a class="nl" href="#">${i[4]}${ic("arrow-right")}</a></div>
+      <div class="nm2"><span>${i[3]}</span>${i[5] ? `<span class="unread-tag">Unread</span>` : ""}</div></article>`;
+  }
+
+  /* ---------- bell dropdown ---------- */
+  function bellPanel() {
+    const head = (n) => `<div class="bp-head"><h2>${ic("bell")}Notifications${n ? ` <span class="badge badge-danger">${n} unread</span>` : ""}</h2>${n ? `<button class="btn btn-ghost btn-sm2">${ic("check-check")}Mark all as read</button>` : ""}</div>`;
+    const foot = `<div class="bp-foot"><a class="btn btn-outline" href="#">${ic("list")}See all</a></div>`;
+    if (S === "bell-loading") return `<div class="bell-panel" role="dialog" aria-label="Notifications">${head(0)}<div class="bp-list">${Array.from({ length: 3 }).map(() => `<div class="skrow"><span class="skeleton r"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div>`).join("")}</div></div>`;
+    if (S === "bell-error") return `<div class="bell-panel" role="dialog" aria-label="Notifications">${head(0)}<div class="err-box" style="padding:28px 16px"><span class="big" style="width:56px;height:56px">${ic("cloud-off")}</span><h3 style="font-size:17px">Notifications could not be loaded</h3><p style="font-size:14px">Check the internet. The bell tries again in a minute.</p><button class="btn btn-primary">${ic("refresh-cw")}Try again</button></div></div>`;
+    if (S === "bell-empty") return `<div class="bell-panel" role="dialog" aria-label="Notifications">${head(0)}<div class="empty-box" style="padding:32px 16px"><span class="big" style="width:60px;height:60px">${ic("bell-ring")}</span><h3 style="font-size:18px">You are all caught up</h3><p style="font-size:14px">Alerts about devices, people still inside and corrections appear here.</p></div>${foot}</div>`;
+    return `<div class="bell-panel" role="dialog" aria-label="Notifications">${head(UNREAD)}<div class="bp-list">${ITEMS.slice(0, 6).map(item).join("")}</div>${foot}</div>`;
+  }
+  if (S.indexOf("bell-") === 0) window.MOCK_SHELL.bellPanel = bellPanel();
+
+  /* ---------- page ---------- */
+  function filters() {
+    const f = S === "page-filtered" || S === "page-filter-empty", u = S === "page-unread-only";
+    return `<div class="filters-row"><div class="grp">${sel("nk", "Kind", f ? "Still inside" : "All kinds", f)}${ROLE === "ph" ? "" : sel("np", "Plant", S === "page-filter-empty" ? "SPI" : "All plants", S === "page-filter-empty")}</div>
+      <div class="grp"><span class="gl">Show</span><div class="seg seg-sm" role="group" aria-label="Show"><button aria-pressed="${!u}">All</button><button aria-pressed="${u}">${ic("circle-dot")}Unread <b>${UNREAD || 0}</b></button><button aria-pressed="false">Read</button></div></div></div>`;
+  }
+  function emailNote() {
+    if (S === "page-email-on") return `<div class="alert alert-info" style="margin-bottom:16px">${ic("mail")}<span><b>Email alerts are on.</b> Choose the alerts you want by email in <b>My email alerts</b> (account menu). Emails never contain names or codes.</span></div>`;
+    return `<div class="emailnote" style="margin:0 0 16px">${ic("mail-x")}<span><b>Email is not set up on this server.</b>Alerts are shown in the bell and on this page.</span></div>`;
+  }
+  function pageBody() {
+    if (S === "page-loading") return `${emailNote()}<div class="card">${filters()}${Array.from({ length: 5 }).map(() => `<div class="skrow"><span class="skeleton r"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div>`).join("")}</div>`;
+    if (S === "page-error") return `${emailNote()}<div class="card">${filters()}<div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>Notifications could not be loaded</h3><p>The server did not answer. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></div>`;
+    if (S === "page-empty") return `${emailNote()}<div class="card">${filters()}<div class="empty-box"><span class="big">${ic("bell-ring")}</span><h3>You are all caught up</h3><p>When a device goes offline, people are still inside after the shift, or a correction needs you, it appears here.</p></div></div>`;
+    if (S === "page-filter-empty") return `${emailNote()}<div class="card">${filters()}<div class="empty-box"><span class="big">${ic("search-x")}</span><h3>No notifications match these filters</h3><p>Try another kind or plant, or show all.</p><button class="btn btn-outline btn-lg">${ic("rotate-ccw")}Clear filters</button></div></div>`;
+    return `${emailNote()}<div class="card">${filters()}${SHOWN.map(item).join("")}<div class="table-foot"><span>${SHOWN.length} notification${SHOWN.length === 1 ? "" : "s"} · kept for 90 days</span><span>Newest first · times in IST</span></div></div>`;
+  }
+
+  /* ---------- My email alerts ---------- */
+  function emailDialog() {
+    const ok = S === "email-alerts";
+    const events = [["still_inside", "People still inside after the shift", true], ["device_offline", "An attendance device is offline", true], ["many_rejections", "Many refused punches", false], ["incomplete_days", "Days missing an OUT", false], ["review_digest", "Needs review summary", true], ["correction_requested", "A correction was asked", true], ["absence_streak", "A person absent 3 days in a row", false], ["monthly_register", "Monthly register by email (Excel, your plants)", true]];
+    const sw = (on) => `<button class="sw" role="switch" aria-checked="${on}"><span class="track"></span><span class="word">${on ? ic("check") + "On" : "Off"}</span></button>`;
+    const body = ok ? `<p class="muted" style="margin:0 0 10px;font-size:14.5px">Emails go to <b style="color:var(--foreground)">asha.rao@sheetshapers.example</b>. An email has no names or codes, only a short line and a link.</p><div class="myemail" style="margin:0 -24px;border-top:1px solid var(--border)">${events.map((e) => { const k = KIND[e[0]]; return `<div class="ev"><div><b>${ic(k[0])}${e[1]}</b></div>${sw(e[2])}</div>`; }).join("")}</div>`
+      : `<div class="emailnote" style="margin:0">${ic("mail-x")}<span><b>Email is not set up on this server.</b>Alerts are shown in the bell. There is nothing to switch on here.</span></div>`;
+    return dialog({ icon: "mail", title: "My email alerts", desc: ok ? "Choose which alerts you also want by email." : "Email alerts are off for everyone on this server.", wide: true, body, foot: ok ? `<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">${ic("check")}Save</button>` : `<button class="btn btn-outline btn-lg">Close</button>` });
+  }
+
+  window.mockStart(function () {
+    const showPage = S.indexOf("bell-") !== 0 || true;
+    const markAll = UNREAD ? `<div class="head-actions"><button class="btn btn-outline btn-lg">${ic("check-check")}Mark all as read</button></div>` : "";
+    document.getElementById("page").innerHTML = `<div class="page-head anim-fade-up"><div><h1 class="page-title">Notifications</h1><p class="page-desc">${ROLE === "ph" ? "Alerts for your plant." : "Alerts for the plants you can see. The bell in the top bar shows the newest."}</p></div>${markAll}</div>${pageBody()}`;
+    if (S.indexOf("email-alerts") === 0) document.getElementById("layer").innerHTML = emailDialog();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

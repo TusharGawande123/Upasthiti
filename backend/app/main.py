@@ -21,6 +21,7 @@ from app.modules.audit.router import router as audit_router
 from app.modules.auth.dependencies import check_same_origin
 from app.modules.auth.router import router as auth_router
 from app.modules.contractors.router import router as contractors_router
+from app.modules.dashboard.router import router as dashboard_router
 from app.modules.employees.router import router as employees_router
 from app.modules.employees.search_router import router as search_router
 from app.modules.face.engine_provider import get_face_engine
@@ -114,6 +115,7 @@ def create_app() -> FastAPI:
     api_router.include_router(regularisations_router)
     api_router.include_router(attendance_router)
     api_router.include_router(notifications_router)
+    api_router.include_router(dashboard_router)
     app.include_router(api_router)
     return app
 

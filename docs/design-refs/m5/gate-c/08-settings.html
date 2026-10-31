@@ -1,0 +1,140 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate C - Screen 7: Settings (/admin/settings), new cards "Attendance" and "Alerts" and the three new lines of the
+  "Attendance device screen" card (spec 4.14, 4.16, 7 rule 16). Same style as the M4 settings screen.
+  States (URL hash): default · changed · range-error · cross-check-error · save-reason · email-set-up · corporate-head · plant-head · loading · error
+  Below 768 px the sub-groups are accordions. MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti settings</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Settings";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, bell: 4 };
+  const EDIT = ROLE === "sa";
+  const NARROW = window.innerWidth < 768;
+  const SMTP = S === "email-set-up";
+
+  /* number rows: key, label, help, value, default, min, max, unit */
+  const NUM = {
+    attendance: [
+      ["window", "Punches counted before a shift", "A punch up to this long before the shift starts belongs to that shift's day. It must be shorter than 24 hours minus the longest active shift.", "4", "4", "1", "8", "hours"],
+      ["corr", "Oldest day a correction can ask for", "A Plant Head or Corporate Head can ask for a correction up to this many days back. The Super Admin can still correct older days directly.", "31", "31", "1", "92", "days"],
+    ],
+    alerts1: [
+      ["inside", "Alert when people are still inside", "The alert appears this long after the shift ended, if someone has an IN but no OUT.", "60", "60", "15", "240", "minutes"],
+      ["rcount", "Many refused punches: how many", "Alert when one attendance device refuses this many punches within the time below. Refusals for the cool-down are not counted.", "10", "10", "3", "100", "punches"],
+      ["rmin", "Many refused punches: within", "The time in which that many refused punches count as many.", "30", "30", "5", "240", "minutes"],
+    ],
+    alerts2: [
+      ["streak", "Alert for a person who stays away", "A permanent employee absent this many working days in a row (leave, weekly offs and holidays do not count).", "3", "3", "2", "10", "working days"],
+    ],
+    alerts3: [
+      ["keep", "Keep notifications for", "Older notifications are deleted every night.", "90", "90", "30", "365", "days"],
+    ],
+  };
+  const DRAFT = {};
+  if (S === "changed" || S === "save-reason") { DRAFT.window = "6"; }
+  if (S === "range-error") DRAFT.window = "9";
+  if (S === "cross-check-error") DRAFT.window = "8";
+  const ERR = { window: S === "range-error" ? "Allowed 1 to 8 hours." : S === "cross-check-error" ? "Must be below 7 hours. The longest active shift is 17 hours (24 - 17 = 7)." : "" };
+  const LATE_ON = S === "changed" || S === "save-reason";
+
+  function numRow(r) {
+    const [key, label, help, value, def, min, max, unit] = r;
+    const changed = DRAFT[key] !== undefined;
+    const v = changed ? DRAFT[key] : value;
+    const err = changed && ERR[key];
+    return `<div class="srow ${changed ? "is-changed" : ""}"><div><label class="l" for="${key}">${label}${changed ? `<span class="badge badge-info chg">${ic("pencil")}Changed</span>` : ""}</label><p class="h">${help}</p><p class="d">Default: ${def} ${unit} · allowed ${min} to ${max} ${unit}</p></div>
+      <div><div class="inrow"><input class="input" id="${key}" value="${v}" ${EDIT ? "" : "readonly"} inputmode="numeric" ${err ? `aria-invalid="true" aria-describedby="e-${key}"` : ""}/><span class="unit">${unit}</span></div>${err ? `<p class="errline" id="e-${key}">${ic("circle-alert")}${err}</p>` : ""}${changed && EDIT ? `<button class="reset">${ic("rotate-ccw")}Reset to default</button>` : ""}</div>
+      ${S === "cross-check-error" && changed ? `<div class="warnbox" role="alert">${ic("triangle-alert")}<span><b>Long shift 17 h</b> is the longest active shift of K135. A window of 8 hours could start before the day before's shift ended.</span></div>` : ""}</div>`;
+  }
+  function swRow(label, help, on, def, preview, warn, extra) {
+    const changed = extra === "changed";
+    return `<div class="srow ${changed ? "is-changed" : ""}"><div><span class="l">${label}${changed ? `<span class="badge badge-info chg">${ic("pencil")}Changed</span>` : ""}</span><p class="h">${help}</p><p class="d">Default: ${def}</p>${preview ? `<span class="line-prev" aria-label="Example of the line on the screen">${ic("monitor")}<span>${preview}</span></span><br><small class="muted" style="font-size:12px">${ic("volume-x")} Never spoken · never shows a name</small>` : ""}</div>
+      <div class="swcell"><button class="sw" role="switch" aria-checked="${on}" ${EDIT ? "" : "disabled"}><span class="track"></span><span class="word">${on ? ic("check") + "On" : ic("minus") + "Off"}</span></button></div>${warn || ""}</div>`;
+  }
+  function group(title, icon, inner, count, openFirst, changedN) {
+    const open = !NARROW || openFirst || changedN;
+    return `<details class="subgroup" ${open ? "open" : ""}><summary><span class="sgi">${ic(icon)}</span><span><h3>${title}</h3><span class="cnt">${count} setting${count > 1 ? "s" : ""}</span></span>${changedN ? `<span class="badge badge-info chg changed-n">${changedN} changed</span>` : ""}<i data-lucide="chevron-down" class="chev"></i></summary>${inner}</details>`;
+  }
+  function card(id, title, icon, desc, groups) {
+    return `<section class="card set-card" id="${id}" aria-labelledby="${id}-t"><div class="set-head"><span class="hi">${ic(icon)}</span><div><h2 id="${id}-t">${title}</h2><p>${desc}</p></div><div class="right"><span class="badge badge-new">${ic("sparkles")}New in this version</span></div></div>${groups}</section>`;
+  }
+  function collapsed(icon, title, summary) {
+    return `<section class="card set-card collapsed-card"><div class="set-head" style="border-bottom:0;align-items:center"><span class="hi">${ic(icon)}</span><div><h2>${title}</h2><p class="summary">${summary}</p></div><div class="right"><i data-lucide="chevron-down" style="width:20px;height:20px;color:var(--muted-foreground)"></i></div></div></section>`;
+  }
+
+  function emailRow() {
+    if (!SMTP) return `<div class="emailnote" style="margin:16px 20px">${ic("mail-x")}<span><b>Email is not set up on this server.</b>Alerts are shown in the bell. The email switch appears when the server has an email service.</span></div>`;
+    return swRow("Email alerts", "Sends short emails with no names to the people who switched email on in 'My email alerts'. Off by default.", false, "Off", "", "", "") +
+      `<div class="srow"><div><span class="l">Send a test email</span><p class="h">Sends one test message to your own address, asha.rao@sheetshapers.example.</p></div><div><button class="btn btn-outline" ${EDIT ? "" : "disabled"}>${ic("send")}Send a test email</button></div></div>`;
+  }
+
+  function page() {
+    if (S === "loading") return `<div class="page-narrow"><div class="skeleton" style="height:40px;width:260px;margin-bottom:16px"></div><div class="skeleton" style="height:300px;margin-bottom:16px"></div><div class="skeleton" style="height:360px;margin-bottom:16px"></div><div class="skeleton" style="height:240px"></div></div>`;
+    if (S === "error") return `<div class="page-narrow"><div class="page-head"><div><h1 class="page-title">Settings</h1></div></div><div class="card"><div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>Settings could not be loaded</h3><p>The server did not answer. Your settings are safe. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></div></div>`;
+    const sub = EDIT ? "Company-wide rules. Every change is saved in the audit log with a reason." : "Company-wide rules. Only the Super Admin can change them.";
+    const banner = !EDIT ? `<div class="alert alert-info mb">${ic("eye")}<span><b>View only.</b> Only the Super Admin can change these settings. You can read them to see how attendance and alerts work.</span></div>` : "";
+    const wn = DRAFT.window !== undefined ? 1 : 0;
+    const attendance = card("att", "Attendance", "calendar-check", "How the day is worked out. Shift times, grace and overtime are set per shift on the plant page.",
+      group("Day window and corrections", "calendar-clock", NUM.attendance.map(numRow).join(""), 2, true, wn));
+    const alerts = card("alr", "Alerts", "bell-ring", "When the bell tells the office something. Shown in the bell; email only if the server can send it.",
+      group("Safety and attendance devices", "siren", NUM.alerts1.map(numRow).join(""), 3, false, 0) +
+      group("People", "user-x", NUM.alerts2.map(numRow).join(""), 1, false, 0) +
+      group("Keeping and email", "mail", NUM.alerts3.map(numRow).join("") + emailRow(), SMTP ? 3 : 1, false, 0));
+    const gate = card("gate", "Attendance device screen", "tablet-smartphone", "Small lines on the screen at the plant gate. Texts of at least 24 px, never spoken, never with a name.",
+      group("Lines on the gate screen", "type",
+        swRow("Show how many people are inside", "A small line under the clock on the idle screen. It hides while the device is offline.", true, "On", "Inside now: 214", "", "") +
+        swRow("Tell a late person how late they are", "After an accepted IN, only for a permanent employee who came after the grace time. Not shown for saved (offline) punches.", LATE_ON, "Off", "You are 40 minutes late today.", "", LATE_ON ? "changed" : "") +
+        swRow("Show 'This month' after a punch", "Days present this month, for the normal result time only. No name and no other numbers.", false, "Off", "This month: 18 days present", `<div class="warnbox">${ic("triangle-alert")}<span><b>People standing behind can read it.</b> Tell the workers before you switch it on.</span></div>`, ""), 3, true, LATE_ON ? 1 : 0));
+    const changes = (DRAFT.window !== undefined ? 1 : 0) + (LATE_ON ? 1 : 0);
+    return `<div class="page-narrow" style="padding-bottom:96px"><div class="page-head anim-fade-up"><div><h1 class="page-title">Settings</h1><p class="page-desc">${sub}</p></div></div>${banner}
+      <div class="stack">${collapsed("timer", "Punch rules", "Cool-down 2 min · earliest OUT 30 min · longest open IN 20 h")}${attendance}${alerts}${gate}${collapsed("map-pin", "Location and anti-proxy", "Accuracy 50 m · margin 25 m")}${collapsed("scan-face", "Face recognition", "Match threshold 0.45 · anti-spoof 0.80")}</div></div>`;
+  }
+  function savebar() {
+    const bad = S === "range-error" || S === "cross-check-error";
+    const n = S === "changed" ? 2 : 1;
+    return `<div class="savebar"><div><p>${ic("pencil")}${n} unsaved change${n > 1 ? "s" : ""}${bad ? " · fix the error first" : ""}</p><div style="display:flex;gap:8px"><button class="btn btn-outline">Discard</button><button class="btn btn-light" ${bad ? "disabled" : ""}>Save changes</button></div></div></div>`;
+  }
+  function reasonDialog() {
+    return dialog({ icon: "save", tone: "warning", title: "Save 2 changes?", desc: "Every change is saved in the audit log.", wide: true,
+      body: `<ul class="change-list"><li>${ic("calendar-clock")}<b>Punches counted before a shift</b><span class="from tnum">4 hours</span>${ic("arrow-right")}<b class="tnum">6 hours</b></li><li>${ic("clock-alert")}<b>Tell a late person how late they are</b><span class="from tnum">Off</span>${ic("arrow-right")}<b class="tnum">On</b></li></ul>
+      <label class="label" for="why" style="margin-top:14px">Reason (required)</label><textarea class="input" id="why" style="width:100%">Night shift workers punch up to 6 hours early at the K135 gate; the client asked for the late hint</textarea><div class="field-row" style="margin-top:6px"><span class="help">At least 10 characters.</span><span class="counter">96 / 300</span></div>`,
+      foot: `<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">${ic("save")}Save changes</button>` });
+  }
+
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    const layer = document.getElementById("layer");
+    if (["changed", "range-error", "cross-check-error"].includes(S)) layer.innerHTML = savebar();
+    if (S === "save-reason") layer.innerHTML = reasonDialog();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

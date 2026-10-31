@@ -1,0 +1,154 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate A, screen 3: Emergency muster /admin/muster, spec 4.2 (+ print layout).
+  States (URL hash): default · search · loading · offline · empty · all-plants · plant-head · demo · picker-open · print
+  Add ?shot before the # to hide the state tag and freeze the animations.
+  MOCKUP ONLY - static HTML, fake data (data.js), no real names.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti emergency muster</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m5.css" />
+</head>
+<body>
+<div class="app" id="appshell">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="printroot"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="data.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Emergency muster";
+  const S = location.hash.replace("#", "") || "default";
+  const PH = S === "plant-head";
+  const ALL = S === "all-plants";
+  const DEMO = S === "demo";
+  const OFFLINE = S === "offline";
+  const EMPTY = S === "empty";
+  const LOADING = S === "loading";
+  const QUERY = S === "search" ? "Shree" : "";
+  window.MOCK_USER = PH ? { name: "Prakash Kale", role: "Plant Head · K134" } : { name: "Asha Rao", role: "Super Admin" };
+  window.MOCK_SHELL = { offline: 1, review: 7, banner: null };
+
+  const DEVICES = ["Main gate phone", "Gate 2 PC"];
+  const ROWS = window.makeRows(134, 214, 98, DEVICES);
+  const LISTTIME = "09:02:15";
+  const hl = (s) => QUERY ? s.replace(new RegExp("(" + QUERY + ")", "ig"), "<mark>$1</mark>") : s;
+  const dash = `<span class="dash" aria-label="none">–</span>`;
+  const typeBadge = (t) => t === "Permanent" ? `<span class="badge badge-perm">${ic("id-card")}Permanent</span>` : `<span class="badge badge-temp">${ic("clock")}Temporary</span>`;
+
+  function pickerBlock() {
+    if (PH) return `<div class="plant-fixed">${ic("factory")}<div><small>Your plant</small>Sheet Shapers K-134</div></div>`;
+    const label = ALL ? "All plants" : "Sheet Shapers K-134";
+    const open = S === "picker-open";
+    const menu = open ? `<div class="menu" role="listbox"><div class="opt" role="option" aria-selected="false">${ic("layers")}<b>All plants</b><span class="sub">${inr(sumPlants(window.PLANTS).inside)} inside</span></div><hr/>${window.PLANTS.filter((p) => p.started).map((p) => `<div class="opt" role="option" aria-selected="${p.code === "K134"}">${ic(p.code === "K134" ? "check" : "factory")}<b>${p.code}</b><span>${p.name.replace("Sheet Shapers ", "")}</span><span class="sub">${p.inside} inside</span></div>`).join("")}<hr/><div class="switch-row"><span>Show demo plants<small>Saved in this browser.</small></span><button class="switch" role="switch" aria-checked="false" aria-label="Show demo plants"></button></div></div>` : "";
+    return `<div class="picker-wrap"><button class="picker" aria-haspopup="listbox" aria-expanded="${open}" aria-label="Plant: ${label}">${ic(ALL ? "layers" : "factory")}<span><small>Plant</small>${label}</span>${ic("chevrons-up-down").replace("<i ", '<i class="chev" ')}</button>${menu}</div>`;
+  }
+
+  function header() {
+    const count = EMPTY ? 0 : ALL ? sumPlants(window.PLANTS).inside : 214;
+    const dis = OFFLINE ? "" : "";
+    const emptyOff = EMPTY ? ` aria-disabled="true"` : "";
+    const pdfOff = OFFLINE || EMPTY ? ` aria-disabled="true"` : "";
+    return `
+    <div class="dtop" style="margin-bottom:0"><div class="dtop-left"><div class="mtitle"><span class="round-ic">${ic("siren")}</span><h1>Emergency muster</h1></div>
+      ${DEMO ? `<div class="chips-line" style="margin-top:8px"><span class="demo-chip">${ic("flask-conical")}Demo plants shown</span></div>` : ""}</div>${pickerBlock()}</div>
+    <p class="mnote">${ic("info")}<span>The list shows people whose last punch is IN. Visitors and people who did not punch are not on it.</span></p>
+    ${OFFLINE ? `<div class="offline-line" role="alert">${ic("wifi-off")}<span>No connection. This is the list of 09:02. People who punched since then are missing.</span><button class="btn btn-outline">${ic("refresh-cw")}Try again</button></div>` : ""}
+    <section class="card mcontrol" aria-label="Muster summary">
+      <div class="mcount" role="status" aria-live="polite">${LOADING ? `<span class="skeleton" style="width:150px;height:64px"></span>` : `<span class="n">${inr(count)}</span><span class="w">${count === 1 ? "person" : "people"} inside</span>`}</div>
+      <div class="mtime">${ic(OFFLINE ? "history" : "clock")}<div>List of ${OFFLINE ? "09:02" : LISTTIME}<small>${TODAY}${OFFLINE ? " · saved copy" : ""}</small></div></div>
+      <div class="mbtns"><button class="btn btn-primary btn-xxl"${emptyOff}>${ic("printer")}Print</button><button class="btn btn-outline btn-xxl ${pdfOff ? "dashed" : ""}"${pdfOff}>${ic("file-down")}Download PDF</button></div>
+      ${OFFLINE ? `<p class="mhint">${ic("wifi-off")}Download PDF needs a connection. Print works.</p>` : ""}
+    </section>`;
+  }
+
+  function tools(shown, total) {
+    return `<div class="mtools"><div class="search-box">${ic("search")}<input class="input" placeholder="Search code, name, department or contractor" aria-label="Search the list" value="${QUERY}" ${EMPTY || LOADING ? "disabled" : ""}/></div>
+      <span class="shown" aria-live="polite">${EMPTY ? "" : QUERY ? `${shown} of ${total} people match "${QUERY}"` : `${total} people`}</span></div>`;
+  }
+
+  function table(rows) {
+    const body = rows.map((r) => `<tr><td><span class="code">${hl(r.code)}</span></td><td class="nm">${hl(r.name)}</td><td>${typeBadge(r.type)}</td><td>${r.category}</td><td>${hl(r.dept)}</td><td>${r.contractor ? hl(r.contractor) : dash}</td><td><span class="time">${ic("log-in")}${r.inTime}</span></td><td>${r.device}</td></tr>`).join("");
+    return `<div class="mtab-wrap table-scroll"><table class="mtab"><caption class="sr-only">People inside now, sorted by department, then name</caption><thead><tr><th scope="col">Code</th><th scope="col">Name</th><th scope="col">Type</th><th scope="col">Category</th><th scope="col">Department</th><th scope="col">Contractor</th><th scope="col">IN time</th><th scope="col">Attendance device</th></tr></thead><tbody>${body}</tbody></table></div>`;
+  }
+  function cards(rows) {
+    return `<div class="mcards">${rows.map((r) => `<article class="mrow"><div class="top"><span class="code">${hl(r.code)}</span><span class="nm">${hl(r.name)}</span>${typeBadge(r.type)}</div><div class="meta">${r.category} · ${hl(r.dept)}${r.contractor ? " · " + hl(r.contractor) : ""}</div><div class="inl"><span class="time">${ic("log-in")}IN ${r.inTime}</span><span class="dev">${ic("tablet-smartphone")}${r.device}</span></div></article>`).join("")}</div>`;
+  }
+
+  function listCard() {
+    if (LOADING) return `<section class="card" aria-busy="true"><div style="padding:16px;display:grid;gap:10px">${'<div class="skeleton" style="height:48px"></div>'.repeat(9)}</div></section>`;
+    if (EMPTY) return `<section class="card"><div class="empty-big"><span class="round" style="background:var(--success-soft);color:var(--success)">${ic("circle-check")}</span><h2>Nobody is inside right now</h2><p>When someone punches IN at an attendance device, they appear here.</p></div></section>`;
+    if (ALL) {
+      const plants = window.PLANTS.filter((p) => p.started);
+      const secs = plants.map((p, i) => {
+        const open = i === 0;
+        const head = `<button class="plant-head ${open ? "" : "collapsed"}" aria-expanded="${open}">${ic(open ? "chevron-down" : "chevron-right")}<div><b>${p.code}</b> <span class="sub2">${p.name}</span></div><span class="cnt">${p.inside}<small>people inside</small></span></button>`;
+        if (!open) return `<div class="plant-sec">${head}</div>`;
+        const rows = ROWS.slice(0, 6);
+        return `<div class="plant-sec">${head}${table(rows)}${cards(rows)}<div class="mfoot"><span>Showing 6 of ${p.inside} people</span><button class="btn btn-outline">${ic("chevrons-down")}Show all ${p.inside}</button></div></div>`;
+      }).join("");
+      return `<section class="card" style="overflow:hidden">${secs}</section>`;
+    }
+    const all = QUERY ? ROWS.filter((r) => (r.code + r.name + r.dept + r.contractor).toLowerCase().includes(QUERY.toLowerCase())) : ROWS;
+    const rows = all.slice(0, 14);
+    return `<section class="card" style="overflow:hidden">${table(rows)}${cards(rows)}<div class="mfoot"><span>Showing ${rows.length} of ${all.length} people. Print and PDF include everyone${QUERY ? " (the whole plant, not only the matches)" : ""}.</span><button class="btn btn-outline">${ic("chevrons-down")}Show ${Math.min(50, all.length - rows.length)} more</button></div></section>`;
+  }
+
+  /* ---------- Print preview (A4 portrait, black and white, tick box column) ---------- */
+  function paginate() {
+    const CAP = 35, pages = [];
+    let page = [], used = 0, lastDept = null;
+    ROWS.forEach((r) => {
+      const needHead = r.dept !== lastDept || used === 0;
+      const need = needHead ? 2 : 1;
+      if (used + need > CAP) { pages.push(page); page = []; used = 0; }
+      if (needHead || used === 0) { page.push({ head: r.dept + (lastDept === r.dept ? " (continued)" : ""), count: ROWS.filter((x) => x.dept === r.dept).length }); used++; }
+      page.push(r); used++; lastDept = r.dept;
+    });
+    pages.push(page);
+    return pages;
+  }
+  function paper(pageRows, no, total) {
+    const body = pageRows.map((r) => r.head
+      ? `<tr class="dept"><td colspan="8">${r.head} <span style="font-weight:600">· ${r.count} people</span></td></tr>`
+      : `<tr><td class="tick"><span class="box"></span></td><td><span class="code">${r.code}</span></td><td class="nm">${r.name}</td><td>${r.type}</td><td>${r.category}</td><td>${r.contractor || "–"}</td><td>${r.inTime}</td><td>${r.device}</td></tr>`).join("");
+    return `<div class="paper"><div class="ph"><div class="l"><h1>Emergency muster · Sheet Shapers K-134</h1><small>List of ${LISTTIME}, ${TODAY} · sorted by department, then name · tick each person at the assembly point</small></div><div class="r"><b>214</b>people inside</div></div>
+      <div class="roll"><span>Roll call done by:</span><span>Time:</span><span>Assembly point:</span></div>
+      <table><colgroup><col style="width:34px"><col style="width:54px"><col style="width:140px"><col style="width:66px"><col style="width:60px"><col style="width:130px"><col style="width:40px"><col></colgroup>
+      <thead><tr><th>Tick</th><th>Code</th><th>Name</th><th>Type</th><th>Category</th><th>Contractor</th><th>IN</th><th>Attendance device</th></tr></thead><tbody>${body}</tbody></table>
+      <div class="foot"><span>Upasthiti · Emergency muster · K134 · 28/10/2026 · printed 09:03 by Asha Rao</span><b>Page ${no} of ${total}</b></div></div>`;
+  }
+  function printView() {
+    const pages = paginate();
+    const total = pages.length;
+    document.getElementById("appshell").style.display = "none";
+    document.body.style.background = "#5b6473";
+    const w = window.innerWidth;
+    const two = w >= 1100;
+    const scale = Math.min(1, (w - 40 - (two ? 20 : 0)) / (794 * (two ? 2 : 1)));
+    const pr = document.getElementById("printroot");
+    pr.innerHTML = `<div class="print-stage" style="zoom:${scale}"><div style="flex-basis:100%;color:#fff;font:600 18px var(--font-sans);text-align:center">Print preview · A4 portrait · black and white · page 1 and 2 of ${total}</div>${paper(pages[0], 1, total)}${paper(pages[1], 2, total)}</div>`;
+  }
+
+  window.mockStart(function () {
+    if (S === "print") { printView(); document.getElementById("state-tag").textContent = "State: print layout"; return; }
+    document.getElementById("page").innerHTML = `<div class="page-wide">${header()}${tools(QUERY ? ROWS.filter((r) => (r.code + r.name + r.dept + r.contractor).toLowerCase().includes(QUERY.toLowerCase())).length : 214, 214)}${listCard()}</div>`;
+    const tags = { default: "Super Admin, plant K134", search: "search: Shree", loading: "loading", offline: "no connection: saved list", empty: "nobody inside", "all-plants": "All plants", "plant-head": "Plant Head: no picker", demo: "demo plants shown", "picker-open": "plant picker open" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>

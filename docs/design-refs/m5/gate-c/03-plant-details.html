@@ -1,0 +1,98 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate C - Screen 2b: Plant page, Details tab additions (spec 4.9, 7 rules 3 and 4): weekly off with its history and the attendance start date.
+  States (URL hash): default · weekly-off-dialog · weekly-off-error · start-date-dialog · start-date-error · upcoming-change · loading · error ·
+                     corporate-head · plant-head
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti plant details</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Plants";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, bell: 4 };
+  const SA = ROLE === "sa";
+  const UP = S === "upcoming-change";
+
+  function tabs(cur) {
+    const t = [["info", "Details"], ["map", "Geofence"], ["clock", "Shifts"], ["layers", "Categories"], ["tablet-smartphone", "Attendance devices"]];
+    return `<nav class="tabs" aria-label="Plant sections">${t.map((x) => `<a href="#" ${x[1] === cur ? 'aria-current="page"' : ""}>${ic(x[0])}${x[1]}</a>`).join("")}</nav>`;
+  }
+
+  function weeklyHistory() {
+    const rows = [];
+    if (UP) rows.push(`<li><b>From 15/11/2026</b> Saturday <span class="badge badge-warning">${ic("clock")}Upcoming</span></li>`);
+    rows.push(`<li><b>From 01/04/2026</b> Sunday <span class="badge badge-active">${ic("check")}${UP ? "In force until 14/11/2026" : "In force"}</span></li>`);
+    rows.push(`<li><b>From 01/10/2025</b> Saturday <span class="badge badge-neutral">Earlier</span></li>`);
+    return `<ul class="hist-mini" aria-label="Weekly off history">${rows.join("")}</ul>`;
+  }
+
+  function details() {
+    const edit = (label, icon) => SA ? `<button class="btn btn-outline">${ic(icon)}${label}</button>` : "";
+    return `<section class="card"><div class="card-head"><h2 class="card-title">${ic("building-2")}Plant details</h2></div>
+      <div class="det-row"><div class="dl">${ic("hash")}Code and name</div><div class="dv"><span class="big">K134</span> · Sheet Shapers K-134<small>MIDC Waluj, Chhatrapati Sambhajinagar</small></div><div></div></div>
+      <div class="det-row"><div class="dl">${ic("calendar-off")}Weekly off</div><div class="dv"><span class="big">${UP ? "Sunday" : "Sunday"}</span> <span class="muted">from 01/04/2026</span>${UP ? `<small><b style="color:var(--warning)">Changes to Saturday from 15/11/2026.</b> Until then Sunday stays the weekly off.</small>` : `<small>Everyone at this plant has the same weekly off. Days before the change keep the old one.</small>`}<div style="margin-top:12px"><span class="muted" style="font-size:12.5px;font-weight:700;text-transform:uppercase;letter-spacing:.05em">History</span>${weeklyHistory()}</div></div><div>${edit("Change weekly off", "pencil")}</div></div>
+      <div class="det-row"><div class="dl">${ic("flag")}Attendance start date</div><div class="dv"><span class="big">01/10/2026</span><small>Attendance is worked out from this day. Earlier days show no status. Once days exist, the date can only move later.</small></div><div>${edit("Change start date", "pencil")}</div></div>
+      <div class="det-row"><div class="dl">${ic("factory")}Plant fence</div><div class="dv">Drawn · 25 m margin<small>Edit it on the Geofence tab.</small></div><div></div></div></section>`;
+  }
+
+  function body() {
+    if (S === "loading") return `${tabs("Details")}<div class="card">${Array.from({ length: 4 }).map(() => `<div class="skrow"><span class="skeleton r"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div>`).join("")}</div>`;
+    if (S === "error") return `${tabs("Details")}<div class="card"><div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>The plant could not be loaded</h3><p>The server did not answer. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></div>`;
+    const ro = !SA ? `<div class="ro-strip">${ic("eye")}<span><b>View only.</b> Only the Super Admin can change the weekly off and the attendance start date.</span></div>` : "";
+    return `${tabs("Details")}${ro}${details()}`;
+  }
+
+  const WDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  function dlgWeekly() {
+    const err = S === "weekly-off-error";
+    return dialog({ icon: "calendar-off", title: "Change weekly off", desc: "Sheet Shapers K-134. The old weekly off stays for the days before the change.", wide: true,
+      body: `<div class="fld"><span class="label" id="wdl">New weekly off</span><div class="seg" role="radiogroup" aria-labelledby="wdl">${WDAYS.map((d) => `<button role="radio" aria-checked="${d === "Saturday"}" aria-pressed="${d === "Saturday"}">${d === "Saturday" ? ic("check") : ""}${d}</button>`).join("")}</div></div>
+      ${field("wf", "Applies from", err ? "29/10/2026" : "15/11/2026", { mode: "numeric", err: err ? "The date must be today or later. A past weekly off cannot be changed." : "", help: err ? "" : "DD/MM/YYYY · today or later" })}
+      ${err ? "" : `<div class="note-warn">${ic("info")}<span>From 15/11/2026 Saturday is the weekly off and Sunday becomes a working day at K134.</span></div>`}`,
+      foot: `<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg" ${err ? "disabled" : ""}>${ic("check")}Save weekly off</button>` });
+  }
+  function dlgStart() {
+    const err = S === "start-date-error";
+    return dialog({ icon: "flag", title: "Change attendance start date", desc: "Sheet Shapers K-134.", wide: true,
+      body: `${field("sd", "Attendance starts on", err ? "15/09/2026" : "15/10/2026", { mode: "numeric", err: err ? "Attendance already exists from 01/10/2026. The start date can only move later, not earlier." : "", help: err ? "" : "DD/MM/YYYY" })}
+      ${err ? "" : `<div class="note-warn">${ic("triangle-alert")}<span><b>Moving the date later hides 01/10 to 14/10.</b> Those days stay stored but show no status and leave the reports.</span></div>`}
+      <label class="label" for="swhy">Reason (required)</label><textarea class="input" id="swhy" style="width:100%">First two weeks were trial punches during setup</textarea><div class="field-row" style="margin-top:6px"><span class="help">At least 10 characters. Saved in the audit log.</span><span class="counter">47 / 300</span></div>`,
+      foot: `<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg" ${err ? "disabled" : ""}>${ic("check")}Save start date</button>` });
+  }
+
+  window.mockStart(function () {
+    const plant = ROLE === "ph" ? "K134" : "K134";
+    document.getElementById("page").innerHTML = `<div class="page-head anim-fade-up"><div><div class="crumbs muted" style="font-size:13.5px;margin-bottom:4px">Plants / K134</div><h1 class="page-title">Sheet Shapers K-134</h1><p class="page-desc">Plant K134 · 1 attendance device · 3 shifts</p></div></div>${body()}`;
+    const layer = document.getElementById("layer");
+    if (S.indexOf("weekly-off") === 0) layer.innerHTML = dlgWeekly();
+    if (S.indexOf("start-date") === 0) layer.innerHTML = dlgStart();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

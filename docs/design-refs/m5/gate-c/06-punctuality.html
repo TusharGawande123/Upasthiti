@@ -1,0 +1,115 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate C - Screen 5: Punctuality (/admin/insights/punctuality), spec 4.12, 7 rule 21 (F-9).
+  States (URL hash): default · group-category · group-shift · group-weekday · range-error · empty · loading · error · plant-head · corporate-head · menu-open
+  Charts are inline SVG here; the real page uses Recharts with the same colours, labels and text alternatives.
+  MOCKUP ONLY - static HTML, fake data (plants K134 ... X280; no real names).
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti punctuality</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Punctuality";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, bell: 4, menu: S === "menu-open" };
+  const GROUP = S === "group-category" ? "Category" : S === "group-shift" ? "Shift" : S === "group-weekday" ? "Weekday" : "Department";
+
+  /* name, days with an IN, on-time %, late arrivals, average late minutes */
+  const GROUPS = {
+    Department: [["Stores", 1210, 96.2, 46, 14], ["Quality", 980, 95.0, 49, 17], ["Press shop", 3860, 92.4, 293, 22], ["Assembly", 3120, 91.8, 256, 24], ["Maintenance", 1040, 88.4, 121, 31]],
+    Category: [["Staff", 1650, 96.8, 53, 15], ["Worker", 4980, 91.2, 438, 23], ["Operator", 3010, 89.5, 316, 27], ["Helper", 570, 87.9, 69, 29]],
+    Shift: [["Office", 2740, 95.4, 126, 16], ["General 2", 2210, 91.0, 199, 23], ["Night", 5260, 88.7, 595, 28]],
+    Weekday: [["Monday", 1760, 86.9, 231, 29], ["Tuesday", 1790, 92.0, 143, 21], ["Wednesday", 1802, 92.5, 135, 20], ["Thursday", 1795, 92.1, 142, 21], ["Friday", 1780, 91.3, 155, 22], ["Saturday", 1620, 90.8, 149, 24]],
+  };
+  const WEEKS = [["28/09", 89.2], ["05/10", 90.8], ["12/10", 92.4], ["19/10", 91.1], ["26/10", 93.6]];
+  const WEEKDAYS = GROUPS.Weekday;
+  const TOP = [["E0344", "Nilesh Thorat", "K135", 14, 412], ["E1207", "Suresh Gaikwad", "PC1", 12, 361], ["E0618", "Anita Chavan", "K134", 11, 255], ["E0925", "Ramesh Bhosale", "SPI", 10, 330], ["E0771", "Pooja Deshmukh", "PC2", 9, 198], ["E0412", "Santosh Pawar", "K134", 9, 270], ["E1130", "Meena Kulkarni", "TP1", 8, 160], ["E0286", "Dinesh Jadhav", "X280", 8, 224], ["E0853", "Farida Shaikh", "K135", 7, 133], ["E1019", "Ganesh More", "PC1", 7, 196]];
+
+  const pct = (n) => n.toFixed(1).replace(/\.0$/, ".0");
+
+  function lineChart(narrow) {
+    const W = narrow ? 320 : 640, H = narrow ? 250 : 270, L = 44, R = 18, T = 28, B = 46, IN = 22;
+    const x = (i) => L + IN + (i * (W - L - R - 2 * IN)) / (WEEKS.length - 1);
+    const y = (v) => T + ((100 - v) / 20) * (H - T - B);
+    const grid = [80, 85, 90, 95, 100].map((v) => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#dde2ea" stroke-width="1"/><text class="axis" x="${L - 8}" y="${y(v) + 4}" text-anchor="end">${v}%</text>`).join("");
+    const pts = WEEKS.map((w, i) => `${x(i)},${y(w[1])}`).join(" ");
+    const dots = WEEKS.map((w, i) => `<circle cx="${x(i)}" cy="${y(w[1])}" r="6" fill="#fff" stroke="#1f3a93" stroke-width="3"/><text class="val" x="${x(i)}" y="${y(w[1]) - 14}" text-anchor="middle">${pct(w[1])}%</text><text class="axis" x="${x(i)}" y="${H - 18}" text-anchor="middle">${w[0]}</text>`).join("");
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Weekly on-time percent: ${WEEKS.map((w) => "week of " + w[0] + ", " + w[1] + " percent").join("; ")}.">${grid}<polyline points="${pts}" fill="none" stroke="#1f3a93" stroke-width="3.5" stroke-linejoin="round" stroke-linecap="round"/>${dots}<text class="axis" x="${W / 2}" y="${H - 2}" text-anchor="middle">Week starting (Monday)</text></svg>`;
+  }
+  function weekdayChart(narrow) {
+    const W = narrow ? 320 : 400, H = narrow ? 250 : 270, L = 40, R = 10, T = 28, B = 46, bw = narrow ? 28 : 34;
+    const y = (v) => T + ((100 - v) / 20) * (H - T - B);
+    const slot = (W - L - R) / WEEKDAYS.length;
+    const grid = [80, 90, 100].map((v) => `<line x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}" stroke="#dde2ea"/><text class="axis" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}%</text>`).join("");
+    const bars = WEEKDAYS.map((d, i) => { const cx = L + slot * i + slot / 2, low = d[2] < 90; return `<rect x="${cx - bw / 2}" y="${y(d[2])}" width="${bw}" height="${y(80) - y(d[2])}" rx="5" fill="${low ? "#8f5300" : "#1f3a93"}"${low ? ' stroke="#8f5300"' : ""}/>${low ? `<rect x="${cx - bw / 2}" y="${y(d[2])}" width="${bw}" height="${y(80) - y(d[2])}" rx="5" fill="url(#hatch${narrow ? "n" : ""})"/>` : ""}<text class="val" x="${cx}" y="${y(d[2]) - 8}" text-anchor="middle">${low ? "▼ " : ""}${pct(d[2])}</text><text class="axis" x="${cx}" y="${H - 18}" text-anchor="middle">${d[0].slice(0, 3)}</text>`; }).join("");
+    return `<svg class="chart" viewBox="0 0 ${W} ${H}" role="img" aria-label="On-time percent by weekday: ${WEEKDAYS.map((d) => d[0] + " " + d[2] + " percent").join("; ")}. Monday is the lowest."><defs><pattern id="hatch${narrow ? "n" : ""}" width="8" height="8" patternUnits="userSpaceOnUse" patternTransform="rotate(45)"><rect width="3" height="8" fill="#fff" opacity=".45"/></pattern></defs>${grid}${bars}</svg>`;
+  }
+
+  function groupCard() {
+    const rows = GROUPS[GROUP];
+    const title = { Department: "By department", Category: "By category", Shift: "By shift", Weekday: "By weekday" }[GROUP];
+    const bars = rows.map((r) => `<div class="gbar ${r[2] < 90 ? "low" : ""}"><span class="nm3" title="${r[0]}">${r[0]}</span><span class="tr" role="img" aria-label="${r[0]} ${r[2]} percent on time"><span class="fl" style="width:${r[2]}%"></span></span><span class="pc">${pct(r[2])}%</span></div>`).join("");
+    const trs = rows.map((r) => `<tr><td><b>${r[0]}</b></td><td class="num">${r[1].toLocaleString("en-IN")}</td><td class="num"><span class="inline-bar" style="justify-content:flex-end">${r[2] < 90 ? `<span class="badge badge-warning">${ic("arrow-down")}Below 90%</span>` : ""}<b>${pct(r[2])}%</b></span></td><td class="num">${r[3]}</td><td class="num">${r[4]} min</td></tr>`).join("");
+    return `<section class="card"><div class="card-head"><h2 class="card-title">${ic("bar-chart-3")}${title}</h2><span class="muted" style="font-size:13.5px">On time = came by shift start plus grace · below 90% is marked ▼</span></div>
+      <div class="gbars" style="padding-top:16px">${bars}</div>
+      <div class="table-scroll"><table class="table mtable"><thead><tr><th>${GROUP}</th><th class="num">Days with an IN</th><th class="num">On time</th><th class="num">Late arrivals</th><th class="num">Average late</th></tr></thead><tbody>${trs}</tbody></table></div></section>`;
+  }
+  function topCard() {
+    const trs = TOP.map((r, i) => `<tr><td><span class="rank">${i + 1}</span></td><td class="emp"><b>${r[1]}</b><span class="c">${r[0]} · ${r[2]}</span></td><td class="num"><b>${r[3]}</b> days</td><td class="num">${r[4]} min</td><td><a class="link" href="#">${ic("calendar")} View month</a></td></tr>`).join("");
+    return `<section class="card"><div class="card-head"><h2 class="card-title">${ic("alarm-clock-off")}Most late arrivals</h2><span class="muted" style="font-size:13.5px">Top 10 in this period</span></div>
+      <div class="table-scroll"><table class="table mtable"><thead><tr><th style="width:56px">#</th><th>Employee</th><th class="num">Late</th><th class="num">Total late</th><th></th></tr></thead><tbody>${trs}</tbody></table></div></section>`;
+  }
+
+  function filters() {
+    const bad = S === "range-error";
+    return `<div class="card" style="margin-bottom:16px"><div class="filters-row"><div class="grp">${field("pf", "From", bad ? "01/06/2026" : "01/10/2026", { mode: "numeric", cls: "inl" })}${field("pt", "To", "31/10/2026", { mode: "numeric", cls: "inl", err: bad ? "That is 152 days. Choose up to 92 days." : "" })}${ROLE === "ph" ? `<span class="badge badge-outline">${ic("lock")}K134 · your plant</span>` : sel("pp", "Plant", "All plants")}<button class="btn btn-outline">${ic("rotate-ccw")}Last 30 days</button></div>
+      <div class="grp"><span class="gl">Group by</span><div class="seg seg-sm" role="group" aria-label="Group by">${["Department", "Category", "Shift", "Weekday"].map((g) => `<button aria-pressed="${g === GROUP}">${g === GROUP ? ic("check") : ""}${g}</button>`).join("")}</div></div></div></div>`;
+  }
+
+  function kpis() {
+    return `<div class="kpis"><div class="kpi"><span class="kl">${ic("circle-check")}On time</span><span class="kv3">91.4<small>%</small></span><span class="ks"><span class="up">${ic("arrow-up")}1.2 points</span> than the 30 days before</span></div>
+      <div class="kpi"><span class="kl">${ic("alarm-clock-off")}Late arrivals</span><span class="kv3">214</span><span class="ks"><span class="up">${ic("arrow-down")}18</span> fewer than before</span></div>
+      <div class="kpi"><span class="kl">${ic("timer")}Average late</span><span class="kv3">23<small> min</small></span><span class="ks"><span class="down">${ic("arrow-up")}2 min</span> longer than before</span></div>
+      <div class="kpi"><span class="kl">${ic("log-out")}Early exits</span><span class="kv3">87</span><span class="ks"><span class="up">${ic("arrow-down")}6</span> fewer than before</span></div></div>`;
+  }
+
+  function body() {
+    if (S === "loading") return `${filters()}<div class="kpis">${Array.from({ length: 4 }).map(() => `<div class="kpi"><div class="skeleton" style="height:14px;width:60%"></div><div class="skeleton" style="height:34px;width:50%;margin:6px 0"></div><div class="skeleton" style="height:12px"></div></div>`).join("")}</div><div class="charts2"><div class="card" style="padding:16px"><div class="skeleton" style="height:240px"></div></div><div class="card" style="padding:16px"><div class="skeleton" style="height:240px"></div></div></div>`;
+    if (S === "error") return `${filters()}<div class="card"><div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>Punctuality could not be loaded</h3><p>The server did not answer. Your data is safe. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></div>`;
+    if (S === "range-error") return `${filters()}<div class="card"><div class="empty-box"><span class="big">${ic("calendar-range")}</span><h3>Choose a shorter period</h3><p>This page shows up to 92 days at a time. Move the first day closer to the last day.</p><button class="btn btn-outline btn-lg">${ic("rotate-ccw")}Use the last 30 days</button></div></div>`;
+    if (S === "empty") return `${filters()}<div class="card"><div class="empty-box"><span class="big">${ic("timer")}</span><h3>No arrivals in this period</h3><p>Punctuality needs permanent employees with an IN on working days. Try a longer period or another plant.</p><button class="btn btn-outline btn-lg">${ic("rotate-ccw")}Use the last 30 days</button></div></div>`;
+    return `${filters()}${kpis()}<div class="charts2" style="margin-bottom:16px"><section class="card chart-card"><div class="card-head"><h2 class="card-title">${ic("trending-up")}On time each week</h2></div><div class="cc-body"><div class="c-wide">${lineChart(false)}</div><div class="c-narrow">${lineChart(true)}</div></div></section><section class="card chart-card"><div class="card-head"><h2 class="card-title">${ic("calendar-days")}On time by weekday</h2></div><div class="cc-body"><div class="c-wide">${weekdayChart(false)}</div><div class="c-narrow">${weekdayChart(true)}</div></div></section></div>
+      <div class="stack">${groupCard()}${topCard()}<div class="card"><div class="pnote">${ic("info")}<span>Permanent employees on working days only. Temporary workers have no late rule. Weekly offs, holidays and leave days are left out. Demo plants are not included.</span></div></div></div>`;
+  }
+
+  window.mockStart(function () {
+    const sub = ROLE === "ph" ? "How on time people come at your plant." : "How on time permanent employees come, by week, group and weekday.";
+    document.getElementById("page").innerHTML = `<div class="page-head anim-fade-up"><div><h1 class="page-title">Punctuality</h1><p class="page-desc">${sub}</p></div></div>${body()}`;
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

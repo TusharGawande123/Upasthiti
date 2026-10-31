@@ -1,0 +1,132 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate C - Screen 3: Shift form (plant page, Shifts tab), spec 4.10, decision 0036 lines 1, 4 and 8
+  (grace only at the start; an OUT before the shift end is an early exit; rule changes apply from a date, history kept).
+  States (URL hash): list · form-default · form-new · form-live-change · form-helper · form-night · form-error · form-future-date · form-history (scrolled to the end)
+                     · saved-poster · corporate-head · plant-head · loading · error
+  The helper text and the little timeline are computed from the typed values (as the real form will do).
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti shift form</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Plants";
+  const S = location.hash.replace("#", "") || "list";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, bell: 4 };
+  const SA = ROLE === "sa";
+
+  /* ---------- time helpers (24 h, minutes after midnight) ---------- */
+  const toMin = (t) => { const [h, m] = t.split(":").map(Number); return h * 60 + m; };
+  const hhmm = (m) => { m = ((m % 1440) + 1440) % 1440; return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); };
+  const dur = (m) => (m % 60 === 0 ? m / 60 + " h" : Math.floor(m / 60) + " h " + (m % 60) + " min");
+  const fullDay = (s, e) => ((toMin(e) - toMin(s)) + 1440) % 1440 || 1440;
+
+  /* The form values of each state */
+  const V = { name: "Office", start: "09:00", end: "17:00", grace: 30, halfH: 4, halfM: 0, ot: 120, from: "31/10/2026" };
+  if (S === "form-new") Object.assign(V, { name: "", start: "", end: "", grace: 30, halfH: "", halfM: "", ot: 120 });
+  if (S === "form-live-change") Object.assign(V, { grace: 15, halfH: 3, halfM: 30, ot: 60 });
+  if (S === "form-night") Object.assign(V, { name: "Night", start: "19:00", end: "07:00" });
+  if (S === "form-future-date") Object.assign(V, { grace: 20, from: "15/11/2026" });
+  const ERR = S === "form-error";
+  if (ERR) Object.assign(V, { halfH: 9, halfM: 0, grace: 150 });
+
+  function helper(v) {
+    if (!v.start || !v.end) return `<div class="helper"><h3>${ic("lightbulb")}What these times mean<span class="live">${ic("zap")}updates as you type</span></h3><p class="muted" style="margin:0;font-size:14.5px">Fill in the start and the end of the shift. The rules are explained here in plain words.</p></div>`;
+    const s = toMin(v.start), len = fullDay(v.start, v.end), g = +v.grace, half = (+v.halfH) * 60 + (+v.halfM), ot = +v.ot;
+    const onTime = hhmm(s + g), end = hhmm(s + len);
+    const night = toMin(v.end) <= toMin(v.start);
+    /* timeline: from 1 h before the start to (end + 3 h) */
+    const t0 = -60, t1 = len + Math.max(ot, 120) + 60, span = t1 - t0;
+    const pos = (m) => ((m - t0) / span * 100).toFixed(2) + "%";
+    const wid = (a, b) => ((b - a) / span * 100).toFixed(2) + "%";
+    const tl = `<div class="timeline" role="img" aria-label="Shift from ${v.start} to ${end}. On time until ${onTime}. Overtime from ${end} after ${dur(ot)}.">
+      <div class="bar" style="left:${pos(0)};width:${wid(0, g)};background:var(--success-soft);border:2px solid var(--success)"></div>
+      <div class="bar" style="left:${pos(g)};width:${wid(g, len)};background:var(--primary)"></div>
+      <div class="bar" style="left:${pos(len)};width:${wid(len, len + ot)};background:repeating-linear-gradient(45deg,#fff3d6,#fff3d6 5px,#f1d79c 5px,#f1d79c 9px);border:2px dashed var(--warning)"></div>
+      <span class="lbl top" style="left:${pos(0)}">${v.start}</span><span class="lbl" style="left:${pos(g)};top:38px">${onTime}</span><span class="lbl top" style="left:${pos(len)}">${end}</span><span class="lbl" style="left:${pos(len + ot)};top:38px">${hhmm(s + len + ot)}</span></div>
+      <div class="legend" style="display:flex;flex-wrap:wrap;gap:6px 16px;font-size:12.5px;color:#14234f;margin:2px 0 12px;font-weight:600"><span><span style="color:var(--success)">■</span> On time (grace)</span><span><span style="color:var(--primary)">■</span> Shift hours</span><span><span style="color:var(--warning)">▨</span> Overtime counts if you stay until ${hhmm(s + len + ot)} or later</span></div>`;
+    return `<div class="helper" ${["form-helper","form-live-change","form-night","form-future-date"].includes(S) ? "data-scroll-helper" : ""} aria-live="polite"><h3>${ic("lightbulb")}What these times mean<span class="live">${ic("zap")}updates as you type</span></h3>${tl}
+      <ul>
+      <li>${ic("clock")}<span><b>On time until ${onTime}.</b> Arriving up to ${onTime} counts from ${v.start}.</span></li>
+      <li>${ic("circle-check")}<span><b>Full day: ${dur(len)}.</b> Arrive by ${onTime} and stay until ${end}.</span></li>
+      <li>${ic("log-out")}<span><b>Leaving before ${end} is an early exit.</b> The real hours count; there is no grace at the end.</span></li>
+      <li>${ic("split")}<span><b>Half-day from ${dur(half)}.</b> Below ${dur(half)} is Short hours: you decide that day with a correction.</span></li>
+      <li>${ic("hourglass")}<span><b>Overtime from ${end},</b> only when you stay ${dur(ot)} or more after the shift end.</span></li></ul>${night ? `<p class="help" style="margin:8px 0 0">${ic("moon")} This shift ends the next morning. The attendance day is the day it starts.</p>` : ""}</div>`;
+  }
+
+  function historyList() {
+    const up = S === "form-future-date";
+    const rows = [];
+    if (up) rows.push(`<div class="hist-row"><b>From 15/11/2026</b><span class="vals">Grace 20 min · Half-day 4 h · Overtime from 2 h</span><span class="badge badge-warning">${ic("clock")}Will apply</span></div>`);
+    rows.push(`<div class="hist-row now"><b>From 23/10/2026</b><span class="vals">Grace 30 min · Half-day 4 h · Overtime from 2 h<br><span class="by">Saved by Asha Rao on 22/10/2026</span></span><span class="badge badge-active">${ic("check")}In force</span></div>`);
+    rows.push(`<div class="hist-row"><b>From 11/10/2026</b><span class="vals">Grace 15 min · Half-day 4 h · Overtime from 1 h<br><span class="by">Saved by Asha Rao on 10/10/2026</span></span><span class="badge badge-neutral">Earlier</span></div>`);
+    return `<div class="fld"><span class="label">Rule history</span><div class="hist-list">${rows.join("")}</div><p class="help">Days already worked keep the rules of their day. A new rule starts on its date and never changes the past.</p></div>`;
+  }
+
+  function form() {
+    const v = V, isNew = S === "form-new";
+    const fd = v.start && v.end ? dur(fullDay(v.start, v.end)) : "-";
+    const fut = S === "form-future-date";
+    return dialog({ icon: "clock", title: isNew ? "Add a shift" : "Edit shift: " + v.name, desc: "Sheet Shapers K-134. Times are 24 hour, India time.", wide: true,
+      body: `<div class="dlg-scroll" ${S === "form-history" ? "data-scroll-end" : ""}>
+      ${field("sn", "Shift name", v.name, { ph: "For example: Office" })}
+      <div class="grid2">${field("ss", "Shift starts", v.start, { mode: "numeric", ph: "HH:MM", help: "24 hour, for example 09:00" })}${field("se", "Shift ends", v.end, { mode: "numeric", ph: "HH:MM", help: v.start && toMin(v.end) <= toMin(v.start) ? "Ends the next day" : "24 hour, for example 17:00" })}</div>
+      <div class="fld"><span class="label">Full day</span><div class="fullday">${ic("lock")}<span>Full day: ${fd}</span><small>= start to end. Not typed.</small></div></div>
+      <div class="grid2">${field("sg", "Grace after the start", v.grace, { mode: "numeric", unit: "minutes", err: ERR ? "Grace can be 0 to 120 minutes." : "", help: ERR ? "" : "Arriving this late still counts as on time. Default 30." })}
+      <div class="fld"><span class="label" id="hl">Half-day hours</span><div class="inrow2"><input class="input" aria-labelledby="hl" aria-label="Half-day hours" value="${v.halfH}" inputmode="numeric" ${ERR ? 'aria-invalid="true"' : ""} style="max-width:84px" /><span class="unit">h</span><input class="input" aria-label="Half-day minutes" value="${v.halfM}" inputmode="numeric" ${ERR ? 'aria-invalid="true"' : ""} style="max-width:84px" /><span class="unit">min</span></div>${ERR ? `<p class="errline">${ic("circle-alert")}Half-day must be shorter than the full day (${fd}).</p>` : `<p class="help">Worked from this long counts as a half-day. Default 4 h.</p>`}</div></div>
+      ${field("so", "Smallest overtime that counts", v.ot, { mode: "numeric", unit: "minutes", help: "Staying less than this after the shift end is not overtime. Default 120 (2 h)." })}
+      ${field("sf", "These rules apply from", v.from, { mode: "numeric", help: isNew ? "DD/MM/YYYY" : "DD/MM/YYYY · today or later. Default today." })}
+      ${fut ? `<div class="note-warn">${ic("info")}<span><b>Starts on 15/11/2026.</b> Until then the rules in force today stay. The gate poster should be printed again after that date.</span></div>` : ""}
+      ${ERR ? "" : helper(v)}
+      ${isNew ? "" : historyList()}</div>`,
+      foot: `<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg" ${ERR ? "disabled" : ""}>${ic("check")}${isNew ? "Add shift" : "Save rules"}</button>` });
+  }
+
+  function shiftsTab(readonly) {
+    const rows = [["Office", "09:00", "17:00", "8 h", "30 min", "4 h", "2 h", true], ["Night", "19:00", "07:00", "12 h", "30 min", "4 h", "2 h", true], ["General 2", "07:00", "15:00", "8 h", "30 min", "4 h", "2 h", false]];
+    const list = rows.map((r) => `<div class="shiftrow"><div><b>${r[0]}</b> ${r[7] ? `<span class="badge badge-success">${ic("check")}Active</span>` : `<span class="badge badge-neutral">${ic("power-off")}Switched off</span>`}<div class="meta"><span>${r[1]} to ${r[2]}</span><span>Full day ${r[3]}</span><span>Grace ${r[4]}</span><span>Half-day ${r[5]}</span><span>Overtime from ${r[6]}</span></div></div>${readonly ? "" : `<button class="btn btn-outline">${ic("pencil")}Edit rules</button>`}</div>`).join("");
+    const t = [["info", "Details"], ["map", "Geofence"], ["clock", "Shifts"], ["layers", "Categories"], ["tablet-smartphone", "Attendance devices"]];
+    return `<nav class="tabs">${t.map((x) => `<a href="#" ${x[1] === "Shifts" ? 'aria-current="page"' : ""}>${ic(x[0])}${x[1]}</a>`).join("")}</nav>
+      ${readonly ? `<div class="ro-strip">${ic("eye")}<span><b>View only.</b> Only the Super Admin can change shifts and their rules.</span></div>` : ""}
+      <section class="card"><div class="card-head"><h2 class="card-title">${ic("clock")}Shifts</h2>${readonly ? "" : `<button class="btn btn-primary">${ic("plus")}Add shift</button>`}</div>${list}<div class="table-foot"><span>3 shifts</span><span>Rules shown are the ones in force today</span></div></section>`;
+  }
+
+  window.mockStart(function () {
+    const ro = !SA;
+    let content;
+    if (S === "loading") content = `<div class="card">${Array.from({ length: 4 }).map(() => `<div class="skrow"><span class="skeleton r"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div>`).join("")}</div>`;
+    else if (S === "error") content = `<div class="card"><div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>The shifts could not be loaded</h3><p>The server did not answer. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></div>`;
+    else content = shiftsTab(ro);
+    document.getElementById("page").innerHTML = `<div class="page-head anim-fade-up"><div><div class="crumbs muted" style="font-size:13.5px;margin-bottom:4px">Plants / K134</div><h1 class="page-title">Sheet Shapers K-134</h1><p class="page-desc">Plant K134 · 1 attendance device · 3 shifts</p></div></div>${content}`;
+    const layer = document.getElementById("layer");
+    if (S.indexOf("form-") === 0) layer.innerHTML = form();
+    if (S === "saved-poster") layer.innerHTML = `<div class="toast" role="status">${ic("circle-check")}<p><b>Shift times changed.</b> Print the gate poster again. <a href="#">Open the gate poster</a></p></div>`;
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

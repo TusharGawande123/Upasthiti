@@ -1,0 +1,116 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate C - Screen 2a: Holidays (/admin/holidays), spec 4.9.
+  States (URL hash): default · add-dialog · add-dialog-plants · add-dialog-error · cancel-dialog · year-empty · loading · error ·
+                     corporate-head · plant-head · menu-open
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti holidays</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Holidays";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, bell: 4, menu: S === "menu-open" };
+  const SA = ROLE === "sa";
+  const PLANTS = [["K134", "Sheet Shapers K-134"], ["K135", "Sheet Shapers K-135"], ["PC1", "Press shop 1"], ["PC2", "Press shop 2"], ["SPI", "Spinning unit"], ["TP1", "Tool plant 1"], ["X280", "Sheet Shapers X-280"]];
+  const DAYS = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const MON = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  /* date, name, plants ("all" or list), paid, state, cancel reason */
+  let H = [
+    ["26/01/2026", "Republic Day", "all", true, "active"],
+    ["04/03/2026", "Holi", "all", true, "active"],
+    ["01/05/2026", "Maharashtra Day", "all", true, "active"],
+    ["15/08/2026", "Independence Day", "all", true, "active"],
+    ["14/09/2026", "Ganesh Chaturthi", "all", true, "active"],
+    ["02/10/2026", "Gandhi Jayanti", "all", true, "active"],
+    ["20/10/2026", "Dussehra", "all", true, "active"],
+    ["08/11/2026", "Diwali, Lakshmi Puja", "all", true, "active"],
+    ["10/11/2026", "Plant foundation day", ["K134", "K135"], true, "active"],
+    ["11/11/2026", "Annual maintenance shutdown", ["PC1", "PC2"], false, "active"],
+    ["25/12/2026", "Christmas", "all", true, "cancelled", "Not a company holiday"],
+  ];
+  if (ROLE === "ph") H = H.filter((h) => h[2] === "all" || h[2].includes("K134"));
+  if (S === "year-empty") H = [];
+  const YEAR = S === "year-empty" ? 2027 : 2026;
+  const parse = (d) => { const [dd, mm, yy] = d.split("/").map(Number); return new Date(yy, mm - 1, dd); };
+  const TODAY = new Date(2026, 9, 31);
+
+  const pay = (p) => p ? `<span class="badge badge-paid">${ic("badge-indian-rupee")}Paid</span>` : `<span class="badge badge-unpaid">${ic("circle-slash")}Unpaid</span>`;
+  const plantsText = (p) => p === "all" ? `<span class="badge badge-outline">${ic("factory")}All plants</span>` : `<span class="plants">${ic("factory")} ${p.join(", ")}</span>`;
+
+  function list() {
+    let last = -1, out = "";
+    H.forEach((h) => {
+      const d = parse(h[0]);
+      if (d.getMonth() !== last) { last = d.getMonth(); out += `<div class="month-sep">${MON[last]} ${YEAR}</div>`; }
+      const cx = h[4] === "cancelled", past = d < TODAY;
+      const wk = d.getDay() === 0;
+      out += `<div class="hday ${cx ? "is-cancelled" : ""} ${past ? "is-past" : ""}"><div class="datebox2"><b>${String(d.getDate()).padStart(2, "0")}</b><span>${DAYS[d.getDay()]}</span></div>
+        <div><div class="hn">${h[1]}</div><div class="hs">${plantsText(h[2])}${pay(h[3])}${cx ? `<span class="badge badge-cancelled">${ic("ban")}Cancelled</span><span class="sub" style="display:inline">${h[5]}</span>` : past ? `<span class="badge badge-neutral">${ic("history")}Past</span>` : `<span class="badge badge-active">${ic("check")}Active</span>`}${wk && !cx ? `<span class="badge badge-weekoff">${ic("calendar-off")}Falls on the weekly off</span>` : ""}</div></div>
+        ${SA && !cx && !past ? `<div class="act"><button class="btn btn-outline btn-sm2 btn-danger-outline">${ic("x")}Cancel</button></div>` : "<div></div>"}</div>`;
+    });
+    return out;
+  }
+
+  function body() {
+    const bar = `<div class="toolbar" style="justify-content:space-between"><div class="yearbar"><button class="btn btn-outline btn-icon" style="width:44px" aria-label="Previous year">${ic("chevron-left")}</button><span class="yr" aria-live="polite">${YEAR}</span><button class="btn btn-outline btn-icon" style="width:44px" aria-label="Next year">${ic("chevron-right")}</button></div>${ROLE === "ph" ? `<span class="badge badge-outline">${ic("factory")}K134 and all-plant holidays</span>` : sel("hp", "Plant", "All plants")}</div>`;
+    if (S === "loading") return `<div class="card">${bar}${Array.from({ length: 6 }).map(() => `<div class="skrow"><span class="skeleton r"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div>`).join("")}</div>`;
+    if (S === "error") return `<div class="card">${bar}<div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>The holidays could not be loaded</h3><p>The server did not answer. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></div>`;
+    if (!H.length) return `<div class="card">${bar}<div class="empty-box"><span class="big">${ic("calendar-days")}</span><h3>No holidays for ${YEAR} yet</h3><p>${SA ? "Add the days the plants are closed. A paid holiday counts as a paid day for everyone it covers." : "The Super Admin has not added holidays for this year."}</p>${SA ? `<button class="btn btn-primary btn-lg">${ic("plus")}Add holiday</button>` : ""}</div></div>`;
+    const active = H.filter((h) => h[4] === "active").length;
+    return `<div class="card">${bar}${list()}<div class="table-foot"><span>${active} holiday${active === 1 ? "" : "s"} in ${YEAR}${H.length > active ? " · 1 cancelled" : ""}</span><span>A holiday on the weekly off stays a weekly off</span></div></div>`;
+  }
+
+  function dialogAdd() {
+    const chosen = S === "add-dialog-plants" || S === "add-dialog-error";
+    const err = S === "add-dialog-error";
+    const pick = chosen ? `<div class="picklist" role="group" aria-label="Plants">${PLANTS.map((p, i) => `<div class="it"><span class="cbox ${i === 2 || i === 3 ? "on" : ""}">${ic("check")}</span><b>${p[0]}</b><span class="muted">${p[1]}</span></div>`).join("")}</div>` : "";
+    return dialog({ icon: "calendar-plus", title: "Add holiday", desc: "A day the plants are closed.", wide: true,
+      body: `<div class="grid2">${field("hd", "Date", "11/11/2026", { mode: "numeric", help: "DD/MM/YYYY · Wednesday" })}${field("hn", "Name", err ? "A" : "Annual maintenance shutdown", { err: err ? "The name needs 2 to 80 characters." : "", help: err ? "" : "26 / 80" })}</div>
+      <div class="fld"><span class="label" id="aplbl">Applies to</span><div class="radio-cards" role="radiogroup" aria-labelledby="aplbl"><div class="rcard" role="radio" aria-checked="${chosen ? "false" : "true"}" tabindex="0"><span class="rd"></span><span><b>${ic("factory")} All plants</b><small>Everyone in the company</small></span></div><div class="rcard" role="radio" aria-checked="${chosen ? "true" : "false"}" tabindex="0"><span class="rd"></span><span><b>${ic("list-checks")} Chosen plants</b><small>${chosen ? "2 plants chosen" : "Tick the plants below"}</small></span></div></div>${pick}</div>
+      <div class="fld"><span class="label" id="pdlbl">Pay</span><div class="radio-cards" role="radiogroup" aria-labelledby="pdlbl"><div class="rcard" role="radio" aria-checked="${chosen ? "false" : "true"}" tabindex="0"><span class="rd"></span><span><b>${ic("badge-indian-rupee")} Paid holiday</b><small>Counts as a paid day</small></span></div><div class="rcard" role="radio" aria-checked="${chosen ? "true" : "false"}" tabindex="0"><span class="rd"></span><span><b>${ic("circle-slash")} Unpaid holiday</b><small>Closed, but not paid</small></span></div></div></div>`,
+      foot: `<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg" ${err ? "disabled" : ""}>${ic("check")}Save holiday</button>` });
+  }
+  function dialogCancel() {
+    return dialog({ icon: "ban", tone: "danger", title: "Cancel this holiday?", desc: "The day becomes a normal working day again. Attendance for that day is worked out again.",
+      body: `<dl class="kv2" style="margin-bottom:16px"><dt>Holiday</dt><dd><b>Plant foundation day</b></dd><dt>Date</dt><dd class="tnum">Tue 10/11/2026</dd><dt>Plants</dt><dd>K134, K135</dd><dt>Pay</dt><dd>${pay(true)}</dd></dl>
+      <label class="label" for="cwhy">Why is it cancelled? (required)</label><textarea class="input" id="cwhy" style="width:100%" placeholder="For example: moved to 12/11/2026"></textarea><div class="field-row" style="margin-top:6px"><span class="help">At least 10 characters. It is saved in the audit log.</span><span class="counter">0 / 200</span></div>`,
+      foot: `<button class="btn btn-outline btn-lg">Keep holiday</button><button class="btn btn-danger btn-lg" disabled>${ic("ban")}Cancel holiday</button>` });
+  }
+
+  window.mockStart(function () {
+    const sub = SA ? "The days the plants are closed. Weekly offs are set on each plant page." : "The days the plants are closed. You can read the list; the Super Admin changes it.";
+    const ro = !SA ? `<div class="ro-strip">${ic("eye")}<span><b>View only.</b> Only the Super Admin can add or cancel a holiday.</span></div>` : "";
+    document.getElementById("page").innerHTML = `<div class="page-head anim-fade-up"><div><h1 class="page-title">Holidays</h1><p class="page-desc">${sub}</p></div>${SA ? `<div class="head-actions"><button class="btn btn-primary btn-lg">${ic("plus")}Add holiday</button></div>` : ""}</div>${ro}${body()}`;
+    const layer = document.getElementById("layer");
+    if (S.indexOf("add-dialog") === 0) layer.innerHTML = dialogAdd();
+    if (S === "cancel-dialog") layer.innerHTML = dialogCancel();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

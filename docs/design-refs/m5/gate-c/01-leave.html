@@ -1,0 +1,126 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate C - Screen 1: Leave (/admin/leave), spec 4.8, decision 0036 line 7 (reasons only for the Super Admin).
+  States (URL hash): default · filtered · add-dialog · add-dialog-weekly-off · add-dialog-date-error · add-dialog-overlap · cancel-dialog ·
+                     empty · filter-empty · loading · error · corporate-head · plant-head · menu-open
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti leave</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Leave";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, bell: 4, menu: S === "menu-open" };
+  const SA = ROLE === "sa";
+
+  /* name, code, plant, from, to, working days, note on days, paid, reason, entered by, state, cancel reason */
+  const ALL = [
+    ["Sunita Jadhav", "E1042", "K134", "02/11/2026", "04/11/2026", 3, "", true, "Family function", "Asha Rao", "active"],
+    ["Vijay Salunke", "E0877", "K135", "31/10/2026", "02/11/2026", 2, "01/11 weekly off", true, "Fever, medical certificate", "Asha Rao", "active"],
+    ["Rekha Pawar", "E1310", "PC1", "09/11/2026", "13/11/2026", 4, "10/11 holiday", false, "Village visit", "Asha Rao", "active"],
+    ["Imran Shaikh", "E0559", "SPI", "26/10/2026", "28/10/2026", 3, "", true, "Bank and land work", "Asha Rao", "active"],
+    ["Kavita More", "E0931", "K134", "12/10/2026", "14/10/2026", 3, "", false, "Personal", "Asha Rao", "cancelled", "Entered for the wrong person"],
+    ["Ganesh Kale", "E0204", "TP1", "19/10/2026", "23/10/2026", 5, "", true, "Daughter's wedding", "Asha Rao", "active"],
+  ];
+  let rows = ALL;
+  if (ROLE === "ph") rows = ALL.filter((r) => r[2] === "K134");
+  if (S === "filtered") rows = ALL.filter((r) => r[2] === "K134" || false).concat([]);
+  if (S === "empty" || S === "filter-empty") rows = [];
+  const SHOWREASON = SA;
+
+  const pay = (p) => p ? `<span class="badge badge-paid">${ic("badge-indian-rupee")}Paid</span>` : `<span class="badge badge-unpaid">${ic("circle-slash")}Unpaid</span>`;
+  const st = (s) => s === "cancelled" ? `<span class="badge badge-cancelled">${ic("ban")}Cancelled</span>` : `<span class="badge badge-active">${ic("check")}Active</span>`;
+  const days = (r) => `<b class="tnum">${r[5]}</b>${r[6] ? `<span class="sub">${r[6]} not counted</span>` : ""}`;
+
+  function tableRows() {
+    return rows.map((r) => {
+      const cx = r[10] === "cancelled";
+      return `<tr class="${cx ? "is-cancelled" : ""}"><td class="emp"><b>${r[0]}</b><span class="c">${r[1]}</span></td><td>${r[2]}</td><td class="date">${r[3]}</td><td class="date">${r[4]}</td>
+      <td class="num">${days(r)}</td><td>${pay(r[7])}</td>${SHOWREASON ? `<td class="wrap">${r[8]}${cx ? `<span class="sub">Cancelled: ${r[11]}</span>` : ""}</td>` : ""}<td>${r[9]}</td><td>${st(r[10])}</td>
+      ${SA ? `<td>${cx ? "" : `<button class="btn btn-outline btn-sm2 btn-danger-outline">${ic("x")}Cancel leave</button>`}</td>` : ""}</tr>`;
+    }).join("");
+  }
+  function cards() {
+    return rows.map((r) => {
+      const cx = r[10] === "cancelled";
+      return `<div class="mcard ${cx ? "is-cancelled" : ""}"><div class="top"><div><b>${r[0]}</b><span class="sub">${r[1]} · ${r[2]}</span></div>${st(r[10])}</div>
+      <dl><dt>From</dt><dd class="tnum">${r[3]}</dd><dt>To</dt><dd class="tnum">${r[4]}</dd><dt>Working days</dt><dd>${r[5]}${r[6] ? ` <span class="sub">(${r[6]} not counted)</span>` : ""}</dd><dt>Pay</dt><dd>${pay(r[7])}</dd>${SHOWREASON ? `<dt>Reason</dt><dd>${r[8]}${cx ? `<span class="sub">Cancelled: ${r[11]}</span>` : ""}</dd>` : ""}<dt>Entered by</dt><dd>${r[9]}</dd></dl>
+      ${SA && !cx ? `<button class="btn btn-outline btn-danger-outline">${ic("x")}Cancel leave</button>` : ""}</div>`;
+    }).join("");
+  }
+  const TH = `<tr><th>Employee</th><th>Plant</th><th>From</th><th>To</th><th class="num">Working days</th><th>Pay</th>${SHOWREASON ? "<th>Reason</th>" : ""}<th>Entered by</th><th>State</th>${SA ? "<th></th>" : ""}</tr>`;
+
+  function toolbar() {
+    const f = S === "filtered";
+    return `<div class="filters-row"><div class="grp"><div class="tb-search-wrap tb-search">${ic("search")}<input class="input" aria-label="Search employee" placeholder="Employee name or code" value="${S === "filter-empty" ? "Zaveri" : ""}"/></div>
+      ${ROLE === "ph" ? "" : sel("fp", "Plant", f || S === "filter-empty" ? "K134" : "All plants", f || S === "filter-empty")}${sel("fm", "Month", "All months")}
+      </div><div class="grp"><span class="gl">Pay</span><div class="seg seg-sm" role="group" aria-label="Pay"><button aria-pressed="true">All</button><button aria-pressed="false">${ic("badge-indian-rupee")}Paid</button><button aria-pressed="false">${ic("circle-slash")}Unpaid</button></div>
+      <span class="gl" style="margin-left:8px">State</span><div class="seg seg-sm" role="group" aria-label="State"><button aria-pressed="${f ? "true" : "false"}">${ic("check")}Active</button><button aria-pressed="false">${ic("ban")}Cancelled</button><button aria-pressed="${f ? "false" : "true"}">All</button></div></div></div>`;
+  }
+
+  function body() {
+    if (S === "loading") return `<div class="card">${toolbar()}${Array.from({ length: 6 }).map(() => `<div class="skrow"><span class="skeleton r"></span><span class="skeleton"></span><span class="skeleton"></span><span class="skeleton"></span></div>`).join("")}<div class="table-foot"><span>Loading leave…</span></div></div>`;
+    if (S === "error") return `<div class="card">${toolbar()}<div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>Leave could not be loaded</h3><p>The server did not answer. Your data is safe. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></div>`;
+    if (S === "empty") return `<div class="card">${toolbar()}<div class="empty-box"><span class="big">${ic("plane")}</span><h3>No leave entered yet</h3><p>${SA ? "Enter a leave when someone is away for a few days. Paid leave counts as a paid day, unpaid leave does not." : "The Super Admin has not entered any leave yet."}</p>${SA ? `<button class="btn btn-primary btn-lg">${ic("plus")}Add leave</button>` : ""}</div></div>`;
+    if (S === "filter-empty") return `<div class="card">${toolbar()}<div class="empty-box"><span class="big">${ic("search-x")}</span><h3>No leave matches these filters</h3><p>Try another name, month or plant.</p><button class="btn btn-outline btn-lg">${ic("rotate-ccw")}Clear filters</button></div></div>`;
+    return `<div class="card">${toolbar()}<div class="mwrap table-scroll"><table class="table mtable"><thead>${TH}</thead><tbody>${tableRows()}</tbody></table></div><div class="mcards">${cards()}</div>
+      <div class="table-foot"><span>${rows.length} leave${rows.length === 1 ? "" : "s"}${S === "filtered" ? " · filtered: K134, Active" : ""}</span><span>Working days = days that are not a weekly off or a holiday</span></div></div>`;
+  }
+
+  function dialogAdd() {
+    const dErr = S === "add-dialog-date-error", ov = S === "add-dialog-overlap", wo = S === "add-dialog-weekly-off";
+    const toVal = dErr ? "29/10/2026" : "04/11/2026";
+    const fromVal = ov ? "03/11/2026" : "31/10/2026";
+    const note = dErr ? "" : ov ? "" : `<div class="note-ok" aria-live="polite">${ic("calendar-check")}<span><b>4 working days.</b> 01/11 is a weekly off and is not counted as leave.</span></div>`;
+    const oerr = ov ? `<div class="err-inline" role="alert">${ic("circle-alert")}<span>Sunita Jadhav already has leave from 02/11/2026 to 04/11/2026. Cancel that leave first, or choose other dates.</span></div>` : "";
+    return dialog({ icon: "plane", title: "Add leave", desc: "For one person, for whole days. Paid or unpaid. No approval needed.", wide: true,
+      body: `<div class="fld"><label class="label" for="emp">Employee</label><div class="acc">${ic("user")}<span><b>Sunita Jadhav</b> · E1042 · K134 · Permanent</span><span style="margin-left:auto" class="muted">Change</span></div></div>
+      <div class="grid2">${field("from", "First day", ov ? "03/11/2026" : "31/10/2026", { mode: "numeric", help: "DD/MM/YYYY" })}${field("to", "Last day", toVal, { mode: "numeric", err: dErr ? "The last day cannot be before the first day." : "" , help: dErr ? "" : "DD/MM/YYYY" })}</div>
+      ${note}${oerr}
+      <div class="fld"><span class="label" id="paylbl">Pay</span><div class="radio-cards" role="radiogroup" aria-labelledby="paylbl"><div class="rcard" role="radio" aria-checked="true" tabindex="0"><span class="rd"></span><span><b>${ic("badge-indian-rupee")} Paid leave</b><small>Counts as a paid day</small></span></div><div class="rcard" role="radio" aria-checked="false" tabindex="0"><span class="rd"></span><span><b>${ic("circle-slash")} Unpaid leave</b><small>Does not count as paid</small></span></div></div></div>
+      <div class="fld"><label class="label" for="why">Reason</label><textarea class="input" id="why" style="width:100%">Family function</textarea><div class="field-row" style="margin-top:6px"><span class="help">Only the Super Admin can read this.</span><span class="counter">15 / 200</span></div></div>`,
+      foot: `<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg" ${dErr || ov ? "disabled" : ""}>${ic("check")}Save leave</button>` });
+  }
+  function dialogCancel() {
+    return dialog({ icon: "ban", tone: "danger", title: "Cancel this leave?", desc: "The leave stays in the list as Cancelled. The attendance of those days is worked out again.",
+      body: `<dl class="kv2" style="margin-bottom:16px"><dt>Employee</dt><dd><b>Rekha Pawar</b> · E1310 · PC1</dd><dt>Dates</dt><dd class="tnum">09/11/2026 to 13/11/2026</dd><dt>Working days</dt><dd>4 (10/11 holiday not counted)</dd><dt>Pay</dt><dd>${pay(false)}</dd></dl>
+      <label class="label" for="cwhy">Why is it cancelled? (required)</label><textarea class="input" id="cwhy" style="width:100%" placeholder="For example: she is coming to work"></textarea><div class="field-row" style="margin-top:6px"><span class="help">At least 10 characters. It is saved in the audit log.</span><span class="counter">0 / 200</span></div>`,
+      foot: `<button class="btn btn-outline btn-lg">Keep leave</button><button class="btn btn-danger btn-lg" disabled>${ic("ban")}Cancel leave</button>` });
+  }
+
+  window.mockStart(function () {
+    const sub = SA ? "Days a person is away, paid or unpaid. Add leave here; people do not apply for it." : ROLE === "ph" ? "Leave of your plant. You can read it; the Super Admin changes it." : "Leave of all plants. You can read it; the Super Admin changes it.";
+    const ro = !SA ? `<div class="ro-strip">${ic("eye")}<span><b>View only.</b> Only the Super Admin can add or cancel leave. A leave reason can be personal, so reasons are shown to the Super Admin only.</span></div>` : "";
+    document.getElementById("page").innerHTML = `<div class="page-head anim-fade-up"><div><h1 class="page-title">Leave</h1><p class="page-desc">${sub}</p></div>${SA ? `<div class="head-actions"><button class="btn btn-primary btn-lg">${ic("plus")}Add leave</button></div>` : ""}</div>${ro}${body()}`;
+    const layer = document.getElementById("layer");
+    if (S.indexOf("add-dialog") === 0) layer.innerHTML = dialogAdd();
+    if (S === "cancel-dialog") layer.innerHTML = dialogCancel();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>
