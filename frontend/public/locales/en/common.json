@@ -3241,5 +3241,26 @@
       "agree": "Agree",
       "cancel": "Cancel"
     }
+  },
+  "attendance": {
+    "explain": {
+      "leave": "On leave ({{paid}}). No punches are needed.",
+      "holiday": "Holiday: {{name}}.",
+      "weeklyOff": "Weekly off.",
+      "noPunch": "No punch on this day.",
+      "inAt": "IN at {{time}}.",
+      "onTime": "IN at {{time}}: on time (on time until {{until}}).",
+      "late": "IN at {{time}}: {{duration}} late (on time until {{until}}).",
+      "noOut": "No OUT yet.",
+      "outAt": "OUT at {{time}}.",
+      "earlyExit": "You left {{duration}} before the shift end.",
+      "payable": "Payable time: {{duration}}.",
+      "workedForStatus": "Worked for the status: {{worked}} of {{full}}, so {{status}}.",
+      "overtimeReached": "Overtime: {{duration}} after the shift end.",
+      "overtimeNotReached": "{{duration}} after {{end}} did not reach the overtime minimum of {{minimum}}.",
+      "noOvertime": "No overtime: you left at or before the shift end ({{end}}).",
+      "extraPunches": "{{count}} extra punch(es) are not used for the hours.",
+      "corrected": "This day was corrected by an admin."
+    }
   }
 }

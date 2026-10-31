@@ -276,3 +276,8 @@ a real phone at 360 px, report downloads opened in Excel.
   (`gate_lines` late minutes and month days under IN/OUT in `result-view.tsx`; `result-lines.test.tsx`, 3 tests),
   gate bundle 62.4 kB of 63.5 kB (no raise needed). Note: `inside_now` is a dashboard number, not a gate line.
   Next: the two small backend items of slice 5 (F-61 explanation, year heatmap endpoint), S-42 check, then slice 7.
+- 2026-10-31 slice 5 backend extras: `attendance/explain.py` ("Explain this day", F-61: translation key + values,
+  durations also as "7 h 20 m"), filled into `GET /attendance/employee/{id}/day/{date}` as `explanation`;
+  `GET /attendance/employee/{id}/year` (F-60 heatmap, 12 months). Texts `attendance.explain.*` in common.json.
+  Tests: +4 in `test_m5_attendance_api.py` (AC-46, AC-47). Correction to an earlier note: `inside_now` IS a gate
+  number (F-28, on `/kiosk/me`, backend done); the gate IDLE screen does not show it yet (open, small).

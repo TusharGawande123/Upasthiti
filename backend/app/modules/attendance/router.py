@@ -144,6 +144,18 @@ def employee_month(
     return detail_service.month_of_employee(session, current_user, employee, month)
 
 
+@router.get("/employee/{employee_id}/year")
+def employee_year(
+    employee_id: uuid.UUID,
+    to_month: str | None = Query(default=None, pattern=MONTH_PATTERN),
+    current_user: CurrentUser = Depends(reader),
+    session: Session = Depends(get_session),
+) -> dict[str, Any]:
+    """The heatmap of the last 12 months (F-60)."""
+    employee = detail_service.employee_for_reading(session, current_user, employee_id)
+    return detail_service.year_of_employee(session, current_user, employee, to_month)
+
+
 @router.get("/employee/{employee_id}/day/{day}")
 def employee_day(
     employee_id: uuid.UUID,

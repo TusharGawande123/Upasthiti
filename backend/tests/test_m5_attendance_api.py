@@ -375,3 +375,60 @@ def test_recompute_is_for_the_super_admin_and_limited_to_62_days(world: dict) ->
     assert ok.status_code == 202 and ok.json()["days_marked"] >= 15  # 3 people × 5 days
     assert forbidden.json()["error"]["code"] == "FORBIDDEN"
     assert too_long.json()["error"]["code"] == "RECOMPUTE_RANGE_TOO_LONG"
+
+
+def explanation_of(world: dict, code: str, day: date) -> list[dict]:
+    url = f"/api/v1/attendance/employee/{world['people'][code]}/day/{day}"
+    response = world["boss"].get(url)
+    assert response.status_code == 200, response.text
+    return response.json()["explanation"]
+
+
+def test_explain_this_day_for_a_late_day_and_for_overtime_below_the_minimum(world: dict) -> None:
+    """AC-47 (F-61): the sentences come from the computed day, as translation keys with values."""
+    work_a_day(world, "P-1", FRIDAY, (9, 40), (17, 0))
+    work_a_day(world, "P-2", FRIDAY, (9, 0), (18, 50))
+
+    late = {item["key"]: item["values"] for item in explanation_of(world, "P-1", FRIDAY)}
+    assert late["late"]["minutes"] == 40 and late["late"]["until"] == "09:30"
+    assert late["late"]["time"] == "09:40" and late["outAt"]["time"] == "17:00"
+    assert late["workedForStatus"]["worked"] == "7 h 20 m"
+    assert late["workedForStatus"]["full"] == "8 h"
+    assert "overtimeReached" not in late
+
+    near = {item["key"]: item["values"] for item in explanation_of(world, "P-2", FRIDAY)}
+    assert near["onTime"]["time"] == "09:00"
+    assert near["overtimeNotReached"]["duration"] == "1 h 50 m"
+    assert near["overtimeNotReached"]["minimum"] == "2 h"
+
+
+def test_explain_this_day_for_a_temporary_worker_and_an_empty_day(world: dict) -> None:
+    work_a_day(world, "T-1", FRIDAY, (9, 0), (17, 0))
+    keys = [item["key"] for item in explanation_of(world, "T-1", FRIDAY)]
+    assert "payable" in keys and "workedForStatus" not in keys
+
+    sunday = explanation_of(world, "P-1", SATURDAY)
+    assert [item["key"] for item in sunday] in (["noPunch"], ["weeklyOff"])
+
+
+def test_the_year_heatmap_has_twelve_months_with_codes(world: dict) -> None:
+    """AC-46 (F-60): 12 months, one square per day with its register code."""
+    work_a_day(world, "P-1", FRIDAY, (9, 0), (17, 0))
+    url = f"/api/v1/attendance/employee/{world['people']['P-1']}/year"
+
+    body = world["boss"].get(url).json()
+    months = [item["month"] for item in body["months"]]
+    assert len(months) == 12 and months[0] == "2025-12" and months[-1] == "2026-11"
+    october = next(item for item in body["months"] if item["month"] == "2026-10")
+    friday = next(day for day in october["days"] if day["date"] == FRIDAY.isoformat())
+    assert friday["code"] == "P" and friday["is_corrected"] is False
+
+    earlier = world["boss"].get(url, params={"to_month": "2026-03"}).json()
+    assert earlier["months"][-1]["month"] == "2026-03"
+    assert world["boss"].get(url, params={"to_month": "2026-13"}).status_code == 422
+
+
+def test_the_year_heatmap_follows_the_plant_scope(world: dict) -> None:
+    url = f"/api/v1/attendance/employee/{world['people']['P-1']}/year"
+    assert world["head"].get(url).status_code == 200
+    assert world["other_head"].get(url).status_code in (403, 404)

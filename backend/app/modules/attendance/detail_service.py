@@ -15,6 +15,7 @@ from sqlalchemy.orm import Session
 from app.core.errors import ApiError
 from app.core.time import IST, to_ist, utc_now
 from app.modules.attendance import read_service, service
+from app.modules.attendance.explain import explain_day
 from app.modules.attendance.models import AttendanceDay
 from app.modules.attendance.schemas import Day
 from app.modules.auth.dependencies import CurrentUser
@@ -110,6 +111,45 @@ def month_of_employee(
     }
 
 
+def year_of_employee(
+    session: Session, current_user: CurrentUser, employee: Employee, to_month: str | None
+) -> dict[str, Any]:
+    """The 12 months up to `to_month` as day squares (F-60): date, register code, corrected."""
+    today = to_ist(utc_now()).date()
+    last_month = date.fromisoformat(f"{to_month}-01") if to_month else today.replace(day=1)
+    first_month = _months_before(last_month, 11)
+    first = first_month
+    last = read_service.month_bounds(last_month.strftime("%Y-%m"))[1]
+    fresh_to = min(last, today)
+    if fresh_to >= first:
+        service.ensure_fresh(session, [employee.id], first, fresh_to, utc_now())
+    allowed = plant_filter(current_user, Capability.VIEW_ATTENDANCE)
+    statement = select(AttendanceDay).where(
+        AttendanceDay.employee_id == employee.id,
+        AttendanceDay.attendance_date.between(first, last),
+        AttendanceDay.status != "not_employed",
+    )
+    if allowed is not None:
+        statement = statement.where(AttendanceDay.plant_id.in_(allowed))
+    rows = list(session.scalars(statement.order_by(AttendanceDay.attendance_date)))
+    days_by_month: dict[str, list[dict[str, Any]]] = {}
+    month_cursor = first_month
+    for _ in range(12):
+        days_by_month[month_cursor.strftime("%Y-%m")] = []
+        month_cursor = _months_before(month_cursor, -1)
+    for shown in read_service.present_days(session, rows):
+        days_by_month[shown.date.strftime("%Y-%m")].append(
+            {"date": shown.date, "code": shown.code, "is_corrected": shown.is_corrected}
+        )
+    return {"months": [{"month": month, "days": days} for month, days in days_by_month.items()]}
+
+
+def _months_before(first_of_month: date, count: int) -> date:
+    """The first day of the month `count` months earlier (a negative count goes forward)."""
+    index = first_of_month.year * 12 + first_of_month.month - 1 - count
+    return date(index // 12, index % 12 + 1, 1)
+
+
 def day_of_employee(
     session: Session, current_user: CurrentUser, employee: Employee, day: date
 ) -> dict[str, Any]:
@@ -135,7 +175,7 @@ def day_of_employee(
         kinds.append("set_status")
     return {
         "day": shown,
-        "explanation": [],  # F-61 "Explain this day" is built with the day screen (slice 7)
+        "explanation": explain_day(shown, window.shift.rules if window else None),
         "shift_swap": _swap_of_day(session, employee.id, day),
         "shift_rules": rules,
         "window": {"start": window.start, "end": window.end} if window else None,
