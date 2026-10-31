@@ -27,6 +27,7 @@ const ADMIN_PAGES = [
   "/admin/qr-cards",
   "/admin/punches",
   "/admin/review",
+  "/admin/muster",
   "/admin/plants",
   "/admin/kiosks",
   "/admin/approvals",

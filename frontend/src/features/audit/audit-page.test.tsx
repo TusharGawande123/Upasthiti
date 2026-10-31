@@ -65,6 +65,7 @@ describe("menu by role", () => {
     expect(labels("corporate_head")).not.toContain("nav.users");
     expect(labels("plant_head")).toEqual([
       "nav.dashboard",
+      "nav.muster", // M5: everyone inside now, for roll call
       "nav.plants",
       "nav.kiosks",
       "nav.punches", // read-only, own plant (design gate C)

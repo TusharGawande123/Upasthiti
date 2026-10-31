@@ -97,6 +97,8 @@ export type KioskMe = {
   notices: KioskNotice[];
   kiosk_settings: KioskScreenSettings;
   time_anchor?: TimeAnchor | null;
+  /** M5 F-28: people inside the plant now; null or missing when the setting is off. */
+  inside_now?: number | null;
 };
 
 /** Used until the first heartbeat answers (the server defaults, spec §7 rule 12). */

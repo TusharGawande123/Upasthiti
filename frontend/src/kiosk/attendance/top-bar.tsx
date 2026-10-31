@@ -1,6 +1,6 @@
 // Parts of the kiosk top bar on the attendance screens (design gate B): the connection chip and
 // the live server clock in IST.
-import { CloudUpload, Hourglass, Wifi, WifiOff } from "lucide-react";
+import { CloudUpload, Hourglass, Users, Wifi, WifiOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatIstTime, useServerNow } from "../components/server-clock";
 import { StatusChip } from "../components/status-chip";
@@ -43,6 +43,17 @@ export function QueueChip({ count, sending }: { count: number; sending: boolean 
   ) : (
     <StatusChip tone="neutral" icon={Hourglass}>
       {t("kiosk.offline.chipWaiting", { count })}
+    </StatusChip>
+  );
+}
+
+/** M5 F-28: "Inside now: 214". A number only, never a name, and not spoken. */
+export function InsideNowChip({ count }: { count: number | null }) {
+  const { t } = useTranslation();
+  if (count === null) return null;
+  return (
+    <StatusChip tone="neutral" icon={Users}>
+      {t("kiosk.attendance.insideNow", { count })}
     </StatusChip>
   );
 }

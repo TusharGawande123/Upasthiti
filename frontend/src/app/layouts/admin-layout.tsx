@@ -50,6 +50,8 @@ const ALL_ROLES: Role[] = ["super_admin", "corporate_head", "plant_head"];
 // New pages are added here as their features arrive.
 const NAV_ITEMS: NavItem[] = [
   { to: "/admin", labelKey: "nav.dashboard", icon: LayoutDashboard, roles: ALL_ROLES, end: true },
+  // M5: everyone inside the plant now, for roll call in an emergency (every role).
+  { to: "/admin/muster", labelKey: "nav.muster", icon: Siren, roles: ALL_ROLES },
   { to: "/admin/setup", labelKey: "nav.setup", icon: ListChecks, roles: ["super_admin"] },
   {
     to: "/admin/approvals",
@@ -67,8 +69,6 @@ const NAV_ITEMS: NavItem[] = [
     roles: ALL_ROLES,
     badge: "offlineDevices", // attendance devices that are offline now (M4 F-36)
   },
-  // M5: everyone inside the plant now, for roll call in an emergency (every role).
-  { to: "/admin/muster", labelKey: "nav.muster", icon: Siren, roles: ALL_ROLES },
   // The punch log: every role reads it (the server limits a Plant Head to their own plant).
   { to: "/admin/punches", labelKey: "nav.punches", icon: History, roles: ALL_ROLES },
   // M4: flagged punches to check and rejected punches to approve. Super Admin only.

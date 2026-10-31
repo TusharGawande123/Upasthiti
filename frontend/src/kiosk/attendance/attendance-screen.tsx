@@ -29,7 +29,7 @@ import { buildHeartbeat, emptyFacts, type HeartbeatFacts } from "./heartbeat-rep
 import { type CodeEntry, canTryAgain, canTryAgainAfterFailure, type KioskMe } from "./punch-types";
 import { ResultView } from "./result-view";
 import { ScanningView } from "./scanning-view";
-import { ConnectionChip, QueueChip, TopClock } from "./top-bar";
+import { ConnectionChip, InsideNowChip, QueueChip, TopClock } from "./top-bar";
 import { useAttendance } from "./use-attendance";
 import { useHeartbeat } from "./use-heartbeat";
 import { useErrorReporter, useSelfUpdate, useSoundAndBanner } from "./use-kiosk-extras";
@@ -201,6 +201,7 @@ export function AttendanceScreen({
           {sound.bannerVisible ? <SoundBanner onTap={sound.onBannerTap} /> : null}
           <ConnectionChip online={heartbeat.online} savesOffline={offline.canSave} />
           <QueueChip count={offline.queue.count} sending={heartbeat.online} />
+          {idleScreen ? <InsideNowChip count={heartbeat.insideNow} /> : null}
           <LocationChip place={place} />
           <TopClock offsetMs={heartbeat.serverOffsetMs} />
         </div>
