@@ -281,3 +281,7 @@ a real phone at 360 px, report downloads opened in Excel.
   `GET /attendance/employee/{id}/year` (F-60 heatmap, 12 months). Texts `attendance.explain.*` in common.json.
   Tests: +4 in `test_m5_attendance_api.py` (AC-46, AC-47). Correction to an earlier note: `inside_now` IS a gate
   number (F-28, on `/kiosk/me`, backend done); the gate IDLE screen does not show it yet (open, small).
+- 2026-10-31 S-42 done: `tests/test_m5_report_size.py` (650 fake people, 31 days of attendance, in the backend
+  job's own database): company register in Excel 5.2 s with tracemalloc on (limit 20 s), memory peak under
+  450 MB, one plant as PDF 1.1 s (limit 30 s). Kept in the normal backend job, not the docker job (same
+  limits, no container needed). Slice 6 open: only F-65 register email (SMTP only).
