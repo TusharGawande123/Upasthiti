@@ -187,3 +187,48 @@ def test_an_offline_early_out_is_saved_at_sync_with_the_offline_mark(world: dict
     assert (first.direction, first.early_out_mark) == ("in", None)
     assert (second.direction, second.early_out_mark) == ("out", "EARLY_OUT_OFFLINE")
     assert second.decision == "accepted" and second.reason_codes == []
+
+
+def test_a_face_out_too_soon_after_the_in_is_refused(world: dict) -> None:
+    """AC-40, face path: 30 minutes must pass after the IN (setting min_minutes_before_out)."""
+    client, device = world["client"], world["device"]
+    with at(9):
+        face_punch(client, device, person=1)
+
+    with at(9, 29):
+        too_soon = face_punch(client, device, person=1).json()
+    with at(9, 31):
+        later = face_punch(client, device, person=1).json()
+
+    assert too_soon["decision"] == "rejected" and too_soon["reason_code"] == "OUT_TOO_SOON"
+    # After the minimum the OUT is a real one (here it asks, as it is before the shift end).
+    assert later["decision"] == "needs_confirmation"
+
+
+def test_an_offline_out_too_soon_after_the_in_is_rejected_at_sync(world: dict) -> None:
+    """AC-40, offline path: the server applies the same minimum when the sealed punch arrives."""
+    client, device, worker, session = (
+        world["client"],
+        world["device"],
+        world["worker"],
+        world["session"],
+    )
+    gate = OfflineGate(device)
+    with at(14):
+        gate.take_anchor(ist(THURSDAY, 13, 0))
+        first = gate.item(
+            "qr", card_evidence(worker.qr_text, photo_text()), elapsed=timedelta(minutes=10)
+        )
+        second = gate.item(
+            "qr", card_evidence(worker.qr_text, photo_text()), elapsed=timedelta(minutes=25)
+        )
+        response = gate.send(client, [first, second])
+
+    assert response.status_code == 200, response.text
+    results = response.json()["results"]
+    assert results[0]["decision"] == "accepted"
+    assert results[1]["decision"] == "rejected" and results[1]["reason_code"] == "OUT_TOO_SOON"
+    assert (
+        session.scalar(select(func.count()).select_from(Punch).where(Punch.decision == "accepted"))
+        == 1
+    )

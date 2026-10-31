@@ -264,3 +264,11 @@ a real phone at 360 px, report downloads opened in Excel.
   screen code is written before the images are approved.
 - Still open in slice 4: gate extras (`inside_now`, `gate_lines`, settings use, poster shift-times box,
   gate budget), AC-40 tests of `min_minutes_before_out`.
+- 2026-10-31 slice 6 (reports backend, commit 4cf0997): `reports/` (model, xlsx_writer, pdf_writer, data,
+  service, router) with `GET /api/v1/reports/{kind}.{xlsx|pdf}`; scope by role, DEMO hidden, Summary sheet for
+  all plants, limits (one at a time, 20 per 10 min, PDF at most 3,000 rows, 31 days), audit with counts only.
+  Tests: `test_m5_reports.py` (17). Still open: S-42 speed/memory check in the `docker` job, F-65 register
+  email (SMTP only), reports page (slice 7).
+- 2026-10-31 slice 4 (AC-40): `min_minutes_before_out` is now tested on all four paths: card online
+  (`test_m5_shift_closed.py` E14b), face and offline (`test_m5_early_out_paths.py`, +2). Still open in slice 4:
+  poster shift-times box, gate budget check, gate frontend lines (`inside_now`, late hint, month line).
