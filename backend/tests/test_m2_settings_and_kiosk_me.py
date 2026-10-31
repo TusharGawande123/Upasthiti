@@ -348,6 +348,8 @@ def test_the_heartbeat_keeps_the_old_fields_and_adds_settings(
             "min_yaw_degrees": 18,
             "code_prefixes": [],
         },
+        # M5: the small lines of the gate screens (F-28 on, F-37 and F-2 off by default).
+        "screen": {"show_inside_count": True, "late_hint": False, "show_month_line": False},
     }
 
 
