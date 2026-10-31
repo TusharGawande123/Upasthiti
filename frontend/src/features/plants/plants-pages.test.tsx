@@ -167,30 +167,28 @@ describe("plant detail", () => {
 
     renderRoute("/admin/plants/p-1");
     await user.click(await screen.findByRole("tab", { name: "Shifts" }));
-    expect(await screen.findByText("07:00–19:00")).toBeInTheDocument();
+    expect(await screen.findByText("07:00 – 19:00")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add shift" }));
     const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Shift name"), "Night");
-    fireTime(within(dialog).getByLabelText("Starts"), "19:00");
-    fireTime(within(dialog).getByLabelText("Ends"), "07:00");
+    fireTime(within(dialog).getByLabelText("Shift starts"), "19:00");
+    fireTime(within(dialog).getByLabelText("Shift ends"), "07:00");
 
+    // M5: grace only after the start, the shift length is the full day, overtime from the shift end.
     expect(
-      await within(dialog).findByText("Night: starts 19:00, ends next day at 07:00 (12 h 00 min)."),
-    ).toBeInTheDocument();
-    // M5: grace 30 at both ends, the shift length is the full day, overtime from the shift end.
-    expect(
-      within(dialog).getByText(
-        "On time until 19:30. Leave from 07:00: an OUT before that is an early exit.",
+      await within(dialog).findByText(
+        "On time until 19:30. Arriving up to 19:30 counts from 19:00.",
       ),
     ).toBeInTheDocument();
     expect(
-      within(dialog).getByText("Full day: 12 h 00 min (the shift length)."),
+      within(dialog).getByText("Full day: 12 h. Arrive by 19:30 and stay until 07:00."),
     ).toBeInTheDocument();
     expect(
       within(dialog).getByText(
-        "Overtime: from 07:00, only when the person stays 2 h 00 min or more.",
+        "Overtime from 07:00, only when you stay 2 h or more after the shift end.",
       ),
     ).toBeInTheDocument();
+    expect(within(dialog).getByText(/This shift ends the next morning/)).toBeInTheDocument();
   });
 
   it("refuses a shift whose start and end time are the same", async () => {
@@ -202,12 +200,13 @@ describe("plant detail", () => {
     await user.click(await screen.findByRole("button", { name: "Add shift" }));
     const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Shift name"), "Odd");
-    fireTime(within(dialog).getByLabelText("Ends"), "07:00");
+    fireTime(within(dialog).getByLabelText("Shift starts"), "07:00");
+    fireTime(within(dialog).getByLabelText("Shift ends"), "07:00");
 
     expect(
       await within(dialog).findByText("Start and end time cannot be the same."),
     ).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Save shift" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Save rules" })).toBeDisabled();
   });
 
   it("opens the geofence tab with the map and the version list", async () => {

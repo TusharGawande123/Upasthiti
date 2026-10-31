@@ -232,9 +232,9 @@ describe("shifts", () => {
     await user.click(await screen.findByRole("button", { name: "Add shift" }));
     const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Shift name"), "Night");
-    fireEvent.change(within(dialog).getByLabelText("Starts"), { target: { value: "19:00" } });
-    fireEvent.change(within(dialog).getByLabelText("Ends"), { target: { value: "07:00" } });
-    await user.click(within(dialog).getByRole("button", { name: "Save shift" }));
+    fireEvent.change(within(dialog).getByLabelText("Shift starts"), { target: { value: "19:00" } });
+    fireEvent.change(within(dialog).getByLabelText("Shift ends"), { target: { value: "07:00" } });
+    await user.click(within(dialog).getByRole("button", { name: "Save rules" }));
 
     await vi.waitFor(() =>
       expect(body(calls, "POST", "/plants/p-1/shifts")).toEqual({
@@ -270,13 +270,14 @@ describe("shifts", () => {
           },
         ],
       },
+      "GET /shifts/s-1/rule-versions": { body: [] },
       "PATCH /shifts/s-1": { body: {} },
     });
     const user = userEvent.setup();
 
     renderRoute("/admin/plants/p-1");
     await user.click(await screen.findByRole("tab", { name: "Shifts" }));
-    await user.click(await screen.findByRole("button", { name: "Edit General" }));
+    await user.click(await screen.findByRole("button", { name: "Edit rules" }));
     const dialog = await screen.findByRole("dialog");
     fireEvent.change(within(dialog).getByLabelText("Grace after the start"), {
       target: { value: "15" },
@@ -284,7 +285,7 @@ describe("shifts", () => {
     fireEvent.change(within(dialog).getByLabelText("These rules apply from"), {
       target: { value: "2099-01-05" },
     });
-    await user.click(within(dialog).getByRole("button", { name: "Save shift" }));
+    await user.click(within(dialog).getByRole("button", { name: "Save rules" }));
 
     await vi.waitFor(() =>
       expect(body(calls, "PATCH", "/shifts/s-1")).toMatchObject({
