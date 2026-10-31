@@ -340,3 +340,18 @@ a real phone at 360 px, report downloads opened in Excel.
   "Falls on the weekly off" note; start-date dialog has no reason field (API takes none); rule history shows the saved date
   only (API has no "saved by"); cancel reasons need 3 to 300 characters (backend), not 10 to 200; the leave overlap code is
   `LEAVE_OVERLAPS` with its existing generic text.
+- 2026-10-31 slice 7 group E (frontend, the last group): Reports `/admin/reports` (`features/reports/`: seven cards, period per
+  kind, plant locked for a Plant Head, contractor, demo switch, busy state, server file name via new `apiFile`, every
+  refusal in words); Punctuality `/admin/insights/punctuality` (`features/insights/`: tiles with arrow + word against the
+  period before = a second request, Recharts line and weekday columns in the lazy page only, group bars + tables, top 10);
+  Notifications (`features/notifications/`: bell in the top bar with 60 s poll and lazy panel, page with kind and unread
+  filters, mark read / all, own email alerts hidden when the server has no email); Settings (alerts card with the
+  "email is not set up" note or switch + test email, attendance device screen lines with previews, "New in this version"
+  badges, plain-words window error); plant readiness lines for start date and weekly off. Menu (left, phone, Ctrl+K), three
+  pages in `responsive.spec.ts` (not run). Employee page opens the Attendance tab for `?tab=attendance` (alert links).
+  New dependency Recharts 3.10.1 (MIT). Budget "Admin menu and layout" 24400 to 26300 bytes (decision 0036 line 21).
+  Tests: reports 11, insights 9, notifications 11, settings m5 6, plants +1; all frontend folders touched pass; typecheck,
+  lint, i18n:check, build + size ok. Not run: e2e. Differences: no plant filter or "Read" filter on the notification list
+  (API has kind and unread only); notification texts have no names (backend); done line has no row count; the 20-files
+  text has no minutes; no live window cross-check in the settings form (the server's answer is shown in words on save);
+  Plant column missing in "Most late arrivals" (API has no plant); old audit-page menu test brought up to date.
