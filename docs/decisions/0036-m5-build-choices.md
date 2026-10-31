@@ -103,3 +103,9 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     at 11 pt, so with more than six shifts the box lists FIVE and the sixth line says "and N more shifts: ask
     the plant office" (the mock-up listed six plus that line, which does not fit with the offline paragraph).
     New icon `clock.svg` (Lucide, ISC). **To confirm with Tushar** (changes the mock-up and spec §4.17 slightly).
+20. **Slice 7 group A (dashboard, muster):** the Styles budget in `frontend/size-budgets.json` went from 13000 to
+    14500 bytes (the new screens add classes; later groups add more; the gate budget is unchanged at 63.5 kB).
+    Tile links go to `/admin/attendance?show=<tile>&plant_id=<id>` with `show` one of `inside`, `expected`,
+    `arrived`, `late`, `not_arrived`, `on_leave`, `off_today`, `exceptions`, `to_decide`. The "On outside work"
+    hero line is left out until the API has the number (M4b). Show more on the muster is client-side (the API
+    has no paging). The count-up animation of the tiles is not built.
