@@ -97,6 +97,13 @@ class PunchDetails(BaseModel):
     location_check: str | None = None  # M4 self test: "ok" or the location rule's code
 
 
+class GateLines(BaseModel):
+    """Small server-made lines for the result screen (M5 F-37, F-2): numbers, never a name."""
+
+    late_minutes: int | None = None
+    month_days_present: int | None = None
+
+
 class KioskPunchResponse(BaseModel):
     punch_id: uuid.UUID | None  # none for a self test: nothing is recorded
     decision: Literal["accepted", "rejected", "self_test", "needs_code", "needs_confirmation"]
@@ -109,6 +116,7 @@ class KioskPunchResponse(BaseModel):
     details: PunchDetails
     code_entry: CodeEntry | None = None  # only with decision "needs_code"
     early_out: EarlyOutPrompt | None = None  # only with decision "needs_confirmation"
+    gate_lines: GateLines | None = None  # M5: only online accepted punches, only when switched on
     time_anchor: TimeAnchor | None = None  # M4 §7 rule 8: set by the route
 
 

@@ -221,6 +221,15 @@ class KioskOfflineSettings(BaseModel):
     sync_max_bytes: int
 
 
+class KioskScreenLines(BaseModel):
+    """Which small lines the gate screen may show (M5 spec §4.16): "Inside now" (F-28), the gentle
+    late hint (F-37) and the "My month" line (F-2). The numbers come from the server; no names."""
+
+    show_inside_count: bool
+    late_hint: bool
+    show_month_line: bool
+
+
 class KioskScreenSettings(BaseModel):
     """What the kiosk screen needs from the server settings (spec §5.2)."""
 
@@ -234,6 +243,7 @@ class KioskScreenSettings(BaseModel):
     face: KioskFaceSettings | None = None  # M3
     location: KioskLocationSettings | None = None  # M4
     offline: KioskOfflineSettings | None = None  # M4
+    screen: KioskScreenLines | None = None  # M5
 
 
 class KioskMeResponse(BaseModel):
@@ -245,6 +255,8 @@ class KioskMeResponse(BaseModel):
     notices: list[KioskNoticeItem]
     kiosk_settings: KioskScreenSettings
     time_anchor: TimeAnchor | None = None  # M4 §7 rule 8
+    # M5 F-28: how many people are inside the plant now; null when the setting is off.
+    inside_now: int | None = None
 
 
 class KioskReportRequest(BaseModel):

@@ -29,6 +29,7 @@ from app.modules.kiosks.dependencies import require_kiosk
 from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.time_anchor import anchor_for_request
 from app.modules.punches import early_out_service, face_service, service, sync_service
+from app.modules.punches.gate_lines import attach_gate_lines
 from app.modules.punches.photo_check import SessionMaker, check_face_in_photo, get_task_sessions
 from app.modules.punches.schemas import (
     ChallengeRequest,
@@ -73,7 +74,7 @@ def punch_at_kiosk(
         )
     else:
         answer = face_service.record_face_punch(session, kiosk, body, client, engine)
-    return _with_anchor(answer, request, kiosk)
+    return _with_anchor(attach_gate_lines(session, answer), request, kiosk)
 
 
 @router.post("/kiosk/sync", response_model=SyncResponse)
@@ -123,7 +124,7 @@ def confirm_early_out(
     _limit(punch_limiter, kiosk, "Too many punches. Wait a moment.")
     client = service.ClientInfo(ip=_ip_or_none(getattr(request.state, "client_ip", None)))
     answer = early_out_service.confirm_early_out(session, kiosk, body, client)
-    return _with_anchor(answer, request, kiosk)
+    return _with_anchor(attach_gate_lines(session, answer), request, kiosk)
 
 
 @router.post("/punch/kiosk/code", response_model=KioskPunchResponse)
@@ -136,7 +137,8 @@ def punch_code_try(
     """The typed employee code after a "needs code" answer (spec M3 §7 rule 7)."""
     _limit(code_try_limiter, kiosk, "Too many tries. Wait a moment.")
     client = service.ClientInfo(ip=_ip_or_none(getattr(request.state, "client_ip", None)))
-    return _with_anchor(face_service.record_code_try(session, kiosk, body, client), request, kiosk)
+    answer = face_service.record_code_try(session, kiosk, body, client)
+    return _with_anchor(attach_gate_lines(session, answer), request, kiosk)
 
 
 def _with_anchor(

@@ -8,6 +8,7 @@ import io
 import logging
 import re
 import uuid
+from datetime import datetime
 
 import segno
 from fastapi import APIRouter, Depends, Query, Request, Response
@@ -25,6 +26,7 @@ from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
 from app.modules.auth.rate_limit import heartbeat_limiter, report_limiter
 from app.modules.auth.scope import ensure_plant_in_scope, plant_filter
+from app.modules.dashboard.service import people_inside
 from app.modules.face.engine_provider import engine_state, get_face_engine, running_model_id
 from app.modules.face.state import common_code_prefixes, plant_has_enrolled_faces
 from app.modules.kiosks import service, status_service
@@ -45,6 +47,7 @@ from app.modules.kiosks.schemas import (
     KioskOfflineSettings,
     KioskReportRequest,
     KioskResponse,
+    KioskScreenLines,
     KioskScreenSettings,
     KioskWithCodeResponse,
     OfflineAlertItem,
@@ -347,7 +350,15 @@ def _me_answer(
         ],
         kiosk_settings=_screen_settings(session, kiosk, engine),
         time_anchor=anchor_for_request(request, kiosk.id, now),
+        inside_now=_inside_now(session, kiosk, now),
     )
+
+
+def _inside_now(session: Session, kiosk: KioskDevice, now: datetime) -> int | None:
+    """F-28: the plant's inside-now count for the idle screen (a number, never a name)."""
+    if get_setting(session, "kiosk_show_inside_count") != "on":
+        return None
+    return len(people_inside(session, [kiosk.plant_id], now))
 
 
 def _screen_settings(
@@ -374,6 +385,11 @@ def _screen_settings(
         ),
         location=_location_settings(session, kiosk),
         offline=_offline_settings(session),
+        screen=KioskScreenLines(
+            show_inside_count=get_setting(session, "kiosk_show_inside_count") == "on",
+            late_hint=get_setting(session, "kiosk_late_hint") == "on",
+            show_month_line=get_setting(session, "kiosk_show_month_line") == "on",
+        ),
     )
 
 
