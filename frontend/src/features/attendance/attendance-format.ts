@@ -1,10 +1,11 @@
 // Small formatting helpers shared by the attendance screens.
 
-/** 465 -> "7 h 45 m". The server sends whole minutes; the screens show hours and minutes. */
+/** 465 -> "7 h 45 m"; 480 -> "8 h". The server sends whole minutes; the screens show hours and minutes. */
 export function formatDuration(minutes: number): string {
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
-  return hours === 0 ? `${rest} m` : `${hours} h ${rest} m`;
+  if (hours === 0) return `${rest} m`;
+  return rest === 0 ? `${hours} h` : `${hours} h ${rest} m`;
 }
 
 /** "07:00:00" + 30 minutes -> "07:30" (wraps past midnight for night shifts). */
