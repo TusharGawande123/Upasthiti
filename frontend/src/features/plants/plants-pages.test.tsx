@@ -134,6 +134,26 @@ describe("plant detail", () => {
     expect(screen.getByText("None yet")).toBeInTheDocument();
   });
 
+  it("shows the start date and weekly off lines when the server sends them", async () => {
+    mockApi({
+      ...answers(SUPER_ADMIN),
+      "GET /plants/p-1/readiness": {
+        body: { ...READINESS, attendance_start_set: false, weekly_off_set: true },
+      },
+    });
+
+    renderRoute("/admin/plants/p-1");
+
+    expect(
+      await screen.findByText(
+        "Attendance has not started. Set the start date on the Overview tab.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("The weekly off is set.")).toBeInTheDocument();
+    // They are information only: the "left" count of the badge does not change.
+    expect(screen.getByText("Not ready · 2 left")).toBeInTheDocument();
+  });
+
   it("lets the Super Admin edit but gives a Plant Head a read-only view", async () => {
     mockApi(answers(PLANT_HEAD));
 

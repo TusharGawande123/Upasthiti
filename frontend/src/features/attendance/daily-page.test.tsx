@@ -274,7 +274,7 @@ describe("the attendance list", () => {
     renderRoute("/admin/attendance");
     await user.click(await screen.findByRole("button", { name: /Download daily muster · Excel/ }));
 
-    expect(await screen.findByText(/still being made/)).toBeInTheDocument();
+    expect(await screen.findByText(/still being built/)).toBeInTheDocument();
   });
 
   it("gives a Plant Head their own plant without a plant picker", async () => {

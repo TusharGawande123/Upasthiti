@@ -198,7 +198,7 @@ describe("the monthly register", () => {
     await screen.findAllByRole("table");
     await user.click(screen.getByRole("button", { name: "Download PDF" }));
 
-    expect(await screen.findByText(/too big for a PDF/)).toBeInTheDocument();
+    expect(await screen.findByText(/more than 3,000 rows/)).toBeInTheDocument();
   });
 
   it("shows the empty and error states", async () => {
