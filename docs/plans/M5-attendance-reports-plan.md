@@ -285,3 +285,11 @@ a real phone at 360 px, report downloads opened in Excel.
   job's own database): company register in Excel 5.2 s with tracemalloc on (limit 20 s), memory peak under
   450 MB, one plant as PDF 1.1 s (limit 30 s). Kept in the normal backend job, not the docker job (same
   limits, no container needed). Slice 6 open: only F-65 register email (SMTP only).
+- 2026-10-31 slice 7 group A (frontend): live dashboard (`features/dashboard/`: `use-dashboard.ts`,
+  `live-dashboard.tsx`, `dashboard-controls.tsx`, `muster-page.tsx`), kept M1-M4 cards under "Devices, checks and
+  set-up", route `/admin/muster` + menu (under Dashboard, all roles, phone menu shares the list) + Ctrl+K entry,
+  muster page in `e2e/tests/responsive.spec.ts`, gate idle chip "Inside now: N" (F-28; gate bundle still 62.4 kB).
+  Tests: `dashboard.test.tsx` (11), `inside-now.test.tsx` (4); typecheck, lint, i18n:check, build + size ok
+  (styles budget raised 13000 to 14500 bytes). Not run here: e2e/Playwright (the responsive check of the new page
+  is still to run). Open: "On outside work" line of the hero (the API has no such field), count-up and flash
+  animation of numbers, tile links use `?show=<tile>&plant_id=` which the attendance list (group B) must read.
