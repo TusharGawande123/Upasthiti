@@ -293,3 +293,16 @@ a real phone at 360 px, report downloads opened in Excel.
   (styles budget raised 13000 to 14500 bytes). Not run here: e2e/Playwright (the responsive check of the new page
   is still to run). Open: "On outside work" line of the hero (the API has no such field), count-up and flash
   animation of numbers, tile links use `?show=<tile>&plant_id=` which the attendance list (group B) must read.
+- 2026-10-31 slice 7 group B (frontend): `features/attendance/` with the attendance list (`/admin/attendance`,
+  `daily-page.tsx`, `daily-rows.tsx`), monthly register (`/admin/attendance/register`, `register-page.tsx`) and
+  corrections list (`/admin/corrections`, the path of spec §4.7; `corrections-page.tsx`: Pending / Decided /
+  Punch approvals / My requests, Super Admin approve / reject / reverse, requester withdraw). Shared:
+  `use-attendance-admin.ts`, `status-chip.tsx`, `show-filters.ts` (dashboard `?show=` mapping),
+  `use-day-drawer.ts` + placeholder `day-drawer-host.tsx` (`?day=<employeeId>:<YYYY-MM-DD>`; group C fills it).
+  Menu (Attendance, Monthly register, Corrections with the pending badge for the Super Admin; phone menu and
+  Ctrl+K share the list), three pages in `responsive.spec.ts` (not run here). Texts: `attendance.*`,
+  `attendanceExceptions.*`, `corrections.*`. Tests: 40 in `features/attendance/`; typecheck, lint, i18n:check,
+  build + size ok ("Admin menu and layout" 23.5 of 23.8 kB: little room left). Not built (group C): correction
+  dialog, bulk wizard, Before -> After panels, employee tab, day drawer. Open: `show` tiles late / arrived /
+  expected / inside / not_arrived / off_today / to_decide only map to the closest status filter (the API has no
+  such filters); "worked on off day" status filter missing in the API; "days to decide" lists one day, not the month.
