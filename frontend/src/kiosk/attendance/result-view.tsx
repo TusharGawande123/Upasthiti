@@ -219,6 +219,18 @@ type Shown = {
   time: string;
 };
 
+// M5 (F-37, F-2): the server's small lines under the IN or OUT, numbers only, never spoken.
+function gateLinesText(answer: PunchAnswer, t: TFunction): string | undefined {
+  const lines = answer.gate_lines;
+  if (!lines) return undefined;
+  const parts: string[] = [];
+  if (lines.late_minutes != null)
+    parts.push(t("kiosk.result.lateLine", { count: lines.late_minutes }));
+  if (lines.month_days_present != null)
+    parts.push(t("kiosk.result.monthLine", { count: lines.month_days_present }));
+  return parts.length > 0 ? parts.join(" · ") : undefined;
+}
+
 function describeAnswer(answer: PunchAnswer, t: TFunction, viaFace: boolean): Shown {
   const kind: ResultKind = resultKind(answer);
   const time = hhmm(answer.server_time);
@@ -239,6 +251,7 @@ function describeAnswer(answer: PunchAnswer, t: TFunction, viaFace: boolean): Sh
           code,
           status: t(isIn ? "kiosk.result.checkedIn" : "kiosk.result.checkedOut"),
         }),
+        sub: gateLinesText(answer, t),
       },
       time,
     };

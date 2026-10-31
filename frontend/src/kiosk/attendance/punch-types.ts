@@ -45,6 +45,8 @@ export type PunchAnswer = {
   code_entry?: CodeEntry | null;
   /** Only with decision "needs_confirmation". */
   early_out?: EarlyOutPrompt | null;
+  /** M5: numbers made by the server, only for an online accepted punch and only when switched on. */
+  gate_lines?: { late_minutes: number | null; month_days_present: number | null } | null;
   /** M4: the server's time for the offline clock; also remembered by the signer. */
   time_anchor?: TimeAnchor | null;
 };

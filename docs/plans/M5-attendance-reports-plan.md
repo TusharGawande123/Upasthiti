@@ -272,3 +272,7 @@ a real phone at 360 px, report downloads opened in Excel.
 - 2026-10-31 slice 4 (AC-40): `min_minutes_before_out` is now tested on all four paths: card online
   (`test_m5_shift_closed.py` E14b), face and offline (`test_m5_early_out_paths.py`, +2). Still open in slice 4:
   poster shift-times box, gate budget check, gate frontend lines (`inside_now`, late hint, month line).
+- 2026-10-31 slice 4 done except nothing open in it: poster shift-times box (727a1de), gate result lines
+  (`gate_lines` late minutes and month days under IN/OUT in `result-view.tsx`; `result-lines.test.tsx`, 3 tests),
+  gate bundle 62.4 kB of 63.5 kB (no raise needed). Note: `inside_now` is a dashboard number, not a gate line.
+  Next: the two small backend items of slice 5 (F-61 explanation, year heatmap endpoint), S-42 check, then slice 7.

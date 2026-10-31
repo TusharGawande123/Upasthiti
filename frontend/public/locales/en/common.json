@@ -449,6 +449,8 @@
       "welcome": "Welcome,",
       "goodbye": "Goodbye,",
       "codeLine": "Employee code {{code}}",
+      "lateLine": "Late by {{count}} min",
+      "monthLine": "Days present this month: {{count}}",
       "codeChecked": "Employee code {{code}} · {{status}}",
       "checkedIn": "Checked in",
       "checkedOut": "Checked out",
