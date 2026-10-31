@@ -84,6 +84,7 @@ def load_limits(session: Session) -> PunchLimits:
         ),
         same_person_two_devices_minutes=get_int_setting(session, "same_person_two_devices_minutes"),
         offline_max_hours=get_int_setting(session, "offline_max_hours"),
+        attendance_window_before_hours=get_int_setting(session, "attendance_window_before_hours"),
     )
 
 

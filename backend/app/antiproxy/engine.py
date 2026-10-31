@@ -28,6 +28,7 @@ from app.antiproxy.rules.kiosk_location import check_kiosk_location, check_locat
 from app.antiproxy.rules.offline_time import check_offline_age, check_time_proven
 from app.antiproxy.rules.qr_credential import check_qr_credential
 from app.antiproxy.rules.read_card import read_card
+from app.antiproxy.rules.shift_closed import check_shift_closed
 from app.antiproxy.rules.snapshot import check_snapshot
 from app.antiproxy.rules.two_devices import check_two_devices
 from app.modules.punches.models import Direction, PunchDecision
@@ -36,7 +37,13 @@ Rule = Callable[[PunchContext], RuleResult]
 
 LOCATION_RULES: tuple[Rule, ...] = (check_kiosk_location, check_location_age)
 # After the person is known: IN/OUT first, then the flag rules that need the decided time.
-AFTER_IDENTITY_RULES: tuple[Rule, ...] = (check_in_out, check_impossible_travel, check_two_devices)
+# M5: right after IN/OUT, one IN and one OUT per shift (`check_shift_closed`).
+AFTER_IDENTITY_RULES: tuple[Rule, ...] = (
+    check_in_out,
+    check_shift_closed,
+    check_impossible_travel,
+    check_two_devices,
+)
 
 # M4 offline punches: the time flags come last (§7 rule 2); live punches pass them anyway.
 OFFLINE_TIME_RULES: tuple[Rule, ...] = (check_time_proven, check_offline_age)

@@ -14,6 +14,7 @@ REASON_TEXTS: dict[str, str] = {
     "WRONG_PLANT": "Registered at another plant",
     "COOLDOWN_ACTIVE": "Already punched (scanned again too soon)",
     "OUT_TOO_SOON": "Already IN (OUT not allowed yet)",
+    "SHIFT_ALREADY_CLOSED": "Shift already closed (OUT already made)",
     # Face punches (M3)
     "NO_FACE": "No face seen",
     "MULTIPLE_FACES": "More than one person",

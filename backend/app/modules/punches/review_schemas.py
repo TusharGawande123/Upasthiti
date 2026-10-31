@@ -64,7 +64,7 @@ class ContextFence(BaseModel):
 
 class RelatedPunch(BaseModel):
     punch: PunchDetail
-    relation: Literal["travel", "two_devices", "order"]
+    relation: Literal["travel", "two_devices", "order", "closing_out"]
     distance_m: float | None
     minutes_apart: float
     speed_kmh: float | None

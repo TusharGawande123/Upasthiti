@@ -72,6 +72,8 @@ class PunchLimits:
     impossible_travel_min_distance_m: int = 500
     same_person_two_devices_minutes: int = 10
     offline_max_hours: int = 72
+    # M5 (spec §7 rule 5): where the attendance day of a shift starts, for `shift_closed`.
+    attendance_window_before_hours: int = 4
 
 
 @dataclass

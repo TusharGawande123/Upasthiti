@@ -62,7 +62,14 @@ HINT_DAYS = 7
 CARD_TWO_DEVICES_HINT = 2  # spec §7 rule 20: a fixed number, not a setting
 
 COOLDOWN = "COOLDOWN_ACTIVE"
-RELATED_FLAGS = {"IMPOSSIBLE_TRAVEL", "TWO_DEVICES_SOON", "SYNC_ORDER_CONFLICT"}
+# SHIFT_ALREADY_CLOSED (M5) is a refusal, not a flag, but it also points at one other punch: the OUT
+# that closed the day.
+RELATED_FLAGS = {
+    "IMPOSSIBLE_TRAVEL",
+    "TWO_DEVICES_SOON",
+    "SYNC_ORDER_CONFLICT",
+    "SHIFT_ALREADY_CLOSED",
+}
 
 # What the request says -> what the review row stores.
 ACTIONS = {
@@ -419,6 +426,10 @@ def _fence_of(session: Session, punch: Punch) -> ContextFence | None:
 def suggested_direction(session: Session, punch: Punch, limits: _Limits) -> str:
     """The direction the IN/OUT rule (§7 rule 5) would give at the punch time, from what counts
     now. The cool-down and "OUT too soon" refusals do not apply: the Super Admin decides."""
+    if punch.reason_codes and punch.reason_codes[0] == "SHIFT_ALREADY_CLOSED":
+        # Usual case (M5 spec §7 rule 24): the person punched OUT by mistake earlier, and this is
+        # the real end of the shift.
+        return Direction.OUT.value
     person_id = punch.employee_id or punch.claimed_employee_id
     last = last_counted_before(session, person_id, punch.punch_time) if person_id else None
     if last is None or last.direction != Direction.IN.value:
@@ -517,6 +528,8 @@ def _relation(
         return "two_devices"
     if "SYNC_ORDER_CONFLICT" in codes and other.id == punch.related_punch_id:
         return "order"
+    if "SHIFT_ALREADY_CLOSED" in codes and other.id == punch.related_punch_id:
+        return "closing_out"
     return "travel" if "IMPOSSIBLE_TRAVEL" in codes else "two_devices"
 
 

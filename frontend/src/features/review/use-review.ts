@@ -72,7 +72,7 @@ export type ContextFence = {
 
 export type RelatedPunch = {
   punch: PunchDetail;
-  relation: "travel" | "two_devices" | "order";
+  relation: "travel" | "two_devices" | "order" | "closing_out";
   distance_m: number | null;
   minutes_apart: number;
   speed_kmh: number | null;

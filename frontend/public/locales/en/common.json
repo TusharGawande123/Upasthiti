@@ -197,6 +197,12 @@
         "next": "You can punch OUT after {{outTime}}.",
         "voice": "Already checked in."
       },
+      "SHIFT_ALREADY_CLOSED": {
+        "title": "SHIFT CLOSED",
+        "message": "Your shift is already closed.",
+        "next": "Please visit the plant office.",
+        "voice": "Your shift is already closed. Please visit the plant office."
+      },
       "NETWORK_OFFLINE": {
         "title": "NOT SAVED",
         "message": "No internet. Your punch was NOT saved.",
@@ -2449,6 +2455,7 @@
     "WRONG_PLANT": "Registered at another plant",
     "COOLDOWN_ACTIVE": "Already punched (scanned again too soon)",
     "OUT_TOO_SOON": "Already IN (OUT not allowed yet)",
+    "SHIFT_ALREADY_CLOSED": "Shift already closed (OUT already made)",
     "NO_FACE": "No face seen",
     "MULTIPLE_FACES": "More than one person",
     "FACE_TOO_SMALL": "Face too far from the camera",
@@ -3112,7 +3119,8 @@
     "relation": {
       "travel": "Impossible travel between these two punches",
       "two_devices": "The same person at two attendance devices",
-      "order": "This punch was sent after a later punch was already decided"
+      "order": "This punch was sent after a later punch was already decided",
+      "closing_out": "The OUT that closed this shift day"
     },
     "hints": {
       "title": "Seen before",
