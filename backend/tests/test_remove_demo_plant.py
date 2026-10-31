@@ -15,7 +15,9 @@ from sqlalchemy.orm import Session
 from app.core.storage import get_storage
 from app.modules.audit.models import AuditLog
 from app.modules.employees.models import Employee
+from app.modules.holidays.models import Holiday, HolidayPlant
 from app.modules.kiosks.models import KioskDevice, KioskHeartbeat
+from app.modules.leave.models import LeaveRecord
 from app.modules.org.models import Plant
 from app.modules.punches.models import Punch, PunchReview, PunchSnapshot
 from app.modules.qr_cards.models import QrCredential
@@ -26,8 +28,9 @@ from app.scripts.remove_demo_plant import (
     delete_photo_files,
     remove,
 )
+from tests.clock_helpers import PINNED_DAY, frozen_at, ist
 from tests.kiosk_helpers import Device, make_active_kiosk
-from tests.people_helpers import PlantIds, client_for, create_plant
+from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body
 from tests.test_punch_api import Worker, send, snapshot_folder  # noqa: F401  (a fixture)
 
 
@@ -230,3 +233,45 @@ def test_it_refuses_when_a_real_punch_points_at_a_demo_punch(
 
     with pytest.raises(RemovalRefusedError, match="point at punches of this demo plant"):
         build_plan(db_session, "DEMO4", include_test_cards=False)
+
+
+def test_leave_and_holidays_of_a_demo_plant_go_and_shared_holidays_stay(
+    boss: TestClient, db_session: Session
+) -> None:
+    """Decision 0036 line 3: the M5 tables are removed with the demo plant, nothing else."""
+    with frozen_at(ist(PINNED_DAY, 12, 0)):
+        demo = create_plant(boss, db_session, "DEMO3")
+        real = create_plant(boss, db_session, "K134")
+        employee = boss.post("/api/v1/employees", json=permanent_body(demo, code="D-1")).json()
+        leave = boss.post(
+            "/api/v1/leave",
+            json={
+                "employee_id": employee["id"],
+                "from_date": "2026-11-02",
+                "to_date": "2026-11-03",
+                "is_paid": True,
+                "reason": "Demo leave",
+            },
+        )
+        assert leave.status_code == 201, leave.text
+
+        def holiday(day: str, name: str, plant_ids: list[str] | None) -> None:
+            body = {"date": day, "name": name, "all_plants": plant_ids is None}
+            response = boss.post("/api/v1/holidays", json=body | {"plant_ids": plant_ids or []})
+            assert response.status_code == 201, response.text
+
+        holiday("2026-11-10", "Only demo", [demo.id])
+        holiday("2026-11-11", "Demo and real", [demo.id, real.id])
+        holiday("2026-11-12", "Everyone", None)
+
+        remove(db_session, build_plan(db_session, "DEMO3", include_test_cards=False))
+        db_session.commit()
+
+    assert count(db_session, LeaveRecord) == 0
+    assert {h.name for h in db_session.scalars(select(Holiday))} == {"Demo and real", "Everyone"}
+    assert [row.plant_id for row in db_session.scalars(select(HolidayPlant))] == [
+        uuid.UUID(real.id)
+    ]
+    with pytest.raises(DBAPIError):
+        db_session.execute(text("DELETE FROM holidays"))
+    db_session.rollback()

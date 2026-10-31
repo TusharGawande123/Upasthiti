@@ -32,7 +32,7 @@ import argparse
 import sys
 import uuid
 
-from sqlalchemy import and_, delete, func, or_, select, text
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import load_settings_or_exit
@@ -49,6 +49,8 @@ from app.scripts.remove_demo_plant import (
     _remove_face_data,
     _table,
     delete_photo_files,
+    remove_attendance_rows,
+    set_protection,
 )
 
 MAX_EMPLOYEES = 20
@@ -249,8 +251,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
 
     # Only inside this transaction: switch the punches "never change or delete" trigger off, and
     # make sure it is on again (a rollback would undo this too).
-    session.execute(text("ALTER TABLE punches DISABLE TRIGGER USER"))
-    session.execute(text("ALTER TABLE punch_reviews DISABLE TRIGGER USER"))
+    set_protection(session, on=False)
     try:
         t = _table
         _remove_face_data(session, plan)
@@ -280,6 +281,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         session.execute(
             delete(t("change_requests")).where(t("change_requests").c.employee_id.in_(employee_ids))
         )
+        remove_attendance_rows(session, employee_ids)
         session.execute(delete(t("employees")).where(t("employees").c.id.in_(employee_ids)))
         session.execute(
             delete(t("kiosk_pairing_codes")).where(
@@ -288,8 +290,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         )
         session.execute(delete(t("kiosk_devices")).where(t("kiosk_devices").c.id.in_(kiosk_ids)))
     finally:
-        session.execute(text("ALTER TABLE punches ENABLE TRIGGER USER"))
-        session.execute(text("ALTER TABLE punch_reviews ENABLE TRIGGER USER"))
+        set_protection(session, on=True)
 
     # One line that says it happened (counts only: no names, no codes of people).
     record_audit(

@@ -199,8 +199,31 @@ def _remove_face_data(session: Session, plan: RemovalPlan) -> None:
     )
 
 
-# Tables whose "never change or delete" trigger is switched off inside the removal transaction only.
-APPEND_ONLY_TABLES = ("punches", "punch_reviews", "shift_rule_versions", "plant_weekly_offs")
+# Tables whose "never change or delete" trigger is switched off inside the removal transaction only
+# (append-only or cancel-only; decision 0036 line 3).
+PROTECTED_TABLES = (
+    "punches",
+    "punch_reviews",
+    "shift_rule_versions",
+    "plant_weekly_offs",
+    "holidays",
+    "holiday_plants",
+    "leave_records",
+)
+
+
+def set_protection(session: Session, *, on: bool) -> None:
+    """Switch the protecting triggers off (or on again) inside the current transaction only."""
+    verb = "ENABLE" if on else "DISABLE"
+    for table in PROTECTED_TABLES:
+        session.execute(text(f"ALTER TABLE {table} {verb} TRIGGER USER"))
+
+
+def remove_attendance_rows(session: Session, employee_ids: list[uuid.UUID]) -> None:
+    """The M5 rows about the employees (leave so far). Both removal tools call it before the
+    employees themselves go."""
+    leave = _table("leave_records")
+    session.execute(delete(leave).where(leave.c.employee_id.in_(employee_ids)))
 
 
 def remove(session: Session, plan: RemovalPlan) -> None:
@@ -210,8 +233,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
 
     # Only inside this transaction: switch the punches "never change or delete" trigger off, and
     # make sure it is on again (a rollback would undo this too).
-    for table in APPEND_ONLY_TABLES:
-        session.execute(text(f"ALTER TABLE {table} DISABLE TRIGGER USER"))
+    set_protection(session, on=False)
     try:
         t = _table
         _remove_face_data(session, plan)
@@ -244,6 +266,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         session.execute(
             delete(t("change_requests")).where(t("change_requests").c.employee_id.in_(employee_ids))
         )
+        remove_attendance_rows(session, employee_ids)
         session.execute(delete(t("employees")).where(t("employees").c.id.in_(employee_ids)))
         session.execute(
             delete(t("kiosk_pairing_codes")).where(
@@ -258,6 +281,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
                 t("shift_rule_versions").c.shift_id.in_(plant_shift_ids)
             )
         )
+        _remove_plant_holidays(session, plant_id)
         for table in (
             "plant_weekly_offs",
             "kiosk_notices",
@@ -270,8 +294,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
             session.execute(delete(t(table)).where(t(table).c.plant_id == plant_id))
         session.execute(delete(t("plants")).where(t("plants").c.id == plant_id))
     finally:
-        for table in APPEND_ONLY_TABLES:
-            session.execute(text(f"ALTER TABLE {table} ENABLE TRIGGER USER"))
+        set_protection(session, on=True)
 
     # One line that says it happened (counts only: no names, no codes of people).
     record_audit(
@@ -281,6 +304,17 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         entity_type="plant",
         entity_id=None,
         after={"plant_code": plan.plant_code, **plan.counts},
+    )
+
+
+def _remove_plant_holidays(session: Session, plant_id: uuid.UUID) -> None:
+    """The plant's entries in holidays chosen per plant; a holiday that was only for this plant
+    is then for no plant at all, so it goes too. All-plant holidays stay."""
+    holidays, holiday_plants = _table("holidays"), _table("holiday_plants")
+    session.execute(delete(holiday_plants).where(holiday_plants.c.plant_id == plant_id))
+    still_listed = select(holiday_plants.c.holiday_id)
+    session.execute(
+        delete(holidays).where(holidays.c.all_plants.is_(False), holidays.c.id.not_in(still_listed))
     )
 
 
@@ -302,8 +336,8 @@ def _show(plan: RemovalPlan) -> None:
         print(f"  {count:>5}  {label}")
     for label in plan.test_card_labels:
         print(f"         test card {label}")
-    print("  Also: its geofences, shifts and their rule versions, weekly offs, departments,")
-    print("        categories, notices, pairing codes,")
+    print("  Also: its geofences, shifts and their rule versions, weekly offs, holidays only")
+    print("        for this plant, leave, departments, categories, notices, pairing codes,")
     print("        change requests and plant history. The audit log is not touched.")
 
 
