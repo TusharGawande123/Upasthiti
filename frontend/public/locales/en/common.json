@@ -953,6 +953,14 @@
       "offline": {
         "title": "Offline attendance devices",
         "description": "How long a gate device may work without internet, and when it counts as offline."
+      },
+      "attendance": {
+        "title": "Attendance days",
+        "description": "When a shift's day starts, and how far back corrections may be asked for."
+      },
+      "alerts": {
+        "title": "Alerts and email",
+        "description": "When the bell warns you, and how long alerts are kept."
       }
     },
     "items": {
@@ -1167,6 +1175,50 @@
       "offline_clock_drift_seconds": {
         "label": "Allowed clock difference",
         "help": "If the device's two clocks disagree by more than this, the time of an offline punch is marked as not proven."
+      },
+      "attendance_window_before_hours": {
+        "label": "Day starts before the shift",
+        "help": "A punch belongs to the shift day that starts this many hours before the shift start. With 4 h, the day of a 09:00 shift runs from 05:00 to 05:00 the next morning."
+      },
+      "correction_request_max_days": {
+        "label": "Corrections can be asked for up to",
+        "help": "How many days back a Corporate Head or Plant Head may ask for a correction. The Super Admin has no limit."
+      },
+      "still_inside_alert_minutes": {
+        "label": "Still inside after the shift",
+        "help": "Warn when someone has not punched OUT this long after the shift end."
+      },
+      "rejection_alert_count": {
+        "label": "Many refused punches",
+        "help": "Warn when a gate refuses this many punches in the time below."
+      },
+      "rejection_alert_minutes": {
+        "label": "Time for the refused punches",
+        "help": "The time span of the refused-punches warning."
+      },
+      "email_alerts": {
+        "label": "Email alerts",
+        "help": "Send alerts by email as well. Works only when the company's own email server is set up."
+      },
+      "notification_keep_days": {
+        "label": "Keep alerts for",
+        "help": "Alerts older than this are removed. Attendance records are never removed."
+      },
+      "absence_streak_days": {
+        "label": "Absent several days in a row",
+        "help": "Warn when a person is absent this many working days in a row."
+      },
+      "kiosk_show_inside_count": {
+        "label": "Show \"Inside now\" on the gate",
+        "help": "The gate screen shows how many people are inside the plant. No names."
+      },
+      "kiosk_late_hint": {
+        "label": "Gentle late hint at the gate",
+        "help": "After a late IN the gate shows \"You are 12 minutes late today.\" Off by default."
+      },
+      "kiosk_show_month_line": {
+        "label": "\"My month\" line at the gate",
+        "help": "After a punch the gate shows the person's present days this month. No name. Off by default."
       }
     },
     "units": {

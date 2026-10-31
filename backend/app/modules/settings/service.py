@@ -8,6 +8,8 @@ from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
 from app.modules.audit.service import Actor, record_audit
+from app.modules.org.models import Shift
+from app.modules.org.shift_rules_service import shift_length_minutes
 from app.modules.punches.retention import shorten_snapshot_expiry
 from app.modules.settings.definitions import (
     DEFINITIONS_BY_KEY,
@@ -66,6 +68,7 @@ def update_settings(
     checked_values = {key: _check_value(key, value) for key, value in new_values.items()}
     _check_face_floor(session, checked_values)
     _check_m4_pairs(session, checked_values)
+    _check_window_fits_shifts(session, checked_values)
 
     for key, value in checked_values.items():
         stored = session.get(SettingValue, key)
@@ -192,6 +195,31 @@ def _check_m4_pairs(session: Session, new_values: dict[str, SettingValueType]) -
         too_close = smaller >= larger if "refresh" in smaller_key else smaller > larger
         if too_close:
             raise ApiError("SETTING_INVALID", message, 422, {"key": larger_key})
+
+
+def _check_window_fits_shifts(session: Session, new_values: dict[str, SettingValueType]) -> None:
+    """The day window starts N hours before a shift (M5 spec §7 rules 5 and 16). N must stay
+    below 24 hours minus the longest active shift, so a window never starts before the previous
+    shift has ended."""
+    value = new_values.get("attendance_window_before_hours")
+    if not isinstance(value, int | float):
+        return
+    longest = max(
+        (
+            shift_length_minutes(start, end)
+            for start, end in session.execute(
+                select(Shift.start_time, Shift.end_time).where(Shift.is_active.is_(True))
+            )
+        ),
+        default=0,
+    )
+    if value * 60 >= 24 * 60 - longest:
+        raise ApiError(
+            "SETTING_INVALID",
+            "The day window must start after the longest shift of the day before has ended.",
+            422,
+            {"key": "attendance_window_before_hours", "longest_shift_min": longest},
+        )
 
 
 def _int_after_save(session: Session, new_values: dict[str, SettingValueType], key: str) -> int:

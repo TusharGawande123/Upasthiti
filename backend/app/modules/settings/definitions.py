@@ -17,7 +17,7 @@ SettingValueType = int | float | str | None
 class SettingDefinition:
     key: str
     # screen card: kiosk, kiosk_screen, punch, antiproxy, offline, face, privacy, snapshots,
-    # cards, salary, security
+    # cards, salary, security, attendance, alerts
     group: str
     default: SettingValueType
     unit: str
@@ -133,6 +133,27 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition("offline_queue_max_items", "offline", 2000, "punches", 4, 200, 10000),
     SettingDefinition("offline_queue_max_mb", "offline", 200, "MB", 4, 20, 1000),
     SettingDefinition("offline_clock_drift_seconds", "offline", 120, "s", 4, 30, 600),
+    # Attendance processing (M5 spec §7 rule 16).
+    # The day of a shift starts this long before the shift start (rule 5).
+    SettingDefinition("attendance_window_before_hours", "attendance", 4, "h", 5, 1, 8),
+    SettingDefinition("correction_request_max_days", "attendance", 31, "days", 5, 1, 92),
+    SettingDefinition("still_inside_alert_minutes", "alerts", 60, "min", 5, 15, 240),
+    SettingDefinition("rejection_alert_count", "alerts", 10, "rejections", 5, 3, 100),
+    SettingDefinition("rejection_alert_minutes", "alerts", 30, "min", 5, 5, 240),
+    # Has no effect while the SMTP variables are not set (spec §7 rule 20).
+    SettingDefinition("email_alerts", "alerts", "off", "", 5, allowed_values=("on", "off")),
+    SettingDefinition("notification_keep_days", "alerts", 90, "days", 5, 30, 365),
+    SettingDefinition("absence_streak_days", "alerts", 3, "working days", 5, 2, 10),
+    # Small lines on the gate screen (F-28, F-37, F-2); never a name.
+    SettingDefinition(
+        "kiosk_show_inside_count", "kiosk_screen", "on", "", 5, allowed_values=("on", "off")
+    ),
+    SettingDefinition(
+        "kiosk_late_hint", "kiosk_screen", "off", "", 5, allowed_values=("on", "off")
+    ),
+    SettingDefinition(
+        "kiosk_show_month_line", "kiosk_screen", "off", "", 5, allowed_values=("on", "off")
+    ),
     SettingDefinition(
         "salary_day_basis", "salary", 30, "days", 7, allowed_values=(26, 30, "actual")
     ),

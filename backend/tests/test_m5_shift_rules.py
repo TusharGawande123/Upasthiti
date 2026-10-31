@@ -274,3 +274,26 @@ def test_a_plant_head_reads_the_rules_of_the_own_plant_but_cannot_change_them(
     assert versions.status_code == 200
     assert weekly_off.status_code == 200
     assert change.json()["error"]["code"] == "FORBIDDEN"
+
+
+def test_the_day_window_setting_must_leave_room_for_the_longest_shift(boss: TestClient) -> None:
+    """Spec §7 rule 16: N must stay below 24 h minus the longest active shift."""
+    with frozen_at(NOON):
+        plant = create_plant(boss)
+        office_shift(boss, plant["id"])
+        fits = boss.put(
+            "/api/v1/settings",
+            json={"values": {"attendance_window_before_hours": 8}, "reason": "Early arrivals"},
+        )
+        boss.post(
+            f"/api/v1/plants/{plant['id']}/shifts",
+            json={"name": "Long", "start_time": "06:00", "end_time": "23:00"},  # 17 h
+        )
+        too_long = boss.put(
+            "/api/v1/settings",
+            json={"values": {"attendance_window_before_hours": 7}, "reason": "Early arrivals"},
+        )
+
+    assert fits.status_code == 200, fits.text
+    assert too_long.json()["error"]["code"] == "SETTING_INVALID"
+    assert too_long.json()["error"]["details"]["longest_shift_min"] == 1020

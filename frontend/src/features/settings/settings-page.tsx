@@ -34,6 +34,8 @@ import { type Setting, type SettingValue, useSaveSettings, useSettings } from ".
 
 // The order of the cards on the screen.
 const GROUP_ORDER = [
+  "attendance",
+  "alerts",
   "kiosk",
   "security",
   "punch",
