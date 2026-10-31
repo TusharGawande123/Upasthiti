@@ -322,3 +322,21 @@ a real phone at 360 px, report downloads opened in Excel.
   hook `useBatchAction` supports it); the near-punch warning shows the server text "A punch already covers this
   time." (the API gives no time or minutes); `BULK_TOO_LARGE` text still says 500 (shared code with employee bulk,
   UI limits to 200); "Open in punch log" links to `/admin/punches` without a filter.
+- 2026-10-31 slice 7 group D (frontend): Leave `/admin/leave` (`features/leave/`: list with plant, month, pay, state filters
+  and a name/code box, add dialog with employee search + live working-day line from the plant weekly off and holidays,
+  cancel dialog with reason; Super Admin only, others read-only without the reason column) and Holidays `/admin/holidays`
+  (`features/holidays/`: year picker, plant filter, month groups, add / cancel dialogs). Menu items Leave and Holidays for
+  all roles (left menu, phone menu, Ctrl+K share `NAV_ITEMS`); both pages added to `responsive.spec.ts` (not run).
+  Plant Overview tab got `plant-rules-card.tsx` (weekly off with history In force / Upcoming / Earlier, change dialog with
+  warning; attendance start date with the "hides days" warning). Shift form reworked: `shift-form-dialog.tsx`,
+  `shift-helper.tsx` (live timeline + lines, decision 0036 line 8), rule history list, field errors (grace 0-120, half-day
+  below the full day, apply-from today or later), toast "Shift times changed. Print the gate poster again." with an
+  "Open the gate poster" button; `shifts-tab.tsx` is now a list with "Edit rules". Texts: `leave.*`, `holidays.*`,
+  `plantWeekly.*`, `plantStart.*`, `shiftForm.*`, `nav.leave|holidays`. Tests: leave 17, holidays 10, plants 57 (plants +
+  attendance folders 136 passed); typecheck, lint, i18n:check, build + size ok, no budget raised (menu and layout 23.5 of
+  23.8 kB). Not run: e2e. Differences from the mockups / backend: no Plant column in the leave list (API has no plant on
+  leave); no server-side name search (the box narrows the loaded 200 rows); "days not counted" is shown as a count, not
+  "01/11 weekly off"; no holiday edit (API has add and cancel only) and Cancel is offered for every active holiday; no
+  "Falls on the weekly off" note; start-date dialog has no reason field (API takes none); rule history shows the saved date
+  only (API has no "saved by"); cancel reasons need 3 to 300 characters (backend), not 10 to 200; the leave overlap code is
+  `LEAVE_OVERLAPS` with its existing generic text.
