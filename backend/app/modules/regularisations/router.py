@@ -12,7 +12,7 @@ from app.core.db import get_session
 from app.core.pagination import Page, PageParams, page_params
 from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
-from app.modules.regularisations import service
+from app.modules.regularisations import bulk_service, service
 from app.modules.regularisations.schemas import (
     CorrectionCreated,
     CorrectionResponse,
@@ -102,6 +102,50 @@ def create_correction(
     session: Session = Depends(get_session),
 ) -> CorrectionCreated:
     return _one(session, service.create_correction(session, current_user, body))
+
+
+@router.post("/regularisations/bulk/preview", response_model=bulk_service.BulkPreviewResponse)
+def bulk_preview(
+    body: bulk_service.BulkRequest,
+    current_user: CurrentUser = Depends(reader),
+    session: Session = Depends(get_session),
+) -> bulk_service.BulkPreviewResponse:
+    return bulk_service.preview(session, current_user, body)
+
+
+@router.post("/regularisations/bulk", response_model=bulk_service.BulkCreated, status_code=201)
+def bulk_create(
+    body: bulk_service.BulkRequest,
+    current_user: CurrentUser = Depends(reader),
+    session: Session = Depends(get_session),
+) -> bulk_service.BulkCreated:
+    return bulk_service.create(session, current_user, body)
+
+
+@router.post(
+    "/regularisations/batches/{batch_id}/approve-all", response_model=bulk_service.BatchApproved
+)
+def batch_approve_all(
+    batch_id: uuid.UUID,
+    body: NoteBody | None = None,
+    current_user: CurrentUser = Depends(decider),
+    session: Session = Depends(get_session),
+) -> bulk_service.BatchApproved:
+    return bulk_service.approve_all(session, current_user, batch_id, body.note if body else None)
+
+
+@router.post(
+    "/regularisations/batches/{batch_id}/reverse",
+    response_model=bulk_service.BatchReversed,
+    status_code=201,
+)
+def batch_reverse(
+    batch_id: uuid.UUID,
+    body: ReasonBody,
+    current_user: CurrentUser = Depends(decider),
+    session: Session = Depends(get_session),
+) -> bulk_service.BatchReversed:
+    return bulk_service.reverse_batch(session, current_user, batch_id, body.reason)
 
 
 @router.post("/regularisations/{correction_id}/approve", response_model=CorrectionCreated)

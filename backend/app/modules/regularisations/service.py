@@ -475,7 +475,25 @@ def create_correction(
     now = utc_now()
     employee = _employee_for(session, current_user, body.employee_id, body.attendance_date)
     check_correction(session, employee, body, now, is_requester=path == "request")
+    row = store_correction(session, current_user, body, employee, path, now)
+    session.commit()
+    return row
+
+
+def store_correction(
+    session: Session,
+    current_user: CurrentUser,
+    body: CreateCorrectionRequest,
+    employee: Employee,
+    path: str,
+    now: datetime,
+    *,
+    batch_id: uuid.UUID | None = None,
+) -> Regularisation:
+    """Store one checked correction (and its approval when direct) without committing, so a bulk
+    correction can store many in one transaction. The caller has run `check_correction`."""
     row = _row_from(body, current_user.id, now, direct=path == "direct")
+    row.batch_id = batch_id
     session.add(row)
     session.flush()
     if path == "direct":
@@ -495,7 +513,6 @@ def create_correction(
         reason=row.reason,
         plant_id=employee.plant_id,
     )
-    session.commit()
     return row
 
 
