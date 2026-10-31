@@ -20,6 +20,7 @@ import {
   Search,
   Send,
   Settings,
+  Siren,
   Tablet,
   TriangleAlert,
   UserRound,
@@ -27,7 +28,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import { usePendingCount } from "@/features/approvals/use-approvals";
 import { BrandMark } from "@/features/auth/brand-mark";
 import { type Me, type Role, useMe } from "@/features/auth/use-auth";
@@ -66,6 +67,8 @@ const NAV_ITEMS: NavItem[] = [
     roles: ALL_ROLES,
     badge: "offlineDevices", // attendance devices that are offline now (M4 F-36)
   },
+  // M5: everyone inside the plant now, for roll call in an emergency (every role).
+  { to: "/admin/muster", labelKey: "nav.muster", icon: Siren, roles: ALL_ROLES },
   // The punch log: every role reads it (the server limits a Plant Head to their own plant).
   { to: "/admin/punches", labelKey: "nav.punches", icon: History, roles: ALL_ROLES },
   // M4: flagged punches to check and rejected punches to approve. Super Admin only.
@@ -107,6 +110,9 @@ function AdminShell({ user }: { user: Me }) {
   const { t } = useTranslation();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const items = visibleNavItems(user.role);
+  // The dashboard and the muster have their own plant picker on the page (design gate A).
+  const { pathname } = useLocation();
+  const pickerOnPage = pathname === "/admin" || pathname === "/admin/muster";
   const pending = usePendingCount(user.role === "super_admin");
   const expiring = useExpiringCount(user.role === "super_admin");
   const deviceSummary = useOfflineSummary();
@@ -201,10 +207,19 @@ function AdminShell({ user }: { user: Me }) {
         ]
       : [];
   commands.push(...faceListCommands);
+  // M5: reachable from the palette for every role, so it is quick to find in an emergency.
+  commands.push({
+    id: "muster",
+    kind: "go",
+    label: t("palette.command.muster.label"),
+    hint: t("palette.command.muster.hint"),
+    icon: Siren,
+    to: "/admin/muster",
+  });
 
   return (
     <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-16 shrink-0 flex-col border-r bg-card lg:flex xl:w-64">
+      <aside className="print:hidden sticky top-0 hidden h-screen w-16 shrink-0 flex-col border-r bg-card lg:flex xl:w-64">
         <div className="flex h-16 items-center px-4 xl:px-5">
           <span className="xl:hidden">
             <span className="grid size-9 place-items-center rounded-lg bg-primary">
@@ -224,7 +239,7 @@ function AdminShell({ user }: { user: Me }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-card/90 px-3 backdrop-blur sm:gap-3 sm:px-5 lg:px-8">
+        <header className="print:hidden sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-card/90 px-3 backdrop-blur sm:gap-3 sm:px-5 lg:px-8">
           <MobileMenu items={items} badgeFor={badgeFor} />
           <div className="hidden sm:block lg:hidden">
             <BrandMark />
@@ -246,7 +261,7 @@ function AdminShell({ user }: { user: Me }) {
           >
             <Search className="size-4" aria-hidden />
           </button>
-          <PlantFilterSelect />
+          {pickerOnPage ? null : <PlantFilterSelect />}
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <OfflineBadge summary={deviceSummary} />
             <UserMenu user={user} />

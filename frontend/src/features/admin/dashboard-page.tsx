@@ -1,9 +1,11 @@
-// The dashboard. In M1 it is a placeholder; the live headcount arrives in M5.
+// The dashboard: the live headcount of today (M5) on top, then the cards kept from M1 to M4
+// (devices, checks, set-up) under "Devices, checks and set-up".
 import { CalendarClock, Tablet } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useMe } from "@/features/auth/use-auth";
+import { LiveDashboard } from "@/features/dashboard/live-dashboard";
 import { FaceEnrolmentCard } from "@/features/face/enrolment-card";
 import { HealthStatus } from "@/features/health/health-status";
 import { useStatusSummary } from "@/features/kiosks/use-kiosks";
@@ -90,15 +92,19 @@ export function DashboardPage() {
   const me = useMe();
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6">
+    <div className="mx-auto max-w-6xl space-y-6">
       <h1 className="text-[26px] font-bold tracking-tight">
         {t("dashboard.welcome", { name: me.data?.name })}
       </h1>
-      {me.data ? <DevicesCard /> : null}
-      {me.data?.role === "super_admin" ? <ToCheckCard /> : null}
-      {me.data?.role === "super_admin" ? <DigestCard /> : null}
-      {me.data?.role === "super_admin" ? <CardsEndingSoon /> : null}
-      {me.data ? <FaceEnrolmentCard /> : null}
+      {me.data ? <LiveDashboard isSuperAdmin={me.data.role === "super_admin"} /> : null}
+      <h2 className="text-lg font-bold">{t("dashboard.live.keptTitle")}</h2>
+      <div className="grid gap-4 lg:grid-cols-2">
+        {me.data ? <DevicesCard /> : null}
+        {me.data?.role === "super_admin" ? <ToCheckCard /> : null}
+        {me.data?.role === "super_admin" ? <DigestCard /> : null}
+        {me.data?.role === "super_admin" ? <CardsEndingSoon /> : null}
+        {me.data ? <FaceEnrolmentCard /> : null}
+      </div>
       <Card>
         <CardHeader>
           <CardTitle>{t("dashboard.placeholderTitle")}</CardTitle>

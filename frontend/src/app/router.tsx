@@ -111,6 +111,13 @@ const adminPages: RouteObject[] = [
     ),
   },
   {
+    path: "/admin/muster",
+    lazy: page(
+      () => import("../features/dashboard/muster-page"),
+      (m) => m.MusterPage,
+    ),
+  },
+  {
     path: "/admin/review",
     lazy: page(
       () => import("../features/review/review-page"),
