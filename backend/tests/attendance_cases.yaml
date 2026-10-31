@@ -1,0 +1,263 @@
+# Golden attendance cases (M5 spec §7 rule 22 and §10 AC-1 to AC-12; S-39).
+# Each case is one employee and one day, fed straight into compute_day() (no database).
+#
+# shift:   office    09:00–17:00, grace 30, half day 240, smallest overtime 120
+#          night     19:00–07:00, grace 30, half day 240, smallest overtime 120
+#          office_g0 09:00–17:00, grace 0 (for the exact thresholds of AC-6)
+#          office_m0 09:00–17:00, smallest overtime 0 (AC-8)
+# events:  "in 09:25", "out 17:00", "out +1 05:30" (next day), "in 09:30:01" (seconds);
+#          add " flag" for a flagged punch nobody checked yet, " fix" for a correction time.
+# now:     when the day is computed (IST); default 2026-11-20 12:00, so every day is closed.
+# expect:  only the fields listed are checked.
+
+- id: E1
+  events: [in 09:25, out 17:00]
+  expect: {status: present, status_min: 480, late_min: 0, early_exit_min: 0, worked_min: 455, overtime_min: 0}
+- id: E2
+  events: [in 09:00, out 17:00]
+  expect: {status: present, status_min: 480, worked_min: 480}
+- id: E3
+  events: [in 09:30:00, out 16:30:00]
+  expect: {status: present, status_min: 480, late_min: 0, early_exit_min: 0, worked_min: 420}
+- id: E4
+  events: [in 09:40, out 17:00]
+  expect: {status: half_day, status_min: 440, late_min: 40, worked_min: 440, overtime_min: 0}
+- id: E5
+  events: [in 09:00, out 16:20]
+  expect: {status: half_day, status_min: 440, early_exit_min: 40, worked_min: 440}
+- id: E6
+  events: [in 08:40, out 17:00]
+  expect: {status: present, status_min: 480, worked_min: 500, overtime_min: 0}
+- id: E7
+  events: [in 09:00, out 12:50]
+  expect: {status: short_hours, status_min: 230, early_exit_min: 250}
+- id: E7-decided
+  events: [in 09:00, out 12:50]
+  status_override: half_day
+  corrected: true
+  expect: {status: half_day, worked_min: 230, is_corrected: true}
+- id: E8
+  events: [in 09:00, out 13:00]
+  expect: {status: half_day, status_min: 240}
+- id: E9
+  events: [in 09:00, out 18:50]
+  expect: {status: present, worked_min: 590, overtime_min: 0}
+- id: E10
+  events: [in 09:00, out 19:10]
+  expect: {status: present, worked_min: 610, overtime_min: 130}
+- id: E11-at-two-hours
+  events: [in 09:00, out 19:00]
+  expect: {overtime_min: 120}
+- id: E11-one-minute-short
+  events: [in 09:00, out 18:59]
+  expect: {overtime_min: 0}
+- id: E12-before-approval
+  events: [in 09:02, out 12:30]
+  expect: {status: short_hours, worked_min: 208, status_min: 210}
+- id: E12-after-approval
+  events: [in 09:02, out 12:30, out 17:05]
+  expect: {status: present, worked_min: 483, status_min: 480, extra_punch_count: 1, overtime_min: 0, exceptions: [EXTRA_PUNCHES]}
+- id: E13
+  events: [in 09:02]
+  expect: {status: incomplete, worked_min: 0, overtime_min: 0, payable_min: 0, late_min: 0, exceptions: [OUT_MISSING]}
+- id: E13-completed
+  events: [in 09:02, out 17:05 fix]
+  corrected: true
+  expect: {status: present, worked_min: 483, overtime_min: 0, is_corrected: true}
+- id: E14
+  events: [in 09:00, out 17:00]
+  expect: {status: present, worked_min: 480}
+- id: E15
+  events: []
+  expect: {status: absent, worked_min: 0}
+- id: E16
+  day: 2026-11-01
+  kind: weekly_off
+  events: [in 10:00, out 14:00]
+  expect: {status: present, day_kind: weekly_off, worked_min: 240, payable_min: 240, overtime_min: 0, late_min: 0, status_min: null}
+- id: E16b
+  day: 2026-11-01
+  kind: weekly_off
+  events: [in 09:00, out 19:30]
+  expect: {status: present, day_kind: weekly_off, worked_min: 630, overtime_min: 150}
+- id: E16-no-punches
+  day: 2026-11-01
+  kind: weekly_off
+  events: []
+  expect: {status: weekly_off}
+- id: E17
+  day: 2026-11-10
+  kind: holiday
+  holiday: true
+  events: []
+  expect: {status: holiday}
+- id: E18-saturday
+  day: 2026-10-31
+  leave: true
+  events: []
+  expect: {status: leave}
+- id: E18-sunday
+  day: 2026-11-01
+  kind: weekly_off
+  leave: true
+  events: []
+  expect: {status: weekly_off}
+- id: E18-punches-on-leave
+  day: 2026-11-02
+  leave: true
+  events: [in 09:00, out 17:00]
+  expect: {status: present, exceptions: [PUNCHES_ON_LEAVE]}
+- id: E19
+  day: 2026-10-29
+  events: [in 10:00, out +1 05:30]
+  expect: {status: half_day, worked_min: 1170, late_min: 60, status_min: 420, overtime_min: 750, payable_min: 1170}
+- id: E20
+  events: [in 09:00, out 16:00 flag, out 17:00]
+  expect: {status: present, worked_min: 480, extra_punch_count: 1, uses_unchecked_flag: true}
+- id: E21
+  events: [in 09:04, out 17:00]
+  expect: {status: present, worked_min: 476, late_min: 0, status_min: 480}
+
+# AC-6b: grace is decided to the second; minutes are counted on whole minutes (decision 0036 line 6).
+- id: AC6b-in-one-second-late
+  events: [in 09:30:01, out 17:00]
+  expect: {status: half_day, late_min: 30, status_min: 450}
+- id: AC6b-out-one-second-early
+  events: [in 09:00, out 16:29:59]
+  expect: {status: half_day, early_exit_min: 31, status_min: 449}
+
+# AC-6: exact thresholds (grace 0 so that every minute counts).
+- id: AC6-480-present
+  shift: office_g0
+  events: [in 09:00, out 17:00]
+  expect: {status: present, status_min: 480}
+- id: AC6-479-half-day
+  shift: office_g0
+  events: [in 09:00, out 16:59]
+  expect: {status: half_day, status_min: 479}
+- id: AC6-240-half-day
+  shift: office_g0
+  events: [in 09:00, out 13:00]
+  expect: {status: half_day, status_min: 240}
+- id: AC6-239-short-hours
+  shift: office_g0
+  events: [in 09:00, out 12:59]
+  expect: {status: short_hours, status_min: 239}
+
+# AC-8: no grace on overtime; with a smallest overtime of 0 every minute after 17:00 counts.
+- id: AC8-twenty-minutes-default
+  events: [in 09:00, out 17:20]
+  expect: {overtime_min: 0}
+- id: AC8-twenty-minutes-minimum-zero
+  shift: office_m0
+  events: [in 09:00, out 17:20]
+  expect: {overtime_min: 20, payable_min: 500}
+
+# AC-5b: one IN and one OUT, never a sum of pieces.
+- id: AC5b-earlier-out-then-in
+  events: [in 09:00, out 12:00, in 13:00]
+  expect: {status: incomplete, worked_min: 0, exceptions: [EXTRA_PUNCHES, OUT_MISSING]}
+- id: AC5b-only-outs
+  events: [out 17:00]
+  expect: {status: incomplete, exceptions: [OUT_WITHOUT_IN]}
+- id: AC5b-pieces-are-not-summed
+  events: [in 09:00, out 12:00, in 13:00, out 17:00]
+  expect: {status: present, worked_min: 480, extra_punch_count: 2}
+
+# Night shift, day 29/10 (N1–N4).
+- id: N1
+  shift: night
+  day: 2026-10-29
+  events: [in 18:55, out +1 07:00]
+  expect: {status: present, status_min: 720, worked_min: 725, late_min: 0, overtime_min: 0}
+- id: N2
+  shift: night
+  day: 2026-10-29
+  events: [in 19:25, out +1 07:00]
+  expect: {status: present, status_min: 720, worked_min: 695, late_min: 0}
+- id: N3
+  shift: night
+  day: 2026-10-29
+  events: [in 19:45, out +1 07:00]
+  expect: {status: half_day, status_min: 675, late_min: 45}
+- id: N4
+  shift: night
+  day: 2026-10-29
+  events: [in 19:00, out +1 09:20]
+  expect: {status: present, worked_min: 860, overtime_min: 140}
+- id: AC7-night-on-time
+  shift: night
+  day: 2026-10-29
+  events: [in 19:30:00, out +1 07:00]
+  expect: {late_min: 0, status: present}
+
+# Temporary workers (T1–T6): hours and payable only.
+- id: T1
+  type: temporary
+  events: [in 09:00, out 17:00]
+  expect: {status: present, worked_min: 480, payable_min: 480, overtime_min: 0, status_min: null}
+- id: T2
+  type: temporary
+  events: [in 09:00, out 12:00]
+  expect: {status: present, worked_min: 180, payable_min: 180}
+- id: T3
+  type: temporary
+  events: [in 08:30, out 19:30]
+  expect: {status: present, worked_min: 660, overtime_min: 150, payable_min: 630, late_min: 0}
+- id: T4
+  type: temporary
+  events: [in 09:00, out 18:30]
+  expect: {worked_min: 570, overtime_min: 0, payable_min: 480}
+- id: T5
+  type: temporary
+  events: [in 09:20, out 17:00]
+  expect: {worked_min: 460, payable_min: 460, late_min: 0}
+- id: T6
+  type: temporary
+  events: [in 08:45, out 18:00]
+  expect: {worked_min: 555, overtime_min: 0, payable_min: 480}
+- id: T-incomplete
+  type: temporary
+  events: [in 09:00]
+  expect: {status: incomplete, worked_min: 0, payable_min: 0}
+
+# Open days (rule 8): shown live, never Absent or Incomplete yet.
+- id: open-inside
+  now: 2026-10-30 12:00
+  events: [in 09:40]
+  expect: {status: open, open_state: inside, late_min: 40, worked_min: 0}
+- id: open-not-arrived
+  now: 2026-10-30 08:00
+  events: []
+  expect: {status: open, open_state: not_arrived}
+- id: open-left
+  now: 2026-10-30 18:00
+  events: [in 09:00, out 17:00]
+  expect: {status: open, open_state: left, worked_min: 480, status_min: null}
+- id: open-while-carry-over-possible
+  now: 2026-10-31 05:59
+  events: [in 10:00]
+  expect: {status: open, open_state: inside}
+- id: closed-after-carry-over-time
+  now: 2026-10-31 06:00
+  events: [in 10:00]
+  expect: {status: incomplete}
+
+# Notes.
+- id: possible-double-entry
+  events: [in 09:00, in 09:01 fix, out 17:00]
+  corrected: true
+  expect: {status: present, worked_min: 480, exceptions: [EXTRA_PUNCHES, POSSIBLE_DOUBLE_ENTRY]}
+- id: shift-change-short-day
+  short_window: true
+  events: [in 09:00, out 17:00]
+  expect: {exceptions: [SHIFT_CHANGE_SHORT_DAY]}
+- id: official-duty-without-punches
+  events: []
+  status_override: present
+  corrected: true
+  expect: {status: present, worked_min: 0}
+- id: not-employed
+  employed: false
+  events: [in 09:00, out 17:00]
+  expect: {status: not_employed, worked_min: 0}
