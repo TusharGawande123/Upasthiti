@@ -253,3 +253,14 @@ a real phone at 360 px, report downloads opened in Excel.
   (tests/conftest.py); the alert has its own tests.
 - Still open in slice 3: AC-40 tests of `min_minutes_before_out` for card, face, online and offline; the punch
   log shows the mark (admin screens, slice 7); responsive / e2e check of the gate dialog (slice 8).
+- 2026-10-31 slice 4 (backend, pushed in parts): notification centre (migration 0024, bell API, own email
+  preferences, optional SMTP; commit ef32a0c), dashboard live + muster (screen and PDF) + punctuality
+  (7b6ad4c), alert jobs `notifications/alerts.py` (still inside, many rejections, device offline, incomplete
+  days, review digest, absence streak, register notice, nightly purge) scheduled in `jobs/daily.py`.
+  Tests: `test_m5_notifications.py` (7), `test_m5_dashboard.py` (10), `test_m5_alerts.py` (8).
+- Design gates A, B, C: the three mockup agents were stopped by the 5-hour usage limit (resets 14:40 IST); the
+  partial files are in docs/design-refs/m5/gate-{a,b,c}/ (gate B has attendance list, register, employee tab
+  and day drawer; gate A has HTML only; gate C is just started). To resume: SendMessage to each agent. No
+  screen code is written before the images are approved.
+- Still open in slice 4: gate extras (`inside_now`, `gate_lines`, settings use, poster shift-times box,
+  gate budget), AC-40 tests of `min_minutes_before_out`.

@@ -22,13 +22,18 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_session_factory
 from app.core.storage import Storage, StorageError, get_storage
-from app.core.time import IST, today_ist, utc_now
+from app.core.time import IST, to_ist, today_ist, utc_now
 from app.modules.attendance.service import close_recent_days, recompute_stale
 from app.modules.auth.models import LoginSession
 from app.modules.employees.operations import apply_due_transfers
 from app.modules.face.cleanup import run_face_cleanup
 from app.modules.kiosks.heartbeat_service import KEEP_SAMPLES_DAYS
 from app.modules.kiosks.models import KioskHeartbeat
+from app.modules.notifications.alerts import (
+    purge_old_notifications,
+    run_five_minute_alerts,
+    run_morning_alerts,
+)
 from app.modules.org.shift_rules_service import apply_due_rule_versions
 from app.modules.punches.retention import purge_expired_snapshots
 
@@ -69,6 +74,7 @@ def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str
         "sessions_deleted": len(old_sessions),
         "snapshots_purged": _purge_snapshots(session, storage),
         "heartbeats_deleted": purge_old_heartbeats(session, utc_now()),
+        "notifications_deleted": purge_old_notifications(session, utc_now()),
     }
 
 
@@ -116,6 +122,30 @@ def run_attendance_catch_up_logged() -> None:
         logger.exception("Attendance catch-up failed")
 
 
+def run_alerts_logged() -> None:
+    """The 5-minute alerts: device offline, people still inside, many refused punches (F-4)."""
+    try:
+        with get_session_factory()() as session:
+            run_five_minute_alerts(session, utc_now())
+    except Exception:
+        logger.exception("Alert check failed")
+
+
+def run_morning_alerts_logged() -> None:
+    """07:00 IST: yesterday's incomplete days, the review digest, absence streaks, the register
+    notice on the 2nd. Repeating it changes nothing (dedupe keys)."""
+    try:
+        with get_session_factory()() as session:
+            run_morning_alerts(session, utc_now())
+    except Exception:
+        logger.exception("Morning alerts failed")
+
+
+def run_morning_alerts_if_late_logged() -> None:
+    if to_ist(utc_now()).hour >= 7:
+        run_morning_alerts_logged()
+
+
 def run_attendance_close_logged() -> None:
     """Every active employee gets a stored day for each of the last days (M5 rule 14 c)."""
     try:
@@ -143,6 +173,19 @@ def start_scheduler() -> BackgroundScheduler:
         next_run_time=utc_now(),
     )
     scheduler.add_job(run_attendance_close_logged, "cron", hour=0, minute=5, id="attendance-close")
+    # Alerts: at once and then every 5 minutes (next_run_time keeps a cold start fast).
+    scheduler.add_job(
+        run_alerts_logged, "interval", minutes=5, id="alerts", next_run_time=utc_now()
+    )
+    scheduler.add_job(run_morning_alerts_logged, "cron", hour=7, minute=0, id="morning-alerts")
+    # A free server that slept through 07:00 still raises the morning alerts when it wakes
+    # (after 07:00 IST); the dedupe keys make a second run harmless.
+    scheduler.add_job(
+        run_morning_alerts_if_late_logged,
+        "date",
+        run_date=utc_now() + timedelta(seconds=90),
+        id="morning-alerts-at-start",
+    )
     # Once after start-up too: days missed while the free server slept are closed.
     scheduler.add_job(
         run_attendance_close_logged,

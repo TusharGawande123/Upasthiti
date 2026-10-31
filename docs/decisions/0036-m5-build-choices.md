@@ -74,3 +74,11 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     (state `failed`, the error class only, never an address) and not retried: the unique delivery key keeps
     it at one try, inside the "at most 3" of the spec. Migration numbers: early-OUT mark 0023, notifications
     0024, shift swaps 0025, M4b 0026-0027.
+15. **Absence streak (F-62):** only closed WORKING days count; weekly offs and holidays are skipped and do not
+    break a streak, while leave, Short hours, Incomplete and a present day do (spec §7 rule 20 lists the weekly
+    off and holiday among the "breakers"; skipping them is the reading that fits "the last N closed working
+    days", **to confirm with Tushar**). One notification per person per streak, keyed by the first absent day.
+16. **Alert jobs run on the free server's schedule:** the 5-minute job starts with `next_run_time`; the 07:00
+    morning job also runs once 90 seconds after start-up when the start is after 07:00 IST (a server that slept
+    through 07:00); the dedupe keys make every repeat harmless. The nightly purge of old notifications runs with
+    the daily job. DEMO plants never raise an alert.
