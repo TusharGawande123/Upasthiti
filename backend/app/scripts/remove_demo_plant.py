@@ -209,6 +209,7 @@ PROTECTED_TABLES = (
     "holidays",
     "holiday_plants",
     "leave_records",
+    "shift_swaps",
 )
 
 
@@ -224,6 +225,8 @@ def remove_attendance_rows(session: Session, employee_ids: list[uuid.UUID]) -> N
     employees themselves go."""
     leave = _table("leave_records")
     session.execute(delete(leave).where(leave.c.employee_id.in_(employee_ids)))
+    swaps = _table("shift_swaps")
+    session.execute(delete(swaps).where(swaps.c.employee_id.in_(employee_ids)))
 
 
 def remove(session: Session, plan: RemovalPlan) -> None:

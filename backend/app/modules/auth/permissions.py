@@ -64,6 +64,7 @@ class Capability(enum.Enum):
     DECIDE_CORRECTIONS = "decide_corrections"  # approve, reject, direct correction, reverse
     MANAGE_LEAVE = "manage_leave"
     MANAGE_HOLIDAYS = "manage_holidays"
+    MANAGE_SHIFT_SWAPS = "manage_shift_swaps"  # one-day shift swap (F-58), Super Admin only
     VIEW_REPORTS = "view_reports"  # Excel / PDF reports; Plant Head: own plant only
     RECOMPUTE_ATTENDANCE = "recompute_attendance"
     SHOW_DEMO_PLANTS = "show_demo_plants"  # include DEMO plants in screens and reports
@@ -157,6 +158,7 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
     Capability.DECIDE_CORRECTIONS: {SUPER_ADMIN: Access.ALL},
     Capability.MANAGE_LEAVE: {SUPER_ADMIN: Access.ALL},
     Capability.MANAGE_HOLIDAYS: {SUPER_ADMIN: Access.ALL},
+    Capability.MANAGE_SHIFT_SWAPS: {SUPER_ADMIN: Access.ALL},
     Capability.VIEW_REPORTS: {
         SUPER_ADMIN: Access.ALL,
         CORPORATE_HEAD: Access.ALL,

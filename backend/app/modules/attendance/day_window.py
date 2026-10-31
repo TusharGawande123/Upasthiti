@@ -28,6 +28,7 @@ from app.modules.employees.models import Employee, EmployeePlantHistory, ShiftAs
 from app.modules.holidays.models import Holiday, HolidayPlant
 from app.modules.org.models import Plant, PlantWeeklyOff, ShiftRuleVersion
 from app.modules.org.shift_rules_service import ShiftRules, rules_of_version
+from app.modules.shift_swaps.models import ShiftSwap
 
 # A day whose window ends less than this after its shift end gets SHIFT_CHANGE_SHORT_DAY.
 SHORT_WINDOW_AFTER_END = timedelta(hours=1)
@@ -76,6 +77,8 @@ class AttendanceCalendar:
         self.employees: dict[uuid.UUID, EmployeeFacts] = {}
         self._plants: dict[uuid.UUID, list[_Dated[uuid.UUID]]] = defaultdict(list)
         self._shifts: dict[uuid.UUID, list[_Dated[uuid.UUID]]] = defaultdict(list)
+        # A one-day shift swap (F-58) replaces the assignment for that date.
+        self._swaps: dict[tuple[uuid.UUID, date], uuid.UUID] = {}
         # Per shift, sorted by (effective_from, created_at): the last one on or before a date wins.
         self._versions: dict[uuid.UUID, list[ShiftRuleVersion]] = defaultdict(list)
         self._weekly_offs: dict[uuid.UUID, list[PlantWeeklyOff]] = defaultdict(list)
@@ -123,11 +126,20 @@ class AttendanceCalendar:
             calendar._shifts[row.employee_id].append(
                 _Dated(row.from_date, row.to_date, row.shift_id)
             )
+        for swap in session.scalars(
+            select(ShiftSwap).where(
+                ShiftSwap.employee_id.in_(employee_ids),
+                ShiftSwap.swap_date.between(first, last),
+                ShiftSwap.cancelled_at.is_(None),
+            )
+        ):
+            calendar._swaps[(swap.employee_id, swap.swap_date)] = swap.shift_id
         calendar._load_rules_and_plants(session, first, last)
         return calendar
 
     def _load_rules_and_plants(self, session: Session, first: date, last: date) -> None:
         shift_ids = {item.value for rows in self._shifts.values() for item in rows}
+        shift_ids |= set(self._swaps.values())
         for version in session.scalars(
             select(ShiftRuleVersion)
             .where(ShiftRuleVersion.shift_id.in_(shift_ids))
@@ -181,11 +193,11 @@ class AttendanceCalendar:
         return started is not None and day >= started
 
     def shift_on(self, employee_id: uuid.UUID, day: date) -> DayShift | None:
-        """The assigned shift and the rule version in force on `day` (rule 3).
-
-        A one-day shift swap (F-58) replaces the assignment from slice 5 on.
-        """
-        shift_id = _value_on(self._shifts.get(employee_id, []), day)
+        """The shift and the rule version in force on `day` (rule 3): the one-day swap of that date
+        if there is one (F-58), otherwise the assignment."""
+        shift_id = self._swaps.get((employee_id, day)) or _value_on(
+            self._shifts.get(employee_id, []), day
+        )
         if shift_id is None:
             return None
         versions = self._versions.get(shift_id, [])

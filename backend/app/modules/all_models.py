@@ -20,6 +20,7 @@ from app.modules.punches import models as punches_models
 from app.modules.qr_cards import models as qr_cards_models
 from app.modules.regularisations import models as regularisations_models
 from app.modules.settings import models as settings_models
+from app.modules.shift_swaps import models as shift_swaps_models
 from app.modules.users import models as users_models
 
 __all__ = [
@@ -40,5 +41,6 @@ __all__ = [
     "qr_cards_models",
     "regularisations_models",
     "settings_models",
+    "shift_swaps_models",
     "users_models",
 ]

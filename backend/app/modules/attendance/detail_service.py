@@ -23,11 +23,12 @@ from app.modules.auth.scope import plant_filter
 from app.modules.employees.models import Employee
 from app.modules.kiosks.models import KioskDevice
 from app.modules.leave.models import LeaveRecord
-from app.modules.org.models import ShiftRuleVersion
+from app.modules.org.models import Shift, ShiftRuleVersion
 from app.modules.punches.counting import counted_between, latest_reviews
 from app.modules.punches.models import Punch
 from app.modules.regularisations import service as correction_service
 from app.modules.regularisations.models import CorrectionKind, Regularisation
+from app.modules.shift_swaps.models import ShiftSwap
 from app.modules.users.models import User
 
 
@@ -135,13 +136,34 @@ def day_of_employee(
     return {
         "day": shown,
         "explanation": [],  # F-61 "Explain this day" is built with the day screen (slice 7)
-        "shift_swap": None,  # F-58 comes in slice 5
+        "shift_swap": _swap_of_day(session, employee.id, day),
         "shift_rules": rules,
         "window": {"start": window.start, "end": window.end} if window else None,
         "timeline": _timeline(session, current_user, employee, day, row, window, loader),
         "allowed_correction_kinds": kinds if row.status != "not_employed" else [],
         "can_request": can_request and not can_correct,
         "can_correct": can_correct,
+    }
+
+
+def _swap_of_day(session: Session, employee_id: uuid.UUID, day: date) -> dict[str, Any] | None:
+    """The one-day shift swap of this date, if any (F-58)."""
+    row = session.execute(
+        select(ShiftSwap, Shift.name)
+        .join(Shift, Shift.id == ShiftSwap.shift_id)
+        .where(
+            ShiftSwap.employee_id == employee_id,
+            ShiftSwap.swap_date == day,
+            ShiftSwap.cancelled_at.is_(None),
+        )
+    ).first()
+    if row is None:
+        return None
+    swap, shift_name = row
+    return {
+        "id": swap.id,
+        "shift": {"id": swap.shift_id, "name": shift_name},
+        "reason": swap.reason,
     }
 
 

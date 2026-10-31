@@ -27,6 +27,7 @@ COMMIT_POINTS: dict[str, tuple[str, int]] = {
     "holidays/service.py": ("mark_plant_days_stale(", 2),
     "org/shift_rules_service.py": ("mark_plant_days_stale(", 3),
     "settings/service.py": ("mark_plant_days_stale(", 1),
+    "shift_swaps/service.py": ("mark_days_stale(", 2),
     # Corrections: approve, reverse and the direct path share one helper.
     "regularisations/service.py": ("_mark_stale(", 3),
 }

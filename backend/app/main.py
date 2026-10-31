@@ -41,6 +41,7 @@ from app.modules.qr_cards.router import router as qr_cards_router
 from app.modules.regularisations.router import router as regularisations_router
 from app.modules.settings.privacy_router import router as privacy_router
 from app.modules.settings.router import router as settings_router
+from app.modules.shift_swaps.router import router as shift_swaps_router
 from app.modules.users.router import router as users_router
 
 API_PREFIX = "/api/v1"
@@ -116,6 +117,7 @@ def create_app() -> FastAPI:
     api_router.include_router(attendance_router)
     api_router.include_router(notifications_router)
     api_router.include_router(dashboard_router)
+    api_router.include_router(shift_swaps_router)
     app.include_router(api_router)
     return app
 
