@@ -306,3 +306,19 @@ a real phone at 360 px, report downloads opened in Excel.
   dialog, bulk wizard, Before -> After panels, employee tab, day drawer. Open: `show` tiles late / arrived /
   expected / inside / not_arrived / off_today / to_decide only map to the closest status filter (the API has no
   such filters); "worked on off day" status filter missing in the API; "days to decide" lists one day, not the month.
+- 2026-10-31 slice 7 group C (frontend, all lazy): employee page now has tabs Details / Attendance
+  (`employee-attendance-tab.tsx`: month picker + calendar with codes, month totals, leave and corrections of the
+  month, 12-month heatmap `attendance-heatmap.tsx`, shift swap card `shift-swap-card.tsx`); real day drawer
+  (`day-drawer.tsx`, `day-timeline.tsx`; `day-drawer-host.tsx` now lazy-loads it, same exports); correction dialog
+  with the server preview (`correction-dialog.tsx`); bulk wizard (`bulk-correction-wizard.tsx`, button "Correct many
+  people" on the corrections page); data hooks `use-day-detail.ts`; `register-shared.tsx` (totals + legend moved out
+  of `register-page.tsx`). Texts added to common.json (`attendance.day|timeline|employee|swap`, `corrections.dialog|bulk|kind.*Hint`).
+  Tests: `employee-attendance.test.tsx` (15), `bulk-correction-wizard.test.tsx` (5); attendance + dashboard +
+  employees folders 104 passed; typecheck, lint, i18n:check, build + size ok (menu and layout still 23.5 of 23.8 kB,
+  first load 110.7 of 150.9 kB). Not run: e2e (no new page route, so `responsive.spec.ts` unchanged; the tab/drawer/
+  dialogs at 360 and 768 px should be looked at once in a browser). Differences: the mockup's per-day "Correct"
+  button lives in the drawer (every calendar day and heatmap square opens it); "Approve all" of a batch is not in
+  the UI (the Super Admin's batch is approved at creation; heads' rows are approved one by one in the list; the
+  hook `useBatchAction` supports it); the near-punch warning shows the server text "A punch already covers this
+  time." (the API gives no time or minutes); `BULK_TOO_LARGE` text still says 500 (shared code with employee bulk,
+  UI limits to 200); "Open in punch log" links to `/admin/punches` without a filter.
