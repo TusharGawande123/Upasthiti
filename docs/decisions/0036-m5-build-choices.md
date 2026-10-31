@@ -82,3 +82,10 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     morning job also runs once 90 seconds after start-up when the start is after 07:00 IST (a server that slept
     through 07:00); the dedupe keys make every repeat harmless. The nightly purge of old notifications runs with
     the daily job. DEMO plants never raise an alert.
+17. **Design gates A and B approved** (Anuradha, 2026-11-01, images at 360 / 768 / 1280 px): dashboard and
+    muster (docs/design-refs/m5/gate-a/: the all-plants total row leaves demo plants out; muster print is A4
+    portrait with department heading rows; the page shows 14 people then "Show 50 more", print and PDF hold
+    everyone; "On outside work: N" sits on the Inside-now tile) and the attendance screens, register, employee
+    tab, day drawer, corrections and bulk wizard (docs/design-refs/m5/gate-b/). The shift rules line reads
+    "On time until 09:30. Leave from 17:00." (decision line 8). Missing loading / empty / error states are built
+    as in the README and the other screens. Gate C is still being drawn.

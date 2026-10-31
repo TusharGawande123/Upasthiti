@@ -349,3 +349,4 @@ body.shot .state-tag { display: none; }
 .live-line .live-dot, .live-line > svg { margin-top: 5px; }
 .offline-line > span { min-width: 0; }
 @media (max-width: 699px) { .offline-line { flex-wrap: wrap; } .mhint { white-space: normal; } }
+@media (max-width: 420px) { .topbar { gap: 8px; padding: 0 10px; } .user-trigger > svg { display: none; } .user-trigger { padding: 0; } }

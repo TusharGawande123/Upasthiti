@@ -1,0 +1,129 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate C - Screen 8: the A4 gate poster with the new "Your shift times" box (spec 4.17, M2 F-34, M3 poster).
+  The page was full, so: the two "ways" boxes are shorter (one row of small text each), "See IN or OUT" and "NOT ACCEPTED" share one row,
+  the privacy text is set in 11 pt (was 12.5 pt) and the Marathi/Hindi-ready layout keeps spare room. The shift box has 14 pt text.
+  States (URL hash): default (3 shifts) · six-shifts (6 shifts and "and 2 more shifts: ask the plant office").
+  Drawn in mm and pt so it maps onto fpdf2 (poster_pdf.py). Shift lines come from the plant's active shifts, never fixed text.
+  Leave-from time = shift END (decision 0036 line 8: no grace at the end), so this changes the spec 4.17 example "leave from 16:30".
+  MOCKUP ONLY.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti gate poster</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <style>
+    :root { --ink: #0e1726; --muted: #3d4757; --signal: #f5b700; --blue: #1f3a93; --blue-soft: #eaeefb; }
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #d9dde4; font-family: "Inter", sans-serif; color: var(--ink); }
+    body:not(.shot) { padding: 24px 0; }
+    #a4 { position: relative; width: 210mm; height: 297mm; margin: 0 auto; background: #fff; overflow: hidden; box-shadow: 0 10px 40px rgba(0,0,0,.18); }
+    .stripe { position: absolute; left: 0; right: 0; height: 6mm; background: repeating-linear-gradient(-63deg, var(--ink) 0 2.6mm, var(--signal) 2.6mm 5.2mm); }
+    #flow { position: absolute; left: 16mm; right: 16mm; top: 11mm; display: flex; flex-direction: column; gap: 3.5mm; }
+    h1 { margin: 0; font-size: 28pt; line-height: 12mm; font-weight: 700; letter-spacing: -0.02em; }
+    .plant { color: var(--muted); font-size: 14pt; line-height: 6.5mm; }
+    .box { border: 0.7mm solid var(--ink); border-radius: 4mm; }
+    .ways-title { font-size: 15pt; font-weight: 700; margin-top: 1mm; }
+    .ways { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+    .way { padding: 4mm 4.5mm; display: grid; gap: 2mm; align-content: start; }
+    .way-head { display: grid; grid-template-columns: 14mm 1fr; gap: 3mm; align-items: center; }
+    .way-head > svg { width: 14mm; height: 14mm; stroke-width: 1.6; }
+    .way h2 { margin: 0; font-size: 14.5pt; line-height: 6.4mm; font-weight: 700; letter-spacing: -0.01em; }
+    .way p { margin: 0; font-size: 12.5pt; line-height: 5.4mm; color: var(--muted); }
+    .ms { display: grid; grid-template-columns: 24mm 1fr; gap: 3mm; align-items: center; font-size: 12pt; line-height: 5mm; }
+    .facebtn { height: 11mm; border-radius: 2.6mm; background: var(--blue); box-shadow: 0 1mm 0 #15286a; color: #fff; display: flex; align-items: center; justify-content: center; gap: 1mm; font-size: 7.5pt; font-weight: 700; line-height: 1.05; padding: 0 1.2mm; }
+    .facebtn .fi { width: 6mm; height: 6mm; border-radius: 1.4mm; background: #fff; color: var(--blue); display: grid; place-items: center; flex: none; }
+    .facebtn .fi svg { width: 4.4mm; height: 4.4mm; }
+    .pose { height: 11mm; border-radius: 2.6mm; border: 0.4mm solid #b9c6ef; background: var(--blue-soft); display: flex; align-items: center; justify-content: center; gap: 2mm; color: var(--blue); }
+    .pose svg { width: 7mm; height: 7mm; stroke-width: 2; }
+    .keyic { height: 11mm; border-radius: 2.6mm; border: 0.5mm solid var(--ink); display: grid; place-items: center; font: 700 12pt "Inter"; letter-spacing: .08em; }
+    .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+    .mini { display: grid; grid-template-columns: 13mm 1fr; gap: 3.5mm; align-items: center; padding: 3.5mm 4.5mm; }
+    .mini > svg { width: 13mm; height: 13mm; stroke-width: 1.7; }
+    .mini h3 { margin: 0 0 0.8mm; font-size: 14pt; line-height: 6mm; }
+    .mini p { margin: 0; font-size: 12pt; line-height: 5mm; color: var(--muted); }
+    .shifts { padding: 0; overflow: hidden; border-color: var(--blue); }
+    .shifts-head { display: flex; align-items: center; justify-content: space-between; gap: 4mm; background: var(--blue); color: #fff; padding: 2.8mm 5mm; }
+    .shifts-head h2 { margin: 0; font-size: 16pt; line-height: 7mm; display: flex; align-items: center; gap: 2.5mm; }
+    .shifts-head h2 svg { width: 7mm; height: 7mm; }
+    .shifts-head .asof { font-size: 11pt; font-weight: 600; }
+    .shifts-body { padding: 3mm 5mm 3.5mm; }
+    .sline { display: grid; grid-template-columns: 27mm 1fr; gap: 3mm; font-size: 14pt; line-height: 6.6mm; padding: 0.4mm 0; border-bottom: 0.25mm solid #cdd3de; }
+    .sline:last-of-type { border-bottom: 0; }
+    .sline b { font-weight: 800; }
+    .sline .t { font-variant-numeric: tabular-nums; }
+    .rules { margin-top: 2mm; padding-top: 2.2mm; border-top: 0.5mm solid var(--ink); display: grid; gap: 1mm; font-size: 14pt; line-height: 6.2mm; font-weight: 600; }
+    .more { font-size: 14pt; line-height: 6.4mm; font-weight: 700; color: var(--blue); padding-top: 0.8mm; }
+    .priv { display: grid; grid-template-columns: 13mm 1fr; gap: 4mm; padding: 3.5mm 5mm; }
+    .priv > svg { width: 13mm; height: 13mm; stroke-width: 1.7; }
+    .priv h3 { margin: 0 0 1mm; font-size: 14pt; line-height: 6mm; }
+    .priv p { margin: 0 0 1.2mm; font-size: 11pt; line-height: 4.6mm; }
+    .priv p:last-child { margin-bottom: 0; }
+    .priv .lead { font-weight: 700; font-size: 11.5pt; }
+    .url { font-weight: 700; }
+    .help { text-align: center; font-size: 13pt; font-weight: 700; margin-top: 0.5mm; }
+    /* Many shifts (more than 3): everything else gets a little tighter so the page still fits. The shift box keeps 14 pt. */
+    .compact #flow { gap: 2.2mm; top: 10mm; }
+    .compact h1 { font-size: 24pt; line-height: 10mm; } .compact .plant { font-size: 12pt; line-height: 5mm; }
+    .compact .ways-title { font-size: 13pt; margin-top: 0; }
+    .compact .way { padding: 2.8mm 4mm; gap: 1.2mm; } .compact .way h2 { font-size: 13pt; line-height: 5.4mm; } .compact .way p { font-size: 11.5pt; line-height: 4.7mm; }
+    .compact .way-head { grid-template-columns: 11mm 1fr; } .compact .way-head > svg { width: 11mm; height: 11mm; }
+    .compact .ms { font-size: 11pt; line-height: 4.4mm; } .compact .facebtn, .compact .pose, .compact .keyic { height: 8.5mm; }
+    .compact .mini { padding: 2.4mm 4mm; } .compact .mini > svg { width: 10mm; height: 10mm; } .compact .mini h3 { font-size: 13pt; line-height: 5.4mm; } .compact .mini p { font-size: 11pt; line-height: 4.5mm; }
+    .compact .shifts-head { padding: 1.8mm 5mm; } .compact .shifts-body { padding: 2mm 5mm 2.5mm; } .compact .sline { line-height: 6mm; }
+    .compact .rules { margin-top: 1.2mm; padding-top: 1.4mm; line-height: 5.8mm; }
+    .compact .priv { padding: 2.6mm 5mm; } .compact .priv > svg { width: 10mm; height: 10mm; } .compact .priv p { font-size: 10.5pt; line-height: 4.3mm; margin-bottom: 0.8mm; }
+    .compact .help { font-size: 12pt; }
+  </style>
+</head>
+<body>
+<div id="a4" aria-label="A4 gate poster"></div>
+<script>
+  const S = location.hash.replace("#", "") || "default";
+  if (location.search.indexOf("shot") >= 0) document.body.classList.add("shot");
+  const ic = (n) => `<i data-lucide="${n}"></i>`;
+  const SHIFTS = [["Office", "09:00", "17:00", "09:30"], ["General 2", "07:00", "15:00", "07:30"], ["Night", "19:00", "07:00", "19:30"]];
+  const SIX = SHIFTS.concat([["Early", "05:00", "13:00", "05:30"], ["Late", "13:00", "21:00", "13:30"], ["Weekend", "08:00", "14:00", "08:30"]]);
+  const LIST = S === "six-shifts" ? SIX : SHIFTS;
+  const line = (s) => `<div class="sline"><b>${s[0]}</b><span class="t">${s[1]}–${s[2]}: on time until <b>${s[3]}</b>, leave from <b>${s[2]}</b>.</span></div>`;
+  if (S === "six-shifts") document.getElementById("a4").classList.add("compact");
+  document.getElementById("a4").innerHTML = `
+    <div class="stripe" style="top:0"></div>
+    <div id="flow">
+      <div><h1>Attendance at this gate</h1><div class="plant">Sheet Shapers India Pvt Ltd (K-134) · K134</div></div>
+
+      <div class="ways-title">Punch in one of two ways</div>
+      <div class="ways">
+        <div class="box way"><div class="way-head">${ic("id-card")}<h2>Card: hold your card to the camera</h2></div>
+          <p>Hold it still, about 20 cm from the camera.</p><p>Then look at the camera: a photo is taken with every card punch.</p></div>
+        <div class="box way"><h2>Face: tap Punch with face, turn your head as the arrow shows</h2>
+          <div class="ms"><span class="facebtn"><span class="fi">${ic("scan-face")}</span>Punch with face</span><span>Tap the blue button.</span></div>
+          <div class="ms"><span class="pose">${ic("arrow-left")}${ic("smile")}</span><span>Turn your head, then look straight.</span></div>
+          <div class="ms"><span class="keyic">0123</span><span>If asked, type your employee code.</span></div></div>
+      </div>
+
+      <div class="duo">
+        <div class="box mini">${ic("log-in")}<div><h3>See IN or OUT on the screen</h3><p>Your name and the time are shown. That is all.</p></div></div>
+        <div class="box mini">${ic("octagon-x")}<div><h3>NOT ACCEPTED? Go to the plant office.</h3><p>Do not try again and again. The office can see why.</p></div></div>
+      </div>
+
+      <div class="box shifts"><div class="shifts-head"><h2>${ic("clock")}Your shift times</h2><span class="asof">Shift times as on 31/10/2026</span></div>
+        <div class="shifts-body">${LIST.map(line).join("")}${S === "six-shifts" ? `<div class="more">and 2 more shifts: ask the plant office.</div>` : ""}
+          <div class="rules"><div>One IN and one OUT per shift. After your OUT you cannot punch again in the same shift.</div><div>Please visit the plant office if your shift is closed by mistake.</div></div></div></div>
+
+      <div class="box priv">${ic("shield-check")}<div><h3>About your face and the photo</h3>
+        <p class="lead">Pressing Punch with face means your face is checked.</p>
+        <p>Face punch: your face is checked against an encrypted record. A photo is kept for 60 days only if the punch fails or you type your code. Card punch: a photo is kept for 60 days and checked automatically to see that a face is present.</p>
+        <p>Only the Super Admin can open a photo, and every view is recorded. Face data is never shared and never sent to any AI company. Your punch times are kept as attendance records, as the law requires. Full privacy notice: <span class="url">upasthiti-chi.vercel.app/privacy</span></p></div></div>
+
+      <div class="help">Need help? Ask the plant office.</div>
+    </div>
+    <div class="stripe" style="top:291mm"></div>`;
+  if (window.lucide) window.lucide.createIcons();
+  document.fonts.ready.then(() => { const f = document.getElementById("flow"); document.documentElement.setAttribute("data-bottom", Math.round(f.getBoundingClientRect().bottom / 3.7795 - document.getElementById("a4").getBoundingClientRect().top / 3.7795)); document.documentElement.setAttribute("data-ready", "1"); });
+</script>
+</body>
+</html>
