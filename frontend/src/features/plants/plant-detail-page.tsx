@@ -18,6 +18,7 @@ import { EditPlantDialog } from "./add-plant-dialog";
 import { GatePosterButton } from "./gate-poster-button";
 import { GeofenceTab } from "./geofence-tab";
 import { NamedItemsTab } from "./named-items-tab";
+import { PlantRulesCard } from "./plant-rules-card";
 import { PlantStatusDialog } from "./plant-status-dialog";
 import { PlantActiveBadge } from "./plants-page";
 import { ShiftsTab } from "./shifts-tab";
@@ -237,29 +238,32 @@ export function PlantDetailPage() {
           {readiness.isError ? (
             <Alert tone="danger">{describeError(readiness.error, t)}</Alert>
           ) : readiness.data ? (
-            <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-              <ReadinessCard readiness={readiness.data} />
-              <Card>
-                <CardHeader>
-                  <CardTitle>{t("plants.details.title")}</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <dl className="space-y-3 text-sm">
-                    <div>
-                      <dt className="text-muted-foreground">{t("plants.columns.code")}</dt>
-                      <dd className="code font-bold">{data.code}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">{t("plants.columns.name")}</dt>
-                      <dd className="font-semibold">{data.name}</dd>
-                    </div>
-                    <div>
-                      <dt className="text-muted-foreground">{t("plants.details.address")}</dt>
-                      <dd>{data.address || "–"}</dd>
-                    </div>
-                  </dl>
-                </CardContent>
-              </Card>
+            <div className="space-y-5">
+              <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
+                <ReadinessCard readiness={readiness.data} />
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("plants.details.title")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <dl className="space-y-3 text-sm">
+                      <div>
+                        <dt className="text-muted-foreground">{t("plants.columns.code")}</dt>
+                        <dd className="code font-bold">{data.code}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">{t("plants.columns.name")}</dt>
+                        <dd className="font-semibold">{data.name}</dd>
+                      </div>
+                      <div>
+                        <dt className="text-muted-foreground">{t("plants.details.address")}</dt>
+                        <dd>{data.address || "–"}</dd>
+                      </div>
+                    </dl>
+                  </CardContent>
+                </Card>
+              </div>
+              <PlantRulesCard plant={data} canEdit={canEdit} />
             </div>
           ) : (
             <Skeleton className="h-64 w-full" />
@@ -274,6 +278,7 @@ export function PlantDetailPage() {
         <TabsContent value="shifts">
           <ShiftsTab
             plantId={plantId}
+            plantCode={data.code}
             plantLabel={`${data.code} · ${data.name}`}
             canEdit={canEdit}
           />
