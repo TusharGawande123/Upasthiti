@@ -92,8 +92,7 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
 18. **Design gate C approved** (Anuradha, 2026-11-01): docs/design-refs/m5/gate-c/ (leave, holidays, plant
     weekly off and start date, shift form with history, reports, punctuality, notifications and the bell,
     settings cards, gate poster). Choices that go with it: the poster privacy text is 11 pt (10.5 pt with six
-    shifts) so the shift-times box fits one A4 page (**to confirm with Tushar**); the rate limit of 20 report
-    files in 10 minutes answers `REPORT_RATE_LIMIT`... **no**: the backend keeps the spec's `TOO_MANY_REQUESTS`
-    (a new code was only a mock-up proposal); the leave overlap code stays `LEAVE_OVERLAPS`; "Leave from" on
+    shifts) so the shift-times box fits one A4 page (**to confirm with Tushar**); the rate limit of 20 report files in 10 minutes answers the spec's `TOO_MANY_REQUESTS` (the
+    mock-up's `REPORT_RATE_LIMIT` was only a proposal); the leave overlap code stays `LEAVE_OVERLAPS`; "Leave from" on
     screens and the poster is the shift end (decision line 8). Spec §4.10 and §4.17 (old "leave from 16:30")
     are updated in the closing step.

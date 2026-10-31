@@ -98,3 +98,6 @@ code_try_limiter = RateLimiter(max_attempts=10, window_seconds=60)
 sync_limiter = RateLimiter(max_attempts=30, window_seconds=60)
 # Heartbeats (M4, spec §5.2): the gate sends one a minute; 6 a minute per kiosk is plenty.
 heartbeat_limiter = RateLimiter(max_attempts=6, window_seconds=60)
+
+# M5 (spec §7 rule 18): at most 20 report files in 10 minutes per user.
+report_file_limiter = RateLimiter(max_attempts=20, window_seconds=TEN_MINUTES)

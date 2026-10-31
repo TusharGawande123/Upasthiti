@@ -39,6 +39,7 @@ from app.modules.punches.review_router import router as review_router
 from app.modules.punches.router import router as punches_router
 from app.modules.qr_cards.router import router as qr_cards_router
 from app.modules.regularisations.router import router as regularisations_router
+from app.modules.reports.router import router as reports_router
 from app.modules.settings.privacy_router import router as privacy_router
 from app.modules.settings.router import router as settings_router
 from app.modules.shift_swaps.router import router as shift_swaps_router
@@ -118,6 +119,7 @@ def create_app() -> FastAPI:
     api_router.include_router(notifications_router)
     api_router.include_router(dashboard_router)
     api_router.include_router(shift_swaps_router)
+    api_router.include_router(reports_router)
     app.include_router(api_router)
     return app
 

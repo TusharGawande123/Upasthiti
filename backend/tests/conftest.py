@@ -61,6 +61,7 @@ from app.modules.auth.rate_limit import (  # noqa: E402
     login_limiter,
     pairing_limiter,
     punch_limiter,
+    report_file_limiter,
     report_limiter,
 )
 from app.modules.face.engine_provider import get_face_engine  # noqa: E402
@@ -190,6 +191,7 @@ def fresh_rate_limits() -> Iterator[None]:
     failed_pairing_limiter.reset()
     punch_limiter.reset()
     report_limiter.reset()
+    report_file_limiter.reset()
     enrolment_shot_limiter.reset()
     challenge_limiter.reset()
     code_try_limiter.reset()
