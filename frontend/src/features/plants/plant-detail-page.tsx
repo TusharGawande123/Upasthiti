@@ -51,7 +51,8 @@ function CheckRow({ state, title, detail }: { state: CheckState; title: string; 
   );
 }
 
-const DEVICE_LINES = new Set(["deviceOnline", "locationGood"]);
+// Information only: these lines never count towards "ready for attendance".
+const DEVICE_LINES = new Set(["deviceOnline", "locationGood", "attendanceStart", "weeklyOff"]);
 
 export function ReadinessCard({ readiness }: { readiness: Readiness }) {
   const { t } = useTranslation();
@@ -102,6 +103,34 @@ export function ReadinessCard({ readiness }: { readiness: Readiness }) {
           },
         ]
       : []),
+    // M5: when attendance is worked out from, and the weekly off. Shown only when the server
+    // sends them (an older server does not).
+    ...(readiness.attendance_start_set === undefined
+      ? []
+      : [
+          {
+            key: "attendanceStart",
+            state: (readiness.attendance_start_set ? "done" : "missing") as CheckState,
+            detail: t(
+              readiness.attendance_start_set
+                ? "plants.readiness.attendanceStartYes"
+                : "plants.readiness.attendanceStartNo",
+            ),
+          },
+        ]),
+    ...(readiness.weekly_off_set === undefined
+      ? []
+      : [
+          {
+            key: "weeklyOff",
+            state: (readiness.weekly_off_set ? "done" : "missing") as CheckState,
+            detail: t(
+              readiness.weekly_off_set
+                ? "plants.readiness.weeklyOffYes"
+                : "plants.readiness.weeklyOffNo",
+            ),
+          },
+        ]),
     {
       key: "employees",
       state: readiness.active_employees > 0 ? "done" : "none",

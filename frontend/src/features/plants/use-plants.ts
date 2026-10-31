@@ -31,6 +31,9 @@ export type Readiness = {
   // M4: a device of this plant works right now, and its location is good (optional on old servers).
   device_online?: boolean;
   location_good?: boolean;
+  // M5: the attendance start date and the weekly off are set (optional on old servers).
+  attendance_start_set?: boolean;
+  weekly_off_set?: boolean;
 };
 
 export type SetupStepKey = "plants" | "geofence" | "shifts_and_categories" | "kiosk" | "employees";

@@ -11,7 +11,10 @@ import {
   Keyboard,
   Lightbulb,
   Loader2,
+  Mail,
+  MailX,
   ScanFace,
+  Send,
   ShieldCheck,
   TriangleAlert,
   UserRound,
@@ -26,7 +29,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Skeleton } from "@/components/ui/skeleton";
 import { describeError } from "@/features/auth/error-message";
 import { useMe } from "@/features/auth/use-auth";
+import { usePreferences, useSendTestEmail } from "@/features/notifications/use-notifications";
 import { ReasonDialog } from "@/features/users/user-dialogs";
+import { ApiError } from "@/lib/api-client";
 import { cn } from "@/lib/utils";
 import { FACE_SUBGROUPS, type FaceSubgroupId, floorIsAboveThreshold } from "./face-settings";
 import { isValid, SettingRow, sameValue } from "./setting-row";
@@ -276,6 +281,146 @@ function PrivacyCard({
   );
 }
 
+// The three lines the attendance device may show under a punch (spec M5 §4.16). Each has a dark
+// preview of the exact line, so the Super Admin sees what the worker will see.
+const GATE_LINES = [
+  { key: "kiosk_show_inside_count", preview: "settings.gate.inside" },
+  { key: "kiosk_late_hint", preview: "settings.gate.late" },
+  { key: "kiosk_show_month_line", preview: "settings.gate.month" },
+] as const;
+const GATE_LINE_KEYS: string[] = GATE_LINES.map((line) => line.key);
+
+function NewBadge() {
+  const { t } = useTranslation();
+  return (
+    <span className="rounded-full bg-primary-soft px-2 py-0.5 text-xs font-semibold text-primary">
+      {t("settings.newBadge")}
+    </span>
+  );
+}
+
+function GateLinesCard({ all, drafts, canEdit, onChange }: RowProps & { all: Setting[] }) {
+  const { t } = useTranslation();
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex flex-wrap items-center gap-2">
+          {t("settings.groups.gate_lines.title")}
+          <NewBadge />
+        </CardTitle>
+        <CardDescription>{t("settings.groups.gate_lines.description")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        {GATE_LINES.map(({ key, preview }) => {
+          const setting = all.find((item) => item.key === key);
+          if (!setting) return null;
+          const isOn = draftOf(setting, drafts) === "on";
+          return (
+            <div key={key} className="border-b last:border-0">
+              <Rows
+                settings={[setting]}
+                all={all}
+                drafts={drafts}
+                canEdit={canEdit}
+                onChange={onChange}
+              />
+              <p className="mb-2 rounded-lg bg-foreground px-3 py-2 text-sm font-semibold text-background">
+                <span className="mr-2 text-xs font-normal opacity-75">
+                  {t("settings.gate.previewLabel")}
+                </span>
+                {t(preview)}
+              </p>
+              <p className="mb-3 text-xs text-muted-foreground">{t("settings.gate.neverSpoken")}</p>
+              {key === "kiosk_show_month_line" && isOn ? (
+                <p
+                  role="note"
+                  className="mb-3 flex items-start gap-2 rounded-lg border border-warning/30 bg-warning-soft px-3 py-2 text-[13px] text-warning"
+                >
+                  <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+                  {t("settings.gate.monthWarning")}
+                </p>
+              ) : null}
+            </div>
+          );
+        })}
+      </CardContent>
+    </Card>
+  );
+}
+
+// The alerts card. The email switch is shown only when the server has email settings (otherwise
+// it would do nothing); the Super Admin can then send a test email to themselves.
+function AlertsCard({ all, drafts, canEdit, onChange }: RowProps & { all: Setting[] }) {
+  const { t } = useTranslation();
+  const preferences = usePreferences();
+  const testEmail = useSendTestEmail();
+  const emailMissing = preferences.data?.email_configured === false;
+  const rows = all.filter(
+    (setting) => setting.group === "alerts" && !(emailMissing && setting.key === "email_alerts"),
+  );
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="flex flex-wrap items-center gap-2">
+          {t("settings.groups.alerts.title")}
+          <NewBadge />
+        </CardTitle>
+        <CardDescription>{t("settings.groups.alerts.description")}</CardDescription>
+      </CardHeader>
+      <CardContent>
+        <Rows settings={rows} all={all} drafts={drafts} canEdit={canEdit} onChange={onChange} />
+        {emailMissing ? (
+          <p className="mt-3 flex items-start gap-3 rounded-lg border border-dashed bg-muted/40 p-3 text-sm">
+            <MailX className="mt-0.5 size-5 shrink-0 text-muted-foreground" aria-hidden />
+            <span>
+              <b className="block">{t("notifications.emailNotSetUp.title")}</b>
+              {t("notifications.emailNotSetUp.body")}
+            </span>
+          </p>
+        ) : null}
+        {preferences.data?.email_configured && canEdit ? (
+          <div className="mt-3 space-y-2">
+            <p className="flex items-center gap-2 text-sm text-muted-foreground">
+              <Mail className="size-4" aria-hidden />
+              {t("settings.email.ready")}
+            </p>
+            <Button
+              variant="outline"
+              disabled={testEmail.isPending}
+              onClick={() =>
+                testEmail.mutate(undefined, {
+                  onSuccess: () => toast.success(t("settings.email.testSent")),
+                })
+              }
+            >
+              <Send aria-hidden />
+              {t("settings.email.sendTest")}
+            </Button>
+            {testEmail.isError ? (
+              <p role="alert" className="text-[13px] font-medium text-destructive">
+                {describeError(testEmail.error, t)}
+              </p>
+            ) : null}
+          </div>
+        ) : null}
+      </CardContent>
+    </Card>
+  );
+}
+
+// A day window that does not fit the longest shift is refused by the server; say it in plain
+// words with the real numbers (the server sends the longest shift in minutes).
+function describeSaveError(error: unknown, t: ReturnType<typeof useTranslation>["t"]): string {
+  if (error instanceof ApiError && error.code === "SETTING_INVALID") {
+    const longest = Number(error.details?.longest_shift_min);
+    if (Number.isFinite(longest) && error.details?.key === "attendance_window_before_hours") {
+      const hours = Math.round((longest / 60) * 10) / 10;
+      return t("settings.windowError", { longest: hours, max: Math.round((24 - hours) * 10) / 10 });
+    }
+  }
+  return describeError(error, t);
+}
+
 // The list of changes in the reason dialog: what each setting was and will be (small extra).
 function ChangesList({ changed, drafts }: { changed: Setting[]; drafts: Record<string, string> }) {
   const { t } = useTranslation();
@@ -396,13 +541,34 @@ export function SettingsPage() {
         const rows = all.filter((setting) => setting.group === group);
         if (rows.length === 0) return null;
         if (group === "face") return <FaceCard key={group} all={all} {...shared} />;
+        if (group === "alerts") return <AlertsCard key={group} all={all} {...shared} />;
+        if (group === "kiosk_screen") {
+          const screenRows = rows.filter((setting) => !GATE_LINE_KEYS.includes(setting.key));
+          return (
+            <div key={group} className="space-y-5">
+              <Card>
+                <CardHeader>
+                  <CardTitle>{t("settings.groups.kiosk_screen.title")}</CardTitle>
+                  <CardDescription>{t("settings.groups.kiosk_screen.description")}</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Rows settings={screenRows} all={all} {...shared} />
+                </CardContent>
+              </Card>
+              <GateLinesCard all={all} {...shared} />
+            </div>
+          );
+        }
         if (group === "privacy") {
           return <PrivacyCard key={group} all={all} highlight={toPrivacy} {...shared} />;
         }
         return (
           <Card key={group}>
             <CardHeader>
-              <CardTitle>{t(`settings.groups.${group}.title`)}</CardTitle>
+              <CardTitle className="flex flex-wrap items-center gap-2">
+                {t(`settings.groups.${group}.title`)}
+                {group === "attendance" ? <NewBadge /> : null}
+              </CardTitle>
               <CardDescription>{t(`settings.groups.${group}.description`)}</CardDescription>
             </CardHeader>
             <CardContent>
@@ -436,7 +602,7 @@ export function SettingsPage() {
         title={t("settings.reasonTitle")}
         confirmLabel={t("settings.save")}
         isPending={save.isPending}
-        error={save.error ? describeError(save.error, t) : undefined}
+        error={save.error ? describeSaveError(save.error, t) : undefined}
         details={<ChangesList changed={changed} drafts={drafts} />}
         onConfirm={confirmSave}
       />
