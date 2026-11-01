@@ -386,3 +386,26 @@ a real phone at 360 px, report downloads opened in Excel.
   punch log `kiosk` field is now nullable (TS type in P3/P4). Open for P3: the `many_rejections` alert still
   counts every rejected punch with a gate device, so rejected gate-code phone punches would count toward the
   gate's alert (decide whether to filter `channel = 'kiosk'`).
+- 2026-11-01 **M4b P1 done** (Opus): `app/modules/phone/` services + `router.py` (`/api/v1/phone`: login, logout,
+  me, notice + accept, stop, proof/face/challenge, proof/face, proof/card, password, passkeys list / register
+  options / register / delete own / login options / login) and `admin_router.py` (`/employees/{id}/phone` read,
+  `access`, `outside-work` with F-69 until, `sign-out-all`, `require-new-password`, `passkeys/{id}/remove`).
+  Cookie `ups_phone` (HttpOnly, Secure outside development, SameSite=Strict, Path=/api/v1/phone); one phone at a
+  time; lockout in ceil minutes; dummy Argon2 check; every Argon2 check inside the password gate; proofs answer
+  `PROOF_FAILED` after >= 1 s; mark as left ends phone access, sign-ins, password and passkeys. Migration **0028**
+  `phone_sessions.sign_in_method`. New dependency **webauthn 3.0.1** (BSD-3). Settings group `phone` (7 keys,
+  max days >= idle days). Capabilities `VIEW_PHONE_ACCESS`, `MANAGE_PHONE_ACCESS`. Daily job: F-69 switch-off,
+  proofs after 1 day, ended sign-ins after 90 days (kept when a notice acceptance or punch points to them). F-70
+  alert at every sign-in. Notice v1 text `app/phone/notice_texts/phone-notice-v1.en.txt` (hash fixed; wording to
+  confirm). Decisions 0036 lines 35-44. Tests: `test_m4b_phone_sign_in.py` (31), `test_m4b_phone_proofs.py` (24),
+  `test_m4b_passkeys.py` (10, software authenticator, real signature checks), `test_m4b_phone_extras.py` (6).
+  **Full backend suite: 1501 passed, 7 skipped, coverage 91.07 % (floor 84).** `npm run i18n:check` ok. e2e and
+  Vitest not run.
+- What P2 must know: phone punches start with `require_phone_employee` (dependency) then
+  `notice.require_notice_accepted`; `views.face_ready` is the `PHONE_FACE_NOT_READY` test; outside work on a punch
+  day = `access.outside_work_allowed_on(access, IST date)`; `punches/face_service.choose_challenge` and
+  `capture_rules` are shared; the phone face challenge row needs `phone_session_id`. Still open for P2/P3:
+  `GET /phone/punches/today`, `GET /phone/attendance` (F-73), employees list filter `phone=on|off` + item field,
+  gate-code settings (`phone_gate_code_seconds`, `kiosk_show_phone_code`, `kiosk_phone_code_show_seconds` with the
+  cool-down cross-check). For P4: the AC-59 docker-job memory check (8 parallel sign-ins + 4 face punches under
+  450 MB) is not in CI yet; the frontend must read `details.ended` of `PHONE_NOT_SIGNED_IN`.
