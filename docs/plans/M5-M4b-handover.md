@@ -1,0 +1,59 @@
+# M5 + M4b handover (for Tushar)
+
+Written 2026-11-01 on the request of Anuradha: if her weekly Claude limit runs out, everything done is
+committed and pushed, and this note says what is left. Branch: `milestone/M5-attendance-reports` (M5 and M4b
+go into ONE pull request). Read `CLAUDE.md`, then `docs/plans/M5-attendance-reports-plan.md` (the "Status"
+section at the bottom is the detailed log) and `docs/decisions/0036-m5-build-choices.md` (all build decisions).
+
+## Done and pushed
+- **M5 backend:** shift rules with history, holidays and leave, attendance calculation (stored `attendance_days`),
+  corrections and bulk correction, early-OUT alert at the gate, shift swap, notification centre, dashboard,
+  muster, punctuality, the seven reports (Excel and PDF), gate lines, poster with shift times.
+- **M5 screens (slice 7, groups A to E):** dashboard, muster, attendance list, register, corrections, employee
+  Attendance tab, day drawer, leave, holidays, plant weekly off and start date, shift form, reports,
+  punctuality (Recharts), notifications, settings cards.
+- **Tests:** backend 1430 passed (coverage 90.7%, floor 84), frontend 897 passed (coverage 85%+, floor 84),
+  e2e 55 passed (headed run on the lead's laptop).
+- **M4b P0:** migrations 0026 and 0027, nullable `kiosk_id`, context refactor, password gate (2 argon2 checks at
+  once), phone body limits, removal tools for phone rows.
+- **M4b design gates P1, P2, P3:** approved (decision 34); mock-ups in `docs/design-refs/m4b/gate-p1`, `gate-p2`,
+  `gate-p3`.
+
+## In progress when this was written
+- **M4b P1 backend** (phone module, sessions, login, lockout, notice, proofs, password, admin switches,
+  passkeys): an agent was working on it. Check `git log` for `feat(phone): ...` commits and the Status section.
+
+## Left to do (in this order)
+1. **M4b P1** remainder (if not finished), then **P2** (phone face punch, gate code `UPG1.`, `/kiosk/gate-code`,
+   COALESCE(location_plant_id, plant_id) in inside-now and muster), **P3** (admin side: punch log channel
+   filter, Needs review phone filter and bulk confirm, F-69 job, F-70 alert, F-73, audit viewer), **P4**
+   (frontend `/phone/*` pages, admin Phone attendance card, Vercel CSP and Permissions-Policy, size budget,
+   S-46 Playwright mobile project, S-49 memory check in the CI `docker` job). Spec: `docs/specs/M4b-phone-punch.md`
+   (sections 4 to 11, acceptance criteria AC-1 to AC-59).
+2. **M5 leftovers:** CI job for the midnight-IST run (S-40); F-65 register email (optional, SMTP only); optional
+   backend extras (more filters on `/attendance/daily` for the dashboard tiles, leave list plant column,
+   holidays edit, "saved by" in the rule history); re-render two gate P1 and P2 mock-up images
+   (`01-login-locked`, `p2 03-start-face-not-ready`) after the last text decision (HTML is already right).
+3. **Known problem:** e2e `kiosk-face-punch` test 1 and `admin-face` (code-path punch) pass on `main` but fail
+   about two runs in three on this branch on the lead's laptop (`LIVEDEBUG` showed the gate's turn picture
+   still shows the old head). See the plan Status entry of 2026-11-01. The CI `e2e` job decides: if it fails on
+   these two, start there.
+4. **Closing:** run `/review-milestone` and fix the findings; update `CLAUDE.md` (tick M5 and M4b, employees sign
+   in only for phone punching, phone-menu rule limited to admin pages, new dependencies time-machine,
+   hypothesis, webauthn, Recharts, new settings and env vars `SMTP_*`, commands, one line for the one-time tools
+   of decisions 0032/0033); update the specs (M5 §4.10 and §4.17 "leave from" is the shift end; M4b texts of
+   decisions 30 to 33); show the `CLAUDE.md` diff to the lead first; `/ship` (push, open the PR, wait for the
+   five checks `backend`, `frontend`, `e2e`, `docker`, `hooks`).
+
+## Decisions that need Tushar (or the client)
+Marked "to confirm with Tushar" in `docs/decisions/0036-m5-build-choices.md`: lines 1, 6, 8, 9, 13, 15 (8 and 9
+also with the client), the poster privacy text at 11 pt, the absence-streak reading, the Styles and menu size
+budgets (lines 20 and 21), poster layout (line 19), notice-acceptance clean-up (line 28), the phone texts
+(lines 30 to 34, especially the DPDP notice wording, which is only a layout draft).
+
+## How to run things
+Backend (from `backend/`): `uv run pytest -q -p no:cacheprovider` (about 20 minutes), `uv run ruff check . && uv run
+ruff format .`, `uv run pyright`. Frontend (from `frontend/`): `npm test` (coverage floor 84), `npm run lint`,
+`npm run typecheck`, `npm run i18n:check`, `npm run build && npm run size`. E2E (from `e2e/`):
+`npx playwright test` (needs `docker compose up -d`; do not run it together with the other suites).
+Never `git add -A`: `docs/decisions/0030*` and `0031*` stay untracked on purpose.
