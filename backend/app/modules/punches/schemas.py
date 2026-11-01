@@ -198,7 +198,7 @@ class PunchLogItem(BaseModel):
     employee: PunchLogEmployee | None
     employee_hidden: bool
     plant: PunchLogPlace
-    kiosk: PunchLogPlace
+    kiosk: PunchLogPlace | None  # None: a phone face punch (M4b), made at no gate device
     method: str
     direction: Literal["in", "out"] | None
     decision: str

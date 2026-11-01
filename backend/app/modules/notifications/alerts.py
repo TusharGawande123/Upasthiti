@@ -180,6 +180,8 @@ def _many_rejections(session: Session, plant_ids: list[uuid.UUID], now: datetime
     codes = {plant.id: plant.code for plant in session.scalars(select(Plant))}
     slot = int(now.timestamp() // (minutes * 60))
     for kiosk_id, plant_id, count in rows:
+        if kiosk_id is None:  # excluded above; tells the type checker too
+            continue
         create_notification(
             session,
             kind="many_rejections",

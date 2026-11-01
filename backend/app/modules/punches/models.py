@@ -41,6 +41,7 @@ from app.core.model_mixins import IdMixin, TimestampMixin
 class PunchMethod(enum.StrEnum):
     QR = "qr"
     FACE = "face"  # M3
+    GATE_CODE = "gate_code"  # M4b: a phone scanned the gate's changing code
 
 
 class PunchDecision(enum.StrEnum):
@@ -60,6 +61,12 @@ class Direction(enum.StrEnum):
 class MatchMode(enum.StrEnum):
     ONE_TO_MANY = "one_to_many"  # the face alone was recognised
     CODE = "code"  # the typed employee code, then a 1:1 face match
+    ONE_TO_ONE = "one_to_one"  # M4b phone: only the signed-in employee's own template
+
+
+class PunchChannel(enum.StrEnum):
+    KIOSK = "kiosk"  # the gate device at the plant
+    PHONE = "phone"  # M4b: the employee's own phone (switched on by the Super Admin)
 
 
 class SnapshotReason(enum.StrEnum):
@@ -67,6 +74,8 @@ class SnapshotReason(enum.StrEnum):
     FACE_REJECTED = "face_rejected"
     FACE_CODE = "face_code"  # the face punch that asked for the employee code
     FACE_OFFLINE = "face_offline"  # M4: every offline face punch keeps one small photo
+    PHONE_GATE_CODE = "phone_gate_code"  # M4b: the selfie of a gate-code punch
+    PHONE_FACE_REJECTED = "phone_face_rejected"  # M4b: a refused phone face punch
 
 
 class SnapshotState(enum.StrEnum):
@@ -178,12 +187,50 @@ class Punch(IdMixin, Base):
             text("punch_time DESC"),
             postgresql_where=text("decision IN ('flagged', 'rejected')"),
         ),
+        # --- M4b: phone punches (migration 0027) ---
+        CheckConstraint("channel IN ('kiosk', 'phone')", name="channel_known"),
+        CheckConstraint(
+            "channel = 'kiosk' OR phone_session_id IS NOT NULL", name="phone_has_session"
+        ),
+        CheckConstraint(
+            "channel = 'phone' OR (kiosk_id IS NOT NULL AND phone_session_id IS NULL)",
+            name="kiosk_has_device",
+        ),
+        CheckConstraint(
+            "method <> 'gate_code' OR (channel = 'phone' AND kiosk_id IS NOT NULL)",
+            name="gate_code_by_phone",
+        ),
+        CheckConstraint(
+            "match_mode IS NULL OR match_mode <> 'one_to_one' OR channel = 'phone'",
+            name="one_to_one_only_phone",
+        ),
+        CheckConstraint(
+            "NOT ('OUTSIDE_PLANT' = ANY(reason_codes)) OR location_plant_id IS NULL",
+            name="outside_plant_has_no_location_plant",
+        ),
+        Index("ix_punches_location_plant_time", "location_plant_id", text("punch_time DESC")),
+        Index(
+            "uq_punches_phone_client_punch",
+            "phone_session_id",
+            "client_punch_id",
+            unique=True,
+            postgresql_where=text("phone_session_id IS NOT NULL"),
+        ),
+        Index(
+            "ix_punches_phone_recent",
+            "channel",
+            text("punch_time DESC"),
+            postgresql_where=text("channel = 'phone'"),
+        ),
     )
 
     client_punch_id: Mapped[uuid.UUID] = mapped_column(Uuid)
-    kiosk_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("kiosk_devices.id"))
+    # The gate device. None only for a phone face punch (M4b); a phone gate-code punch keeps the
+    # gate device whose code was scanned.
+    kiosk_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("kiosk_devices.id"))
     # The kiosk's plant. A card works only at its owner's plant (decision 0009), so this is
-    # also the employee's plant at the time of the punch.
+    # also the employee's plant at the time of the punch. M4b: for a phone punch, the employee's
+    # plant on the punch date (it decides the attendance register).
     plant_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("plants.id"))
     employee_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("employees.id"))
     qr_credential_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("qr_credentials.id"))
@@ -235,6 +282,24 @@ class Punch(IdMixin, Base):
         DateTime(timezone=True),
         Computed("COALESCE(offline_punch_time, server_received_at)", persisted=True),
     )
+    # --- M4b: phone punches (spec M4b section 6) ---
+    channel: Mapped[str] = mapped_column(
+        String(5), default=PunchChannel.KIOSK.value, server_default=PunchChannel.KIOSK.value
+    )
+    phone_session_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("phone_sessions.id"))
+    # The plant whose fence the position matched (the own plant, or another plant on outside
+    # work); None for an OUTSIDE_PLANT punch and for rows older than M4b, so readers use
+    # COALESCE(location_plant_id, plant_id).
+    location_plant_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("plants.id"))
+
+    @property
+    def device_key(self) -> tuple[str, uuid.UUID | None]:
+        """Which device made the punch, for "at another device" (M4b spec section 7 rule 14): the
+        gate device, or for a phone punch its sign-in (two phone punches are "another device"
+        only when their sessions differ)."""
+        if self.channel == PunchChannel.PHONE.value:
+            return (PunchChannel.PHONE.value, self.phone_session_id)
+        return (PunchChannel.KIOSK.value, self.kiosk_id)
 
 
 class PunchSnapshot(IdMixin, TimestampMixin, Base):
@@ -277,7 +342,7 @@ class PunchSnapshot(IdMixin, TimestampMixin, Base):
     # M3: why the photo was kept; and for card photos, whether a face was seen (F-30; None =
     # not checked).
     reason: Mapped[str] = mapped_column(
-        String(15),
+        String(20),
         default=SnapshotReason.QR_PUNCH.value,
         server_default=SnapshotReason.QR_PUNCH.value,
     )
@@ -298,10 +363,13 @@ class PunchChallenge(IdMixin, Base):
         ),
         CheckConstraint("nonce_sha256 ~ '^[0-9a-f]{64}$'", name="nonce_hash_format"),
         CheckConstraint("expires_at > issued_at", name="expires_after_issue"),
+        # M4b: a challenge belongs to a gate device or to a phone sign-in, never both.
+        CheckConstraint("num_nonnulls(kiosk_id, phone_session_id) = 1", name="one_owner"),
         Index("ix_punch_challenges_expires_at", "expires_at"),
     )
 
-    kiosk_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("kiosk_devices.id"))
+    kiosk_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("kiosk_devices.id"))
+    phone_session_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("phone_sessions.id"))
     nonce_sha256: Mapped[str] = mapped_column(String(64), unique=True)
     challenge: Mapped[str] = mapped_column(String(20))
     issued_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))

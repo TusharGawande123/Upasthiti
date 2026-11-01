@@ -90,7 +90,7 @@ def _load_related(session: Session, punches: Sequence[Punch]) -> _Related:
     people |= {r.employee_id for r in reviews.values() if _counts_by_approval(r) and r.employee_id}
     return _Related(
         employees=by_id(Employee, people),
-        kiosks=by_id(KioskDevice, {p.kiosk_id for p in punches}),
+        kiosks=by_id(KioskDevice, {p.kiosk_id for p in punches if p.kiosk_id is not None}),
         plants=by_id(Plant, {p.plant_id for p in punches}),
         snapshots=snapshots,
         followers=followers,
@@ -154,7 +154,8 @@ def offline_delay_seconds(punch: Punch) -> int | None:
 def _item(punch: Punch, related: _Related, viewer: Viewer) -> PunchLogItem:
     employee, hidden = _employee(punch, related, viewer)
     plant = related.plants[punch.plant_id]
-    kiosk = related.kiosks[punch.kiosk_id]
+    # M4b: a phone face punch has no gate device.
+    kiosk = related.kiosks[punch.kiosk_id] if punch.kiosk_id is not None else None
     review = related.reviews.get(punch.id)
     approved = review is not None and review.action == ReviewAction.APPROVED.value
     return PunchLogItem(
@@ -163,7 +164,7 @@ def _item(punch: Punch, related: _Related, viewer: Viewer) -> PunchLogItem:
         employee=employee,
         employee_hidden=hidden,
         plant=PunchLogPlace(id=plant.id, name=plant.name, code=plant.code),
-        kiosk=PunchLogPlace(id=kiosk.id, name=kiosk.name),
+        kiosk=PunchLogPlace(id=kiosk.id, name=kiosk.name) if kiosk is not None else None,
         method=punch.method,
         direction=punch.direction,  # type: ignore[arg-type]
         decision=punch.decision,

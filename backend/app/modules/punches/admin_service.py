@@ -170,7 +170,7 @@ def _row(item: PunchLogItem) -> list[str]:
         f"{item.plant.code} · {item.plant.name}",
         code,
         name,
-        item.kiosk.name,
+        item.kiosk.name if item.kiosk is not None else "",
         (item.direction or "").upper(),
         RESULT_TEXTS.get(item.decision, "Rejected"),
         reason,

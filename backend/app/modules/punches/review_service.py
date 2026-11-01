@@ -36,7 +36,14 @@ from app.modules.punches.counting import (
     latest_review,
     latest_reviews,
 )
-from app.modules.punches.models import Direction, Punch, PunchDecision, PunchReview, ReviewAction
+from app.modules.punches.models import (
+    Direction,
+    Punch,
+    PunchChannel,
+    PunchDecision,
+    PunchReview,
+    ReviewAction,
+)
 from app.modules.punches.review_schemas import (
     ContextFence,
     DigestPlace,
@@ -484,7 +491,7 @@ def _related(
         for counted in counted_between(
             session, punch.employee_id, punch.punch_time - window, punch.punch_time + window
         ):
-            if counted.punch.kiosk_id != punch.kiosk_id and counted.punch.id != punch.id:
+            if counted.punch.device_key != punch.device_key and counted.punch.id != punch.id:
                 others.setdefault(counted.punch.id, counted.punch)
     here = _position(session, punch)
     related = []
@@ -515,7 +522,7 @@ def _relation(
     speed: float | None,
     limits: _Limits,
 ) -> str:
-    elsewhere = other.kiosk_id != punch.kiosk_id
+    elsewhere = other.device_key != punch.device_key  # another gate device or phone sign-in
     too_fast = (
         distance is not None
         and speed is not None
@@ -562,8 +569,16 @@ def _hints(
                     filter={"tab": "rejected", "employee_id": str(person_id), **dates},
                 )
             )
-    edge_flags = count(
-        Punch.kiosk_id == punch.kiosk_id, Punch.reason_codes.contains(["LOCATION_AT_EDGE"])
+    # A gate device that often stands at the edge of the fence. Only gate punches tell where the
+    # device stands (a phone punch's position is the phone's own, M4b).
+    edge_flags = (
+        count(
+            Punch.kiosk_id == punch.kiosk_id,
+            Punch.channel == PunchChannel.KIOSK.value,
+            Punch.reason_codes.contains(["LOCATION_AT_EDGE"]),
+        )
+        if punch.channel == PunchChannel.KIOSK.value
+        else 0
     )
     if edge_flags >= limits.hint_device_edge_flags:
         hints.append(
