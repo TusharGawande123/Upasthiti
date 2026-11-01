@@ -66,7 +66,7 @@ Failures (a big icon card with the exact text and one "Try again" button; a "Bac
 - `errors.PROOF_FAILED` (one answer for every "not you" case, also for a card that is expired, revoked, a test card): "We could not confirm it is you. Please try again, or visit the plant office."
 - retry hints, M3 texts: NO_FACE "We could not see your face." / "Stand in front of the camera and try again."; LIVENESS_FAILED "Please turn your head as the arrow shows, then look straight." / "Please try again."; CHALLENGE_EXPIRED "Too slow." / "Please try again."; FACE_SERVICE_BUSY "Many people are punching." / "Please try again in a moment." (the other M3 hints, MULTIPLE_FACES, FACE_TOO_SMALL, FACE_QUALITY_LOW, use the same card)
 - camera blocked: M3 text "Camera is blocked" / "Allow the camera for this site." + its 3 steps
-- location: `PHONE_LOCATION_DENIED` "Turn on location for this website. Please try again."; `LOCATION_REQUIRED` "We could not read your location. Please try again."; `GPS_ACCURACY_TOO_LOW` "Your location is not exact enough. Move to an open place. Please try again."; `OUTSIDE_GEOFENCE` "You are not at the plant. Please visit the plant office." (no retry button, only Back)
+- location: `PHONE_LOCATION_DENIED` "Turn on location for this website. Please try again."; `LOCATION_REQUIRED` "We could not read your location. Please try again."; `GPS_ACCURACY_TOO_LOW` "Your location is not exact enough. Move outside, where the sky is open. Please try again."; `OUTSIDE_GEOFENCE` "You are not at the plant. Please visit the plant office." (no retry button, only Back)
 - too-many-requests, browser-unsupported as on sign in.
 
 ## 3. Set your password (`/phone/setup/password`, spec 4.6, rule 6)
@@ -82,7 +82,7 @@ Punching is blocked until "I agree". States: loading (skeleton lines, buttons di
 ## 5. Home (`/phone`, spec 4.8)
 Layout, top to bottom: greeting card (initials, "Hello, Sunita", plant) → today's last counted punch ("IN at 07:02" + "Attendance device" or "Phone", icon + word) → optional "Outside work allowed" dashed blue badge with "until DD/MM/YYYY" (F-69) →
 **location chip** → **one big button** by punch method: "Punch with face" (face employees) or "Scan the QR code" (ID-card workers) → links "My attendance" and "Sign in faster with a passkey" (the second only when the browser supports it).
-Chip texts (spec): "Location ready" (green) · "Turn on location" (amber, "Turn on" link) · "Location not exact enough (80 m). Move to an open place." (amber) · "You are not at the plant" (red, ID-card workers).
+Chip texts (spec): "Location ready" (green) · "Turn on location" (amber, "Turn on" link) · "Location not exact enough (80 m). Move outside, where the sky is open." (amber) · "You are not at the plant" (red, ID-card workers).
 Not ready: face employee without template or consent: amber box with the §9 text, no punch button. Punch off: full-card text and "Back to sign in". The main button stays active in the location states (tapping it starts the location check); the punch flow is gate P2.
 Menu sheet (`menu-open`, `menu-no-passkeys`): name and code, Privacy notice, passkeys with Remove, Stop phone punching (red), Sign out.
 

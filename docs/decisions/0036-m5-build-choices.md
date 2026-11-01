@@ -159,3 +159,7 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     for ID-card workers say "Scan the QR code" instead of the spec text "Scan the phone code at the gate"
     (M4b spec §4.8 and §4.10). The mock-ups use the new text; the spec text is updated in the closing step.
     The gate panel heading "Phone code" is unchanged for now. **To confirm with Tushar.**
+31. **Weak-location text on the phone (design gates P1 and P2, Anuradha, 2026-11-01):** "Move to an open place."
+    becomes "Move outside, where the sky is open." in the phone texts (M4b spec §4.8, §9 and risk table). The
+    mock-ups use the new text; the spec is updated in the closing step. The existing gate texts (M4) do not
+    contain "open place" and are unchanged. **To confirm with Tushar.**
