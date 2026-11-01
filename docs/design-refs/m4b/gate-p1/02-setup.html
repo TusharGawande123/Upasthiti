@@ -69,7 +69,7 @@
       case "face-checking":
         return steps(1) + faceCam("is-ok", "", `<div class="dim"><span class="spinner"></span>Checking…</div>`);
       case "face-no-face": return steps(1) + fail("warning", "scan-face", T.noFace, again) + back;
-      case "face-liveness-failed": return steps(1) + fail("warning", "move-horizontal", T.liveness, again) + back;
+      case "face-liveness-failed": return steps(1) + fail("warning", "scan-face", T.liveness, again) + back;
       case "face-too-slow": return steps(1) + fail("warning", "timer", T.slow, again) + back;
       case "face-service-busy": return steps(1) + fail("warning", "users", T.busy, again) + back;
       case "proof-failed": return steps(1) + fail("danger", "circle-x", [T.failed], again) + back;
