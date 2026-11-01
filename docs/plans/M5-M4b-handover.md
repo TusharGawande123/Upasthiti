@@ -18,13 +18,17 @@ section at the bottom is the detailed log) and `docs/decisions/0036-m5-build-cho
   once), phone body limits, removal tools for phone rows.
 - **M4b design gates P1, P2, P3:** approved (decision 34); mock-ups in `docs/design-refs/m4b/gate-p1`, `gate-p2`,
   `gate-p3`.
+- **M4b P1 backend:** phone module, sessions (`ups_phone` cookie), login and lockout, notice, face and card proofs,
+  password, Super Admin switches, passkeys (webauthn 3.0.1), cleanup jobs, migration 0028 (`sign_in_method`),
+  decision lines 35 to 44, 71 new tests (AC-1 to AC-19, AC-49, AC-50, AC-54 to AC-56, AC-59). Full backend suite
+  at the end of P1: 1501 passed, coverage 91.07%.
 
-## In progress when this was written
-- **M4b P1 backend** (phone module, sessions, login, lockout, notice, proofs, password, admin switches,
-  passkeys): an agent was working on it. Check `git log` for `feat(phone): ...` commits and the Status section.
+## Stopped here (Anuradha's weekly limit reached 90% on 2026-11-01)
+- **M4b P2 was started and stopped before any change was made** (the working tree was clean, nothing lost).
+  The brief for it is in the plan Status section and below under "Left to do". Start P2 from there.
 
 ## Left to do (in this order)
-1. **M4b P1** remainder (if not finished), then **P2** (phone face punch, gate code `UPG1.`, `/kiosk/gate-code`,
+1. **M4b P2** (phone face punch, gate code `UPG1.`, `/kiosk/gate-code`,
    COALESCE(location_plant_id, plant_id) in inside-now and muster), **P3** (admin side: punch log channel
    filter, Needs review phone filter and bulk confirm, F-69 job, F-70 alert, F-73, audit viewer), **P4**
    (frontend `/phone/*` pages, admin Phone attendance card, Vercel CSP and Permissions-Policy, size budget,
