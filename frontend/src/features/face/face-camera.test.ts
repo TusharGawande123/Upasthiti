@@ -62,7 +62,7 @@ describe("startFaceCamera", () => {
     expect(await startFaceCamera(video as never, null)).toBe(stream);
     expect(video.srcObject).toBe(stream);
     await startFaceCamera(fakeVideo(), "cam-2");
-    expect(getUserMedia.mock.calls[1][0].video.deviceId).toEqual({ exact: "cam-2" });
+    expect(getUserMedia.mock.calls[1]?.[0].video.deviceId).toEqual({ exact: "cam-2" });
   });
 
   it("says when there is no camera support", async () => {

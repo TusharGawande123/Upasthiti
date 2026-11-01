@@ -116,9 +116,9 @@ describe("bulk dialog", () => {
     await user.type(await screen.findByLabelText("Reason"), "Contract ended");
     await user.click(screen.getByRole("button", { name: "Mark as left" }));
     await waitFor(() => expect(onDone).toHaveBeenCalled());
-    expect(
-      (calls.find((call) => call.path === "/employees/bulk")?.body as { params: object }).params,
-    ).toHaveProperty("left_on");
+    expect(calls.find((call) => call.path === "/employees/bulk")?.body).toMatchObject({
+      params: { left_on: expect.any(String) },
+    });
   });
 
   it("sends the change for approval when a Corporate Head asks", async () => {

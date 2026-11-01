@@ -77,7 +77,7 @@ describe("audit log filters and panel", () => {
     await screen.findByText("kiosk.paired");
 
     const buttons = screen.getAllByRole("button", { name: /13\/10\/2026/ });
-    await user.click(buttons[0]);
+    await user.click(buttons[0] as HTMLElement);
     const panel = screen.getByRole("complementary", { name: "Entry details" });
     expect(within(panel).getByText('["A","B"]')).toBeInTheDocument();
     expect(within(panel).getByText("–")).toBeInTheDocument();
@@ -85,7 +85,7 @@ describe("audit log filters and panel", () => {
     await user.click(within(panel).getByRole("button", { name: "Close" }));
     expect(screen.queryByRole("complementary", { name: "Entry details" })).toBeNull();
 
-    await user.click(buttons[1]);
+    await user.click(buttons[1] as HTMLElement);
     expect(screen.getByText("No field values were recorded for this entry.")).toBeInTheDocument();
   });
 
