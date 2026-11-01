@@ -362,3 +362,8 @@ a real phone at 360 px, report downloads opened in Excel.
   Inside-now chip, not the early-OUT code, not the dashboard (idle probe: 0 requests, 0 long tasks in 20 s),
   not reduced motion. Helper `punchWithFace` now turns the head inside the page when the screen asks and
   taps "Try again" at most twice (like a person). If the CI `e2e` job fails on these two, look here first.
+- 2026-11-01 frontend coverage floor 84: `npm test` now 897 tests (was 844), Statements 89.95, Branches 85.35,
+  Functions 85.86, Lines 91.2; floor in `vite.config.ts` raised from 82 to 84 (spec M5). Tests added only (53): sessions
+  page, new-password page, plant devices tab, audit filters and panel, user menu, users page actions, day timeline,
+  shifts tab, bulk dialog, face dialogs, face camera helpers. No app code changed. Note: `issue-after-import.test.tsx`
+  compares today's date and fails if the suite runs across midnight (seen once at 00:00 IST, passes on rerun).
