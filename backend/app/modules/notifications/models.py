@@ -35,6 +35,7 @@ KINDS = (
     "review_digest",
     "absence_streak",
     "monthly_register",
+    "phone_many_phones",  # M4b F-70: "Signed in on many phones"
 )
 
 

@@ -16,6 +16,7 @@ from app.modules.leave import models as leave_models
 from app.modules.notices import models as notices_models
 from app.modules.notifications import models as notifications_models
 from app.modules.org import models as org_models
+from app.modules.phone import models as phone_models
 from app.modules.punches import models as punches_models
 from app.modules.qr_cards import models as qr_cards_models
 from app.modules.regularisations import models as regularisations_models
@@ -37,6 +38,7 @@ __all__ = [
     "notices_models",
     "notifications_models",
     "org_models",
+    "phone_models",
     "punches_models",
     "qr_cards_models",
     "regularisations_models",

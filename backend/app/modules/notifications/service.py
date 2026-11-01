@@ -271,6 +271,7 @@ _ALL_KINDS = (
     "review_digest",
     "absence_streak",
     "monthly_register",
+    "phone_many_phones",  # M4b F-70 (Super Admin only)
 )
 
 
