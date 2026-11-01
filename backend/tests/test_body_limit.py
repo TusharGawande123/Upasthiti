@@ -16,6 +16,7 @@ from app.core.body_limit import (
     FACE_PUNCH_BODY_LIMIT,
     IMPORT_BODY_LIMIT,
     KIOSK_BODY_LIMIT,
+    PHONE_BODY_LIMIT,
     BodyLimitMiddleware,
     body_limit_for,
 )
@@ -71,6 +72,32 @@ def test_each_kind_of_request_has_its_own_limit() -> None:
     assert body_limit_for("/api/v1/kiosk/report") == KIOSK_BODY_LIMIT
     assert body_limit_for("/api/v1/employees/import") == IMPORT_BODY_LIMIT
     assert body_limit_for("/api/v1/auth/login") == DEFAULT_BODY_LIMIT
+
+
+def test_phone_requests_have_their_own_limits() -> None:
+    # M4b spec §5.2, §5.3, §7 rules 10 and 11.
+    assert body_limit_for("/api/v1/phone/punch/face") == FACE_PUNCH_BODY_LIMIT == 384 * 1024
+    assert body_limit_for("/api/v1/phone/proof/face") == FACE_PUNCH_BODY_LIMIT
+    assert body_limit_for("/api/v1/phone/punch/gate-code") == KIOSK_BODY_LIMIT == 64 * 1024
+    for small in (
+        "/api/v1/phone/login",
+        "/api/v1/phone/proof/card",
+        "/api/v1/phone/proof/face/challenge",
+        "/api/v1/phone/punch/challenge",
+        "/api/v1/phone/password",
+        "/api/v1/phone/notice/accept",
+        "/api/v1/phone/passkeys/register",
+    ):
+        assert body_limit_for(small) == PHONE_BODY_LIMIT == 16 * 1024, small
+
+
+def test_a_phone_sign_in_over_16_kb_is_refused_early() -> None:
+    status, body, probe, taken = call("/api/v1/phone/login", chunks=50)
+
+    assert status == 413
+    assert json.loads(body)["error"]["code"] == "PAYLOAD_TOO_LARGE"
+    assert not probe.answered
+    assert taken <= 2  # the second 16 KB piece passes the limit
 
 
 def test_a_small_body_goes_through() -> None:
