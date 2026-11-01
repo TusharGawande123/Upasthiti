@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P3 - Screen 2: employees list with the filter "Phone punching: on / off" and the small "Phone" tag (spec 4.13).
+  States (URL hash): default · filter-on · filter-off · filter-empty · loading · error · corporate-head · plant-head · menu-open.
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti employees</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+  <link rel="stylesheet" href="p3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="p3.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Employees";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = roleOf(S);
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, review: 7, bell: 4, menu: S === "menu-open" };
+  const SA = ROLE === "sa";
+
+  /* name, code, plant, type, method, phone: null | "on" | "outside" */
+  const ALL = [
+    ["Sunita Jadhav", "EMP-0312", "K134", "Permanent", "face", "outside"],
+    ["Vijay Salunke", "EMP-0123", "K134", "Permanent", "face", "on"],
+    ["Rekha Bhosale", "EMP-0204", "K134", "Permanent", "face", null],
+    ["Santosh Gaikwad", "T-2041", "K134", "Temporary", "card", "on"],
+    ["Anil Pawar", "T-2058", "K134", "Temporary", "card", "on"],
+    ["Mohan Kulkarni", "T-2077", "K135", "Temporary", "card", null],
+    ["Pooja Deshmukh", "EMP-0399", "K135", "Permanent", "face", "on"],
+    ["Lata Shinde", "EMP-0288", "X280", "Permanent", "face", null],
+    ["Ramesh Patil", "EMP-0457", "K134", "Permanent", "face", null],
+  ];
+  let rows = ALL;
+  if (ROLE === "ph") rows = ALL.filter((r) => r[2] === "K134");
+  const FILTER = S === "filter-on" ? "on" : S === "filter-off" ? "off" : S === "filter-empty" ? "empty" : "";
+  if (FILTER === "on") rows = rows.filter((r) => r[5]);
+  if (FILTER === "off") rows = rows.filter((r) => !r[5]);
+  if (FILTER === "empty") rows = [];
+
+  const tag = (p) => p ? `<span class="tag-phone">${ic("smartphone")}Phone</span>` : `<span class="muted" aria-label="Phone punching off">–</span>`;
+  const meth = (m) => m === "face" ? methodBadge.face : methodBadge.card;
+
+  function table() {
+    const trs = rows.map((r) => `<tr><td><span class="emp"><b>${r[0]}</b><span class="code sub" style="font-size:12.5px">${r[1]}</span></span></td><td><b>${r[2]}</b></td><td>${r[3]}</td><td>${meth(r[4])}</td><td>${tag(r[5])}</td><td><button class="btn btn-ghost btn-icon" aria-label="Open ${r[0]}">${ic("chevron-right")}</button></td></tr>`).join("");
+    const cards = rows.map((r) => `<div class="ec2"><div class="top"><b>${r[0]}</b>${tag(r[5])}</div><div class="meta"><span class="code">${r[1]}</span> · ${r[2]} · ${r[3]}</div><div class="tags">${meth(r[4])}</div></div>`).join("");
+    return `<div class="etable-wrap table-scroll"><table class="table etable"><thead><tr><th>Employee</th><th>Plant</th><th>Type</th><th>Method</th><th>Phone <span class="badge badge-info chg" style="margin-left:4px">New</span></th><th><span class="sr-only">Open</span></th></tr></thead><tbody>${trs}</tbody></table></div><div class="ecards2">${cards}</div>`;
+  }
+
+  function page() {
+    const adds = SA ? `<button class="btn btn-outline btn-lg">${ic("file-up")}Import</button><button class="btn btn-primary btn-lg">${ic("user-plus")}Add employee</button>` : ROLE === "ch" ? `<button class="btn btn-primary btn-lg">${ic("user-plus")}Add employee</button>` : "";
+    const phoneSel = sel("phone", "Phone punching", FILTER === "on" ? "Phone punching: on" : FILTER === "off" || FILTER === "empty" ? "Phone punching: " + (FILTER === "off" ? "off" : "on") : "Phone punching: any", !!FILTER);
+    const fbar = `<div class="fbar"><div class="search-box">${ic("search")}<input class="input" placeholder="Code or name" aria-label="Search by employee code or name" /></div>${ROLE === "ph" ? `<span class="badge badge-outline">${ic("lock")}Plant K134</span>` : sel("plant", "Plant", "Plant: all", false)}${sel("type", "Type", "Type: any", false)}${sel("status", "Status", "Status: active", false)}${phoneSel}</div>`;
+    let body;
+    if (S === "loading") body = `<div style="padding:16px;display:grid;gap:12px">${'<div class="skeleton" style="height:56px"></div>'.repeat(6)}</div>`;
+    else if (S === "error") body = `<div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>Employees could not be loaded</h3><p>The server did not answer. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div>`;
+    else if (!rows.length) body = `<div class="empty-box"><span class="big">${ic("search-x")}</span><h3>No employees match these filters</h3><p>Try another filter, or show all.</p><button class="btn btn-outline btn-lg">${ic("rotate-ccw")}Clear filters</button></div>`;
+    else body = table();
+    const count = S === "loading" || S === "error" ? "" : `${rows.length} employee${rows.length === 1 ? "" : "s"}${FILTER === "on" ? " with phone punching on" : FILTER === "off" ? " with phone punching off" : ""}`;
+    const ro = !SA ? `<div class="ro-strip mb">${ic("eye")}<span>${ROLE === "ph" ? "Your plant only. " : ""}You can see who has phone punching on. Only the Super Admin switches it.</span></div>` : "";
+    return `<div class="page-head anim-fade-up"><div><h1 class="page-title">Employees</h1><p class="page-desc">Everyone who works at the plants. Open a person to see details and phone attendance.</p></div><div class="head-actions">${adds}</div></div>${ro}
+      <div class="card" style="overflow:hidden">${fbar}<div class="countbar"><span>${count}</span><span>${ic("clock")}Times in IST</span></div>${body}</div>`;
+  }
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>
