@@ -180,3 +180,47 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     and a left employee's phone card is shown with everything off and disabled. Texts the spec does not give
     are the mock-up texts (listed in each gate's README); the notice wording is a layout draft and the final
     text is for the lead to confirm (DPDP notice). **To confirm with Tushar:** decisions 30 to 33 and 34 (c).
+35. **Phone sign-ins remember how they were made (P1, migration 0028):** `phone_sessions.sign_in_method`
+    (`password` / `proof` / `passkey`). Spec §7 rule 29 allows a passkey only within 10 minutes of a password
+    or proof sign-in; the sign-in row is the only place that can say which it was. A passkey sign-in can never
+    add a passkey.
+36. **py_webauthn 3.0.1 (P1):** the spec named "latest 2.x"; 3.0.1 is the current release (BSD-3-Clause, same
+    API). Its own dependencies are cbor2 (MIT), pyasn1 and pyasn1-modules (BSD-2-Clause) and pyOpenSSL
+    (Apache-2.0), not asn1crypto as the spec guessed. All free.
+37. **Passkey user handle (P1):** 32 bytes, the same for all of an employee's passkeys and never the employee
+    code. The first one is `HMAC-SHA256(APP_SECRET_KEY, "passkey-user-handle-v1:" + employee id)` (looks random
+    to everyone else and needs no storage between "options" and "register"); later passkeys reuse the stored one.
+    The passkey's `user.name` shown in the phone's own passkey list is the employee code, the display name the
+    full name (stored on the phone only).
+38. **Passkeys and a self reset (P1, to confirm with Tushar):** setting a new password after a face or card proof
+    does NOT remove passkeys; only "Require a new password", phone punching OFF, "Stop phone punching" (kind
+    `phone_off`) and "mark as left" do (spec §7 rule 29 lists exactly these). A reset still ends every other
+    sign-in. If the lead wants a reset to remove passkeys too, it is one line in `proof_service.set_password`.
+39. **Passkey sign-in while the password is locked (P1):** allowed. The lock protects against password guessing;
+    a passkey cannot guess one, and a failed passkey does not count towards the lock (spec rule 29).
+40. **Ended sign-in answers (P1):** a request with an ended sign-in answers `PHONE_NOT_SIGNED_IN` with
+    `details.ended` = the end reason (`new_login` lets the phone show "You signed in on another phone…",
+    `expired` = idle or 30 days), except a sign-in ended by phone punching OFF, which answers `PHONE_PUNCH_OFF`
+    (AC-7). The cookie `ups_phone` is `Secure` everywhere except `APP_ENV=development` (plain http on a laptop).
+41. **Face proof answers (P1):** quality and turn problems (`NO_FACE`, `MULTIPLE_FACES`, `FACE_TOO_SMALL`,
+    `FACE_QUALITY_LOW`, `LIVENESS_FAILED`, `FRAMES_INVALID`) and a used or old challenge (`CHALLENGE_INVALID`,
+    `CHALLENGE_EXPIRED`) answer 422 with `details.retry_allowed`, the same for every typed code; a printed photo
+    (`SPOOF_SUSPECTED`) and a different face in the turn picture (`FACE_INCONSISTENT`) are "not you" and answer
+    `PROOF_FAILED`. The candidate also needs an active agreed face consent (as the punch, rule 10). Their admin
+    texts `errors.<CODE>` are phone texts (new codes for the admin text file). A card proof that fails the place
+    check (`LOCATION_REQUIRED`, `GPS_ACCURACY_TOO_LOW`, `GEOFENCE_NOT_SET`, `OUTSIDE_GEOFENCE`) answers 422
+    without the 1-second wait (it is only reached with a valid card, as the spec says).
+42. **Switch details (P1):** saving outside work with the same values again changes nothing and writes no audit
+    row; switching it OFF (also by phone OFF, self stop, leaving or the F-69 job) clears the "until" date (the
+    audit keeps it). "Mark as left" writes `phone_access.disable` (actor = the Super Admin, reason = the leaving
+    reason) only when phone punching was ON; `phone_changed_by` is null as the spec says. The admin card answer
+    also carries `outside_work_ended` (F-69, "Outside work ended on …") and the active `passkeys` (spec §4.12).
+43. **Clean-up (P1):** the daily job (not the 5-minute face job) deletes `phone_proofs` older than one day and ended
+    or run-out sign-ins older than 90 days, keeping every sign-in that a notice acceptance OR a punch points to
+    (both tables can never change). Old phone head-turn challenges are already removed after a day by the M3 job.
+44. **Built earlier or later than the plan (P1):** the F-69 daily switch-off and the F-70 many-phones alert are
+    built in P1 (they hang on the sign-in and switch code written here; the plan had them in P3).
+    `GET /phone/punches/today`, `GET /phone/attendance` (F-73) and the employees list filter `phone=on|off` are
+    left for P2/P3. The phone notice v1 text (`app/phone/notice_texts/phone-notice-v1.en.txt`, its hash fixed by
+    a test) is written from the approved mock-up sections and mentions passkeys; the wording is **for Tushar to
+    confirm** (a new version, never an edit, if it changes).
