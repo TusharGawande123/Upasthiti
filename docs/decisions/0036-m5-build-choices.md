@@ -119,3 +119,39 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     "Prakash asked..." reads "A correction was asked for 29/10/2026 at K134."; the report "done" line has no row
     count (the API sends none); the 20-files limit has no minutes in its text (the API sends none, it uses the
     existing code `TOO_MANY_REQUESTS`); the punctuality arrows come from a second request for the period before.
+22. **M4b migration numbers (P0):** the spec's `0025_phone_access_and_accounts` and `0026_phone_punches` are
+    built as **0026** and **0027**: M5 used one more migration than planned (0023 early-out mark, so
+    notifications 0024 and shift swaps 0025). No content change.
+23. **M4b context refactor (P0, plan cross-cutting 8):** `PunchContext` and `FacePunchContext` carry `plant_id`
+    and `device_identity` (a `DeviceIdentity`: one gate device OR one phone sign-in) instead of the gate
+    device. A stored punch tells its device with `Punch.device_key` (gate device, or for a phone punch its
+    sign-in), so "another device" for the travel / two-devices flags and the review panel follows spec §7
+    rule 14 (a phone punch is always another device than a gate; two phone punches only when the sign-ins
+    differ). The review panel's "device often at the fence edge" hint counts gate punches only (a phone's
+    position is not the gate's). Gate behaviour is unchanged (whole suite green).
+24. **Punches without a gate device (P0, cross-cutting 9):** the punch log item's `kiosk` is `null` for a
+    phone face punch (the export writes an empty device cell); the frontend type follows in P3/P4. Dashboard,
+    day timeline and reports already allowed it. `COALESCE(location_plant_id, plant_id)` for inside-now and
+    the muster stays in P2 as planned.
+25. **Removal tools stay the only deleters (P0):** `remove_demo_plant` and `remove_test_employees` remain the
+    only code that deletes punches, corrections or other append-only rows (AC-55 is about app code paths).
+    They now also delete, for the removed people: phone sign-ins, phone punches, notice acceptances (trigger
+    off inside the transaction, as for punches), passkeys, proofs, accounts, switches, phone challenges, M5
+    corrections with their decisions and attendance days; the demo tool also deletes the demo plant's
+    attendance days and alerts. The demo tool refuses when a phone punch of a real person was matched at the
+    demo plant's fence (`location_plant_id`): that is real attendance.
+26. **Gate-code key (for P2, plan cross-cutting 11):** `HMAC(APP_SECRET_KEY, "gate-code-v1")`, the pattern of
+    the M4 time anchor, not HKDF as spec §7 rule 15 says. Same strength, no new environment variable.
+27. **Phone body limits (P0):** `/phone/punch/face` and `/phone/proof/face` 384 KB (the same frames as the gate
+    face punch), `/phone/punch/gate-code` 64 KB (spec), every other `/api/v1/phone/*` request 16 KB (the
+    spec gives no value; sign-in, notice, card proof and passkey JSON are a few KB at most).
+28. **Phone tables, details the spec leaves open (P0):** hash columns are `varchar(64)` with a lower-hex check
+    (the project's pattern) instead of `char(64)`; `phone_sessions.browser` / `system` are required and
+    `user_agent` may be empty; extra checks: no negative failure or sign counts, a proof token always has
+    an end, a session ends after it starts, a challenge belongs to exactly one gate device or sign-in.
+    `phone_notice_acceptances.session_id` is required and the table is append-only, so the 90-day clean-up
+    of ended sign-ins (P3) must **keep a sign-in that an acceptance points to** (it cannot be set to null).
+    **To confirm with Tushar** (small, but it means a few old sign-in rows stay as the consent trail).
+29. **Password gate (P0, spec §7 rule 9):** `app/core/password_gate.py`: one process-wide semaphore of 2 around
+    every employee password check (real and dummy), wait at most 5 s, then `TOO_MANY_REQUESTS` (429); the
+    slot is freed when the check fails. P1 wraps login and password set in it.
