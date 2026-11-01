@@ -1,0 +1,175 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P3 - Screen 4: "Needs review" with the filter "Phone", the check boxes on clean outside punches and
+  "Confirm selected (n)" (F-76; spec 4.13, 7 rules 19 and 28). Super Admin only (the menu entry is not drawn for the other two roles, as in M4).
+  States (URL hash): default · phone-filter · phone-selected · phone-all-selected · phone-limit · dialog-bulk · dialog-bulk-saving · dialog-bulk-error ·
+  result-partial · result-ok · phone-rejected · detail-outside · detail-not-clean · phone-empty · loading · error · menu-open.
+  "Now" is Saturday 31/10/2026, about 09:20.   MOCKUP ONLY - fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti needs review</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+  <link rel="stylesheet" href="p3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="p3.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Needs review";
+  const S = location.hash.replace("#", "") || "default";
+  window.MOCK_USER = USERS.sa;
+  const PHONE = ["phone-filter", "phone-selected", "phone-all-selected", "phone-limit", "dialog-bulk", "dialog-bulk-saving", "dialog-bulk-error", "result-partial", "result-ok", "phone-rejected", "detail-outside", "detail-not-clean", "phone-empty"].indexOf(S) >= 0;
+  const REJ = S === "phone-rejected";
+  const RESULT = S === "result-partial" || S === "result-ok";
+  window.MOCK_SHELL = { offline: 1, review: RESULT ? (S === "result-ok" ? 4 : 5) : 7, bell: 4, menu: S === "menu-open" };
+
+  const FL = {
+    OUTSIDE_PLANT: ["map-pin-off", "Outside plant"],
+    IMPOSSIBLE_TRAVEL: ["route", "Impossible travel"],
+    LOCATION_AT_EDGE: ["map-pin", "At the edge of the fence"],
+    TWO_DEVICES_SOON: ["arrow-left-right", "Two attendance devices, minutes apart"],
+    LOCATION_STALE: ["satellite-dish", "Location reading was old"],
+    OUTSIDE_GEOFENCE: ["map-pin-off", "Outside the plant fence"],
+    FACE_NOT_RECOGNISED: ["scan-face", "Face not recognised"],
+  };
+  /* id, time, employee, plant, channel, method, flags, clean (F-76), distance, outside-work reason */
+  const TO_CHECK = [
+    { id: "a", t: "09:14", emp: ["Sunita Jadhav", "EMP-0312"], plant: "K134", ch: "phone", m: "face", flags: ["OUTSIDE_PLANT"], clean: true, dist: "3.2 km", why: "Three-day visit to the X-280 plant for the line start-up" },
+    { id: "b", t: "09:02", emp: ["Dinesh Chavan", "EMP-0188"], plant: "K135", ch: "phone", m: "face", flags: ["OUTSIDE_PLANT"], clean: true, dist: "2.1 km", why: "Customer visit with the sales team" },
+    { id: "c", t: "08:51", emp: ["Kavita More", "EMP-0231"], plant: "K134", ch: "phone", m: "face", flags: ["OUTSIDE_PLANT"], clean: true, dist: "5.6 km", why: "Training at the head office" },
+    { id: "d", t: "08:36", emp: ["Rahul Deshpande", "EMP-0276"], plant: "K134", ch: "phone", m: "face", flags: ["OUTSIDE_PLANT", "IMPOSSIBLE_TRAVEL"], clean: false, dist: "4.8 km", why: "Supplier visit in Chakan" },
+    { id: "e", t: "08:12", emp: ["Vijay Salunke", "EMP-0123"], plant: "K134", ch: "phone", m: "face", flags: ["LOCATION_AT_EDGE"], clean: false },
+    { id: "f", t: "07:41", emp: ["Anil Pawar", "T-2058"], plant: "X280", ch: "device", dev: "Gate PC", m: "card", flags: ["TWO_DEVICES_SOON"], clean: false },
+    { id: "g", t: "07:22", emp: ["Ganesh More", "T-2077"], plant: "K135", ch: "device", dev: "Gate tablet", m: "card", flags: ["LOCATION_STALE"], clean: false },
+  ];
+  const REJECTED_PHONE = [
+    { id: "r1", t: "08:41", emp: ["Ramesh Patil", "EMP-0457"], plant: "K134", ch: "phone", m: "face", reason: "OUTSIDE_GEOFENCE", dist: "1.4 km" },
+    { id: "r2", t: "08:22", emp: ["Pooja Deshmukh", "EMP-0399"], plant: "K135", ch: "phone", m: "face", reason: "FACE_NOT_RECOGNISED" },
+  ];
+  let rows = TO_CHECK;
+  if (PHONE) rows = rows.filter((r) => r.ch === "phone");
+  if (S === "result-partial") rows = TO_CHECK.filter((r) => r.ch === "phone" && ["c", "d", "e"].indexOf(r.id) >= 0);
+  if (S === "result-ok") rows = TO_CHECK.filter((r) => r.ch === "phone" && ["d", "e"].indexOf(r.id) >= 0);
+  if (S === "phone-empty") rows = [];
+  const PICK = S === "phone-selected" ? ["a", "b"] : ["phone-all-selected", "dialog-bulk", "dialog-bulk-saving", "dialog-bulk-error", "phone-limit"].indexOf(S) >= 0 ? ["a", "b", "c"] : [];
+  const SHOW_CB = PHONE && !REJ && !RESULT || S === "result-partial";
+  const nPicked = S === "phone-limit" ? 100 : PICK.length;
+  const cleanRows = rows.filter((r) => r.clean);
+
+  const dirB = `<span class="badge badge-success">${ic("log-in")}IN</span>`;
+  const flagB = `<span class="badge badge-flag">${ic("flag")}Flagged</span>`;
+  const rejB = `<span class="badge badge-danger">${ic("circle-x")}Rejected</span>`;
+  const where = (r) => r.ch === "phone" ? `${channelBadge.phone}` : `<b style="font-weight:600">${r.dev}</b>`;
+  function lines(r) {
+    const f = (r.flags || []).map((c) => `<span class="rv-line t-warn">${ic(FL[c][0])}<span>${FL[c][1]} <span class="code">${c}</span></span></span>`).join("");
+    const rj = r.reason ? `<span class="rv-line t-danger">${ic(FL[r.reason][0])}<span>${FL[r.reason][1]} <span class="code">${r.reason}</span></span></span>` : "";
+    const dist = r.dist ? `<span class="sub">${r.dist} from the fence of ${r.plant}</span>` : "";
+    const why = r.why ? `<span class="reason-q"><b>Outside work reason:</b> ${r.why}</span>` : "";
+    return `<div class="res-stack"><span style="display:flex;gap:6px;flex-wrap:wrap">${r.reason ? rejB : flagB + dirB}</span><span class="rv-lines">${f}${rj}</span>${dist}${why}</div>`;
+  }
+  const cb = (r) => {
+    const on = PICK.indexOf(r.id) >= 0;
+    return r.clean ? `<button class="cbbtn" role="checkbox" aria-checked="${on}" aria-label="Select the punch of ${r.emp[0]} at ${r.t}"><span class="cbox ${on ? "on" : ""}">${ic("check")}</span></button>`
+      : `<span class="row-lock" title="This punch needs a single review">${ic("lock")}Single review</span>`;
+  };
+  function table(list) {
+    const allOn = cleanRows.length && PICK.length >= cleanRows.length && S !== "result-partial";
+    const some = PICK.length && !allOn;
+    const headCb = SHOW_CB ? `<th class="cbcol" scope="col"><button class="cbbtn" role="checkbox" aria-checked="${allOn ? "true" : some ? "mixed" : "false"}" aria-label="Select all ${cleanRows.length} clean outside punches"><span class="cbox ${allOn ? "on" : some ? "mixed" : ""}">${ic("check")}</span></button></th>` : "";
+    const trs = list.map((r) => `<tr class="${r.reason ? "is-rejected" : "is-flagged"} ${PICK.indexOf(r.id) >= 0 ? "is-picked" : ""}">${SHOW_CB ? `<td class="cbcol">${cb(r)}</td>` : ""}
+      <td class="time"><b class="tnum">${r.t}</b><span class="sub">Today</span></td><td><span class="emp"><b>${r.emp[0]}</b><span class="code sub">${r.emp[1]}</span></span></td>
+      <td><b style="font-weight:600">${r.plant}</b><span style="display:block;margin-top:6px">${where(r)}</span><span style="display:block;margin-top:6px">${methodBadge[r.m]}</span></td>
+      <td>${lines(r)}</td><td style="text-align:right"><button class="btn ${r.reason ? "btn-outline" : "btn-primary"}" aria-label="Review the punch of ${r.emp[0]} at ${r.t}">Review${ic("chevron-right")}</button></td></tr>`).join("");
+    return `<div class="ptable-wrap table-scroll"><table class="table ptable"><caption class="sr-only">Punches that need a review</caption><thead><tr>${headCb}<th scope="col">Time</th><th scope="col">Employee</th><th scope="col">Plant, channel and method</th><th scope="col">Result, why and outside work</th><th scope="col"><span class="sr-only">Open</span></th></tr></thead><tbody>${trs}</tbody></table></div>`;
+  }
+  function cards(list) {
+    return `<div class="pcards">` + list.map((r) => `<div class="pcard ${r.reason ? "is-rejected" : "is-flagged"} ${PICK.indexOf(r.id) >= 0 ? "is-picked" : ""}">
+      ${SHOW_CB ? `<div class="cbrow">${cb(r)}<span>${r.clean ? (PICK.indexOf(r.id) >= 0 ? "Selected" : "Select this punch") : "This punch needs a single review"}</span></div>` : ""}
+      <div class="pcard-top"><b>${r.emp[0]}</b><span class="time">${r.t}</span></div><div class="meta"><span class="code">${r.emp[1]}</span> · ${r.plant} · Today</div>
+      <div class="badges">${where(r)}${methodBadge[r.m]}</div><div style="margin-top:10px">${lines(r)}</div>
+      <div class="acts"><button class="btn ${r.reason ? "btn-outline" : "btn-primary"}">Review${ic("chevron-right")}</button></div></div>`).join("") + `</div>`;
+  }
+
+  function resultStrip() {
+    if (S === "result-partial") return `<div class="res-strip warn" role="status">${ic("triangle-alert")}<div><b>2 punches were confirmed; 1 needs a single review.</b>The punch of Kavita More (08:51) changed while you were confirming. It is still in the list below. Open it with Review.</div></div>`;
+    if (S === "result-ok") return `<div class="res-strip ok" role="status">${ic("circle-check")}<div><b>3 punches were confirmed.</b>They stay in the audit log as confirmed. They are no longer in this list.</div></div>`;
+    if (S === "phone-limit") return `<div class="res-strip warn" role="status">${ic("info")}<div><b>100 punches are selected. That is the most at one time.</b>Confirm these first, then select the rest.</div></div>`;
+    return "";
+  }
+
+  function page() {
+    const nCheck = RESULT ? (S === "result-ok" ? 4 : 5) : 7;
+    const tabs = `<div class="nr-tabs" role="tablist" aria-label="Review lists"><button class="nr-tab" role="tab" aria-selected="${!REJ}">${ic("flag")}To check<span class="n">${PHONE && !REJ && !RESULT ? (S === "phone-empty" ? 0 : 5) : nCheck}</span></button><button class="nr-tab" role="tab" aria-selected="${REJ}">${ic("circle-x")}Rejected</button><button class="nr-tab" role="tab">${ic("circle-check")}Reviewed</button></div>`;
+    const selA = (txt, on) => sel("f", txt.split(":")[0], txt, on);
+    const fbar = `<div class="fbar"><div class="datebox"><button class="btn btn-ghost btn-icon" aria-label="Earlier dates">${ic("chevron-left")}</button><span>${ic("calendar-days")}Last 7 days · 25/10 to 31/10/2026</span><button class="btn btn-ghost btn-icon" aria-label="Pick dates">${ic("chevron-down")}</button></div><div class="search-box">${ic("search")}<input class="input" placeholder="Employee code or name" aria-label="Employee code or name" /></div>${selA("Plant: all")}${selA("Code: any")}${selA("Method: any")}</div>
+      <div class="nr-filter-line"><span class="lbl">New filter</span><div class="seg seg-sm" role="group" aria-label="Channel"><button aria-pressed="${!PHONE}">${ic("layers")}All</button><button aria-pressed="${PHONE}">${ic("smartphone")}Phone <b>${REJ ? 2 : 5}</b></button></div>${PHONE && !REJ ? `<span class="muted" style="font-size:13px">Clean outside punches have a check box. Other punches need a single review.</span>` : ""}</div>`;
+    let body;
+    if (S === "loading") body = `<div style="padding:16px;display:grid;gap:12px">${'<div class="skeleton" style="height:72px"></div>'.repeat(5)}</div>`;
+    else if (S === "error") body = `<div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>The list could not be loaded</h3><p>Check the internet and try again. Nothing was changed.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div>`;
+    else if (S === "phone-empty") body = `<div class="empty-box"><span class="big" style="background:var(--success-soft);color:var(--success)">${ic("circle-check")}</span><h3>No phone punches to check</h3><p>Flagged phone punches appear here by themselves. A rejected phone punch that names an employee is in the Rejected list.</p><button class="btn btn-outline btn-lg">${ic("circle-x")}See rejected punches</button></div>`;
+    else if (REJ) body = table(REJECTED_PHONE) + cards(REJECTED_PHONE) + `<div class="countbar" style="border-top:1px solid var(--border);border-bottom:0">${ic("info")}<span>Rejected punches are reviewed one by one. There is no bulk approval.</span></div>`;
+    else body = resultStrip() + table(rows) + cards(rows);
+    const n = REJ ? 2 : S === "loading" || S === "error" ? "" : S === "phone-empty" ? "0 punches" : `${rows.length} punches`;
+    const bar = nPicked && (S === "phone-selected" || S === "phone-all-selected" || S === "phone-limit") ? `<div class="bulkbar" role="region" aria-label="Selected punches"><div><p>${ic("check-square")}${nPicked} selected <span class="sm">· one note for all, optional</span></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline">Clear selection</button><button class="btn btn-light btn-lg">${ic("check-check")}Confirm selected (${nPicked})</button></div></div></div>` : "";
+    return `<div class="page-head anim-fade-up"><div><h1 class="page-title">Needs review</h1><p class="page-desc">Punches the system flagged or rejected. Flagged punches already count; decide whether they should. Times in IST.</p></div><div class="head-actions"><span class="sa-only" style="height:28px;font-size:12px">${ic("lock")}Super Admin only</span></div></div>
+      <div class="card" style="overflow:hidden;${bar ? "margin-bottom:90px" : ""}">${tabs}${fbar}<div class="countbar"><span>${n} · newest first</span><span>${ic("radio")}<b style="color:var(--foreground)">Live</b> · updates every 30 s</span></div>${body}
+      <div class="table-foot"><span>${rows.length && S !== "loading" && S !== "error" && !REJ ? "Showing 1–" + rows.length + " of " + rows.length : ""}</span><div class="pager"><button class="btn btn-outline" disabled aria-label="Previous page">${ic("chevron-left")}</button><button class="btn btn-outline" disabled aria-label="Next page">${ic("chevron-right")}</button></div></div></div>${bar ? "" : ""}`;
+  }
+
+  function bulkBar() {
+    return nPicked && (S === "phone-selected" || S === "phone-all-selected" || S === "phone-limit") ? 1 : 0;
+  }
+
+  /* ---------- dialog and detail sheet ---------- */
+  function bulkDialog(state) {
+    const picked = TO_CHECK.filter((r) => PICK.indexOf(r.id) >= 0);
+    const list = `<ul class="dlg-effects keep" style="margin-bottom:14px">${picked.map((r) => `<li>${ic("circle-check")}<span><b>${r.emp[0]}</b> <span class="code">${r.emp[1]}</span> · ${r.t} · ${r.dist} from the fence</span></li>`).join("")}</ul>`;
+    const note = `<div class="fld" style="margin-bottom:0"><label class="label" for="note">Note <span class="opt">(optional)</span></label><textarea class="input" id="note" placeholder="For example: all three are on the X-280 visit list">${state === "x" ? "" : "All three are on the visit list of the plant office"}</textarea><div class="rsn-hint"><span>Up to 300 characters. The same note is saved with every punch.</span><span class="counter tnum">${state === "x" ? 0 : 50} / 300</span></div></div>`;
+    const err = state === "error" ? `<div class="alert alert-danger" role="alert" style="margin-bottom:14px">${ic("triangle-alert")}<span><b>It could not be sent.</b> No punch was confirmed. Check the internet and try again.</span></div>` : "";
+    return dialog({ icon: "check-check", tone: "primary", wide: true, title: `Confirm ${picked.length} punches?`, desc: "Each punch is confirmed on its own and saved in the audit log. A punch that changed in the meantime is left for a single review.",
+      body: err + list + note, foot: dlgFoot("check-check", `Confirm selected (${picked.length})`, { saving: state === "saving" }) });
+  }
+
+  function sheet(r) {
+    const flagsHtml = r.flags.map((c) => `<div class="flag-card"><b>${ic(FL[c][0])}${FL[c][1]}</b><p>${c === "OUTSIDE_PLANT" ? "Saved as an outside-plant punch. The office will check it." : "The same person punched at two places that are too far apart for the time between them. Someone else may have used the phone."}</p><span class="code">${c}</span></div>`).join("");
+    const clean = r.clean;
+    const head = `<div class="sheet-head"><div class="dlg-icon" style="background:var(--warning-soft);color:var(--warning)">${ic("flag")}</div><div><h2>Flagged IN · ${r.emp[0]}</h2><p class="tnum">31/10/2026 ${r.t} IST · Phone · ${r.plant}</p></div><button class="btn btn-ghost btn-icon" aria-label="Close">${ic("x")}</button></div>`;
+    const facts = `<section class="sec"><h3>${ic("list")}Punch</h3><dl class="kv2"><dt>Employee</dt><dd><b>${r.emp[0]}</b> · <span class="code">${r.emp[1]}</span></dd><dt>Channel</dt><dd>${channelBadge.phone}</dd><dt>Method</dt><dd>${methodBadge.face}</dd><dt>Result</dt><dd>${dirB} ${outsideBadge}</dd><dt>Distance</dt><dd><b>${r.dist}</b> from the fence of ${r.plant}</dd></dl></section>`;
+    const outside = `<section class="sec"><h3>${ic("briefcase")}Outside work of this employee</h3><dl class="kv2"><dt>Allowed until</dt><dd>${clean ? "03/11/2026" : "07/11/2026"}</dd><dt>Reason</dt><dd>${r.why}</dd></dl></section>`;
+    const lock = clean ? `<div class="res-strip ok" style="margin:0 0 14px">${ic("check-check")}<div><b>This punch can be confirmed with others.</b>Its only flag is Outside plant.</div></div>` : `<div class="lockline" style="margin-bottom:14px">${ic("lock")}<span><b>This punch needs a single review.</b>It has another flag besides Outside plant, so it is not part of Confirm selected.</span></div>`;
+    const map = `<section class="sec"><h3>${ic("map-pin")}Position</h3>${outsideMap({ dist: r.dist, acc: "±18 m", time: r.t })}</section>`;
+    return `<div class="overlay"></div><aside class="sheet anim-sheet-r" role="dialog" aria-modal="true" aria-label="Review the punch">${head}<div class="sheet-body">${lock}${facts}<section class="sec"><h3>${ic("flag")}Flags (${r.flags.length})</h3>${flagsHtml}</section>${outside}${map}</div><div class="sheet-foot"><button class="btn btn-primary btn-lg">${ic("circle-check")}Confirm</button><button class="btn btn-danger-outline btn-lg">${ic("circle-x")}Not accepted</button></div></aside>`;
+  }
+
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    const layer = document.getElementById("layer");
+    if (bulkBar()) layer.innerHTML = `<div class="bulkbar" role="region" aria-label="Selected punches"><div><p>${ic("check-square")}${nPicked} selected <span class="sm">· one optional note for all</span></p><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-outline">Clear selection</button><button class="btn btn-light btn-lg">${ic("check-check")}Confirm selected (${nPicked})</button></div></div></div>`;
+    if (S === "dialog-bulk") layer.innerHTML = bulkDialog("x");
+    if (S === "dialog-bulk-saving") layer.innerHTML = bulkDialog("saving");
+    if (S === "dialog-bulk-error") layer.innerHTML = bulkDialog("error");
+    if (S === "detail-outside") layer.innerHTML = sheet(TO_CHECK[0]);
+    if (S === "detail-not-clean") layer.innerHTML = sheet(TO_CHECK[3]);
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

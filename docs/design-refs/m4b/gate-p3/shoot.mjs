@@ -12,7 +12,7 @@ const require = createRequire(path.resolve(here, "../../../../e2e/package.json")
 const { chromium } = require("@playwright/test");
 
 const SIZES = [[360, 800], [768, 1024], [1280, 800]];
-const VIEWPORT_ONLY = /^(dialog|detail|bell|menu|toast|selected|bulk)/;
+const VIEWPORT_ONLY = /^(dialog|detail|bell|menu|toast|selected|bulk|phone-selected|phone-all-selected|phone-limit)/;
 
 const SCREENS = [
   ["01-employee-phone", "01-employee", [
