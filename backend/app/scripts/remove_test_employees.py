@@ -49,7 +49,9 @@ from app.scripts.remove_demo_plant import (
     _remove_face_data,
     _table,
     delete_photo_files,
+    phone_sessions_of,
     remove_attendance_rows,
+    remove_rows_before_punches,
     set_protection,
 )
 
@@ -117,6 +119,7 @@ def build_plan(
     plan.card_ids = _ids(
         session, "qr_credentials", "id", cards.c.employee_id.in_(plan.employee_ids)
     )
+    plan.phone_session_ids = phone_sessions_of(session, plan.employee_ids)
     plan.punch_ids = _ids(
         session,
         "punches",
@@ -125,6 +128,7 @@ def build_plan(
             punches.c.kiosk_id.in_(plan.kiosk_ids),
             punches.c.employee_id.in_(plan.employee_ids),
             punches.c.claimed_employee_id.in_(plan.employee_ids),
+            punches.c.phone_session_id.in_(plan.phone_session_ids),
         ),
     )
 
@@ -181,6 +185,7 @@ def build_plan(
         "photos": len(plan.photo_keys),
         "reviews of those punches": len(plan.review_ids),
         "device health samples": plan.heartbeat_count,
+        "phone sign-ins": len(plan.phone_session_ids),
     }
     return plan
 
@@ -264,6 +269,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         session.execute(
             delete(t("punch_snapshots")).where(t("punch_snapshots").c.punch_id.in_(plan.punch_ids))
         )
+        remove_rows_before_punches(session, employee_ids, plan.punch_ids)
         session.execute(delete(t("punches")).where(t("punches").c.id.in_(plan.punch_ids)))
         session.execute(
             delete(t("qr_credentials")).where(t("qr_credentials").c.id.in_(plan.card_ids))
@@ -281,7 +287,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         session.execute(
             delete(t("change_requests")).where(t("change_requests").c.employee_id.in_(employee_ids))
         )
-        remove_attendance_rows(session, employee_ids)
+        remove_attendance_rows(session, employee_ids, plan.phone_session_ids)
         session.execute(delete(t("employees")).where(t("employees").c.id.in_(employee_ids)))
         session.execute(
             delete(t("kiosk_pairing_codes")).where(
@@ -309,7 +315,8 @@ def _show(plan: RemovalPlan) -> None:
     print(f"Plant: {plan.plant_code} ({plan.plant_name}); the plant itself stays.")
     for label, count in plan.counts.items():
         print(f"  {count:>5}  {label}")
-    print("  Also: their face data, shifts, plant history and change requests.")
+    print("  Also: their face data, shifts, plant history, change requests, leave, shift")
+    print("        swaps, corrections, attendance days and phone punching data.")
     print("        The audit log is not touched.")
 
 

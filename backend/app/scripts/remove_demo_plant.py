@@ -54,6 +54,7 @@ class RemovalPlan:
     punch_ids: list[uuid.UUID] = field(default_factory=list)
     photo_keys: list[str] = field(default_factory=list)
     review_ids: list[uuid.UUID] = field(default_factory=list)
+    phone_session_ids: list[uuid.UUID] = field(default_factory=list)  # M4b
     heartbeat_count: int = 0
     counts: dict[str, int] = field(default_factory=dict)
 
@@ -100,6 +101,7 @@ def build_plan(session: Session, plant_code: str, include_test_cards: bool) -> R
         ).all()
         plan.test_card_labels = [f"{row.card_serial} ({row.label or 'no label'})" for row in rows]
 
+    plan.phone_session_ids = phone_sessions_of(session, plan.employee_ids)
     plan.punch_ids = _ids(
         session,
         "punches",
@@ -109,8 +111,21 @@ def build_plan(session: Session, plant_code: str, include_test_cards: bool) -> R
             punches.c.kiosk_id.in_(plan.kiosk_ids),
             punches.c.employee_id.in_(plan.employee_ids),
             punches.c.claimed_employee_id.in_(plan.employee_ids),
+            punches.c.phone_session_id.in_(plan.phone_session_ids),
         ),
     )
+    # M4b: a real employee on outside work may have punched by phone inside the demo plant's
+    # fence. That punch is theirs and stays, but it points at the demo plant: refuse up front.
+    matched_here = session.scalar(
+        select(func.count())
+        .select_from(punches)
+        .where(punches.c.location_plant_id == plant.id, punches.c.id.not_in(plan.punch_ids))
+    )
+    if matched_here:
+        raise RemovalRefusedError(
+            f"{matched_here} phone punch(es) of people of other plants were made inside this demo "
+            "plant's fence. They are real attendance and stay; this plant cannot be removed."
+        )
     # M4: reviews of those punches (append-only, like the punches) and the health samples of the
     # demo devices. A real punch that points at a demo punch (travel / two-devices flag) would
     # make the delete fail half way, so that case is refused up front.
@@ -160,8 +175,15 @@ def build_plan(session: Session, plant_code: str, include_test_cards: bool) -> R
         "photos": len(plan.photo_keys),
         "reviews of those punches": len(plan.review_ids),
         "device health samples": plan.heartbeat_count,
+        "phone sign-ins": len(plan.phone_session_ids),
     }
     return plan
+
+
+def phone_sessions_of(session: Session, employee_ids: list[uuid.UUID]) -> list[uuid.UUID]:
+    """The phone sign-ins of the employees (M4b): their punches go with them."""
+    sessions = _table("phone_sessions")
+    return _ids(session, "phone_sessions", "id", sessions.c.employee_id.in_(employee_ids))
 
 
 def _remove_face_data(session: Session, plan: RemovalPlan) -> None:
@@ -210,6 +232,9 @@ PROTECTED_TABLES = (
     "holiday_plants",
     "leave_records",
     "shift_swaps",
+    "regularisations",
+    "regularisation_decisions",
+    "phone_notice_acceptances",
 )
 
 
@@ -220,13 +245,51 @@ def set_protection(session: Session, *, on: bool) -> None:
         session.execute(text(f"ALTER TABLE {table} {verb} TRIGGER USER"))
 
 
-def remove_attendance_rows(session: Session, employee_ids: list[uuid.UUID]) -> None:
-    """The M5 rows about the employees (leave so far). Both removal tools call it before the
-    employees themselves go."""
+def remove_rows_before_punches(
+    session: Session, employee_ids: list[uuid.UUID], punch_ids: list[uuid.UUID]
+) -> None:
+    """The M5 rows that point at the employees' punches or days: corrections (with their
+    decisions) and the computed attendance days. Both removal tools call it before the punches
+    go."""
+    t = _table
+    corrections = t("regularisations")
+    their_corrections = select(corrections.c.id).where(
+        or_(corrections.c.employee_id.in_(employee_ids), corrections.c.punch_id.in_(punch_ids))
+    )
+    decisions = t("regularisation_decisions")
+    session.execute(delete(decisions).where(decisions.c.regularisation_id.in_(their_corrections)))
+    # One statement: a reversal and the correction it reverses go together.
+    session.execute(delete(corrections).where(corrections.c.id.in_(their_corrections)))
+    days = t("attendance_days")
+    session.execute(delete(days).where(days.c.employee_id.in_(employee_ids)))
+
+
+def remove_attendance_rows(
+    session: Session, employee_ids: list[uuid.UUID], phone_session_ids: list[uuid.UUID]
+) -> None:
+    """The M5 and M4b rows about the employees: leave, shift swaps and everything of phone
+    punching. Both removal tools call it after the punches and before the employees go."""
     leave = _table("leave_records")
     session.execute(delete(leave).where(leave.c.employee_id.in_(employee_ids)))
     swaps = _table("shift_swaps")
     session.execute(delete(swaps).where(swaps.c.employee_id.in_(employee_ids)))
+    _remove_phone_rows(session, employee_ids, phone_session_ids)
+
+
+def _remove_phone_rows(
+    session: Session, employee_ids: list[uuid.UUID], phone_session_ids: list[uuid.UUID]
+) -> None:
+    """M4b: the notice acceptances and challenges first (they point at the sign-ins), then the
+    sign-ins, proofs, passkeys, accounts and the switches. Their phone punches are already gone."""
+    t = _table
+    acceptances = t("phone_notice_acceptances")
+    session.execute(delete(acceptances).where(acceptances.c.employee_id.in_(employee_ids)))
+    challenges = t("punch_challenges")
+    session.execute(delete(challenges).where(challenges.c.phone_session_id.in_(phone_session_ids)))
+    sessions = t("phone_sessions")
+    session.execute(delete(sessions).where(sessions.c.id.in_(phone_session_ids)))
+    for table in ("phone_proofs", "phone_passkeys", "phone_accounts", "phone_access"):
+        session.execute(delete(t(table)).where(t(table).c.employee_id.in_(employee_ids)))
 
 
 def remove(session: Session, plan: RemovalPlan) -> None:
@@ -249,6 +312,11 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         session.execute(
             delete(t("punch_snapshots")).where(t("punch_snapshots").c.punch_id.in_(plan.punch_ids))
         )
+        remove_rows_before_punches(session, employee_ids, plan.punch_ids)
+        # M5: the computed days at the plant (of people who moved here or away as well).
+        session.execute(
+            delete(t("attendance_days")).where(t("attendance_days").c.plant_id == plant_id)
+        )
         session.execute(delete(t("punches")).where(t("punches").c.id.in_(plan.punch_ids)))
         session.execute(
             delete(t("qr_credentials")).where(t("qr_credentials").c.id.in_(plan.card_ids))
@@ -269,7 +337,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         session.execute(
             delete(t("change_requests")).where(t("change_requests").c.employee_id.in_(employee_ids))
         )
-        remove_attendance_rows(session, employee_ids)
+        remove_attendance_rows(session, employee_ids, plan.phone_session_ids)
         session.execute(delete(t("employees")).where(t("employees").c.id.in_(employee_ids)))
         session.execute(
             delete(t("kiosk_pairing_codes")).where(
@@ -277,6 +345,8 @@ def remove(session: Session, plan: RemovalPlan) -> None:
             )
         )
         session.execute(delete(t("kiosk_devices")).where(t("kiosk_devices").c.id.in_(kiosk_ids)))
+        # M5: alerts about the plant (alerts, not records; their reads and emails go with them).
+        session.execute(delete(t("notifications")).where(t("notifications").c.plant_id == plant_id))
         # M5: the dated shift rules and weekly offs of the plant (append-only, triggers off above).
         plant_shift_ids = select(t("shifts").c.id).where(t("shifts").c.plant_id == plant_id)
         session.execute(
@@ -340,8 +410,10 @@ def _show(plan: RemovalPlan) -> None:
     for label in plan.test_card_labels:
         print(f"         test card {label}")
     print("  Also: its geofences, shifts and their rule versions, weekly offs, holidays only")
-    print("        for this plant, leave, departments, categories, notices, pairing codes,")
-    print("        change requests and plant history. The audit log is not touched.")
+    print("        for this plant, leave, shift swaps, corrections, attendance days, alerts,")
+    print("        departments, categories, notices, pairing codes, change requests, plant")
+    print("        history and the people's phone punching data (switches, passwords,")
+    print("        passkeys, notice acceptances). The audit log is not touched.")
 
 
 def main() -> int:
