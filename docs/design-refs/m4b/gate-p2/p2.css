@@ -1,0 +1,189 @@
+/*
+  Upasthiti - M4b design gate P2: phone punch flows + gate phone code panel. MOCKUP ONLY.
+  tokens.css and gate.css are copied UNCHANGED from docs/design-refs/m3/gate-a/ (gate frame, face camera
+  screens, result floods). Everything new is here: the gate "phone code" panel and reader message (gate
+  look, text >= 24 px, targets >= 64 px) and the phone pages (mobile first: text >= 16 px, targets >= 48 px,
+  one task per screen). Status is always colour + icon + word + shape. Motion: transform and opacity only,
+  all of it behind prefers-reduced-motion.
+*/
+:root { --ph-w: 560px; }
+
+/* ================= Gate: phone code panel (spec 4.2) ================= */
+.pc-card, .pc-btn-wrap { display: none; }
+.pc-qr { background: #fff; border: 3px solid var(--ink); border-radius: 18px; padding: 12px; display: grid; place-items: center; }
+.pc-qr svg { display: block; width: 100%; height: auto; shape-rendering: crispEdges; }
+.pc-card { background: var(--surface); border: 3px solid var(--ink); border-radius: 22px; padding: 16px; box-shadow: 0 6px 0 var(--ink); gap: 14px 20px; }
+.pc-card .pc-qr { width: 220px; flex: none; }
+.pc-text { display: grid; gap: 10px; min-width: 0; align-content: center; }
+.pc-text h2 { margin: 0; display: flex; gap: 12px; align-items: center; font-size: 40px; line-height: 1.1; font-weight: 820; letter-spacing: -0.025em; }
+.pc-text h2 .pc-ic { width: 56px; height: 56px; border-radius: 16px; background: var(--primary-soft); border: 2px solid #cdd6f4; display: grid; place-items: center; flex: none; }
+.pc-text h2 svg { width: 36px; height: 36px; color: var(--primary); stroke-width: 2.4; }
+.pc-text p { margin: 0; font-size: 24px; line-height: 1.3; font-weight: 600; color: var(--k-muted-fg); }
+/* time-left bar: the fill shrinks; the last seconds turn amber AND striped (shape cue, not colour only) */
+.pc-bar { height: 22px; border-radius: 99px; background: var(--muted); border: 3px solid var(--ink); overflow: hidden; }
+.pc-bar i { display: block; height: 100%; width: 100%; background: var(--primary); transform-origin: left; border-radius: 99px; transform: scaleX(var(--from, .6)); }
+.pc-bar.is-ending i { background: repeating-linear-gradient(-45deg, #ffc233 0 10px, var(--ink) 10px 20px); }
+.pc-card.is-off { background: #e8ebf0; border-style: dashed; box-shadow: none; }
+.pc-card.is-off .pc-qr { display: none; }
+.pc-card.is-off .pc-text h2 .pc-ic { background: #fff; border-color: var(--border-strong); }
+.pc-card.is-off .pc-text h2 svg { color: var(--k-muted-fg); }
+.pc-card.is-off .pc-text p { color: var(--ink); font-weight: 700; }
+.pc-btn-wrap { gap: 6px; }
+.pc-btn { display: flex; align-items: center; gap: 14px; width: 100%; min-height: 88px; padding: 10px 14px; border-radius: 20px; background: #fff; color: var(--ink); border: 3px solid var(--ink); box-shadow: 0 5px 0 var(--ink); font: 820 30px/1.05 var(--font-sans); text-align: left; cursor: pointer; box-sizing: border-box; }
+.pc-btn .fb-icon { width: 60px; height: 60px; border-radius: 16px; background: var(--primary-soft); color: var(--primary); display: grid; place-items: center; flex: none; border: 2px solid #cdd6f4; }
+.pc-btn .fb-icon svg { width: 40px; height: 40px; stroke-width: 2.3; }
+.pc-btn.is-off { background: #e8ebf0; border: 3px dashed var(--k-muted-fg); box-shadow: none; color: var(--k-muted-fg); cursor: default; }
+.pc-btn.is-off .fb-icon { background: #fff; border-color: var(--border-strong); color: var(--k-muted-fg); }
+.pc-btn-note { margin: 0; font-size: 24px; font-weight: 700; color: var(--ink); line-height: 1.25; padding: 0 4px; }
+@media (min-width: 768px) {
+  .pc-card { display: grid; grid-template-columns: minmax(0, 1fr); justify-items: start; }
+  .pc-card.is-off { padding: 14px 16px; }
+}
+@media (min-width: 1024px) { .pc-card { display: flex; align-items: center; } }
+@media (max-width: 767px) { .pc-btn-wrap { display: grid; } }
+@media (min-width: 1024px) { .has-panel .instr { padding: 10px 18px; } .has-panel .illo { width: 88px; height: 88px; } }
+
+/* full-screen code (phone used as gate, tapped "Phone code") */
+.code-app { min-height: 100vh; display: grid; grid-template-rows: auto auto 1fr auto; background: var(--background); }
+.code-head { display: flex; align-items: center; gap: 16px; padding: 14px 32px; background: var(--ink); color: #fff; min-height: 88px; box-sizing: border-box; }
+.code-head .fh-icon { width: 60px; height: 60px; border-radius: 99px; background: var(--signal); color: var(--ink); display: grid; place-items: center; border: 3px solid #fff; flex: none; }
+.code-head .fh-icon svg { width: 36px; height: 36px; stroke-width: 2.5; }
+.code-head h1 { margin: 0; font-size: 44px; font-weight: 820; letter-spacing: -0.02em; }
+.code-body { display: grid; gap: 16px; padding: 20px 32px; justify-items: center; align-content: start; max-width: 760px; margin: 0 auto; width: 100%; box-sizing: border-box; }
+.code-body .pc-qr { width: min(100%, 56vh, 520px); padding: 16px; box-sizing: border-box; }
+.code-body p.lead { margin: 0; font-size: 28px; font-weight: 700; text-align: center; line-height: 1.25; }
+.code-body .pc-bar { width: min(100%, 520px); box-sizing: border-box; }
+.code-foot { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; padding: 12px 32px 20px; background: var(--surface); border-top: 3px solid var(--ink); justify-content: space-between; }
+.code-foot .back-in { display: flex; gap: 12px; align-items: center; font-size: 24px; font-weight: 700; }
+.code-foot .back-in svg { width: 28px; height: 28px; }
+.code-foot .btn-k { min-height: 72px; font-size: 30px; }
+@media (max-width: 639px) {
+  .code-head { padding: 10px 16px; min-height: 0; } .code-head h1 { font-size: 32px; }
+  .code-head .fh-icon { width: 48px; height: 48px; } .code-head .fh-icon svg { width: 30px; height: 30px; }
+  .code-body { padding: 14px 16px; gap: 12px; } .code-body p.lead { font-size: 24px; }
+  .code-body .pc-qr { width: min(100%, 300px); padding: 10px; }
+  .code-foot { padding: 10px 16px 14px; } .code-foot .btn-k { width: 100%; }
+}
+
+/* ================= Gate: reader sees a phone code (spec 4.3) ================= */
+.reader-msg { position: absolute; left: 10px; right: 10px; bottom: 10px; background: #ffc233; color: var(--ink); border: 4px solid var(--ink); border-radius: 18px; padding: 12px 14px 14px; display: grid; gap: 10px; z-index: 3; box-shadow: 0 6px 0 rgba(14,23,38,.5); }
+.reader-msg .rm-row { display: flex; gap: 14px; align-items: flex-start; }
+.reader-msg .rm-ic { width: 60px; height: 60px; border-radius: 16px; background: #fff; border: 3px solid var(--ink); display: grid; place-items: center; flex: none; position: relative; }
+.reader-msg .rm-ic svg { width: 36px; height: 36px; stroke-width: 2.4; }
+.reader-msg .rm-ic .mini { position: absolute; right: -12px; bottom: -12px; width: 34px; height: 34px; border-radius: 99px; background: var(--ink); color: #fff; display: grid; place-items: center; border: 2px solid #ffc233; }
+.reader-msg .rm-ic .mini svg { width: 20px; height: 20px; }
+.reader-msg p { margin: 0; font-size: 26px; line-height: 1.22; font-weight: 800; letter-spacing: -0.01em; }
+.reader-msg .rm-bar { height: 10px; border-radius: 99px; background: rgba(14,23,38,.2); overflow: hidden; }
+.reader-msg .rm-bar i { display: block; height: 100%; background: var(--ink); transform-origin: left; transform: scaleX(.6); }
+@media (max-width: 639px) { .reader-msg p { font-size: 24px; } .reader-msg .rm-ic { width: 52px; height: 52px; } }
+
+/* ================= Phone pages (mobile first) ================= */
+.ph-app { min-height: 100vh; display: flex; flex-direction: column; font-size: 18px; line-height: 1.45; background: radial-gradient(900px 340px at 50% -80px, #e4eafc 0%, rgba(228,234,252,0) 70%), var(--background); }
+.ph-top { background: var(--surface); border-bottom: 1px solid var(--border); }
+.ph-row { display: flex; align-items: center; gap: 12px; padding: 10px 16px; max-width: var(--ph-w); margin: 0 auto; width: 100%; box-sizing: border-box; }
+.ph-brand { display: grid; line-height: 1.15; min-width: 0; }
+.ph-brand b { font-size: 20px; font-weight: 800; letter-spacing: -0.015em; }
+.ph-brand span { font-size: 16px; color: var(--k-muted-fg); font-weight: 600; overflow-wrap: anywhere; }
+.ph-menu { margin-left: auto; width: 52px; height: 52px; border-radius: 14px; border: 2px solid var(--border-strong); background: #fff; display: grid; place-items: center; color: var(--ink); flex: none; }
+.ph-menu svg { width: 28px; height: 28px; stroke-width: 2.3; }
+.ph-main { flex: 1; width: 100%; max-width: var(--ph-w); margin: 0 auto; padding: 20px 16px 28px; box-sizing: border-box; display: grid; gap: 16px; align-content: start; }
+.ph-card { background: var(--surface); border: 1px solid var(--border); border-radius: 24px; box-shadow: var(--shadow-md); padding: 24px 20px; display: grid; gap: 12px; }
+.ph-center { justify-items: center; text-align: center; }
+.ph-tile { width: 96px; height: 96px; display: grid; place-items: center; border-radius: 28px; flex: none; }
+.ph-tile svg { width: 56px; height: 56px; stroke-width: 2.2; }
+.ph-tile.is-amber { background: #ffc233; color: var(--ink); border: 3px solid #6b3f00; }
+.ph-tile.is-blue { background: var(--primary-soft); color: var(--primary); border: 3px solid #cdd6f4; }
+.ph-tile.is-red { background: var(--k-danger); color: #fff; border-radius: 0; clip-path: polygon(30% 0, 70% 0, 100% 30%, 100% 70%, 70% 100%, 30% 100%, 0 70%, 0 30%); }
+.ph-tile.is-green { background: var(--success-soft); color: var(--k-success); border: 3px solid #9fd3bd; border-radius: 99px; }
+.ph-tile.is-grey { background: #e8ebf0; color: var(--k-muted-fg); border: 3px dashed var(--k-muted-fg); }
+.ph-h { margin: 6px 0 0; font-size: 28px; line-height: 1.2; font-weight: 800; letter-spacing: -0.02em; overflow-wrap: anywhere; }
+.ph-p { margin: 0; font-size: 20px; line-height: 1.4; color: var(--k-muted-fg); font-weight: 550; overflow-wrap: anywhere; }
+.ph-p.is-strong { color: var(--ink); font-weight: 700; }
+.ph-steps { margin: 4px 0 0; padding: 0; list-style: none; display: grid; gap: 10px; text-align: left; width: 100%; counter-reset: s; }
+.ph-steps li { counter-increment: s; display: flex; gap: 12px; align-items: flex-start; font-size: 20px; font-weight: 600; background: var(--muted); border-radius: 14px; padding: 12px 14px; }
+.ph-steps li::before { content: counter(s); flex: none; width: 32px; height: 32px; border-radius: 99px; background: var(--ink); color: #fff; display: grid; place-items: center; font-weight: 800; font-size: 18px; }
+.ph-actions { display: grid; gap: 12px; margin-top: 12px; width: 100%; }
+.ph-btn { display: flex; align-items: center; justify-content: center; gap: 12px; min-height: 64px; padding: 10px 22px; border-radius: 18px; border: 0; font: 750 22px/1.15 var(--font-sans); cursor: pointer; width: 100%; box-sizing: border-box; text-decoration: none; }
+.ph-btn svg { width: 28px; height: 28px; stroke-width: 2.4; }
+.ph-btn.is-primary { background: var(--primary); color: #fff; box-shadow: 0 5px 0 #142a6b; }
+.ph-btn.is-outline { background: #fff; color: var(--ink); border: 2px solid var(--ink); }
+.ph-btn.is-big { min-height: 96px; font-size: 28px; border-radius: 24px; gap: 16px; }
+.ph-btn.is-big svg { width: 40px; height: 40px; }
+.ph-btn.is-off { background: #e8ebf0; color: var(--k-muted-fg); border: 3px dashed var(--k-muted-fg); box-shadow: none; cursor: default; }
+.ph-btn:active { transform: translateY(3px); }
+.ph-chip { display: inline-flex; align-items: center; gap: 10px; min-height: 48px; padding: 6px 16px; border-radius: 99px; font-size: 18px; font-weight: 700; border: 2px solid; line-height: 1.2; box-sizing: border-box; }
+.ph-chip svg { width: 24px; height: 24px; stroke-width: 2.5; flex: none; }
+.ph-chip.is-ok { background: var(--success-soft); color: var(--k-success); border-color: #9fd3bd; }
+.ph-chip.is-warn { background: var(--warning-soft); color: var(--k-warning); border-color: #b97300; }
+.ph-chip.is-bad { background: var(--danger-soft); color: var(--k-danger); border-color: #e0a29b; }
+.ph-chip.is-wait { background: var(--muted); color: var(--ink); border: 2px dashed var(--k-muted-fg); }
+.ph-chip.is-info { background: var(--primary-soft); color: var(--primary-soft-foreground); border-color: #cdd6f4; }
+.ph-hello { margin: 0; font-size: 20px; font-weight: 650; color: var(--k-muted-fg); }
+.ph-hello b { display: block; font-size: 32px; line-height: 1.15; color: var(--ink); font-weight: 820; letter-spacing: -0.025em; }
+.ph-last { display: flex; gap: 14px; align-items: center; background: var(--muted); border-radius: 16px; padding: 12px 14px; font-size: 18px; font-weight: 650; }
+.ph-last svg { width: 28px; height: 28px; color: var(--primary); flex: none; }
+.ph-badge { display: flex; gap: 12px; align-items: center; background: var(--primary-soft); border: 2px solid var(--primary); color: var(--primary-soft-foreground); border-radius: 16px; padding: 12px 14px; font-size: 18px; font-weight: 750; }
+.ph-badge svg { width: 28px; height: 28px; flex: none; }
+.ph-badge small { display: block; font-size: 16px; font-weight: 650; }
+.ph-rows { display: grid; gap: 10px; }
+.ph-timer { display: grid; gap: 8px; width: 100%; }
+.ph-timer .t-label { display: flex; align-items: center; gap: 10px; font-size: 20px; font-weight: 750; }
+.ph-timer .t-label svg { width: 26px; height: 26px; }
+.ph-timer .pc-bar { height: 18px; }
+
+/* camera blocks on the phone pages */
+.ph-cam { width: 100%; aspect-ratio: 1; border-radius: 22px; border: 4px solid var(--ink); box-sizing: border-box; }
+.ph-cam .cam-feed { position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 38%, #59616f 0%, #3b414c 55%, #262b34 100%); }
+.ph-cam .frame { position: absolute; inset: 14%; }
+.ph-cam .cam-strip { font-size: 22px; padding: 10px 12px; min-height: 60px; box-sizing: border-box; }
+.ph-cam .oval, .ph-cam .ghost-box { top: 48%; --oh: min(80cqh, 104cqw); }
+.ph-qr-sheet { position: absolute; left: 50%; top: 46%; transform: translate(-50%, -50%) rotate(-3deg); width: 46%; background: #fff; padding: 6%; border-radius: 10px; box-shadow: 0 8px 18px rgba(0,0,0,.35); box-sizing: border-box; }
+.ph-qr-sheet svg { display: block; width: 100%; shape-rendering: crispEdges; }
+.ph-qr-sheet.is-card { aspect-ratio: 1.58; width: 62%; display: grid; place-items: center; background: #dfe6f8; border: 2px solid #9fb0e6; padding: 0; }
+.ph-qr-sheet.is-card svg { width: 40px; height: 40px; color: var(--primary); }
+.ph-spin-center { position: absolute; inset: 0; display: grid; place-items: center; color: #fff; z-index: 2; background: rgba(14,23,38,.35); }
+.ph-spin-center svg { width: 64px; height: 64px; }
+.ph-top-note { font-size: 16px; color: var(--k-muted-fg); font-weight: 600; text-align: center; margin: 0; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+
+/* phone results: the gate floods (gate.css .res) re-used, without the "back to scanning" countdown */
+.res.is-phone .res-count { display: none; }
+.res.is-phone .res-top { min-height: 0; }
+.res.is-phone .res-top .k-brand b { font-size: 24px; }
+.res.is-phone .res-top .k-brand span { font-size: 18px; font-weight: 600; }
+.res.is-phone .res-body { align-content: start; }
+.res.is-phone .res-actions { margin-top: 6px; }
+.res.is-phone .res-info .sub { font-size: 20px; }
+@media (max-width: 639px) {
+  .res.is-phone .res-top { padding: 8px 16px; }
+  .res.is-phone .res-body { padding: 16px 16px 24px; gap: 14px; }
+  .res.is-phone .res-left { grid-template-columns: auto minmax(0, 1fr); gap: 16px; justify-items: stretch; align-items: center; }
+  .res.is-phone .res-icon { width: 112px; height: 112px; border-width: 5px; }
+  .res.is-phone .res-timebox { padding: 6px 12px 8px; border-width: 3px; }
+  .res.is-phone .res-timebox small { font-size: 18px; } .res.is-phone .res-time { font-size: 52px; }
+  .res.is-phone .res-word { font-size: 96px; } .res.is-phone .res-word.is-mid { font-size: 52px; } .res.is-phone .res-word.is-long { font-size: 52px; }
+  .res.is-phone .res-name { font-size: 36px; } .res.is-phone .res-name .hello { font-size: 22px; }
+  .res.is-phone .res-msg { font-size: 30px; }
+  .res.is-phone .res-info { font-size: 20px; padding: 10px 14px; border-width: 3px; gap: 12px; } .res.is-phone .res-info svg { width: 30px; height: 30px; }
+  .res.is-phone .res-next { font-size: 24px; padding: 10px 14px; border-width: 3px; gap: 12px; } .res.is-phone .res-next svg { width: 32px; height: 32px; }
+  .res.is-phone .res-actions .btn-k { min-height: 64px; font-size: 26px; }
+}
+
+.state-tag { position: fixed; right: 8px; bottom: 8px; z-index: 99; background: rgba(14,23,38,.85); color: #fff; font: 600 12px/1 var(--font-sans); padding: 6px 8px; border-radius: 6px; pointer-events: none; }
+body.no-tag .state-tag { display: none; }
+@media (prefers-reduced-motion: no-preference) {
+  .pc-bar i { animation: pcdrain var(--life, 20s) linear forwards; }
+  .reader-msg { animation: rmIn 260ms var(--ease-out) both; }
+  .ph-card { animation: cardUp 320ms var(--ease-out) both; }
+}
+@keyframes pcdrain { from { transform: scaleX(var(--from, .6)); } to { transform: scaleX(0); } }
+@keyframes rmIn { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes cardUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+/* ?shot freezes every loop so the screenshots are stable */
+body.freeze *, body.freeze *::before, body.freeze *::after { animation: none !important; transition: none !important; }
+
+/* phone results: keep the person's name visible on the top bar and let the admin code wrap */
+@media (max-width: 639px) {
+  .res.is-phone .res-top .k-brand span { display: block; color: #fff; }
+  .res.is-phone .res-admin code { font-size: 20px; overflow-wrap: anywhere; display: inline-block; max-width: 100%; }
+}
