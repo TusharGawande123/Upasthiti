@@ -66,6 +66,7 @@ from app.modules.auth.rate_limit import (  # noqa: E402
 )
 from app.modules.face.engine_provider import get_face_engine  # noqa: E402
 from app.modules.face.gallery_cache import clear_all_galleries  # noqa: E402
+from app.modules.phone.rate_limits import reset_phone_limits  # noqa: E402
 from app.modules.punches.photo_check import get_task_sessions  # noqa: E402
 from tests.database import create_fresh_test_database, read_test_database_url  # noqa: E402
 
@@ -195,6 +196,7 @@ def fresh_rate_limits() -> Iterator[None]:
     enrolment_shot_limiter.reset()
     challenge_limiter.reset()
     code_try_limiter.reset()
+    reset_phone_limits()
     yield
 
 

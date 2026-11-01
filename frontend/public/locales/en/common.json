@@ -774,7 +774,31 @@
     "ITEM_INVALID": "A saved punch could not be read.",
     "REVIEW_CHANGED": "This punch was reviewed in the meantime. Nothing was saved. Load the latest and decide again.",
     "REVIEW_NOT_ALLOWED": "This action does not fit this punch. Nothing was saved.",
-    "REVIEW_NO_EMPLOYEE": "No employee is known for this punch, so it cannot be approved."
+    "REVIEW_NO_EMPLOYEE": "No employee is known for this punch, so it cannot be approved.",
+    "PHONE_CREDENTIALS_INVALID": "Employee code or password is wrong. First time? Set your password.",
+    "PHONE_ACCOUNT_LOCKED": "Too many wrong passwords. Try again in {{minutes_left}} minutes, or reset your password.",
+    "PHONE_PUNCH_OFF": "Phone attendance is switched off for you. Please visit the plant office.",
+    "PHONE_NEW_PASSWORD_REQUIRED": "Please set a new password: tap 'First time or forgot your password?'.",
+    "PHONE_NOT_SIGNED_IN": "Please sign in again.",
+    "PHONE_NOTICE_REQUIRED": "Please read and accept the phone attendance notice first.",
+    "NOTICE_TEXT_CHANGED": "The notice was updated. Please read it again.",
+    "PHONE_FACE_NOT_READY": "Your face is not set up for attendance. Please visit the plant office.",
+    "PROOF_FAILED": "We could not confirm it is you. Please try again, or visit the plant office.",
+    "PROOF_TOKEN_INVALID": "This check has expired. Please check again.",
+    "PHONE_ACCESS_UNCHANGED": "Phone punching is already switched this way.",
+    "OUTSIDE_UNTIL_INVALID": "The end date cannot be in the past.",
+    "PHONE_RECENT_SIGN_IN_REQUIRED": "Please sign in with your password again to add a passkey.",
+    "PASSKEY_INVALID": "The passkey did not work. Please sign in with your password.",
+    "PASSKEY_LIMIT_REACHED": "You already have 3 passkeys. Remove one first.",
+    "PASSKEYS_NOT_CONFIGURED": "Passkeys are not set up on this server. Please sign in with your password.",
+    "NO_FACE": "We could not see your face. Stand in front of the camera and try again.",
+    "MULTIPLE_FACES": "More than one face was seen. Only you in front of the camera, please. Please try again.",
+    "FACE_TOO_SMALL": "Come closer to the camera. Please try again.",
+    "FACE_QUALITY_LOW": "The picture is not clear. Find more light and hold still. Please try again.",
+    "LIVENESS_FAILED": "Please turn your head as the arrow shows, then look straight. Please try again.",
+    "CHALLENGE_EXPIRED": "Too slow. Please try again.",
+    "CHALLENGE_INVALID": "This check was already used. Please try again.",
+    "FRAMES_INVALID": "The camera pictures could not be read. Please try again."
   },
   "nav": {
     "label": "Main menu",
@@ -4273,7 +4297,8 @@
       "correction_requested": "Correction asked",
       "correction_decided": "Correction decided",
       "absence_streak": "Long absence",
-      "monthly_register": "Register ready"
+      "monthly_register": "Register ready",
+      "phone_many_phones": "Many phones"
     },
     "text": {
       "still_inside": "{{count}} people are still inside {{plant}}, {{minutes}} minutes after the shift ended.",
@@ -4285,7 +4310,8 @@
       "correction_requested": "A correction was asked for {{date}} at {{plant}}.",
       "correction_decided_approved": "Your correction for {{date}} was approved.",
       "correction_decided_rejected": "Your correction for {{date}} was not approved. {{reason}}",
-      "monthly_register": "The register of {{month}} is ready for {{plant}}."
+      "monthly_register": "The register of {{month}} is ready for {{plant}}.",
+      "phone_many_phones": "An employee signed in on {{count}} phones in 30 days. Check the signed-in phones."
     },
     "link": {
       "list": "Open the list",

@@ -33,6 +33,8 @@ from app.modules.leave.router import router as leave_router
 from app.modules.notices.router import router as notices_router
 from app.modules.notifications.router import router as notifications_router
 from app.modules.org.router import router as org_router
+from app.modules.phone.admin_router import router as phone_admin_router
+from app.modules.phone.router import router as phone_router
 from app.modules.printing.router import router as printing_router
 from app.modules.punches.admin_router import router as punch_log_router
 from app.modules.punches.review_router import router as review_router
@@ -120,6 +122,8 @@ def create_app() -> FastAPI:
     api_router.include_router(dashboard_router)
     api_router.include_router(shift_swaps_router)
     api_router.include_router(reports_router)
+    api_router.include_router(phone_router)
+    api_router.include_router(phone_admin_router)
     app.include_router(api_router)
     return app
 

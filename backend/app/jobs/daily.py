@@ -4,6 +4,8 @@
 2. Login sessions that ended more than 30 days ago are deleted (they are not audit records).
 3. Card-punch photos past their retention are deleted from storage (M2; the rows stay).
 4. Shift rule versions that start today are copied into the shift row (M5, decision 0036).
+5. M4b: phone proofs older than a day and phone sign-ins ended 90 days ago are deleted, and an
+   outside-work switch whose "until" day is over is turned off (F-69).
 A second job removes short-lived face data every 5 minutes (M3, app/modules/face/cleanup.py).
 M5 adds two scheduled jobs of their own, because they can be long and must not slow a cold
 start: the nightly close of the attendance days (00:05 IST, and once after start-up) and the
@@ -35,6 +37,8 @@ from app.modules.notifications.alerts import (
     run_morning_alerts,
 )
 from app.modules.org.shift_rules_service import apply_due_rule_versions
+from app.modules.phone.access_service import end_expired_outside_work
+from app.modules.phone.cleanup import run_phone_cleanup
 from app.modules.punches.retention import purge_expired_snapshots
 
 logger = logging.getLogger(__name__)
@@ -75,6 +79,8 @@ def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str
         "snapshots_purged": _purge_snapshots(session, storage),
         "heartbeats_deleted": purge_old_heartbeats(session, utc_now()),
         "notifications_deleted": purge_old_notifications(session, utc_now()),
+        "outside_work_ended": end_expired_outside_work(session, today_ist()),
+        **run_phone_cleanup(session, utc_now()),
     }
 
 
