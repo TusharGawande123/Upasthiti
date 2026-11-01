@@ -220,8 +220,8 @@ textarea.input { height: auto; min-height: 96px; padding: 10px 12px; resize: ver
 .atable td { vertical-align: top; padding-top: 12px; padding-bottom: 12px; }
 .atable .when { font-variant-numeric: tabular-nums; font-weight: 600; white-space: nowrap; }
 .atable .when small { display: block; font-weight: 400; color: var(--muted-foreground); font-size: 12.5px; }
-.atable .act b { display: block; font-weight: 600; }
-.atable .act .code { font-size: 12px; color: var(--muted-foreground); }
+.atable .actcol b { display: block; font-weight: 600; }
+.atable .actcol .code { font-size: 12px; color: var(--muted-foreground); }
 .atable tr.is-open { background: var(--primary-soft); }
 .atable tr.is-employee td:first-child { box-shadow: inset 4px 0 0 var(--primary); }
 .acards { display: none; }
