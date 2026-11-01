@@ -170,3 +170,13 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
 33. **Weak-location picture (design gate P2, Anuradha, 2026-11-01):** "Location not exact enough" shows a small
     map picture (a dot for the phone, a dashed circle for the 50 m the plant needs, an amber circle for the
     80 m the phone reports) with a word legend, instead of the "± 50 m needed" chip.
+34. **Design gates P1, P2 and P3 approved (Anuradha, 2026-11-01)** with the mock-ups in
+    `docs/design-refs/m4b/gate-p1/`, `gate-p2/` and `gate-p3/` and these choices: (a) `PHONE_FACE_NOT_READY`
+    reads "Your face is not set up for attendance. Please visit the plant office." everywhere (M4b spec §9 text,
+    not the shorter §4.8 text); (b) the sign-in link and the lockout and new-password messages all say
+    "First time or forgot your password?"; (c) the mock-up choices stand: the main button stays active when the
+    location is weak, `/phone/passkey` is the passkey page, the dashboard gets the small Phone attendance card and
+    the "with Phone punching on" line on Cards ending soon, phone sign-ins are shown in the audit log by default,
+    and a left employee's phone card is shown with everything off and disabled. Texts the spec does not give
+    are the mock-up texts (listed in each gate's README); the notice wording is a layout draft and the final
+    text is for the lead to confirm (DPDP notice). **To confirm with Tushar:** decisions 30 to 33 and 34 (c).

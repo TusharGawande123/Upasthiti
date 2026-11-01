@@ -46,9 +46,9 @@ In the build, the buttons, inputs, sheet (Radix Dialog) and Sonner are the shadc
 Layout: title "Sign in" → card with **Employee code** (upper-case, code font, slashed zero) and **Password** (show/hide eye, 56 px, icon, `aria-label` Show/Hide password) → "Sign in" → link "First time or forgot your password?" (to `/phone/setup`).
 Errors sit **under the form** in plain words; notices about an ended session sit **above** it.
 - wrong-password `errors.PHONE_CREDENTIALS_INVALID`: "Employee code or password is wrong. First time? Set your password." (same text for unknown code, no password, left employee).
-- locked `errors.PHONE_ACCOUNT_LOCKED`: "Too many wrong passwords. Try again in {{minutes}} minutes, or reset your password." + button "Forgot password?"; Sign in disabled (the proof works while locked, rule 7).
+- locked `errors.PHONE_ACCOUNT_LOCKED`: "Too many wrong passwords. Try again in {{minutes}} minutes, or reset your password." + button "First time or forgot your password?"; Sign in disabled (the proof works while locked, rule 7).
 - punch-off `errors.PHONE_PUNCH_OFF`: "Phone attendance is switched off for you. Please visit the plant office."
-- new-password-required `errors.PHONE_NEW_PASSWORD_REQUIRED`: "Please set a new password: tap 'Forgot password?'."
+- new-password-required `errors.PHONE_NEW_PASSWORD_REQUIRED`: "Please set a new password: tap 'First time or forgot your password?'."
 - signed-out-elsewhere `errors.PHONE_SIGNED_OUT_ELSEWHERE`: "You signed in on another phone, so this phone was signed out."
 - session-ended `errors.PHONE_NOT_SIGNED_IN`: "Please sign in again."
 - too-many-requests `errors.TOO_MANY_REQUESTS`: "Too many tries right now. Please wait a minute and try again."

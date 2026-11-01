@@ -24,7 +24,7 @@
     wrong: "Employee code or password is wrong. First time? Set your password.",
     locked: "Too many wrong passwords. Try again in {{m}} minutes, or reset your password.",
     off: "Phone attendance is switched off for you. Please visit the plant office.",
-    newpw: "Please set a new password: tap 'Forgot password?'.",
+    newpw: "Please set a new password: tap 'First time or forgot your password?'.",
     other: "You signed in on another phone, so this phone was signed out.",
     again: "Please sign in again.",
     many: "Too many tries right now. Please wait a minute and try again.",
@@ -59,7 +59,7 @@
           P.msg("danger", "circle-x", "", TXT.wrong).replace('class="msg', 'id="form-err" class="msg anim-shake') + forgot;
       case "locked":
         return head + form({ code: "E0412", pw: "", lock: true }) + P.msg("danger", "lock", "", TXT.locked.replace("{{m}}", "12"),
-          `<button class="pbtn pbtn-outline strong">${ic("key-round")}<span>Forgot password?</span></button>`);
+          `<button class="pbtn pbtn-outline strong">${ic("key-round")}<span>First time or forgot your password?</span></button>`);
       case "punch-off":
         return head + form({ code: "E0412", pw: "mypassword9" }) + P.msg("warning", "smartphone", "", TXT.off) + forgot;
       case "new-password-required":

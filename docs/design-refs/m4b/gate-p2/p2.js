@@ -215,7 +215,7 @@
     const bigBtn = (kind, ic, text, disabled) => `<button class="ph-btn is-${kind} is-big" type="button"${disabled ? " disabled" : ""}>${icon(ic)}<span>${text}</span></button>`;
     const button = o.notReady ? "" : o.gate ? bigBtn(o.off ? "off" : "primary", "scan-qr-code", "Scan the QR code", o.off) : bigBtn("primary", "scan-face", "Punch with face");
     const badge = o.badge ? `<div class="ph-badge">${icon("briefcase-business")}<span>Outside work allowed${o.until ? `<small>until ${o.until}</small>` : ""}</span></div>` : "";
-    const notReady = o.notReady ? `<div class="ph-badge" style="background:var(--warning-soft);border-color:#b97300;color:var(--k-warning)" role="status">${icon("scan-face")}<span>Your face is not set up. Please visit the plant office.</span></div>` : "";
+    const notReady = o.notReady ? `<div class="ph-badge" style="background:var(--warning-soft);border-color:#b97300;color:var(--k-warning)" role="status">${icon("scan-face")}<span>Your face is not set up for attendance. Please visit the plant office.</span></div>` : "";
     return phone(`<section class="ph-card">
       <p class="ph-hello">Welcome,<b>${p.first}</b></p>
       <p class="ph-p is-strong" style="display:flex;gap:10px;align-items:center">${icon("building-2", ' style="width:24px;height:24px;flex:none"')}${PLANT}</p>
