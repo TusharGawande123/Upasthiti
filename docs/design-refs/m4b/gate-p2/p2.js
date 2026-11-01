@@ -170,6 +170,25 @@
       ${o.steps ? `<ol class="ph-steps">${o.steps.map((s) => `<li>${s}</li>`).join("")}</ol>` : ""}
       <div class="ph-actions">${o.actions || ""}</div></section>`, o);
   }
+  // A small map picture for "location not exact enough": the dot is the phone, the dashed circle is
+  // the accuracy the plant needs, the amber circle is how far off the phone says it may be. When the
+  // amber circle is bigger than the dashed one the worker sees it reaches out of the allowed range.
+  const accuracyMap = (nowM, neededM) => {
+    const scale = 64 / Math.max(nowM, neededM);
+    const now = Math.round(nowM * scale), needed = Math.round(neededM * scale);
+    return `<figure class="ph-accmap">
+      <svg viewBox="0 0 240 150" role="img" aria-label="Your phone says its place may be ${nowM} metres off. The plant needs ${neededM} metres or better. The amber circle is bigger than the dashed circle.">
+        <rect width="240" height="150" rx="14" class="am-bg"/>
+        <path class="am-road" d="M0 112 L240 96 M70 0 L98 150 M168 0 L150 150"/>
+        <circle cx="120" cy="75" r="${now}" class="am-now"/>
+        <circle cx="120" cy="75" r="${needed}" class="am-need"/>
+        <circle cx="120" cy="75" r="7" class="am-dot"/>
+      </svg>
+      <figcaption class="am-legend">
+        <span><i class="am-sw am-sw-need"></i>Needed: within ${neededM} m</span>
+        <span><i class="am-sw am-sw-now"></i>Your phone now: ${nowM} m off</span>
+      </figcaption></figure>`;
+  };
   const TRY = btn("primary", "rotate-cw", "Try again");
   const BACK = btn("outline", "arrow-left", "Back");
   const CANCEL = btn("outline", "x", "Cancel");
@@ -181,13 +200,13 @@
     "location-denied": (p) => problem({ person: p, icon: "map-pin-off", title: "Turn on location for this website.", lines: [["Please try again.", true]], actions: TRY + BACK }),
     "location-unavailable": (p) => problem({ person: p, icon: "map-pin-off", title: "We could not read your location.", lines: [["Please try again.", true]], actions: TRY + BACK }),
     "location-weak": (p) => problem({ person: p, icon: "satellite-dish", title: "Your location is not exact enough.", lines: [["Move outside, where the sky is open.", false], ["Please try again.", true]],
-      chips: chip("warn", "satellite-dish", "± 80 m") + chip("info", "crosshair", "± 50 m needed"), actions: TRY + BACK }),
+      chips: accuracyMap(80, 50), actions: TRY + BACK }),
     "camera-opening": (p) => problem({ person: p, tone: "blue", icon: "loader-circle", spin: true, title: "Face punch is starting…", live: "off", actions: CANCEL }),
     "camera-denied": (p) => problem({ person: p, icon: "camera-off", title: "Camera is blocked", lines: [["Allow the camera for this site.", true]],
       steps: ["Tap the padlock or camera icon next to the web address.", "Set Camera to “Allow”.", "Press “Try again”."], actions: TRY + BACK }),
     "camera-not-found": (p) => problem({ person: p, icon: "camera-off", title: "No camera found", lines: [["Connect a camera.", true]],
       steps: ["Check that the camera is plugged in.", "Close other apps that use the camera."], actions: TRY + BACK }),
-    "browser-unsupported": (p) => problem({ person: p, tone: "grey", icon: "globe", title: "Please open this page in a current Chrome or Edge.", actions: BACK }),
+    "browser-unsupported": (p) => problem({ person: p, tone: "grey", icon: "globe", title: "Please open this page in Chrome or Edge on your phone.", actions: BACK }),
   };
 
   // ---------------------------------------------------------------- 03 start (slice of the phone home, spec 4.8)

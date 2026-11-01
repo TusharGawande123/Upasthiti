@@ -20,6 +20,7 @@ let count = 0;
 for (const file of FILES) {
   // read the state list from the page itself
   const probe = await browser.newPage();
+  if (process.env.LUCIDE_LOCAL) await probe.route("https://unpkg.com/**", (r) => r.fulfill({ path: process.env.LUCIDE_LOCAL })); // offline copy of lucide (speed)
   await probe.goto(pathToFileURL(path.join(here, file + ".html")).href);
   await probe.waitForFunction(() => window.P2_STATES);
   const group = await probe.evaluate(() => document.body.dataset.group);
@@ -30,6 +31,7 @@ for (const file of FILES) {
       const page = await browser.newPage({ viewport: { width: w, height: h } });
       const errors = [];
       page.on("pageerror", (e) => errors.push(String(e)));
+      if (process.env.LUCIDE_LOCAL) await page.route("https://unpkg.com/**", (r) => r.fulfill({ path: process.env.LUCIDE_LOCAL })); // offline copy of lucide (speed)
       await page.goto(`${pathToFileURL(path.join(here, file + ".html")).href}?shot#${state}`);
       await page.waitForLoadState("networkidle");
       await page.evaluate(() => document.fonts.ready);

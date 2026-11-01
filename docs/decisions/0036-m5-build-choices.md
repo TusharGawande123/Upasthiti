@@ -163,3 +163,10 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     becomes "Move outside, where the sky is open." in the phone texts (M4b spec §4.8, §9 and risk table). The
     mock-ups use the new text; the spec is updated in the closing step. The existing gate texts (M4) do not
     contain "open place" and are unchanged. **To confirm with Tushar.**
+32. **Browser-not-supported text (design gates P1 and P2, Anuradha, 2026-11-01):** `PHONE_BROWSER_UNSUPPORTED`
+    reads "Please open this page in Chrome or Edge on your phone." instead of "...in a current Chrome or Edge."
+    (M4b spec §9). The mock-ups use the new text; the spec is updated in the closing step. **To confirm with
+    Tushar.**
+33. **Weak-location picture (design gate P2, Anuradha, 2026-11-01):** "Location not exact enough" shows a small
+    map picture (a dot for the phone, a dashed circle for the 50 m the plant needs, an amber circle for the
+    80 m the phone reports) with a word legend, instead of the "± 50 m needed" chip.

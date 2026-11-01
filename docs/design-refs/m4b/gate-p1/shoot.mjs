@@ -46,6 +46,7 @@ for (const [page, states] of Object.entries(PAGES)) {
       const p = await ctx.newPage();
       const errors = [];
       p.on("pageerror", (e) => errors.push(String(e)));
+      if (process.env.LUCIDE_LOCAL) await p.route("https://unpkg.com/**", (r) => r.fulfill({ path: process.env.LUCIDE_LOCAL })); // offline copy of lucide (speed)
       await p.goto(`http://localhost:${port}/${page}.html?shot#${state}`, { waitUntil: "networkidle" });
       await p.waitForSelector("html[data-ready]");
       await p.evaluate(() => document.fonts.ready);

@@ -187,3 +187,17 @@ body.freeze *, body.freeze *::before, body.freeze *::after { animation: none !im
   .res.is-phone .res-top .k-brand span { display: block; color: #fff; }
   .res.is-phone .res-admin code { font-size: 20px; overflow-wrap: anywhere; display: inline-block; max-width: 100%; }
 }
+
+/* Accuracy picture of "Your location is not exact enough" (phone face and gate-code flows). */
+.ph-accmap { margin: 4px 0 0; width: 100%; }
+.ph-accmap svg { display: block; width: 100%; max-width: 320px; height: auto; margin: 0 auto; }
+.am-bg { fill: #eef1f6; }
+.am-road { stroke: #d6dce8; stroke-width: 8; fill: none; stroke-linecap: round; }
+.am-now { fill: rgba(245, 183, 0, 0.28); stroke: #b7791f; stroke-width: 3; }
+.am-need { fill: rgba(31, 58, 147, 0.08); stroke: #1f3a93; stroke-width: 3; stroke-dasharray: 7 6; }
+.am-dot { fill: #1f3a93; stroke: #fff; stroke-width: 3; }
+.am-legend { display: grid; gap: 6px; margin-top: 10px; font-size: 16px; font-weight: 600; color: var(--ink, #0e1726); }
+.am-legend span { display: flex; align-items: center; gap: 10px; }
+.am-sw { width: 26px; height: 16px; border-radius: 999px; flex: none; }
+.am-sw-need { border: 3px dashed #1f3a93; background: rgba(31, 58, 147, 0.08); }
+.am-sw-now { border: 3px solid #b7791f; background: rgba(245, 183, 0, 0.28); }

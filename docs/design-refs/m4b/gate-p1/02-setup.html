@@ -33,7 +33,7 @@
     weak: "Your location is not exact enough. Move outside, where the sky is open. Please try again.",
     outside: "You are not at the plant. Please visit the plant office.",
     many: "Too many tries right now. Please wait a minute and try again.",
-    browser: "Please open this page in a current Chrome or Edge.",
+    browser: "Please open this page in Chrome or Edge on your phone.",
   };
   const steps = (cur) => `<div class="steps" aria-label="Step ${cur} of 2"><span class="stp ${cur === 1 ? "on" : "done"}"><span class="n">${cur === 1 ? "1" : ic("check")}</span>Check</span><span class="stp ${cur === 2 ? "on" : ""}"><span class="n">2</span>Password</span></div>`;
   const back = `<div class="linkrow"><a class="plink" href="#">${ic("arrow-left")}Back</a></div>`;

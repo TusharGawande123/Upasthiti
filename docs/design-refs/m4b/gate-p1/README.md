@@ -52,7 +52,7 @@ Errors sit **under the form** in plain words; notices about an ended session sit
 - signed-out-elsewhere `errors.PHONE_SIGNED_OUT_ELSEWHERE`: "You signed in on another phone, so this phone was signed out."
 - session-ended `errors.PHONE_NOT_SIGNED_IN`: "Please sign in again."
 - too-many-requests `errors.TOO_MANY_REQUESTS`: "Too many tries right now. Please wait a minute and try again."
-- browser-unsupported `errors.PHONE_BROWSER_UNSUPPORTED`: "Please open this page in a current Chrome or Edge." (the form is not drawn)
+- browser-unsupported `errors.PHONE_BROWSER_UNSUPPORTED`: "Please open this page in Chrome or Edge on your phone." (the form is not drawn)
 - passkey (F-80): button "Sign in with passkey" below an "or" line, drawn **only when the browser supports it** (outline button, fingerprint icon); the code is typed first. waiting = button busy + line "Use your phone's screen lock: fingerprint, face unlock or PIN."; cancelled `errors.PASSKEY_CANCELLED`; invalid `errors.PASSKEY_INVALID`: "The passkey did not work. Please sign in with your password."
 - loading: fields disabled, button shows spinner + "Signing in…" (`aria-busy`).
 A11y: labels above fields, `autocomplete` username / current-password, `autocapitalize=characters`, alert role on errors, focus ring 2 px, eye button has a text alternative.
