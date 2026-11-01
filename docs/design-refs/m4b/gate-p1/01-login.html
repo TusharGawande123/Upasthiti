@@ -1,0 +1,89 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P1 - Screen 1: Phone sign in /phone/login (spec 4.4, 4.8c passkey button F-80, 7 rules 4 and 7, 9 error table).
+  States (URL hash): default · filled · password-shown · loading · wrong-password · locked · punch-off · new-password-required · signed-out-elsewhere ·
+                     session-ended · too-many-requests · browser-unsupported · passkey-offered · passkey-waiting · passkey-cancelled · passkey-invalid
+  MOCKUP ONLY - static HTML, fake data (Sunita Jadhav E0412).
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phone attendance: sign in</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="p1.css" />
+</head>
+<body>
+<div id="root"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="p1.js"></script>
+<script>
+  const TXT = {
+    wrong: "Employee code or password is wrong. First time? Set your password.",
+    locked: "Too many wrong passwords. Try again in {{m}} minutes, or reset your password.",
+    off: "Phone attendance is switched off for you. Please visit the plant office.",
+    newpw: "Please set a new password: tap 'Forgot password?'.",
+    other: "You signed in on another phone, so this phone was signed out.",
+    again: "Please sign in again.",
+    many: "Too many tries right now. Please wait a minute and try again.",
+    browser: "Please open this page in a current Chrome or Edge.",
+    pkInvalid: "The passkey did not work. Please sign in with your password.",
+    pkCancelled: "Passkey cancelled. Please try again or use your password.",
+  };
+  const forgot = `<div class="linkrow"><a class="plink" href="#">First time or forgot your password?</a></div>`;
+
+  function form(o) {
+    o = o || {};
+    const dis = !!o.busy;
+    return `<form class="pc stack-lg anim-fade-up" onsubmit="return false" novalidate>
+      <div class="stack">
+        ${P.field("code", "Employee code", o.code || "", { code: true, ph: "For example E0412", disabled: dis, err: o.codeErr })}
+        ${P.field("pw", "Password", o.pw || "", { type: o.shown ? "text" : "password", eye: true, shown: o.shown, auto: "current-password", disabled: dis, err: o.pwErr })}
+      </div>
+      ${o.busy ? P.btn("primary", "", "Signing in…", { busy: true, disabled: false }) : P.btn("primary", "log-in", "Sign in", { disabled: o.lock })}
+      ${o.passkey ? `<div class="or">or</div>${o.pkBusy ? P.btn("outline", "", "Waiting for your phone…", { busy: true, cls: "strong" }).replace('class="spinner"', 'class="spinner dark"') : P.btn("outline", "fingerprint", "Sign in with passkey", { cls: "strong" })}<p class="fhelp" style="margin-top:-6px;text-align:center">Type your employee code first.</p>` : ""}
+    </form>`;
+  }
+
+  function render(s) {
+    const head = P.head("Sign in", "Use your employee code and password.");
+    const FILLED = { code: "E0412", pw: "mypassword9" };
+    switch (s) {
+      case "filled": return head + form(FILLED) + forgot;
+      case "password-shown": return head + form({ ...FILLED, shown: true }) + forgot;
+      case "loading": return head + form({ ...FILLED, busy: true }) + forgot;
+      case "wrong-password":
+        return head + form({ code: "E0412", pw: "mypassword", pwErr: "", codeErr: "" }) +
+          P.msg("danger", "circle-x", "", TXT.wrong).replace('class="msg', 'id="form-err" class="msg anim-shake') + forgot;
+      case "locked":
+        return head + form({ code: "E0412", pw: "", lock: true }) + P.msg("danger", "lock", "", TXT.locked.replace("{{m}}", "12"),
+          `<button class="pbtn pbtn-outline strong">${ic("key-round")}<span>Forgot password?</span></button>`);
+      case "punch-off":
+        return head + form({ code: "E0412", pw: "mypassword9" }) + P.msg("warning", "smartphone", "", TXT.off) + forgot;
+      case "new-password-required":
+        return head + form({ code: "E0412", pw: "mypassword9" }) + P.msg("warning", "key-round", "", TXT.newpw) + forgot;
+      case "signed-out-elsewhere":
+        return head + P.msg("info", "smartphone", "", TXT.other) + form({ code: "E0412" }) + forgot;
+      case "session-ended":
+        return head + P.msg("info", "clock", "", TXT.again) + form({ code: "E0412" }) + forgot;
+      case "too-many-requests":
+        return head + form(FILLED) + P.msg("warning", "hourglass", "", TXT.many) + forgot;
+      case "browser-unsupported":
+        return head + `<div class="pc state-card anim-fade-up"><span class="state-ic si-warning">${ic("globe")}</span><h2>${TXT.browser}</h2></div>`;
+      case "passkey-offered":
+        return head + form({ code: "E0412", passkey: true }) + forgot;
+      case "passkey-waiting":
+        return head + form({ code: "E0412", passkey: true, pkBusy: true }) + P.msg("info", "fingerprint", "", "Use your phone's screen lock: fingerprint, face unlock or PIN.") + forgot;
+      case "passkey-cancelled":
+        return head + form({ code: "E0412", passkey: true }) + P.msg("warning", "circle-slash", "", TXT.pkCancelled) + forgot;
+      case "passkey-invalid":
+        return head + form({ code: "E0412", passkey: true, pw: "" }) + P.msg("danger", "circle-x", "", TXT.pkInvalid) + forgot;
+      default: return head + form({}) + forgot;
+    }
+  }
+  P.start({ user: null, split: true, render });
+</script>
+</body>
+</html>

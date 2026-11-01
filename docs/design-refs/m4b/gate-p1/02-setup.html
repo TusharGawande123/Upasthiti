@@ -1,0 +1,106 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P1 - Screen 2: Prove it is you /phone/setup (spec 4.5, 7 rule 5 proof, rule 12 location, 9 error table).
+  Also used for a forgotten password. Two ways: "Check my face" (typed code + front camera, M3 guidance) and "Scan my ID card" (rear camera, location first).
+  States (URL hash): choose · face-code · face-oval · face-closer · face-good · face-turn-left · face-straight-again · face-checking · face-no-face ·
+    face-liveness-failed · face-too-slow · face-service-busy · proof-failed · camera-blocked · card-intro · card-camera · card-checking ·
+    card-location-denied · card-location-unreadable · card-location-weak · card-outside · card-proof-failed · too-many-requests · browser-unsupported
+  MOCKUP ONLY - the camera picture is a drawing, never a real face.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phone attendance: prove it is you</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="p1.css" />
+</head>
+<body>
+<div id="root"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="p1.js"></script>
+<script>
+  const T = {
+    failed: "We could not confirm it is you. Please try again, or visit the plant office.",
+    noFace: ["We could not see your face.", "Stand in front of the camera and try again."],
+    liveness: ["Please turn your head as the arrow shows, then look straight.", "Please try again."],
+    slow: ["Too slow.", "Please try again."],
+    busy: ["Many people are punching.", "Please try again in a moment."],
+    denied: "Turn on location for this website. Please try again.",
+    unreadable: "We could not read your location. Please try again.",
+    weak: "Your location is not exact enough. Move to an open place. Please try again.",
+    outside: "You are not at the plant. Please visit the plant office.",
+    many: "Too many tries right now. Please wait a minute and try again.",
+    browser: "Please open this page in a current Chrome or Edge.",
+  };
+  const steps = (cur) => `<div class="steps" aria-label="Step ${cur} of 2"><span class="stp ${cur === 1 ? "on" : "done"}"><span class="n">${cur === 1 ? "1" : ic("check")}</span>Check</span><span class="stp ${cur === 2 ? "on" : ""}"><span class="n">2</span>Password</span></div>`;
+  const back = `<div class="linkrow"><a class="plink" href="#">${ic("arrow-left")}Back</a></div>`;
+  const cancel = P.btn("outline", "x", "Cancel");
+  const head = (t, sub) => steps(1) + P.head(t, sub);
+
+  const cam = (inner, cls) => `<div class="pcam ${cls || ""} anim-fade-up" role="img" aria-label="Camera picture with an oval for your face">${P.person()}<div class="oval"></div>${inner}</div>`;
+  const faceCam = (cls, guide, strip, extra) => cam(`${guide ? `<div class="guide">${guide}</div>` : ""}${extra || ""}${strip || ""}`, cls);
+
+  /* failure card: big icon + the exact message + one button */
+  function fail(tone, icon, lines, btn) {
+    return `<div class="pc state-card anim-fade-up" role="alert"><span class="state-ic si-${tone}">${ic(icon)}</span>
+      <h2>${lines[0]}</h2>${lines[1] ? `<p>${lines[1]}</p>` : ""}<div style="width:100%;margin-top:6px" class="stack">${btn}</div></div>`;
+  }
+  const again = P.btn("primary", "rotate-ccw", "Try again");
+  const idcard = `<div class="idcard">${P.qrDrawing()}<div class="ln"><b></b><b></b><b></b></div></div>`;
+
+  function render(s) {
+    switch (s) {
+      case "face-code":
+        return steps(1) + P.head("Check my face", "Type your employee code. Then look at the camera.") +
+          `<div class="pc stack-lg anim-fade-up">${P.field("code", "Employee code", "E0412", { code: true })}${P.btn("primary", "camera", "Start camera")}</div>` + back;
+      case "face-oval":
+        return steps(1) + faceCam("", "Look at the camera. Keep your face inside the oval.", "") + cancel;
+      case "face-closer":
+        return steps(1) + faceCam("is-warn", "Look at the camera. Keep your face inside the oval.", `<div class="strip warn">${ic("move-diagonal")}Come closer</div>`) + cancel;
+      case "face-good":
+        return steps(1) + faceCam("is-ok", "Look at the camera. Keep your face inside the oval.", `<div class="strip ok">${ic("circle-check")}Good. Hold still.</div>`) + cancel;
+      case "face-turn-left":
+        return steps(1) + faceCam("is-warn", "Turn your head to your <b>LEFT</b>", "", `<div class="arrow left" aria-hidden="true">${ic("arrow-left")}</div>`) + cancel;
+      case "face-straight-again":
+        return steps(1) + faceCam("is-warn", "", `<div class="strip warn">${ic("arrow-up")}Now look straight again.</div>`) + cancel;
+      case "face-checking":
+        return steps(1) + faceCam("is-ok", "", `<div class="dim"><span class="spinner"></span>Checking…</div>`);
+      case "face-no-face": return steps(1) + fail("warning", "scan-face", T.noFace, again) + back;
+      case "face-liveness-failed": return steps(1) + fail("warning", "move-horizontal", T.liveness, again) + back;
+      case "face-too-slow": return steps(1) + fail("warning", "timer", T.slow, again) + back;
+      case "face-service-busy": return steps(1) + fail("warning", "users", T.busy, again) + back;
+      case "proof-failed": return steps(1) + fail("danger", "circle-x", [T.failed], again) + back;
+      case "camera-blocked":
+        return steps(1) + `<div class="pc anim-fade-up stack-lg"><div class="state-card" style="padding:0;gap:12px"><span class="state-ic si-danger">${ic("camera-off")}</span><h2>Camera is blocked</h2><p>Allow the camera for this site.</p></div>
+          <ol class="msg msg-info" style="margin:0;padding:16px 16px 16px 40px;display:block;border-left-width:8px;font-weight:550"><li>Tap the padlock or camera icon next to the web address.</li><li>Set Camera to “Allow”.</li><li>Press “Try again”.</li></ol>${again}</div>` + back;
+      case "card-intro":
+        return steps(1) + P.head("Scan my ID card", "Hold your ID card in front of the back camera.") +
+          P.msg("info", "map-pin", "Location is needed", "Switch location on, and stand inside the plant. We read your location once, now.") +
+          `<div class="pc stack-lg anim-fade-up">${P.btn("primary", "camera", "Start camera")}</div>` + back;
+      case "card-camera":
+        return steps(1) + `<div class="pcam card-cam anim-fade-up" role="img" aria-label="Camera picture of your ID card">${idcard}<div class="vf"><i></i><i></i><i></i><i></i></div><div class="strip">${ic("qr-code")}Show your ID card to the camera</div></div>` + cancel;
+      case "card-checking":
+        return steps(1) + `<div class="pcam card-cam is-ok anim-fade-up" role="img" aria-label="ID card read">${idcard}<div class="vf"><i></i><i></i><i></i><i></i></div><div class="dim"><span class="spinner"></span>Checking…</div></div>`;
+      case "card-location-denied": return steps(1) + fail("warning", "map-pin-off", [T.denied], again) + back;
+      case "card-location-unreadable": return steps(1) + fail("warning", "map-pin-x", [T.unreadable], again) + back;
+      case "card-location-weak": return steps(1) + fail("warning", "satellite-dish", [T.weak], again) + back;
+      case "card-outside": return steps(1) + fail("danger", "map-pin-off", [T.outside], P.btn("outline", "arrow-left", "Back"));
+      case "card-proof-failed": return steps(1) + fail("danger", "circle-x", [T.failed], again) + back;
+      case "too-many-requests": return steps(1) + fail("warning", "hourglass", [T.many], again) + back;
+      case "browser-unsupported":
+        return steps(1) + `<div class="pc state-card anim-fade-up"><span class="state-ic si-warning">${ic("globe")}</span><h2>${T.browser}</h2></div>`;
+      default: // choose
+        return steps(1) + P.head("Prove it is you", "Choose one way. Then you set your password.") +
+          `<div class="stack anim-fade-up">
+            <button class="tile"><span class="tic">${ic("scan-face")}</span><span class="tt"><b>Check my face</b><span>For people who punch with their face</span></span><span class="chev">${ic("chevron-right")}</span></button>
+            <button class="tile"><span class="tic">${ic("id-card")}</span><span class="tt"><b>Scan my ID card</b><span>For workers with an ID card</span></span><span class="chev">${ic("chevron-right")}</span></button>
+          </div>` + back;
+    }
+  }
+  P.start({ user: null, split: true, render });
+</script>
+</body>
+</html>

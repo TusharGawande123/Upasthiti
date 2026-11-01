@@ -1,0 +1,91 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P1 - Screen 6: My attendance /phone/attendance (spec 4.8b, F-73; statuses as M5).
+  The last 31 days, newest first: date, day status, first IN, last OUT, worked time, and the word "Phone" or "Attendance device" per punch.
+  No flags, no reasons, no review marks, no other person. Today shows "Open" until the day closes.
+  States (URL hash): default · empty · loading · error
+  MOCKUP ONLY - fake data. Today = Saturday 31/10/2026 (plant K134, weekly off Sunday; holidays 02/10 and 20/10; leave 12/10 and 13/10).
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phone attendance: my attendance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="p1.css" />
+</head>
+<body>
+<div id="root"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="p1.js"></script>
+<script>
+  /* status -> [badge class, icon, word] ; every status = icon + word + colour (open = dashed edge) */
+  const ST = {
+    present: ["pb-success", "circle-check", "Present"],
+    half: ["pb-warning", "contrast", "Half-day"],
+    short: ["pb-warning", "timer-reset", "Short hours"],
+    absent: ["pb-danger", "circle-x", "Absent"],
+    incomplete: ["pb-warning", "circle-help", "Incomplete"],
+    leave: ["pb-info", "plane", "Leave"],
+    off: ["pb-neutral", "moon", "Weekly off"],
+    holiday: ["pb-info", "party-popper", "Holiday"],
+    open: ["pb-open", "circle-dot", "Open"],
+  };
+  const DAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dev = ["tablet-smartphone", "Attendance device"], ph = ["smartphone", "Phone"];
+  /* day of October 2026 (1 Oct 2026 is a Thursday) -> row: [status, in, out, worked, channels] */
+  const SPECIAL = {
+    31: ["open", "07:02", "", "", [dev]],
+    28: ["incomplete", "07:05", "", "", [dev]],
+    22: ["half", "07:01", "11:20", "4 h 19 min", [dev]],
+    15: ["short", "07:10", "09:40", "2 h 30 min", [dev]],
+    8: ["absent", "", "", "", []],
+    2: ["holiday", "", "", "", []], 20: ["holiday", "", "", "", []],
+    12: ["leave", "", "", "", []], 13: ["leave", "", "", "", []],
+  };
+  const OFF = [4, 11, 18, 25];
+  const INS = ["06:55", "07:02", "07:00", "07:08", "06:58", "07:12", "07:04", "07:01"], OUTS = ["19:03", "19:08", "19:01", "19:12", "19:06", "19:04"];
+  function row(d) {
+    const dow = (d + 3) % 7; // 1 Oct = Thursday (4)
+    const wd = DAYS[(3 + d) % 7];
+    const date = `${String(d).padStart(2, "0")}/10/2026`;
+    let r = SPECIAL[d];
+    if (!r && OFF.indexOf(d) >= 0) r = ["off", "", "", "", []];
+    if (!r) {
+      const i = INS[d % INS.length], o = OUTS[d % OUTS.length];
+      const mins = (+o.slice(0, 2) * 60 + +o.slice(3)) - (+i.slice(0, 2) * 60 + +i.slice(3));
+      r = ["present", i, o, `${Math.floor(mins / 60)} h ${String(mins % 60).padStart(2, "0")} min`, d % 5 === 0 ? [ph] : d % 7 === 0 ? [dev, ph] : [dev]];
+    }
+    const [st, inn, out, wk, ch] = r;
+    const b = ST[st];
+    const quiet = st === "off" || st === "holiday" || st === "leave";
+    const today = d === 31;
+    const times = inn || out
+      ? `<div class="times"><span><span class="k">IN</span>${inn || "–"}</span><span><span class="k">OUT</span>${out || (st === "open" ? "not yet" : "missing")}</span>${wk ? `<span><span class="k">Worked</span>${wk}</span>` : ""}</div>`
+      : "";
+    const via = ch.length ? `<div class="via">${ch.map((c) => `<span class="via-i">${ic(c[0])}${c[1]}</span>`).join("")}</div>` : "";
+    return `<article class="dayrow ${today ? "is-today" : ""} ${quiet ? "quiet" : ""}" aria-label="${wd} ${date}, ${b[2]}"><div class="dtop"><div class="dt">${today ? "<small>Today</small>" : ""}${wd} ${date}</div><span class="pb ${b[0]}">${ic(b[1])}${b[2]}</span></div>${times}${via}</article>`;
+  }
+  const rows = () => Array.from({ length: 31 }, (_, i) => row(31 - i)).join("");
+  const help = `<div class="helpline">${ic("circle-help")}<span>Something wrong? Please visit the plant office.</span></div>`;
+  const back = `<div class="linkrow" style="justify-content:flex-start"><a class="plink" href="#">${ic("arrow-left")}Back</a></div>`;
+
+  function render(s) {
+    const head = back + P.head("My attendance", "The last 31 days, newest first.");
+    switch (s) {
+      case "empty":
+        return head + `<div class="pc state-card anim-fade-up"><span class="state-ic si-neutral">${ic("calendar-x")}</span><h2>No attendance yet in the last 31 days.</h2></div>` + help;
+      case "loading":
+        return head + Array.from({ length: 5 }, () => `<div class="dayrow sk-row" aria-busy="true"><div class="sk" style="height:24px;width:60%"></div><div class="sk" style="height:20px;width:85%"></div><div class="sk" style="height:18px;width:40%"></div></div>`).join("");
+      case "error":
+        return head + `<div class="pc state-card anim-fade-up" role="alert"><span class="state-ic si-danger">${ic("cloud-off")}</span><h2>We could not load your attendance. Please try again.</h2><div style="width:100%" class="stack">${P.btn("primary", "rotate-ccw", "Try again")}</div></div>`;
+      default:
+        return head + `<div class="stack anim-fade-up">${rows()}</div>` + help;
+    }
+  }
+  P.start({ user: P.FACE, render, wide: true });
+</script>
+</body>
+</html>
