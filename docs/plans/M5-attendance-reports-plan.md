@@ -367,3 +367,22 @@ a real phone at 360 px, report downloads opened in Excel.
   page, new-password page, plant devices tab, audit filters and panel, user menu, users page actions, day timeline,
   shifts tab, bulk dialog, face dialogs, face camera helpers. No app code changed. Note: `issue-after-import.test.tsx`
   compares today's date and fails if the suite runs across midnight (seen once at 00:00 IST, passes on rerun).
+- 2026-11-01 **M4b P0 done** (Opus): migrations **0026** `phone_access_and_accounts` (6 tables, RLS + deny_all,
+  append-only `phone_notice_acceptances`, kind `phone_many_phones`) and **0027** `phone_punches` (`channel`,
+  `phone_session_id`, `location_plant_id`, nullable `kiosk_id`, `gate_code`, `one_to_one`, all spec checks and
+  indexes; challenges owned by a device or a sign-in; snapshot reasons widened to 20 chars). Models in
+  `app/modules/phone/models.py`; `Punch.device_key`; `PunchChannel`. Readers of a NULL `kiosk_id` fixed (punch log
+  `kiosk` nullable, export, review panel device comparison and edge hint). Context refactor: `plant_id` +
+  `DeviceIdentity` (`app/antiproxy/context.py`). `app/core/password_gate.py` (2 slots, 5 s, 429). Phone body
+  limits. Removal tools delete phone + M5 rows. Decisions 0036 lines 22-29 (**line 28 to confirm**).
+  Tests: `test_m4b_phone_tables.py` (15), `test_m4b_migrations.py` (own `_m4b_test` DB), `test_m4b_nullable_kiosk.py`
+  (5), `test_m4b_removal_tools.py` (3), `test_password_gate.py` (4), body-limit +2. **Full backend suite: 1430
+  passed, 7 skipped, coverage 90.68 % (floor 84).** e2e not run.
+- What P1 must know: wrap every employee password check (real and dummy) in `password_check_slot()`; build a
+  phone `PunchContext` with `plant_id` = employee's plant on the punch date and
+  `DeviceIdentity.of_phone_session(id)`; phone face challenges are rows with `phone_session_id` (the
+  `face_challenge` rule already matches them); retries are found by `(phone_session_id, client_punch_id)`; the
+  session clean-up must keep sign-ins referenced by a notice acceptance (decision 0036 line 28). Frontend: the
+  punch log `kiosk` field is now nullable (TS type in P3/P4). Open for P3: the `many_rejections` alert still
+  counts every rejected punch with a gate device, so rejected gate-code phone punches would count toward the
+  gate's alert (decide whether to filter `channel = 'kiosk'`).
