@@ -258,3 +258,5 @@ textarea.input { height: auto; min-height: 96px; padding: 10px 12px; resize: ver
   .res-strip { margin: 0 12px 12px; flex-wrap: wrap; } .res-strip .btn { margin-left: 0; width: 100%; }
 }
 @media (max-width: 1023px) { .bulkbar > div { padding-left: 0; } }
+.cend .sub span { display: inline-flex; gap: 5px; align-items: center; }
+.cend .sub svg { width: 15px; height: 15px; flex: none; }
