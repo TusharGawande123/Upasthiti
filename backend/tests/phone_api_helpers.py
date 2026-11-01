@@ -84,6 +84,7 @@ def give_password(session: Session, employee_id: str, password: str = GOOD_PASSW
     account.password_hash = hash_password(password)
     account.password_set_at = utc_now()
     account.proof_kind = "face"
+    account.new_password_required_at = None
     session.commit()
 
 
