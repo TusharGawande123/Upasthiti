@@ -17,7 +17,7 @@ SettingValueType = int | float | str | None
 class SettingDefinition:
     key: str
     # screen card: kiosk, kiosk_screen, punch, antiproxy, offline, face, privacy, snapshots,
-    # cards, salary, security, attendance, alerts
+    # cards, salary, security, attendance, alerts, phone
     group: str
     default: SettingValueType
     unit: str
@@ -154,6 +154,15 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition(
         "kiosk_show_month_line", "kiosk_screen", "off", "", 5, allowed_values=("on", "off")
     ),
+    # M4b phone punching (spec M4b §7 rule 23): employee sign-in on their own phone. Built in the
+    # M5 pull request, so they are editable from milestone 5.
+    SettingDefinition("phone_session_idle_days", "phone", 7, "days", 5, 1, 30),
+    SettingDefinition("phone_session_max_days", "phone", 30, "days", 5, 1, 90),
+    SettingDefinition("phone_max_sessions", "phone", 1, "phones", 5, 1, 3),
+    SettingDefinition("phone_login_max_failures", "phone", 5, "tries", 5, 3, 10),
+    SettingDefinition("phone_login_lock_minutes", "phone", 15, "min", 5, 5, 120),
+    SettingDefinition("phone_location_max_age_seconds", "phone", 60, "s", 5, 10, 120),
+    SettingDefinition("phone_many_phones_alert_count", "phone", 3, "phones", 5, 2, 10),
     SettingDefinition(
         "salary_day_basis", "salary", 30, "days", 7, allowed_values=(26, 30, "actual")
     ),

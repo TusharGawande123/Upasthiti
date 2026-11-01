@@ -124,9 +124,7 @@ def issue_challenge(session: Session, kiosk: KioskDevice, engine: FaceEngine) ->
             PunchChallenge.kiosk_id == kiosk.id, PunchChallenge.issued_at < now - CHALLENGE_KEEP
         )
     )
-    two_steps = get_int_setting(session, "face_challenge_steps") >= 2  # F-43
-    options = ("left_then_right", "right_then_left") if two_steps else ("turn_left", "turn_right")
-    challenge = secrets.choice(options)  # chosen by the server, never by the device
+    challenge = choose_challenge(session)
     nonce = secrets.token_urlsafe(16)  # 128 random bits, 22 characters
     expires_at = now + timedelta(seconds=get_int_setting(session, "face_challenge_seconds"))
     session.add(
@@ -144,14 +142,26 @@ def issue_challenge(session: Session, kiosk: KioskDevice, engine: FaceEngine) ->
         challenge=challenge,  # type: ignore[arg-type]
         expires_at=expires_at,
         server_time=now,
-        capture=CaptureRules(
-            min_frames=2,
-            max_frames=4,
-            max_width=640,
-            max_height=480,
-            max_frame_bytes=MAX_FRAME_BYTES,
-            min_yaw_degrees=get_int_setting(session, "face_min_yaw_degrees"),
-        ),
+        capture=capture_rules(session),
+    )
+
+
+def choose_challenge(session: Session) -> str:
+    """The head turn, chosen by the server, never by the device (also used by the phone, M4b)."""
+    two_steps = get_int_setting(session, "face_challenge_steps") >= 2  # F-43
+    options = ("left_then_right", "right_then_left") if two_steps else ("turn_left", "turn_right")
+    return secrets.choice(options)
+
+
+def capture_rules(session: Session) -> CaptureRules:
+    """What the camera page must send: the same for the gate and the phone (M4b)."""
+    return CaptureRules(
+        min_frames=2,
+        max_frames=4,
+        max_width=640,
+        max_height=480,
+        max_frame_bytes=MAX_FRAME_BYTES,
+        min_yaw_degrees=get_int_setting(session, "face_min_yaw_degrees"),
     )
 
 

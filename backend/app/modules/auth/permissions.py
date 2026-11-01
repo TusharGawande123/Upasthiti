@@ -68,6 +68,11 @@ class Capability(enum.Enum):
     VIEW_REPORTS = "view_reports"  # Excel / PDF reports; Plant Head: own plant only
     RECOMPUTE_ATTENDANCE = "recompute_attendance"
     SHOW_DEMO_PLANTS = "show_demo_plants"  # include DEMO plants in screens and reports
+    # M4b (spec M4b §7 rule 1): an employee's phone switches, account state and signed-in phones.
+    VIEW_PHONE_ACCESS = "view_phone_access"  # read only; the IPs only for the Super Admin
+    # Switch phone punching / outside work, sign out all phones, require a new password, remove a
+    # passkey. Super Admin only (lead decision 5: never through the approvals inbox).
+    MANAGE_PHONE_ACCESS = "manage_phone_access"
 
 
 SUPER_ADMIN = Role.SUPER_ADMIN
@@ -166,6 +171,12 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
     },
     Capability.RECOMPUTE_ATTENDANCE: {SUPER_ADMIN: Access.ALL},
     Capability.SHOW_DEMO_PLANTS: {SUPER_ADMIN: Access.ALL},
+    Capability.VIEW_PHONE_ACCESS: {
+        SUPER_ADMIN: Access.ALL,
+        CORPORATE_HEAD: Access.ALL,
+        PLANT_HEAD: Access.OWN_PLANT,
+    },
+    Capability.MANAGE_PHONE_ACCESS: {SUPER_ADMIN: Access.ALL},
 }
 
 

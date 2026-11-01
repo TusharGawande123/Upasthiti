@@ -26,6 +26,7 @@ dependencies = [
     "sqlalchemy>=2.1.4",
     "tzdata>=2026.5",
     "uvicorn[standard]>=0.54.0",
+    "webauthn>=3.0.1",
     "xlsxwriter>=3.2.9",
 ]
 

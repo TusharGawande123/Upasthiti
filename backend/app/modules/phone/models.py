@@ -51,6 +51,15 @@ class SessionRevokeKind(enum.StrEnum):
     LEFT = "left"  # the employee was marked as left
 
 
+class SignInMethod(enum.StrEnum):
+    """How a phone sign-in was made (migration 0028). Only a password or a proof sign-in may add a
+    passkey (spec §7 rule 29)."""
+
+    PASSWORD = "password"  # noqa: S105 (a method name, not a password)
+    PROOF = "proof"  # the "set your password" step after a face or card proof
+    PASSKEY = "passkey"
+
+
 class PasskeyRemoveKind(enum.StrEnum):
     SELF = "self"
     ADMIN = "admin"
@@ -131,6 +140,9 @@ class PhoneSession(IdMixin, Base):
             f"revoke_kind IS NULL OR revoke_kind IN ({_values(SessionRevokeKind)})",
             name="revoke_kind_known",
         ),
+        CheckConstraint(
+            f"sign_in_method IN ({_values(SignInMethod)})", name="sign_in_method_known"
+        ),
         Index("ix_phone_sessions_employee_revoked", "employee_id", "revoked_at"),
     )
 
@@ -145,6 +157,9 @@ class PhoneSession(IdMixin, Base):
     user_agent: Mapped[str | None] = mapped_column(String(300))
     revoked_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     revoke_kind: Mapped[str | None] = mapped_column(String(12))
+    sign_in_method: Mapped[str] = mapped_column(
+        String(8), server_default=SignInMethod.PASSWORD.value
+    )
 
 
 class PhoneNoticeAcceptance(IdMixin, Base):

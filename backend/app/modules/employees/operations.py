@@ -40,6 +40,7 @@ from app.modules.face.template_service import (
     close_consent_of_leaver,
     delete_active_template,
 )
+from app.modules.phone.access_service import end_phone_for_leaver
 from app.modules.qr_cards.service import revoke_card_of_leaver
 
 MAX_LEFT_DAYS_AHEAD = 30
@@ -320,6 +321,8 @@ def mark_left(
     )
     close_consent_of_leaver(session, employee)
     invalidate_plant_gallery(employee.plant_id)
+    # M4b (AC-9): phone punching, phone sign-ins, the phone password and passkeys end too.
+    end_phone_for_leaver(session, context.actor, employee, reason)
     return employee
 
 

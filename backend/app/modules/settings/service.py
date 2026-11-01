@@ -71,6 +71,7 @@ def update_settings(
     _check_face_floor(session, checked_values)
     _check_m4_pairs(session, checked_values)
     _check_window_fits_shifts(session, checked_values)
+    _check_phone_session_days(session, checked_values)
 
     for key, value in checked_values.items():
         stored = session.get(SettingValue, key)
@@ -227,6 +228,22 @@ def _check_window_fits_shifts(session: Session, new_values: dict[str, SettingVal
             "The day window must start after the longest shift of the day before has ended.",
             422,
             {"key": "attendance_window_before_hours", "longest_shift_min": longest},
+        )
+
+
+def _check_phone_session_days(session: Session, new_values: dict[str, SettingValueType]) -> None:
+    """A phone sign-in ends after N idle days or M days in all (M4b spec §7 rule 23): M smaller
+    than N would make the idle limit meaningless."""
+    watched = ("phone_session_idle_days", "phone_session_max_days")
+    if not any(key in new_values for key in watched):
+        return
+    idle_days = _int_after_save(session, new_values, "phone_session_idle_days")
+    if _int_after_save(session, new_values, "phone_session_max_days") < idle_days:
+        raise ApiError(
+            "SETTING_INVALID",
+            "A phone sign-in cannot end before its idle limit.",
+            422,
+            {"key": "phone_session_max_days"},
         )
 
 
