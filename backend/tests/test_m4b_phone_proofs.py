@@ -501,4 +501,4 @@ def test_audit_rows_never_hold_passwords_tokens_or_scores(
         str((row.before, row.after, row.reason)) for row in db_session.scalars(select(AuditLog))
     )
     assert GOOD_PASSWORD not in text and token not in text
-    assert "score" not in text and phone.cookies.get("ups_phone") not in text
+    assert "score" not in text and (phone.cookies.get("ups_phone") or "-") not in text

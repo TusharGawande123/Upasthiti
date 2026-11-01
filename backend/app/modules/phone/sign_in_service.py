@@ -72,17 +72,14 @@ def sign_in_with_password(
         and account.password_hash is not None
     )
     if not usable or employee is None or account is None or account.password_hash is None:
-        with password_check_slot():
-            waste_time_like_a_password_check(password)
+        dummy_password_check(password)
         _record_failure(session, code, employee, ip)
         raise credentials_invalid()
 
     now = utc_now()
     if account.locked_until is not None and account.locked_until > now:
         raise account_locked(account.locked_until, now)
-    with password_check_slot():
-        right = verify_password(account.password_hash, password)
-    if not right:
+    if not password_matches(account.password_hash, password):
         _count_wrong_password(session, account, code, employee, ip, now)
 
     account.failed_login_count = 0
@@ -94,6 +91,18 @@ def sign_in_with_password(
     return finish_sign_in(
         session, employee, method=SignInMethod.PASSWORD, ip=ip, user_agent=user_agent, now=now
     )
+
+
+def password_matches(password_hash: str, password: str) -> bool:
+    """One real Argon2 check, inside one of the 2 slots (rule 9)."""
+    with password_check_slot():
+        return verify_password(password_hash, password)
+
+
+def dummy_password_check(password: str) -> None:
+    """The same work as a real check, for an unknown code, so the timing tells nothing."""
+    with password_check_slot():
+        waste_time_like_a_password_check(password)
 
 
 def check_may_sign_in(session: Session, employee: Employee, account: PhoneAccount | None) -> None:
