@@ -1,4 +1,4 @@
-"""Rule: the head-turn challenge must be this kiosk's, unused and not too old (spec M3 §7 rule 5.1).
+"""Rule: the head-turn challenge must be this device's, unused and not too old (M3 §7 rule 5.1).
 
 One UPDATE marks it used only if all of that holds, so two requests with the same nonce can
 never both pass. A used challenge stays used even if a later rule refuses the punch.
@@ -6,7 +6,7 @@ never both pass. A used challenge stays used even if a later rule refuses the pu
 
 import hashlib
 
-from sqlalchemy import select, update
+from sqlalchemy import ColumnElement, select, update
 
 from app.antiproxy.context import RuleResult
 from app.antiproxy.face_context import FacePunchContext
@@ -17,13 +17,22 @@ def nonce_hash(nonce: str) -> str:
     return hashlib.sha256(nonce.encode("utf-8")).hexdigest()
 
 
+def _owned_by_this_device(context: FacePunchContext) -> ColumnElement[bool]:
+    """Only the gate device (M4b: or the phone sign-in) it was issued to may answer a challenge."""
+    device = context.device_identity
+    if device.phone_session_id is not None:
+        return PunchChallenge.phone_session_id == device.phone_session_id
+    return PunchChallenge.kiosk_id == device.kiosk_id
+
+
 def check_challenge(context: FacePunchContext) -> RuleResult:
     digest = nonce_hash(context.challenge_nonce)
+    owner = _owned_by_this_device(context)
     used = context.session.execute(
         update(PunchChallenge)
         .where(
             PunchChallenge.nonce_sha256 == digest,
-            PunchChallenge.kiosk_id == context.kiosk.id,
+            owner,
             PunchChallenge.used_at.is_(None),
             PunchChallenge.expires_at >= context.now,
         )
@@ -38,7 +47,7 @@ def check_challenge(context: FacePunchContext) -> RuleResult:
     expired = context.session.scalar(
         select(PunchChallenge.id).where(
             PunchChallenge.nonce_sha256 == digest,
-            PunchChallenge.kiosk_id == context.kiosk.id,
+            owner,
             PunchChallenge.used_at.is_(None),
         )
     )

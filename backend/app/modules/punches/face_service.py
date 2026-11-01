@@ -24,7 +24,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.antiproxy.context import Outcome, PunchContext, PunchLimits, RuleResult
+from app.antiproxy.context import DeviceIdentity, Outcome, PunchContext, PunchLimits, RuleResult
 from app.antiproxy.engine import (
     AFTER_IDENTITY_RULES,
     LOCATION_RULES,
@@ -197,7 +197,8 @@ def record_face_punch(
     def job(models: FaceModels) -> tuple[RuleResult, FacePunchContext]:
         context = FacePunchContext(
             session=session,
-            kiosk=kiosk,
+            plant_id=kiosk.plant_id,
+            device_identity=DeviceIdentity.of_kiosk(kiosk),
             now=now,
             limits=face_limits,
             models=models,
@@ -281,7 +282,8 @@ def place_context(
     return PunchContext(
         session=session,
         app_settings=get_settings(),
-        kiosk=kiosk,
+        plant_id=kiosk.plant_id,
+        device_identity=DeviceIdentity.of_kiosk(kiosk),
         now=now,
         limits=limits,
         qr_text=None,

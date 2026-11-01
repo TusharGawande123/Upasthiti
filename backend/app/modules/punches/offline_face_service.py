@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.antiproxy.context import Outcome, PunchContext
+from app.antiproxy.context import DeviceIdentity, Outcome, PunchContext
 from app.antiproxy.engine import (
     AFTER_IDENTITY_RULES,
     LOCATION_RULES,
@@ -146,7 +146,8 @@ def record_offline_face_punch(
         def job(models: FaceModels) -> tuple[str | None, FacePunchContext]:
             checked = FacePunchContext(
                 session=session,
-                kiosk=kiosk,
+                plant_id=kiosk.plant_id,
+                device_identity=DeviceIdentity.of_kiosk(kiosk),
                 now=now,
                 limits=face_limits,
                 models=models,

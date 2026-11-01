@@ -67,6 +67,6 @@ def check_qr_credential(context: PunchContext) -> RuleResult:
     if employee.punch_method != PunchMethod.QR.value:
         return RuleResult.rejected("EMPLOYEE_NOT_QR")
     # A card works only at its owner's plant (decision 0009).
-    if employee_plant_on(context.session, employee, day, at_punch_time) != context.kiosk.plant_id:
+    if employee_plant_on(context.session, employee, day, at_punch_time) != context.plant_id:
         return RuleResult.rejected("WRONG_PLANT")
     return RuleResult.passed()

@@ -18,7 +18,7 @@ from app.core.config import Settings
 from app.modules.employees.models import Employee
 from app.modules.kiosks.location_check import Location
 from app.modules.kiosks.models import KioskDevice
-from app.modules.punches.models import Direction
+from app.modules.punches.models import Direction, PunchChannel
 from app.modules.punches.snapshots import CheckedSnapshot
 from app.modules.qr_cards.models import QrCredential
 
@@ -76,12 +76,43 @@ class PunchLimits:
     attendance_window_before_hours: int = 4
 
 
+@dataclass(frozen=True)
+class DeviceIdentity:
+    """Which device sends the punch: a gate device, or (M4b) one phone sign-in. The rules use it
+    for "the same device" (face challenges) and "another device" (travel and two-devices flags)."""
+
+    kiosk_id: uuid.UUID | None = None
+    phone_session_id: uuid.UUID | None = None
+
+    def __post_init__(self) -> None:
+        if (self.kiosk_id is None) == (self.phone_session_id is None):
+            raise ValueError("A punch comes from exactly one gate device or one phone sign-in")
+
+    @classmethod
+    def of_kiosk(cls, kiosk: KioskDevice) -> DeviceIdentity:
+        return cls(kiosk_id=kiosk.id)
+
+    @classmethod
+    def of_phone_session(cls, phone_session_id: uuid.UUID) -> DeviceIdentity:
+        return cls(phone_session_id=phone_session_id)
+
+    @property
+    def key(self) -> tuple[str, uuid.UUID | None]:
+        """Comparable with `Punch.device_key` of a stored punch."""
+        if self.phone_session_id is not None:
+            return (PunchChannel.PHONE.value, self.phone_session_id)
+        return (PunchChannel.KIOSK.value, self.kiosk_id)
+
+
 @dataclass
 class PunchContext:
     # What the server knows and trusts.
     session: Session
     app_settings: Settings
-    kiosk: KioskDevice
+    # The plant the punch is judged for: the gate device's plant (M4b: for a phone punch, the
+    # employee's plant), and the device that sent it.
+    plant_id: uuid.UUID
+    device_identity: DeviceIdentity
     # The punch time: the server clock for a live punch, the proven time for an offline one
     # (M4). The kiosk's own clock is never used for a decision.
     now: datetime

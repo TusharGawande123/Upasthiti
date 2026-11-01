@@ -21,7 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.antiproxy.context import Outcome, PunchContext, PunchLimits
+from app.antiproxy.context import DeviceIdentity, Outcome, PunchContext, PunchLimits
 from app.antiproxy.engine import (
     OFFLINE_QR_RULES,
     QR_RULES,
@@ -129,7 +129,8 @@ def record_kiosk_punch(
     context = PunchContext(
         session=session,
         app_settings=get_settings(),
-        kiosk=kiosk,
+        plant_id=kiosk.plant_id,
+        device_identity=DeviceIdentity.of_kiosk(kiosk),
         now=now,
         limits=limits,
         qr_text=request.qr_payload,
