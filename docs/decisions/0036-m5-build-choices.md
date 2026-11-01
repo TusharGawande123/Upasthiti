@@ -155,3 +155,7 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
 29. **Password gate (P0, spec §7 rule 9):** `app/core/password_gate.py`: one process-wide semaphore of 2 around
     every employee password check (real and dummy), wait at most 5 s, then `TOO_MANY_REQUESTS` (429); the
     slot is freed when the check fails. P1 wraps login and password set in it.
+30. **Gate-code button text (design gates P1 and P2, Anuradha, 2026-11-01):** the button and the scan page title
+    for ID-card workers say "Scan the QR code" instead of the spec text "Scan the phone code at the gate"
+    (M4b spec §4.8 and §4.10). The mock-ups use the new text; the spec text is updated in the closing step.
+    The gate panel heading "Phone code" is unchanged for now. **To confirm with Tushar.**

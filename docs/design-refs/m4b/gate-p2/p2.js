@@ -194,7 +194,7 @@
   function start(o) {
     const p = o.person || FACE_PERSON;
     const bigBtn = (kind, ic, text, disabled) => `<button class="ph-btn is-${kind} is-big" type="button"${disabled ? " disabled" : ""}>${icon(ic)}<span>${text}</span></button>`;
-    const button = o.notReady ? "" : o.gate ? bigBtn(o.off ? "off" : "primary", "scan-qr-code", "Scan the phone code at the gate", o.off) : bigBtn("primary", "scan-face", "Punch with face");
+    const button = o.notReady ? "" : o.gate ? bigBtn(o.off ? "off" : "primary", "scan-qr-code", "Scan the QR code", o.off) : bigBtn("primary", "scan-face", "Punch with face");
     const badge = o.badge ? `<div class="ph-badge">${icon("briefcase-business")}<span>Outside work allowed${o.until ? `<small>until ${o.until}</small>` : ""}</span></div>` : "";
     const notReady = o.notReady ? `<div class="ph-badge" style="background:var(--warning-soft);border-color:#b97300;color:var(--k-warning)" role="status">${icon("scan-face")}<span>Your face is not set up. Please visit the plant office.</span></div>` : "";
     return phone(`<section class="ph-card">
@@ -253,8 +253,8 @@
   Object.assign(SCAN, {
     "not-at-plant": () => problem({ person: CODE_PERSON, tone: "red", icon: "map-pin-off", title: "You are not at the plant.", lines: [["Please visit the plant office.", true]], actions: BACK }),
     "camera-opening": () => problem({ person: CODE_PERSON, tone: "blue", icon: "loader-circle", spin: true, title: "Starting the camera…", live: "off", actions: CANCEL }),
-    "scanning": () => phone(`<section class="ph-card"><h1 class="ph-h" style="margin:0">Scan the phone code at the gate</h1>${camBlock({ label: "Rear camera picture", sheet: "qr", frame: true })}<div class="ph-actions" style="margin-top:4px">${CANCEL}</div></section>`, { person: CODE_PERSON }),
-    "not-gate-code": () => phone(`<section class="ph-card"><h1 class="ph-h" style="margin:0">Scan the phone code at the gate</h1>${camBlock({ label: "Rear camera picture", sheet: "card", frame: true, strip: { tone: "amber", icon: "triangle-alert", text: "This is not the phone code of the attendance device." } })}<div class="ph-actions" style="margin-top:4px">${CANCEL}</div></section>`, { person: CODE_PERSON }),
+    "scanning": () => phone(`<section class="ph-card"><h1 class="ph-h" style="margin:0">Scan the QR code</h1>${camBlock({ label: "Rear camera picture", sheet: "qr", frame: true })}<div class="ph-actions" style="margin-top:4px">${CANCEL}</div></section>`, { person: CODE_PERSON }),
+    "not-gate-code": () => phone(`<section class="ph-card"><h1 class="ph-h" style="margin:0">Scan the QR code</h1>${camBlock({ label: "Rear camera picture", sheet: "card", frame: true, strip: { tone: "amber", icon: "triangle-alert", text: "This is not the phone code of the attendance device." } })}<div class="ph-actions" style="margin-top:4px">${CANCEL}</div></section>`, { person: CODE_PERSON }),
     "photo-ready": () => phone(`<section class="ph-card"><h1 class="ph-h" style="margin:0">Look at the camera</h1>${camBlock({ label: "Front camera picture (mirrored)", ghost: true })}${timer(20, 1, false)}
       <div class="ph-actions" style="margin-top:4px">${btn("primary", "camera", "I'm ready: take my photo")}${CANCEL}</div></section>`, { person: CODE_PERSON }),
     "photo-ending": () => phone(`<section class="ph-card"><h1 class="ph-h" style="margin:0">Look at the camera</h1>${camBlock({ label: "Front camera picture (mirrored)", ghost: true, oval: "is-good" })}${timer(4, 0.2, true)}

@@ -46,7 +46,7 @@
   }
   const outside = (until) => `<div class="outside-badge anim-fade-up" role="status">${ic("briefcase")}<div>Outside work allowed${until ? `<small>until ${until}</small>` : ""}</div></div>`;
   const mainBtn = (u) => u.method === "qr"
-    ? P.btn("primary", "qr-code", "Scan the phone code at the gate", { cls: "pbtn-xl" })
+    ? P.btn("primary", "qr-code", "Scan the QR code", { cls: "pbtn-xl" })
     : P.btn("primary", "scan-face", "Punch with face", { cls: "pbtn-xl" });
   const links = (pk) => `<div class="homelinks anim-fade-up anim-delay-2">
     <button class="linkbtn"><span class="lic">${ic("calendar-days")}</span>My attendance<span class="chev">${ic("chevron-right")}</span></button>
