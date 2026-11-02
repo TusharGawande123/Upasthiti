@@ -224,3 +224,50 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     left for P2/P3. The phone notice v1 text (`app/phone/notice_texts/phone-notice-v1.en.txt`, its hash fixed by
     a test) is written from the approved mock-up sections and mentions passkeys; the wording is **for Tushar to
     confirm** (a new version, never an edit, if it changes).
+45. **Phone punch pipeline (P2):** `app/modules/phone/punch_service.py` (challenge, face punch, gate-code punch),
+    `app/antiproxy/rules/{phone_location,face_match_one_to_one,gate_code}.py`, rule lists `PHONE_FACE_RULES` and
+    `GATE_CODE_RULES` in `engine.py`. A retry (same sign-in + `client_punch_id`) is answered from the stored row
+    before any other work after the notice and path checks. The phone has **no early-OUT alert** (decision 0036 line
+    9 belongs to the gate screen; the M4b spec does not mention it for phones, so a phone OUT is stored at once and
+    carries no `early_out_mark`). **To confirm with Tushar:** should a phone OUT before the shift end ask first?
+46. **Location on the phone (P2):** a reading without `age_s` or older than `phone_location_max_age_seconds` counts as
+    no reading (`LOCATION_REQUIRED`); a request without any location is a decided refusal, not a request error.
+    A refused row still stores the position the phone sent. `plant_id` of a phone row = the employee's plant on
+    the punch date; `location_plant_id` = the matched plant (own, or another on outside work) and stays empty for
+    `OUTSIDE_PLANT` and for a refused punch. The "other plants" check uses every active plant with a current
+    fence (DEMO plants too: they are real plants for the rule) and takes the nearest plant that holds the position.
+47. **The phone code (P2):** key = `HMAC-SHA256(APP_SECRET_KEY, "gate-code-v1")` (the same pattern as the M4 time
+    anchor; the spec said HKDF, the result is equally a derived key, no new environment variable). The endpoint
+    `/api/v1/kiosk/gate-code` accepts **POST (the spec table) and GET (the brief of this slice)**; the request
+    changes nothing and the device signature covers the method either way. **To confirm with Tushar:** keep both
+    or only POST. "Anyone to scan": the "is a QR worker with phone punching ON at this plant" answer is remembered
+    60 s per process (`gate_code_service`); a worker switched on may wait up to a minute for the first panel.
+48. **A code that names no known device (P2, to confirm with Tushar):** migration 0027 allows `method = gate_code`
+    only with a gate device (`kiosk_id` not null), so a text that is unreadable or names a device that does not
+    exist is answered `200 rejected GATE_CODE_INVALID` with `punch_id: null` and **no row** (one warning line in
+    the server log, no personal data). A text that names a real device is always stored (also when the MAC is
+    wrong, the code is old or the device is revoked), with `kiosk_id` = that device.
+49. **Gate-code rows (P2):** `plant_id` = the gate device's plant, `location_plant_id` = the employee's plant,
+    `employee_id` on every decided row, no `qr_credential_id`. The selfie is kept also when an earlier rule
+    (place, weak reading) refused the punch (AC-33): the photo is checked after the decision for that reason.
+    The gate device's `last_punch_at` is updated by every stored gate-code row, as for a card punch.
+50. **Where a person is inside (P2, M5 amendment of rule 17):** `dashboard/service.standing_plant_id(punch)` =
+    none for an `OUTSIDE_PLANT` punch, else `COALESCE(location_plant_id, plant_id)`. `people_inside` also looks at
+    employees of other plants who punched by phone inside the asked plants within `open_in_max_hours`. New:
+    `on_outside_work` in the live numbers (per plant and total; counted for the HOME plant) and `home_plant` on a
+    muster person (also in the muster PDF, "Name (K134)"). The still-inside alert goes to the plant where the person
+    stands. The attendance day, the register and the reports stay with `plant_id`.
+51. **Many-rejections alert (P2, decision of the P1 note):** it counts only punches of channel `kiosk`. Refused
+    phone gate-code punches carry the gate's `kiosk_id` but say nothing about the device (a slow phone, an old
+    code), so they are left out. **To confirm with Tushar** (one line in `notifications/alerts.py`).
+52. **F-73 and "today" (P2):** `GET /phone/punches/today` = the employee's counted punches from the start of today's
+    attendance day window (M5, a few hours before the shift; midnight IST when there is no shift) until now, each
+    with `decision_text_key` `phone.punch.accepted.in|out`. `GET /phone/attendance` = the last 31 days ending today
+    from the stored days (brought up to date first), without `not_employed` days; `channels` = the channels of the
+    counted punches between the day's first IN and last OUT. No flag, reason or review mark appears in either.
+53. **Phone rate limits (P2):** 10 challenges and 10 punches a minute per phone sign-in, 6 phone-code requests a
+    minute per gate device (spec rule 8). `/kiosk/me` and the heartbeat carry `kiosk_settings.phone_code`
+    `{enabled (the setting only), refresh_seconds (life minus 10, at least 5), show_seconds}`.
+54. **Texts (P2):** new stored codes `GATE_CODE_INVALID`, `GATE_CODE_EXPIRED` and the flag `OUTSIDE_PLANT` (with a
+    help text) are in `punchReasons` and in the Excel words (`reasons.py`, one test keeps them equal). The phone
+    result texts `phone.punch.<CODE>.title|message|next` and the settings labels are written in P4 with the pages.

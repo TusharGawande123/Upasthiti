@@ -22,15 +22,19 @@ section at the bottom is the detailed log) and `docs/decisions/0036-m5-build-cho
   password, Super Admin switches, passkeys (webauthn 3.0.1), cleanup jobs, migration 0028 (`sign_in_method`),
   decision lines 35 to 44, 71 new tests (AC-1 to AC-19, AC-49, AC-50, AC-54 to AC-56, AC-59). Full backend suite
   at the end of P1: 1501 passed, coverage 91.07%.
+- **M4b P2 backend (2026-11-02):** phone face punch (challenge bound to the sign-in, 1:1 match, location rule 12 with
+  other plants and `OUTSIDE_PLANT`), gate code `UPG1.` + `/kiosk/gate-code` + gate-code punch, F-73 reads,
+  settings with the cool-down cross-check, M5 amendments (inside now / muster / alert by where the person
+  stands, `on_outside_work`, many-rejections filter), texts. Decisions 0036 lines 45 to 54, 60 new tests; full backend suite 1573 passed, coverage 91.24 %.
+  Details and "What P3 must know" are in the plan Status section.
 
-## Stopped here (Anuradha's weekly limit reached 90% on 2026-11-01)
-- **M4b P2 was started and stopped before any change was made** (the working tree was clean, nothing lost).
-  The brief for it is in the plan Status section and below under "Left to do". Start P2 from there.
+## Stopped here
+- After P2 the backend of M4b is complete except P3 (admin side). Start P3 from the plan Status section.
 
 ## Left to do (in this order)
-1. **M4b P2** (phone face punch, gate code `UPG1.`, `/kiosk/gate-code`,
-   COALESCE(location_plant_id, plant_id) in inside-now and muster), **P3** (admin side: punch log channel
-   filter, Needs review phone filter and bulk confirm, F-69 job, F-70 alert, F-73, audit viewer), **P4**
+1. **M4b P3** (admin side: punch log channel
+   filter and phone fields, Needs review phone filter and bulk confirm F-76, employees list `phone` filter, audit
+   viewer; F-69, F-70 and F-73 are already done), **P4**
    (frontend `/phone/*` pages, admin Phone attendance card, Vercel CSP and Permissions-Policy, size budget,
    S-46 Playwright mobile project, S-49 memory check in the CI `docker` job). Spec: `docs/specs/M4b-phone-punch.md`
    (sections 4 to 11, acceptance criteria AC-1 to AC-59).
@@ -50,7 +54,9 @@ section at the bottom is the detailed log) and `docs/decisions/0036-m5-build-cho
    five checks `backend`, `frontend`, `e2e`, `docker`, `hooks`).
 
 ## Decisions that need Tushar (or the client)
-Marked "to confirm with Tushar" in `docs/decisions/0036-m5-build-choices.md`: lines 1, 6, 8, 9, 13, 15 (8 and 9
+Marked "to confirm with Tushar" in `docs/decisions/0036-m5-build-choices.md`: lines 1, 6, 8, 9, 13, 15, and from
+P2 45 (early-OUT on the phone), 47 (GET and POST for the phone code), 48 (a code that names no device is
+answered without a row), 51 (many-rejections counts channel `kiosk` only) (8 and 9
 also with the client), the poster privacy text at 11 pt, the absence-streak reading, the Styles and menu size
 budgets (lines 20 and 21), poster layout (line 19), notice-acceptance clean-up (line 28), the phone texts
 (lines 30 to 34, especially the DPDP notice wording, which is only a layout draft).

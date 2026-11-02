@@ -350,6 +350,8 @@ def test_the_heartbeat_keeps_the_old_fields_and_adds_settings(
         },
         # M5: the small lines of the gate screens (F-28 on, F-37 and F-2 off by default).
         "screen": {"show_inside_count": True, "late_hint": False, "show_month_line": False},
+        # M4b: the phone code panel of the gate screen.
+        "phone_code": {"enabled": True, "refresh_seconds": 20, "show_seconds": 60},
     }
 
 

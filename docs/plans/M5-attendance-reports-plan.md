@@ -409,3 +409,39 @@ a real phone at 360 px, report downloads opened in Excel.
   gate-code settings (`phone_gate_code_seconds`, `kiosk_show_phone_code`, `kiosk_phone_code_show_seconds` with the
   cool-down cross-check). For P4: the AC-59 docker-job memory check (8 parallel sign-ins + 4 face punches under
   450 MB) is not in CI yet; the frontend must read `details.ended` of `PHONE_NOT_SIGNED_IN`.
+- 2026-11-02 **M4b P2 done** (Sonnet): backend of the phone punch. `app/modules/phone/punch_service.py` (challenge bound to the
+  phone sign-in, face punch with a 1:1 match against the signed-in employee, gate-code punch), `gate_code.py` (text
+  `UPG1.<device>.<unix>.<mac>`, server HMAC, 30 s + 5 s grace), `gate_code_service.py` (the answer of
+  `/kiosk/gate-code`, "anyone eligible" cache 60 s), `history.py` (`GET /phone/punches/today`, `GET /phone/attendance`,
+  F-73), rules `phone_location.py` (rule 12: own fence, other plant of the company, `OUTSIDE_PLANT`),
+  `face_match_one_to_one.py`, `gate_code.py` in `app/antiproxy/rules/`, lists `PHONE_FACE_RULES` / `GATE_CODE_RULES` in
+  `engine.py`. Endpoints: `POST /phone/punch/challenge`, `/phone/punch/face`, `/phone/punch/gate-code`, `GET
+  /phone/punches/today`, `GET /phone/attendance`, `POST|GET /kiosk/gate-code`; `/kiosk/me` carries
+  `kiosk_settings.phone_code`. Settings `phone_gate_code_seconds`, `kiosk_show_phone_code`,
+  `kiosk_phone_code_show_seconds` + the cool-down cross-check (`SETTING_INVALID`). M5 amendments: `standing_plant_id`
+  in `dashboard/service.py` (inside now, muster, gate count F-28 and the still-inside alert by where the person
+  stands; `OUTSIDE_PLANT` = inside no plant), `on_outside_work` in the live numbers, `home_plant` on muster people
+  (screen and PDF); the many-rejections alert counts channel `kiosk` only. Texts: `punchReasons` + Excel words for
+  `GATE_CODE_INVALID`, `GATE_CODE_EXPIRED`, `OUTSIDE_PLANT` (`npm run i18n:check` ok). Decisions 0036 lines 45-54
+  (**to confirm: 45 early-OUT on the phone, 47 GET+POST, 48 code naming no device = no row, 51 many-rejections filter**).
+  Tests: `test_m4b_phone_face_punch.py` (23: AC-20 to AC-29, AC-41b, AC-49 punch part, request checks),
+  `test_m4b_gate_code.py` (25: AC-30 to AC-35, AC-42), `test_m4b_phone_history.py` (4: AC-51), `test_m4b_inside_now.py`
+  (8: AC-41, AC-41b, alerts). Full backend suite: 1573 passed (one old test, the heartbeat shape, updated for `phone_code`), coverage 91.24 % (floor 84).
+- What P3 must know: phone punch rows are in `punches` with `channel = 'phone'`, `kiosk_id` null for a face punch
+  (set for a gate-code punch), `claimed_employee_id` = the signed-in employee on a refusal without a match,
+  `location_plant_id` null for `OUTSIDE_PLANT`; `OUTSIDE_PLANT` is a flag code (stored in `reason_codes` of a
+  `flagged` row) and is NOT yet in the review page's flag list / `review_service` summary (`LOCATION_AT_EDGE` is the
+  pattern); a refused phone punch naming an employee (`employee_id` or `claimed_employee_id`) is approvable by the
+  existing M4 review (tested for `OUTSIDE_GEOFENCE` and `SHIFT_ALREADY_CLOSED`). Still to do in P3: punch log
+  `channel` / `outside_plant` filters and the `channel`, `outside_plant`, `phone_browser` fields (the log
+  presenter must show `kiosk` null for a face punch), lat/lon of a phone punch only to the Super Admin, "Needs review"
+  `channel=phone` filter + `bulk_confirmable` + `POST /reviews/bulk-confirm` (F-76), the employees list `phone=on|off`
+  filter + `phone_punch_enabled` item field, the audit viewer, the dashboard "On outside work: N" line (API done:
+  `on_outside_work`), settings labels of the 3 new keys. For P4: result texts `phone.punch.<CODE>.title|message|next`
+  (codes a phone punch can answer: all M3 face codes, `OUTSIDE_GEOFENCE`, `LOCATION_*`, `GPS_ACCURACY_TOO_LOW`,
+  `GEOFENCE_NOT_SET`, `COOLDOWN_ACTIVE`, `OUT_TOO_SOON`, `SHIFT_ALREADY_CLOSED`, `GATE_CODE_INVALID`,
+  `GATE_CODE_EXPIRED`, `WRONG_PLANT`, `SNAPSHOT_MISSING`, `SNAPSHOT_INVALID`, `FACE_NOT_RECOGNISED`, `SPOOF_SUSPECTED`);
+  the answer is `{punch_id|null, decision, reason_code, direction, punch_time, outside_plant, details.retry_allowed}`;
+  `punch_id` is null only for a gate code that names no known device; the gate panel (4.2, 4.3) reads
+  `GET|POST /kiosk/gate-code` (`code_text` null = show nothing) and `kiosk_settings.phone_code`; the gate card reader
+  must ignore texts starting `UPG1.` (AC-36, frontend). Phone punches need `PHONE_NOTICE_REQUIRED` handling (428).
