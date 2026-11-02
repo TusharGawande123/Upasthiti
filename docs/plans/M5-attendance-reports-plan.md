@@ -445,3 +445,33 @@ a real phone at 360 px, report downloads opened in Excel.
   `punch_id` is null only for a gate code that names no known device; the gate panel (4.2, 4.3) reads
   `GET|POST /kiosk/gate-code` (`code_text` null = show nothing) and `kiosk_settings.phone_code`; the gate card reader
   must ignore texts starting `UPG1.` (AC-36, frontend). Phone punches need `PHONE_NOTICE_REQUIRED` handling (428).
+- 2026-11-02 **M4b P3 done (backend of the admin side)** (Sonnet): punch log (`channel`, `outside_plant` filters; `channel`,
+  `outside_plant`, `phone_browser`, `location_plant` item fields; `location` of a phone punch only for the Super Admin plus
+  `location_accuracy_m`; Excel columns "Channel" and "Outside plant"); "Needs review" (`channel=phone`, `OUTSIDE_PLANT` in the
+  code list, `bulk_confirmable` and `outside_reason` on list items and on the review context, `POST /reviews/bulk-confirm`, F-76);
+  `GET /employees?phone=on|off` and `phone_punch_enabled`; audit viewer `actor_code`/`actor_name` for employee actors; "Cards
+  ending soon" (`phone_punch_enabled` on list items, `phone_on_count`). Tests `test_m4b_admin_side.py` (22: AC-39, AC-40, AC-53,
+  reason, visibility, filters, audit, cards). Decisions 0036 lines 55-62 (**to confirm: 55 bulk "clean" test, 58 outside reason
+  source, 59 phone position visibility**). Frontend: only types and texts (see below). F-69 and F-70 were already done in P1.
+  Full backend suite result: FULL_SUITE_RESULT.
+- What P4 must know: (1) **Punch log item** adds `channel: "kiosk"|"phone"`, `outside_plant: bool`, `phone_browser: string|null`,
+  `location_plant: {id,name,code}|null`; `kiosk` is `null` for a phone face punch (the TS type is now nullable and the places
+  that print the device name show `punches.channel.phone` = "Phone"); a gate-code punch has `channel` phone AND a `kiosk`
+  (the gate device whose code was scanned) and `method` `gate_code`. Detail: `location` null unless Super Admin;
+  `location_accuracy_m` for all. Filters: `channel=kiosk|phone`, `outside_plant=true`. Texts to add in P4: method names
+  "Face" / "Card" / "Phone code", the tag "Outside plant" (`punchReasons.OUTSIDE_PLANT` exists), "At plant K200 (own plant K134)"
+  from `location_plant`. (2) **Needs review:** `GET /reviews?channel=phone[&tab=...]`; list item = `{punch (as before + the new
+  punch fields), latest_review, approvable, bulk_confirmable, outside_reason}`; context = same two extra fields plus
+  `punch.location` for the map. Show the checkbox column when `bulk_confirmable`. `POST /reviews/bulk-confirm`
+  `{items:[{punch_id, expected_latest_review_id|null}] (1-100, no duplicates), note?: <=300}` answers `200 {results:[{punch_id, ok,
+  error_code?}]}`; codes `REVIEW_CHANGED`, `REVIEW_NOT_ALLOWED`, `NOT_BULK_CONFIRMABLE` (text `errors.NOT_BULK_CONFIRMABLE`
+  exists), `NOT_FOUND`; reload the list after the call and show failures per row. (3) **Employees:** `?phone=on|off`, item
+  `phone_punch_enabled` (show icon + "Phone"). (4) **Cards ending soon:** list items `phone_punch_enabled` (line "Phone punching
+  on"); `expiring-count.phone_on_count`. (5) **Audit:** `actor_type: "employee"` (text `audit.actors.employee` = "Employee"),
+  `actor_code` + `actor_name`; action names `phone_access.*`, `phone_account.*`, `phone_auth.*`, `phone_proof.failed`,
+  `phone_notice.accept`, `phone_passkey.*`, `punch_review.confirm` with `after.bulk` true. (6) **Settings:** group `phone` (7
+  keys) and the two gate-screen keys `kiosk_show_phone_code`, `kiosk_phone_code_show_seconds` (group `kiosk_screen`) have
+  `settings.items.<key>.label|help` and `settings.groups.phone.*`; add `phone` to `GROUP_ORDER` in `settings-page.tsx`.
+  (7) Still frontend only: the dashboard line "On outside work: N" (`on_outside_work` in the live numbers) and the whole `/phone/*`
+  area. `npm run typecheck` shows 3 errors about the missing `recharts` package in `node_modules` on this laptop (run
+  `npm install`); none come from P3.

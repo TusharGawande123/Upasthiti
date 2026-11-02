@@ -271,3 +271,32 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
 54. **Texts (P2):** new stored codes `GATE_CODE_INVALID`, `GATE_CODE_EXPIRED` and the flag `OUTSIDE_PLANT` (with a
     help text) are in `punchReasons` and in the Excel words (`reasons.py`, one test keeps them equal). The phone
     result texts `phone.punch.<CODE>.title|message|next` and the settings labels are written in P4 with the pages.
+55. **Bulk confirm "clean" test (P3, to confirm with Tushar):** a punch is bulk-confirmable when it is a phone punch,
+    `flagged`, its `reason_codes` are exactly `["OUTSIDE_PLANT"]`, a face matched (`employee_id` set) and it has no
+    review. The spec's "outside work allowed on the punch date" is NOT checked again against today's switch: the
+    engine writes `OUTSIDE_PLANT` only while outside work is allowed, and the daily job switches it OFF when the
+    until date passes, which would otherwise make every old punch of that visit un-confirmable in a batch.
+56. **Bulk confirm answers (P3):** `POST /reviews/bulk-confirm`, 1 to 100 items (101 = `VALIDATION_FAILED`, also for the
+    same punch twice or a note over 300 characters), Super Admin only (`FORBIDDEN` for the others). Each item has its own
+    transaction. Per-item codes: `NOT_FOUND`, `REVIEW_CHANGED`, `REVIEW_NOT_ALLOWED` (a refused punch), `NOT_BULK_CONFIRMABLE`
+    (also a punch that already has a review, even when the screen knew it). The note becomes the `reason` of each
+    `confirmed` row and of the audit row; audit `punch_review.confirm` carries `bulk: true`.
+57. **Review list rule for phone refusals (P3):** the "Rejected" tab and the sidebar number list a refused phone punch only when it
+    names an employee (`employee_id` or `claimed_employee_id`); gate refusals are all listed as before. `channel=phone` on
+    `GET /reviews` is a plain filter on top of the tabs. `OUTSIDE_PLANT` reaches the flag counts of `/reviews/summary`
+    through the existing `by_code` count, and the screen's code filter list.
+58. **Outside-work reason (P3, to confirm with Tushar):** `outside_reason` of a review item = the reason of the latest audit
+    entry `phone_access.outside_on` of that employee made before the punch (the reason is kept in the audit log only, as
+    the spec says); null when there is none. It is not a new column.
+59. **Phone position visibility (P3, to confirm with Tushar):** for a phone punch `PunchDetail.location` (lat, lon, accuracy) is
+    sent only to the Super Admin; the other roles get `location: null` and the new `location_accuracy_m` plus the
+    existing `geofence_distance_m`. Gate punches keep the M2/M4 rule (every role with the punch log sees the position).
+60. **New punch-log fields (P3):** `channel`, `outside_plant`, `phone_browser` ("Chrome on Android", browser and system only),
+    `location_plant` (the plant whose fence matched, only when it is not the home plant). A phone punch inside another
+    plant's fence stays in the HOME plant's log (a Plant Head of the visited plant does not see it, spec 10 answer 6).
+    The Excel export gains the columns "Channel" ("Attendance device" or "Phone") and "Outside plant" (Yes/No) at the end.
+61. **Employees list, audit, cards (P3):** `GET /employees?phone=on|off` and `phone_punch_enabled` on every item; audit entries
+    of `actor_type = employee` carry `actor_name` (full name) and the new `actor_code`; the QR card list items carry
+    `phone_punch_enabled` and `/qr-cards/expiring-count` carries `phone_on_count`.
+62. **Settings labels (P3):** the ten `phone` and phone-code settings have `settings.items.<key>` labels and a
+    `settings.groups.phone` title in `common.json`; the settings page does not show the group until P4 adds the card.

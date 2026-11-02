@@ -28,13 +28,15 @@ section at the bottom is the detailed log) and `docs/decisions/0036-m5-build-cho
   stands, `on_outside_work`, many-rejections filter), texts. Decisions 0036 lines 45 to 54, 60 new tests; full backend suite 1573 passed, coverage 91.24 %.
   Details and "What P3 must know" are in the plan Status section.
 
+- **M4b P3 backend (2026-11-02):** punch log channel and outside-plant filters and phone fields, "Needs review" phone
+  filter, `OUTSIDE_PLANT` reason and bulk confirm (F-76), employees `phone` filter, audit employee actors, "Cards ending soon"
+  phone line, admin types and texts. Decisions 0036 lines 55 to 62. Details and "What P4 must know" are in the plan Status section.
+
 ## Stopped here
-- After P2 the backend of M4b is complete except P3 (admin side). Start P3 from the plan Status section.
+- After P3 the whole backend of M4b is done. Start P4 (frontend) from the plan Status section.
 
 ## Left to do (in this order)
-1. **M4b P3** (admin side: punch log channel
-   filter and phone fields, Needs review phone filter and bulk confirm F-76, employees list `phone` filter, audit
-   viewer; F-69, F-70 and F-73 are already done), **P4**
+1. **M4b P4**
    (frontend `/phone/*` pages, admin Phone attendance card, Vercel CSP and Permissions-Policy, size budget,
    S-46 Playwright mobile project, S-49 memory check in the CI `docker` job). Spec: `docs/specs/M4b-phone-punch.md`
    (sections 4 to 11, acceptance criteria AC-1 to AC-59).
@@ -59,7 +61,7 @@ P2 45 (early-OUT on the phone), 47 (GET and POST for the phone code), 48 (a code
 answered without a row), 51 (many-rejections counts channel `kiosk` only) (8 and 9
 also with the client), the poster privacy text at 11 pt, the absence-streak reading, the Styles and menu size
 budgets (lines 20 and 21), poster layout (line 19), notice-acceptance clean-up (line 28), the phone texts
-(lines 30 to 34, especially the DPDP notice wording, which is only a layout draft).
+(lines 30 to 34, especially the DPDP notice wording, which is only a layout draft), and from P3 55 (bulk "clean" test), 58 (outside-work reason source), 59 (phone position only for the Super Admin).
 
 ## How to run things
 Backend (from `backend/`): `uv run pytest -q -p no:cacheprovider` (about 20 minutes), `uv run ruff check . && uv run

@@ -188,7 +188,9 @@ def test_ac_39_the_excel_export_has_channel_and_outside_plant_columns(world: dic
     answer = world["boss"].get("/api/v1/punches/export.xlsx", params={"date": DAY})
 
     assert answer.status_code == 200
-    rows = list(openpyxl.load_workbook(io.BytesIO(answer.content)).active.values)
+    sheet = openpyxl.load_workbook(io.BytesIO(answer.content)).active
+    assert sheet is not None
+    rows = list(sheet.values)
     header = list(rows[0])
     assert header[-2:] == ["Channel", "Outside plant"]
     by_channel = {row[header.index("Channel")]: row for row in rows[1:]}
@@ -346,7 +348,7 @@ def test_ac_53_only_the_clean_outside_punches_are_marked_and_confirmed(world: di
     audits = session.scalars(
         select(AuditLog).where(AuditLog.action == "punch_review.confirm")
     ).all()
-    assert len(audits) == 3 and all(a.after["bulk"] is True for a in audits)
+    assert len(audits) == 3 and all((a.after or {}).get("bulk") is True for a in audits)
 
 
 def test_confirmed_punches_leave_the_to_check_list_and_keep_counting(world: dict) -> None:
