@@ -173,7 +173,6 @@ export function EarlyOutView({ prompt, onAgree, onCancel, seconds = EARLY_OUT_SE
           </p>
 
           <div className="flex flex-col gap-4 md:flex-row">
-            {/* biome-ignore lint/a11y/noAutofocus: Agree is the default focus of the alert. */}
             <KioskButton
               autoFocus
               onClick={onAgree}

@@ -517,3 +517,4 @@ a real phone at 360 px, report downloads opened in Excel.
   into `useReportDownload`, `ReportFilters`, `ReportMessage`. Skipped with a reason: audit action labels (the audit page shows raw action names
   for all actions), neutral location refusal texts (no spec asks for them). Tests: AC-52 (unit + Playwright), AC-38, AC-48, card proof 429,
   employee page at 360 px in `responsive.spec.ts`. Decision 0036 line 74 (**to confirm: the position line for heads, location texts**).
+- 2026-11-02 root cause of the flaky face-punch e2e tests (open point of 2026-11-01): in e2e/tests/helpers.ts the regex /\bLEFT\b/ had been saved with two backspace characters, so the fake head never turned left and the punch failed about two runs in three. Fixed; kiosk-face-punch and admin-face pass 14 of 14 headed. Biome warnings (unused suppression, innerText with a WHY comment, text-date min/max) fixed so the pre-commit hook passes on all files.

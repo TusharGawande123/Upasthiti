@@ -290,6 +290,7 @@ export function ChangeValidUntilDialog({ card, onClose }: { card: Card; onClose:
   const [reason, setReason] = useState("");
   const valid = reason.trim().length >= MIN_REASON && validUntil >= today;
   // "Extend" always counts from the later of today and the current end.
+  // biome-ignore lint/complexity/useMathMinMax: these are YYYY-MM-DD text dates, not numbers.
   const extendFrom = card.valid_until > today ? card.valid_until : today;
 
   return (

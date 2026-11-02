@@ -51,6 +51,7 @@ async function paintCamera(page: Page, person: number) {
       navigator.mediaDevices.getUserMedia = async () => canvas.captureStream(20);
       // Turn the head the moment the screen asks, and straighten it when the screen says so.
       new MutationObserver(() => {
+        // biome-ignore lint/performance/useDomNodeTextContent: only the visible text counts (hidden hints do not).
         const text = document.body?.innerText ?? "";
         if (/now look straight again/i.test(text)) head.yaw = 0;
         else if (/turn your head to your/i.test(text)) head.yaw = /LEFT/.test(text) ? 25 : -25;

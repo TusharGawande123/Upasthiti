@@ -458,11 +458,13 @@ export async function punchWithFace(
     if (win.__followsScreen) return;
     win.__followsScreen = true;
     const follow = () => {
-      // `innerText` is only what is on the screen (hidden hints are not in it).
+      // `innerText` is only what is on the screen (hidden hints are not in it), so `textContent`
+      // would turn the head on a hint nobody can see.
+      // biome-ignore lint/performance/useDomNodeTextContent: the visible text is what matters here.
       const text = document.body.innerText;
       if (/now look straight again/i.test(text)) win.__head.yaw = 0;
       else if (/turn your head to your/i.test(text)) {
-        win.__head.yaw = /LEFT/.test(text) ? 25 : -25;
+        win.__head.yaw = /\bLEFT\b/.test(text) ? 25 : -25;
       }
     };
     new MutationObserver(follow).observe(document.documentElement, {
