@@ -30,7 +30,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.antiproxy.context import DeviceIdentity, Outcome, PunchContext, PunchLimits
+from app.antiproxy.context import DeviceIdentity, Outcome, PunchContext, PunchLimits, RuleResult
 from app.antiproxy.engine import (
     GATE_CODE_RULES,
     PHONE_FACE_RULES,
@@ -41,7 +41,7 @@ from app.antiproxy.engine import (
     run_face_rules,
     run_rules,
 )
-from app.antiproxy.face_context import FaceFrame, FacePunchContext
+from app.antiproxy.face_context import FaceFrame, FaceLimits, FacePunchContext
 from app.antiproxy.facts_at_time import employee_plant_on
 from app.antiproxy.rules.face_challenge import nonce_hash
 from app.antiproxy.rules.snapshot import check_snapshot
@@ -83,15 +83,16 @@ from app.modules.punches.face_service import (
     decode_frame,
     face_snapshot,
     load_face_limits,
+    lock_and_decide_in_out,
     score_decimal,
 )
-from app.modules.punches.face_service import after_identity as lock_and_decide_in_out
 from app.modules.punches.models import (
     MatchMode,
     Punch,
     PunchChallenge,
     PunchChannel,
     PunchDecision,
+    PunchSnapshot,
     SnapshotReason,
 )
 from app.modules.punches.models import PunchMethod as PunchRowMethod
@@ -109,6 +110,7 @@ logger = logging.getLogger(__name__)
 
 # A refused phone face punch keeps no photo when it carries no new evidence (rule 10, step 6).
 NO_PHONE_PHOTO_CODES = (*NO_PHOTO_CODES, "SHIFT_ALREADY_CLOSED")
+# Called after the commit with the stored selfie, for the F-30 "is there a face" check.
 PhotoCheck = Callable[[uuid.UUID, bytes], None]
 
 
@@ -220,35 +222,9 @@ def record_face_punch(
     frames = [FaceFrame(role=item.role, jpeg=decode_frame(item.jpeg)) for item in request.frames]
 
     place = _place_context(session, caller, now, limits, request.location)
-    place_decision = run_rules(place, PHONE_LOCATION_RULES)
-    context: FacePunchContext | None = None
-    if place_decision.outcome is Outcome.REJECT:
-        decision = place_decision  # a punch from the wrong place never reaches the face worker
-    else:
-        template = _own_template(session, employee, model_id, key)
-
-        def job(models: FaceModels):  # noqa: ANN202
-            face_context = FacePunchContext(
-                session=session,
-                plant_id=place.plant_id,
-                device_identity=DeviceIdentity.of_phone_session(phone_session_id),
-                now=now,
-                limits=face_limits,
-                models=models,
-                gallery=EMPTY_GALLERY,
-                challenge_nonce=request.challenge_nonce,
-                frames=frames,
-                expected_employee=employee,
-                own_template=template,
-            )
-            return run_face_rules(face_context, PHONE_FACE_RULES), face_context
-
-        result, context = run_face_job(engine, job)
-        if result.outcome is Outcome.ALLOW and context.employee is not None:
-            place.employee = employee
-            decision = combine(place_decision, lock_and_decide_in_out(session, place))
-        else:
-            decision = rejected_after(place_decision, result.reason_code or "INTERNAL_ERROR")
+    decision, context = _judge_face(
+        session, caller, request, engine, place, frames, face_limits, now, key, model_id
+    )
 
     punch = _face_punch_row(caller, request, context, decision, place, now, model_id)
     first_code = decision.reason_codes[0] if decision.outcome is Outcome.REJECT else None
@@ -262,25 +238,87 @@ def record_face_punch(
         rejected_reason=SnapshotReason.PHONE_FACE_REJECTED,
         no_photo_codes=NO_PHONE_PHOTO_CODES,
     )
+    saved = _save_punch_once(session, caller, request.client_punch_id, punch, snapshot, storage)
+    return phone_answer(saved)
+
+
+def _judge_face(
+    session: Session,
+    caller: PhoneEmployee,
+    request: PhoneFacePunchRequest,
+    engine: FaceEngine,
+    place: PunchContext,
+    frames: list[FaceFrame],
+    face_limits: FaceLimits,
+    now: datetime,
+    key: bytes,
+    model_id: str,
+) -> tuple[EngineDecision, FacePunchContext | None]:
+    """Rules 11 to 13 for one phone face punch: the place first (a wrong place never reaches the
+    face worker), then the face and the IN/OUT rules. Returns the decision and the face context
+    (None when the face worker was not used)."""
+    place_decision = run_rules(place, PHONE_LOCATION_RULES)
+    if place_decision.outcome is Outcome.REJECT:
+        return place_decision, None
+
+    employee = caller.employee
+    template = _own_template(session, employee, model_id, key)
+
+    def job(models: FaceModels) -> tuple[RuleResult, FacePunchContext]:
+        face_context = FacePunchContext(
+            session=session,
+            plant_id=place.plant_id,
+            device_identity=DeviceIdentity.of_phone_session(caller.phone_session.id),
+            now=now,
+            limits=face_limits,
+            models=models,
+            gallery=EMPTY_GALLERY,
+            challenge_nonce=request.challenge_nonce,
+            frames=frames,
+            expected_employee=employee,
+            own_template=template,
+        )
+        return run_face_rules(face_context, PHONE_FACE_RULES), face_context
+
+    result, context = run_face_job(engine, job)
+    if result.outcome is Outcome.ALLOW and context.employee is not None:
+        place.employee = employee
+        return combine(place_decision, lock_and_decide_in_out(session, place)), context
+    return rejected_after(place_decision, result.reason_code or "INTERNAL_ERROR"), context
+
+
+def _save_punch_once(
+    session: Session,
+    caller: PhoneEmployee,
+    client_punch_id: uuid.UUID,
+    punch: Punch,
+    snapshot: PunchSnapshot | None,
+    storage: Storage | None,
+    device: KioskDevice | None = None,
+) -> Punch:
+    """Save the punch (and its photo) in one transaction. A retry of the same client_punch_id
+    loses the race against the unique rule and gets the stored winner back instead."""
     try:
         session.add(punch)
         session.flush()  # the unique (phone sign-in, client_punch_id) rule is checked here
         if snapshot is not None:
             session.add(snapshot)
+        if device is not None:
+            note_last_punch(device, punch)
         mark_punch_stale(session, punch)
         session.commit()
     except IntegrityError:
         session.rollback()
         delete_file_quietly(snapshot, storage)
-        winner = find_phone_punch(session, phone_session_id, request.client_punch_id)
+        winner = find_phone_punch(session, caller.phone_session.id, client_punch_id)
         if winner is None:
             raise
-        return phone_answer(winner)
+        return winner
     except Exception:
         session.rollback()
         delete_file_quietly(snapshot, storage)
         raise
-    return phone_answer(punch)
+    return punch
 
 
 def _own_template(
@@ -387,25 +425,11 @@ def record_gate_code_punch(
     snapshot = store_snapshot(
         session, punch, place, decision, now, storage, reason=SnapshotReason.PHONE_GATE_CODE
     )
-    try:
-        session.add(punch)
-        session.flush()
-        if snapshot is not None:
-            session.add(snapshot)
-        note_last_punch(device, punch)
-        mark_punch_stale(session, punch)
-        session.commit()
-    except IntegrityError:
-        session.rollback()
-        delete_file_quietly(snapshot, storage)
-        winner = find_phone_punch(session, phone_session_id, request.client_punch_id)
-        if winner is None:
-            raise
-        return phone_answer(winner)
-    except Exception:
-        session.rollback()
-        delete_file_quietly(snapshot, storage)
-        raise
+    saved = _save_punch_once(
+        session, caller, request.client_punch_id, punch, snapshot, storage, device=device
+    )
+    if saved is not punch:
+        return phone_answer(saved)  # a retry won the race: its stored answer
     if after_photo is not None and snapshot is not None and place.snapshot is not None:
         after_photo(snapshot.id, place.snapshot.jpeg)  # F-30, as for a card photo
     return phone_answer(punch)

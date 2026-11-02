@@ -228,7 +228,7 @@ def record_face_punch(
         result, context = run_face_job(engine, job)
         if result.outcome is Outcome.ALLOW and context.employee is not None:
             place.employee = context.employee
-            decision = combine(place_decision, after_identity(session, place))
+            decision = combine(place_decision, lock_and_decide_in_out(session, place))
         else:
             decision = rejected_after(place_decision, result.reason_code or "INTERNAL_ERROR")
 
@@ -303,7 +303,7 @@ def place_context(
     )
 
 
-def after_identity(session: Session, context: PunchContext) -> EngineDecision:
+def lock_and_decide_in_out(session: Session, context: PunchContext) -> EngineDecision:
     """IN/OUT and the flag rules, with the employee's row locked (two gates at once)."""
     employee = context.employee
     if employee is None:
@@ -574,7 +574,7 @@ def record_code_try(
             )
         place = _origin_place(session, kiosk, now, limits, pending)
         place.employee = claimed
-        decision = combine(_origin_flags(session, pending), after_identity(session, place))
+        decision = combine(_origin_flags(session, pending), lock_and_decide_in_out(session, place))
         return _final_code_row(
             session,
             kiosk,

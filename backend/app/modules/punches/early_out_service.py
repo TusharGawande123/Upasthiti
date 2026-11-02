@@ -107,7 +107,7 @@ def _confirm_face_or_code(
     elif employee.plant_id != kiosk.plant_id:
         decision = rejected_after(place_decision, "WRONG_PLANT")
     else:
-        decision = combine(place_decision, face_service.after_identity(session, place))
+        decision = combine(place_decision, face_service.lock_and_decide_in_out(session, place))
 
     counts = decision.outcome is Outcome.ALLOW
     punch = Punch(
