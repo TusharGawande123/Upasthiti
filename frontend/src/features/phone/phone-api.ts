@@ -78,9 +78,22 @@ export type ProofAnswer = {
   employee: { code: string; first_name: string };
 };
 
+/** The alert before an OUT earlier than the shift end: same facts as the gate's alert. */
+export type PhoneEarlyOutPrompt = {
+  token: string;
+  client_punch_id: string;
+  expires_at: string;
+  tier: "before_half" | "before_end";
+  half_remaining_min: number | null;
+  half_at: string | null;
+  full_remaining_min: number;
+  shift_end: string;
+};
+
 export type PhonePunchAnswer = {
   punch_id: string | null;
-  decision: "accepted" | "rejected";
+  decision: "accepted" | "rejected" | "needs_confirmation";
+  early_out?: PhoneEarlyOutPrompt | null;
   reason_code: string | null;
   direction: "in" | "out" | null;
   punch_time: string;
@@ -131,6 +144,14 @@ export const phoneApi = {
     location: PhoneLocation;
     app_version?: string;
   }) => apiPost<PhonePunchAnswer>("/phone/punch/gate-code", body),
+  /** Agree at the early-OUT alert (the server decides the punch again). */
+  earlyOutConfirm: (body: {
+    client_punch_id: string;
+    token: string;
+    photo_jpeg: string | null;
+    location: PhoneLocation;
+    app_version?: string;
+  }) => apiPost<PhonePunchAnswer>("/phone/punch/early-out/confirm", body),
   attendance: () => apiGet<{ days: AttendanceDay[] }>("/phone/attendance"),
   passkeyRegisterOptions: () =>
     apiPost<{ options: Record<string, unknown> }>("/phone/passkeys/register/options"),

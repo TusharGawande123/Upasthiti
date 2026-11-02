@@ -275,6 +275,117 @@ describe("phone gate-code punch", () => {
   });
 });
 
+// The question before an OUT earlier than the shift end (decision 0036 lines 77 and 88).
+const EARLY_OUT_ASK = {
+  punch_id: null,
+  decision: "needs_confirmation",
+  reason_code: null,
+  direction: "out",
+  punch_time: "2026-11-02T04:40:00Z",
+  outside_plant: false,
+  details: {},
+  early_out: {
+    token: "token-early-out-0001",
+    client_punch_id: "11111111-1111-4111-8111-111111111111",
+    expires_at: "2026-11-02T04:41:30Z",
+    tier: "before_half",
+    half_remaining_min: 110,
+    half_at: "2026-11-02T06:30:00Z", // 12:00 IST
+    full_remaining_min: 530,
+    shift_end: "2026-11-02T13:30:00Z", // 19:00 IST
+  },
+};
+
+describe("phone early OUT (face punch)", () => {
+  it("asks first; Agree sends the token with a fresh location and shows OUT", async () => {
+    const calls = mockApi({
+      "GET /phone/me": { body: ME },
+      "POST /phone/punch/challenge": () => ({ body: challenge() }),
+      "POST /phone/punch/face": { body: EARLY_OUT_ASK },
+      "POST /phone/punch/early-out/confirm": { body: { ...ACCEPTED, direction: "out" } },
+    });
+    const user = userEvent.setup();
+    renderRoute("/phone/punch/face");
+
+    expect(
+      await screen.findByText(
+        "You are leaving before the shift ends. Leave now?",
+        {},
+        { timeout: 12_000 },
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Your half shift is not complete yet")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Agree" }));
+
+    expect(await screen.findByText("OUT")).toBeInTheDocument();
+    expect(calls.find((call) => call.path === "/phone/punch/early-out/confirm")?.body).toEqual({
+      client_punch_id: "11111111-1111-4111-8111-111111111111",
+      token: "token-early-out-0001",
+      photo_jpeg: null,
+      location: expect.objectContaining({ accuracy_m: 10, age_s: 0 }),
+      app_version: expect.any(String),
+    });
+  }, 20_000);
+
+  it("Cancel sends nothing and goes back to the home page", async () => {
+    const calls = mockApi({
+      "GET /phone/me": { body: ME },
+      "POST /phone/punch/challenge": () => ({ body: challenge() }),
+      "POST /phone/punch/face": { body: EARLY_OUT_ASK },
+      "GET /phone/punches/today": { body: { items: [] } },
+    });
+    const user = userEvent.setup();
+    const router = renderRoute("/phone/punch/face");
+
+    await user.click(await screen.findByRole("button", { name: "Cancel" }, { timeout: 12_000 }));
+
+    await waitFor(() => expect(router.state.location.pathname).toBe("/phone"));
+    expect(calls.some((call) => call.path.includes("early-out"))).toBe(false);
+  }, 20_000);
+
+  it("shows the server's refusal when the confirmation is too old", async () => {
+    mockApi({
+      "GET /phone/me": { body: ME },
+      "POST /phone/punch/challenge": () => ({ body: challenge() }),
+      "POST /phone/punch/face": { body: EARLY_OUT_ASK },
+      "POST /phone/punch/early-out/confirm": apiError(409, "EARLY_OUT_TOKEN_INVALID"),
+    });
+    const user = userEvent.setup();
+    renderRoute("/phone/punch/face");
+
+    await user.click(await screen.findByRole("button", { name: "Agree" }, { timeout: 12_000 }));
+
+    expect(await screen.findByRole("button", { name: "Back" })).toBeInTheDocument();
+    expect(screen.queryByText("OUT")).not.toBeInTheDocument();
+  }, 20_000);
+});
+
+describe("phone early OUT (gate-code punch)", () => {
+  const QR_ME = { ...ME, employee: { ...ME.employee, punch_method: "qr" } };
+
+  it("sends the selfie again with Agree and shows OUT", async () => {
+    const calls = mockApi({
+      "GET /phone/me": { body: QR_ME },
+      "POST /phone/punch/gate-code": {
+        body: { ...EARLY_OUT_ASK, early_out: { ...EARLY_OUT_ASK.early_out, tier: "before_end" } },
+      },
+      "POST /phone/punch/early-out/confirm": { body: { ...ACCEPTED, direction: "out" } },
+    });
+    const user = userEvent.setup();
+    renderRoute("/phone/punch/gate-code");
+    fakes.qrText = "UPG1.device.1700000000.mac";
+    await user.click(await screen.findByRole("button", { name: /I'm ready/ }));
+
+    expect(await screen.findByText("Your full shift is not over yet")).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Agree" }));
+
+    expect(await screen.findByText("OUT")).toBeInTheDocument();
+    expect(
+      calls.find((call) => call.path === "/phone/punch/early-out/confirm")?.body,
+    ).toMatchObject({ photo_jpeg: "/9j/AA==", token: "token-early-out-0001" });
+  });
+});
+
 describe("password setup: prove it is you", () => {
   it("proves by face and goes to the password step", async () => {
     const calls = mockApi({

@@ -221,6 +221,67 @@ test("the phone pages fit a 360 px phone and a 768 px tablet", async ({ page }) 
   }
 });
 
+// The question before an OUT earlier than the shift end (decision 0036 line 88). A real OUT needs
+// 30 minutes after the IN and the real clock, so the server's "needs confirmation" answer is made
+// up here: this test is about the screen (it fits both sizes, Cancel sends nothing).
+test("the early-OUT question fits a 360 px phone and a 768 px tablet and Cancel sends nothing", async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  await paintCamera(page, EMPLOYEE.person);
+  await page.goto("/phone/login");
+  await page.getByLabel("Employee code").fill(EMPLOYEE.code);
+  await page.getByLabel("Password", { exact: true }).fill(PASSWORD);
+  await page.getByRole("button", { name: "Sign in", exact: true }).click();
+  await expect(page.getByText("Hello, Sunita")).toBeVisible();
+
+  const now = Date.now();
+  const sent: string[] = [];
+  await page.route("**/api/v1/phone/punch/face", (route) =>
+    route.fulfill({
+      json: {
+        punch_id: null,
+        decision: "needs_confirmation",
+        reason_code: null,
+        direction: "out",
+        punch_time: new Date(now).toISOString(),
+        outside_plant: false,
+        details: {},
+        early_out: {
+          token: "made-up-token-for-the-screen-test",
+          client_punch_id: "11111111-1111-4111-8111-111111111111",
+          expires_at: new Date(now + 90_000).toISOString(),
+          tier: "before_half",
+          half_remaining_min: 110,
+          half_at: new Date(now + 110 * 60_000).toISOString(),
+          full_remaining_min: 530,
+          shift_end: new Date(now + 530 * 60_000).toISOString(),
+        },
+      },
+    }),
+  );
+  await page.route("**/api/v1/phone/punch/early-out/confirm", (route) => {
+    sent.push(route.request().url());
+    return route.abort();
+  });
+
+  for (const [label, size] of [
+    ["360", { width: 360, height: 700 }],
+    ["768", { width: 768, height: 1024 }],
+  ] as const) {
+    await page.setViewportSize(size);
+    await page.goto("/phone/punch/face");
+    await expect(page.getByText("You are leaving before the shift ends. Leave now?")).toBeVisible({
+      timeout: 60_000,
+    });
+    await expect(page.getByRole("button", { name: "Agree" })).toBeVisible();
+    await noSidewaysScroll(page, `${label} px early-OUT question`);
+  }
+  await page.getByRole("button", { name: "Cancel" }).click();
+  await expect(page.getByText("Hello, Sunita")).toBeVisible();
+  expect(sent).toEqual([]);
+});
+
 // AC-52 (F-74): the phone pages link the manifest of /phone and register no service worker.
 test("the phone pages link their own manifest and register no service worker", async ({ page }) => {
   await page.goto("/phone/login", { waitUntil: "networkidle" });
