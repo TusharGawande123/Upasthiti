@@ -12,6 +12,8 @@ import {
   type LucideIcon,
   ShieldAlert,
   Siren,
+  Smartphone,
+  UserRoundX,
   UserX,
   WifiOff,
 } from "lucide-react";
@@ -32,6 +34,8 @@ const KIND_ICONS: Record<NotificationKind, LucideIcon> = {
   correction_decided: CircleCheck,
   absence_streak: UserX,
   monthly_register: FileSpreadsheet,
+  phone_many_phones: Smartphone,
+  phone_selfie_no_face: UserRoundX,
 };
 
 // The words of the action link under each text.
@@ -45,6 +49,8 @@ const LINK_WORDS: Record<NotificationKind, string> = {
   correction_decided: "correction",
   absence_streak: "month",
   monthly_register: "register",
+  phone_many_phones: "phone",
+  phone_selfie_no_face: "punches",
 };
 
 /** The values that fill the text: dates are written as DD/MM/YYYY, the rest comes as it is. */

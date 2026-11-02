@@ -60,6 +60,7 @@ export type DigestPlant = {
   flagged: number;
   rejected_with_employee: number;
   to_check: number;
+  phone_selfie_no_face?: number;
   device_offline_minutes_in_shifts: number;
 };
 

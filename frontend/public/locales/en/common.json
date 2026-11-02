@@ -211,8 +211,8 @@
       },
       "SERVER_NO_ANSWER": {
         "title": "NOT SURE",
-        "message": "The server did not answer in time.",
-        "next": "Scan your card again. If it was saved, you will see it.",
+        "message": "No answer in time.",
+        "next": "Scan your card again.",
         "voice": "Not sure if saved. Please scan again."
       },
       "INTERNAL_ERROR": {
@@ -314,7 +314,7 @@
       },
       "CHALLENGE_INVALID": {
         "title": "NOT ACCEPTED",
-        "message": "Please try again.",
+        "message": "The check could not be finished.",
         "next": "Please try again.",
         "voice": "Please try again."
       },
@@ -417,7 +417,7 @@
       "chipChecking": "Checking…",
       "cardRead": "Card read. Look at the camera",
       "checking": "Checking…",
-      "serverWaking": "Please wait. The server is starting; this can take up to a minute.",
+      "serverWaking": "Please wait. This can take up to a minute.",
       "notACard": "This is not an Upasthiti ID card.",
       "lowLight": "Too dark. Please switch on the gate light.",
       "startCamera": "Start camera",
@@ -707,7 +707,7 @@
     "OUTSIDE_GEOFENCE": "This device is not at the plant.",
     "LOCATION_REQUIRED": "The device did not report its location.",
     "DEVICE_REVOKED": "This device has been switched off.",
-    "DEVICE_SIGNATURE_INVALID": "This device is not paired.",
+    "DEVICE_SIGNATURE_INVALID": "This device is not paired. Pair it again.",
     "EMPLOYEE_CODE_EXISTS": "This employee code is already used. Codes are never reused.",
     "EMPLOYEE_CODE_PENDING": "This code is waiting for approval in another request.",
     "EMPLOYEE_NOT_FOUND": "This employee was not found.",
@@ -732,8 +732,8 @@
     "IMPORT_TOO_LARGE": "The file is too large (2 MB and 2,000 rows at most).",
     "IMPORT_HAS_ERRORS": "The file has errors. Nothing was saved.",
     "NONCE_REUSED": "This request was already used. Please try again.",
-    "PUBLIC_KEY_INVALID": "The device key is not valid. Ask the admin for help.",
-    "DATABASE_UNAVAILABLE": "The database is not reachable right now. Please try again in a minute.",
+    "PUBLIC_KEY_INVALID": "This device is not paired. Pair it again.",
+    "DATABASE_UNAVAILABLE": "The system is busy right now. Please try again in a minute.",
     "SUPER_ADMIN_EXISTS": "A Super Admin already exists.",
     "EXPORT_TOO_LARGE": "At most 5,000 punches per file. Choose one plant.",
     "QR_CARD_REVOKED": "A revoked card cannot be printed or changed. Issue a new card.",
@@ -778,7 +778,7 @@
     "PRIVACY_CONTACT_MISSING": "Set the privacy contact in Settings first.",
     "SETTING_INVALID": "The code-entry floor must be lower than the match threshold.",
     "OFFLINE_NOT_CONFIGURED": "Offline punches are not set up on this server yet.",
-    "ITEM_SIGNATURE_INVALID": "A saved punch was not signed by this device.",
+    "ITEM_SIGNATURE_INVALID": "A saved punch could not be checked.",
     "ITEM_COUNTER_INVALID": "A saved punch was already used or is out of order.",
     "ITEM_INVALID": "A saved punch could not be read.",
     "REVIEW_CHANGED": "This punch was reviewed in the meantime. Nothing was saved. Load the latest and decide again.",
@@ -807,6 +807,9 @@
     "LIVENESS_FAILED": "Please turn your head as the arrow shows, then look straight. Please try again.",
     "CHALLENGE_EXPIRED": "Too slow. Please try again.",
     "CHALLENGE_INVALID": "This check was already used. Please try again.",
+    "GATE_CODE_INVALID": "This phone code is not valid.",
+    "GATE_CODE_EXPIRED": "The phone code has changed. Please scan it again.",
+    "NOT_A_GATE_CODE": "This is not the phone code of the attendance device.",
     "FRAMES_INVALID": "The camera pictures could not be read. Please try again.",
     "NOT_BULK_CONFIRMABLE": "This punch needs a single review. It was left as it is.",
     "PHONE_SIGNED_OUT_ELSEWHERE": "You signed in on another phone, so this phone was signed out.",
@@ -3453,6 +3456,7 @@
       "flagged": "Flagged {{count}}",
       "rejected": "Rejected with an employee {{count}}",
       "toCheck": "Still to check {{count}}",
+      "selfieNoFace": "Phone selfies without a face {{count}}",
       "offline": "Attendance device offline in shifts: {{time}}"
     },
     "bulk": {
@@ -4418,7 +4422,8 @@
       "correction_decided": "Correction decided",
       "absence_streak": "Long absence",
       "monthly_register": "Register ready",
-      "phone_many_phones": "Many phones"
+      "phone_many_phones": "Many phones",
+      "phone_selfie_no_face": "Selfie without a face"
     },
     "text": {
       "still_inside": "{{count}} people are still inside {{plant}}, {{minutes}} minutes after the shift ended.",
@@ -4431,7 +4436,8 @@
       "correction_decided_approved": "Your correction for {{date}} was approved.",
       "correction_decided_rejected": "Your correction for {{date}} was not approved. {{reason}}",
       "monthly_register": "The register of {{month}} is ready for {{plant}}.",
-      "phone_many_phones": "An employee signed in on {{count}} phones in 30 days. Check the signed-in phones."
+      "phone_many_phones": "An employee signed in on {{count}} phones in 30 days. Check the signed-in phones.",
+      "phone_selfie_no_face": "{{count}} phone selfies at {{plant}} on {{date}} show no face. Please check them in the punch log."
     },
     "link": {
       "list": "Open the list",
@@ -4441,7 +4447,9 @@
       "month": "Open the month",
       "request": "Open the request",
       "correction": "Open the correction",
-      "register": "Open the register"
+      "register": "Open the register",
+      "phone": "Open the phone card",
+      "punches": "Open the punch log"
     },
     "filter": {
       "kind": "All kinds",
