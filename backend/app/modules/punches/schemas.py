@@ -218,6 +218,14 @@ class PunchLogItem(BaseModel):
     # Whom an approved review counts this punch for when the punch row names nobody (spec M4 §7
     # rule 6); never set for a person of a plant the viewer may not see.
     counted_for: PunchLogEmployee | None = None
+    # M4b (spec §5.5): how the punch was made. A phone punch has no gate device (`kiosk` is empty
+    # for a face punch). `phone_browser` says on which signed-in phone, e.g. "Chrome on Android".
+    channel: Literal["kiosk", "phone"] = "kiosk"
+    outside_plant: bool = False  # flagged OUTSIDE_PLANT: made inside no plant fence (outside work)
+    phone_browser: str | None = None
+    # The plant whose fence the punch position matched, only when that is NOT the employee's own
+    # plant ("At plant K200 (own plant K134)").
+    location_plant: PunchLogPlace | None = None
 
 
 class PunchLocation(BaseModel):
@@ -255,6 +263,9 @@ class PunchDetail(PunchLogItem):
     location_age_s: int | None = None
     related_punch_id: uuid.UUID | None = None
     reviews: list[PunchReviewOut] = []  # newest first
+    # M4b: the position of a phone punch is for the Super Admin only (`location` is empty for the
+    # other roles), but everyone may see how exact the reading was.
+    location_accuracy_m: float | None = None
 
 
 class PunchSummaryResponse(BaseModel):

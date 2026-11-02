@@ -102,6 +102,9 @@ COLUMNS = (
     ("Flags", 40),
     ("Review", 18),
     ("Counted for", 30),
+    # M4b (spec §4.13): how the punch was made, and whether it was made outside every plant.
+    ("Channel", 20),
+    ("Outside plant", 14),
 )
 HIDDEN_EMPLOYEE = "Card of another plant"
 RESULT_TEXTS = {
@@ -110,6 +113,7 @@ RESULT_TEXTS = {
     "needs_code": "Asked for code",
     "rejected": "Rejected",
 }
+CHANNEL_TEXTS = {"kiosk": "Attendance device", "phone": "Phone"}
 REVIEW_TEXTS = {
     "to_check": "To check",
     "confirmed": "Confirmed",
@@ -181,6 +185,8 @@ def _row(item: PunchLogItem) -> list[str]:
         "; ".join(f"{reason_text(flag)} ({flag})" for flag in _flag_codes(item)),
         _review_text(item),
         f"{item.counted_for.code} · {item.counted_for.name}" if item.counted_for else "",
+        CHANNEL_TEXTS.get(item.channel, item.channel),
+        "Yes" if item.outside_plant else "No",
     ]
 
 
