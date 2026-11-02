@@ -276,6 +276,7 @@ jobs:
           docker run -d --name backend-memory --network host --memory=512m --memory-swap=512m \
             -e PORT=10000 -e APP_ENV=production -e APP_VERSION="${GITHUB_SHA}" \
             -e DATABASE_URL="$MEMCHECK_DATABASE_URL" -e RUN_SCHEDULER=false \
+            -e STORAGE_LOCAL_DIR=/tmp/upasthiti-storage \
             -e APP_SECRET_KEY=ci-only-secret-key-not-used-anywhere-else-0123 \
             -e APP_PUBLIC_ORIGIN=https://ci.example.invalid \
             -e QR_SIGNING_KEY -e SNAPSHOT_ENCRYPTION_KEY -e FACE_TEMPLATE_KEY -e OFFLINE_EVIDENCE_KEY \

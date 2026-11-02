@@ -48,7 +48,7 @@
   const WEEKDAYS = GROUPS.Weekday;
   const TOP = [["E0344", "Nilesh Thorat", "K135", 14, 412], ["E1207", "Suresh Gaikwad", "PC1", 12, 361], ["E0618", "Anita Chavan", "K134", 11, 255], ["E0925", "Ramesh Bhosale", "SPI", 10, 330], ["E0771", "Pooja Deshmukh", "PC2", 9, 198], ["E0412", "Santosh Pawar", "K134", 9, 270], ["E1130", "Meena Kulkarni", "TP1", 8, 160], ["E0286", "Dinesh Jadhav", "X280", 8, 224], ["E0853", "Farida Shaikh", "K135", 7, 133], ["E1019", "Ganesh More", "PC1", 7, 196]];
 
-  const pct = (n) => n.toFixed(1).replace(/\.0$/, ".0");
+  const pct = (n) => n.toFixed(1);
 
   function lineChart(narrow) {
     const W = narrow ? 320 : 640, H = narrow ? 250 : 270, L = 44, R = 18, T = 28, B = 46, IN = 22;

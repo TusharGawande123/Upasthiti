@@ -597,12 +597,14 @@ def phone(fixture_path: Path, base_url: str, origin: str, sign_ins: int, punches
     password = fixture["phone_password"]
     faces = fixture["faces"]
     punchers = []
-    for number in range(punches):
-        face = faces[number % len(faces)]
+    # One employee can be signed in on one phone only (a second sign-in ends the first), so each
+    # punching phone gets its own employee: never more phones than enrolled faces.
+    for number in range(min(punches, len(faces))):
+        face = faces[number]
         client = PhoneClient(base_url, origin)
         # Not at the same moment: each punching phone must be signed in before the rush starts.
         if client.sign_in(face["employee_code"], password) != 200 or client.accept_notice() != 201:
-            print(f"PHONE_MEMORY_CHECK setup failed for {face['employee_code']}")
+            print(f"PHONE_MEMORY_CHECK setup failed for punching phone number {number}")
             return 1
         punchers.append((client, face, number))
     codes = fixture["sign_in_codes"]

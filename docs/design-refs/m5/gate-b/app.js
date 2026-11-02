@@ -380,7 +380,7 @@ const MAP = {
   "wizard-done": () => ["Corrections", "sa", correctionsPage("pending"), wizard(true)],
 };
 document.addEventListener("DOMContentLoaded", () => {
-  const [active, role, page, overlay] = (MAP[SCREEN] || MAP.list)();
+  const [active, role, page, overlay] = (Object.hasOwn(MAP, SCREEN) ? MAP[SCREEN] : MAP.list)();
   const u = USERS[role];
   $("sidebar").innerHTML = sidebar(active);
   $("topbar").innerHTML = topbar(u);

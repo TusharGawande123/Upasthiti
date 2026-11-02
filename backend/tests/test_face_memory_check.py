@@ -231,7 +231,8 @@ class FakePhoneServer:
                 if self.path == "/api/v1/phone/login":
                     punching = body["employee_code"].startswith("MEM0")
                     status = 200 if punching else sign_in_status
-                    cookie = f"ups_phone=token-{body['employee_code']}; Secure; HttpOnly"
+                    # A fixed cookie text (never built from what the client sent).
+                    cookie = "ups_phone=token-MEM0; Secure; HttpOnly"
                     self._answer(status, {}, cookie if status == 200 else None)
                 elif self.path == "/api/v1/phone/notice/accept":
                     self._answer(201, {})
@@ -253,7 +254,7 @@ class FakePhoneServer:
         self.server.server_close()
 
 
-def write_phone_fixture(path: Path) -> None:
+def write_phone_fixture(path: Path, face_count: int = 4) -> None:
     faces = [
         {
             "employee_code": f"MEM{number:03d}",
@@ -261,7 +262,7 @@ def write_phone_fixture(path: Path) -> None:
             "turn_left": "L",
             "turn_right": "R",
         }
-        for number in (1, 2)
+        for number in range(1, face_count + 1)
     ]
     path.write_text(
         json.dumps(
@@ -288,6 +289,18 @@ def test_the_phone_check_signs_in_eight_phones_and_punches_with_four(tmp_path, c
     punches = [seen for seen in server.seen if seen[1] == "/api/v1/phone/punch/face"]
     assert len(punches) == 4
     assert all(cookie.startswith("ups_phone=token-MEM0") for _, _, cookie in punches)
+
+
+def test_the_phone_check_never_uses_more_phones_than_enrolled_faces(tmp_path, capsys):
+    # One employee is signed in on one phone only, so two faces mean two punching phones.
+    write_phone_fixture(tmp_path / "f.json", face_count=2)
+
+    with FakePhoneServer() as server:
+        code = face_memory_check.phone(tmp_path / "f.json", server.url, "https://x.invalid", 8, 4)
+
+    assert code == 0
+    summary = json.loads(capsys.readouterr().out.split("PHONE_MEMORY_CHECK ", 1)[1])
+    assert summary["punches"] == {"200": 2}
 
 
 def test_the_phone_check_accepts_429_for_a_sign_in_that_waited_too_long(tmp_path, capsys):
