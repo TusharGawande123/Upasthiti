@@ -418,9 +418,8 @@ The other "to confirm with Tushar" lines of this file and the seven points of `d
     shift end" (no grace BEFORE the end), and adds a grace AFTER the shift end: a person may punch OUT up to shift end + grace and it is on
     time. Both graces, "after start" and "after end", are per shift and the Super Admin changes them in the shift settings (default 30 minutes
     each). The lead's answer to "what changes in the minutes": **nothing**. Overtime stays as in decision 0034 line 12 (from the shift end, only
-    from the 2-hour minimum); a late OUT within the end grace is on time and the status stays as it was. NOT built yet: it needs a second
-    grace field on the shift and its rule versions (a migration), the shift form and helper text, the poster line and the tests; to be
-    planned as a follow-up on its own branch.
+    from the 2-hour minimum); a late OUT within the end grace is on time and the status stays as it was. Built on branch `feat/grace-after-shift-end`
+    (commits aa8a185 backend, b94b44b frontend; see lines 84 to 87).
 80. **Absence streak (line 15):** weekly offs and holidays are skipped and do not break a streak. Confirmed as built.
 81. **Phone texts (lines 30 to 33):** "Scan the QR code", "Move outside, where the sky is open.", "Please open this page in Chrome or Edge on your
     phone." and the gate panel heading "Phone code" are confirmed. The specs are updated with them.
@@ -428,5 +427,24 @@ The other "to confirm with Tushar" lines of this file and the seven points of `d
 83. **All other "to confirm with Tushar" lines of this file (2026-11-02, in chat):** the lead said "theek hai" to the remaining lines as built
     (whole-minute cut, early-OUT warning, offline early OUT, poster layout and icon, kept consent sign-in rows, `GET` and `POST` for the gate
     code, a code naming no device, many-rejections alert for gate devices only, bulk-confirm test, outside-work reason, phone result texts and
-    Back button, style and menu budgets, CSP). The only exceptions are lines 77 and 79 (to be built) and the seven points of
+    Back button, style and menu budgets, CSP). The only exceptions are lines 77 and 79 (to be built; 79 is built, see lines 84 to 87) and the seven points of
     `docs/compliance/m5-m4b-open-points.md`, which need the client, HR and legal.
+84. **Grace after the end, build choices (line 79):** the new field is `grace_after_end_min` (0 to 120, default 30) on `shifts` and
+    `shift_rule_versions` (migration 0030: backfill 30 and one `shift.rules_migrated` audit row per shift with the old state); `grace_min`
+    keeps meaning "grace after the start". It is a stored, editable and shown setting only: `compute_day`, the day window, gate lines, the
+    early-out warning, alerts and the dashboard do not read it, so no worked, payable or overtime minute and no status changes (golden
+    rows `grace-after-end-*` prove it for an OUT at end + 20 and end + 50 with the grace at 0, 30 and 120). A change adds a rule version
+    like any other rule.
+85. **Where it is shown (line 79):** the shift form (field, hint, live helper line "OUT from 17:00 up to 17:30 is on time"), the shifts list,
+    the rule history, the API (`grace_after_end_min` on shifts, rule versions and `shift_rules` of the day), the day drawer and the daily
+    register head ("OUT allowed until 17:30"), and the day explanation: an OUT after the shift end and up to the end grace of a permanent
+    employee on a working day says `outInGrace` ("OUT at 17:20: on time (OUT allowed until 17:30)") instead of `outAt`; the other
+    sentences are unchanged. The old helper text "there is no grace at the end" now says "no grace before the end".
+86. **Poster (line 79):** the line "OUT allowed until HH:MM." does not fit next to "leave from" at 14 pt (about 190 mm against 178 mm),
+    and the page has no spare height for four or more two-line shifts (the privacy box would not fit). So with up to three shifts it is a
+    small 11 pt second line under the times; with four or more shifts the whole shift line is 10 pt and carries it. The shifts box height
+    stays within the old maximum (test `test_the_privacy_box_fits_above_the_help_line`). To confirm with the lead: the smaller size for
+    four or more shifts.
+87. **Old specs corrected (line 79):** M5 spec rule 9 and the golden table still said "leave from E - g" (16:30), which decision 0036
+    line 8 had already removed in the code; rule 9, the poster and form sections, AC-6b, AC-12b and AC-54 now say "leave from the shift end;
+    an OUT up to the end grace is on time".
