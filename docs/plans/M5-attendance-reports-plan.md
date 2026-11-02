@@ -453,7 +453,7 @@ a real phone at 360 px, report downloads opened in Excel.
   ending soon" (`phone_punch_enabled` on list items, `phone_on_count`). Tests `test_m4b_admin_side.py` (22: AC-39, AC-40, AC-53,
   reason, visibility, filters, audit, cards). Decisions 0036 lines 55-62 (**to confirm: 55 bulk "clean" test, 58 outside reason
   source, 59 phone position visibility**). Frontend: only types and texts (see below). F-69 and F-70 were already done in P1.
-  Full backend suite result: FULL_SUITE_RESULT.
+  Backend tests: only the touched and new files were run (181 passed in test_m4b_admin_side, punch log, reviews, employees, qr cards, audit, nullable kiosk, inside now, phone extras); the full suite was NOT run, the lead runs it at the end of M4b.
 - What P4 must know: (1) **Punch log item** adds `channel: "kiosk"|"phone"`, `outside_plant: bool`, `phone_browser: string|null`,
   `location_plant: {id,name,code}|null`; `kiosk` is `null` for a phone face punch (the TS type is now nullable and the places
   that print the device name show `punches.channel.phone` = "Phone"); a gate-code punch has `channel` phone AND a `kiosk`
