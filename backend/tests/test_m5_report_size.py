@@ -68,15 +68,21 @@ def login(db_app: FastAPI, session: Session) -> TestClient:
 
 def test_the_company_register_in_excel_is_fast_and_small(db_app: FastAPI, company: Session) -> None:
     boss = login(db_app, company)
+    # Two requests: tracemalloc slows the code down many times over, so the speed is measured
+    # without it (a slow CI machine then cannot fail the test by a few seconds) and the memory in a
+    # second request.
     with frozen_at(NOW):
-        tracemalloc.start()
         started = time.perf_counter()
         response = boss.get("/api/v1/reports/register.xlsx", params=PARAMS)
         seconds = time.perf_counter() - started
+
+        tracemalloc.start()
+        measured = boss.get("/api/v1/reports/register.xlsx", params=PARAMS)
         _, peak = tracemalloc.get_traced_memory()
         tracemalloc.stop()
 
     assert response.status_code == 200, response.text[:300]
+    assert measured.status_code == 200, measured.text[:300]
     assert len(response.content) > 100_000
     assert seconds < EXCEL_SECONDS, f"Excel took {seconds:.1f} s"
     assert peak / 1_000_000 < MEMORY_MB, f"memory peak {peak / 1_000_000:.0f} MB"
