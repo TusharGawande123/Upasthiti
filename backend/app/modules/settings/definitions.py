@@ -163,6 +163,12 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition("phone_login_lock_minutes", "phone", 15, "min", 5, 5, 120),
     SettingDefinition("phone_location_max_age_seconds", "phone", 60, "s", 5, 10, 120),
     SettingDefinition("phone_many_phones_alert_count", "phone", 3, "phones", 5, 2, 10),
+    # The changing code on the gate screen that temporary workers scan with their phone (rule 15).
+    SettingDefinition("phone_gate_code_seconds", "phone", 30, "s", 5, 15, 60),
+    SettingDefinition(
+        "kiosk_show_phone_code", "kiosk_screen", "on", "", 5, allowed_values=("on", "off")
+    ),
+    SettingDefinition("kiosk_phone_code_show_seconds", "kiosk_screen", 60, "s", 5, 20, 180),
     SettingDefinition(
         "salary_day_basis", "salary", 30, "days", 7, allowed_values=(26, 30, "actual")
     ),

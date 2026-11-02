@@ -72,6 +72,7 @@ def update_settings(
     _check_m4_pairs(session, checked_values)
     _check_window_fits_shifts(session, checked_values)
     _check_phone_session_days(session, checked_values)
+    _check_gate_code_vs_cooldown(session, checked_values)
 
     for key, value in checked_values.items():
         stored = session.get(SettingValue, key)
@@ -244,6 +245,27 @@ def _check_phone_session_days(session: Session, new_values: dict[str, SettingVal
             "A phone sign-in cannot end before its idle limit.",
             422,
             {"key": "phone_session_max_days"},
+        )
+
+
+GATE_CODE_GRACE_SECONDS = 5  # the phone's upload time after the code changed (M4b rule 15)
+
+
+def _check_gate_code_vs_cooldown(session: Session, new_values: dict[str, SettingValueType]) -> None:
+    """A phone code must stop working before the punch cool-down ends (M4b spec §7 rule 15): then
+    one worker can never use the same code for a second punch, because that one is always
+    COOLDOWN_ACTIVE. So code life + grace must be shorter than the cool-down."""
+    watched = ("phone_gate_code_seconds", "punch_cooldown_minutes")
+    if not any(key in new_values for key in watched):
+        return
+    code_seconds = _int_after_save(session, new_values, "phone_gate_code_seconds")
+    cooldown_seconds = _int_after_save(session, new_values, "punch_cooldown_minutes") * 60
+    if code_seconds + GATE_CODE_GRACE_SECONDS >= cooldown_seconds:
+        raise ApiError(
+            "SETTING_INVALID",
+            "The phone code must change faster than the punch cool-down.",
+            422,
+            {"key": "phone_gate_code_seconds"},
         )
 
 
