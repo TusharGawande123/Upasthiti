@@ -283,7 +283,18 @@ jobs:
               --fixture /work/fixture.json --url http://127.0.0.1:10000 \
               --origin https://ci.example.invalid --count 20 | tee -a "$GITHUB_STEP_SUMMARY"
           test "${PIPESTATUS[0]}" -eq 0
-      - name: Face memory check - peak memory at most 450 MB
+      # M4b S-49 (spec AC-59): the same container, now 8 password sign-ins and 4 phone face
+      # punches at the same moment. argon2 needs about 64 MB per check, so the server lets only 2
+      # run at once (the others wait or get 429). Any 5xx fails; the peak memory step below covers
+      # the gate punches AND this rush.
+      - name: Phone memory check - 8 sign-ins and 4 phone face punches at once
+        run: |
+          docker run --rm --network host -v "$RUNNER_TEMP/memcheck:/work" \
+            upasthiti-backend:ci python -m app.scripts.face_memory_check phone \
+              --fixture /work/fixture.json --url http://127.0.0.1:10000 \
+              --origin https://ci.example.invalid --sign-ins 8 --punches 4 | tee -a "$GITHUB_STEP_SUMMARY"
+          test "${PIPESTATUS[0]}" -eq 0
+      - name: Face and phone memory check - peak memory at most 450 MB
         run: |
           peak_bytes="$(docker exec backend-memory cat /sys/fs/cgroup/memory.peak)"
           peak_mb=$((peak_bytes / 1024 / 1024))

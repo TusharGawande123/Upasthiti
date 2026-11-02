@@ -186,3 +186,132 @@ def test_frames_of_a_sample_without_faces_are_empty():
     limits = face_memory_check.YawLimits(min_yaw=18, frontal_max_yaw=12, min_face_px=80)
 
     assert face_memory_check.gate_frames_of_sample(NoFaces(), sample, limits) == []  # type: ignore[arg-type]
+
+
+# --- The phone part (M4b S-49, AC-59) ---------------------------------------------------------
+
+
+class FakePhoneServer:
+    """A tiny local server that answers like the phone endpoints, so `phone` can be run for real
+    (real sockets, threads and cookies) without the backend. `sign_in_status` is what every
+    password sign-in of the "rush" gets; the punching phones always sign in with 200."""
+
+    def __init__(self, sign_in_status: int = 200, punch_status: int = 200) -> None:
+        import http.server
+        import threading
+
+        self.seen: list[tuple[str, str, str]] = []  # method, path, cookie
+        outer = self
+
+        class Handler(http.server.BaseHTTPRequestHandler):
+            def log_message(self, format: str, *args: object) -> None:  # noqa: A002 - quiet
+                return
+
+            def _answer(self, status: int, body: dict, cookie: str | None = None) -> None:
+                raw = json.dumps(body).encode()
+                self.send_response(status)
+                self.send_header("Content-Type", "application/json")
+                self.send_header("Content-Length", str(len(raw)))
+                if cookie:
+                    self.send_header("Set-Cookie", cookie)
+                self.end_headers()
+                self.wfile.write(raw)
+
+            def _read(self) -> dict:
+                length = int(self.headers.get("Content-Length", 0))
+                return json.loads(self.rfile.read(length)) if length else {}
+
+            def do_GET(self) -> None:  # noqa: N802
+                outer.seen.append(("GET", self.path, self.headers.get("Cookie", "")))
+                self._answer(200, {"version": "1", "text_sha256": "a" * 64})
+
+            def do_POST(self) -> None:  # noqa: N802
+                body = self._read()
+                outer.seen.append(("POST", self.path, self.headers.get("Cookie", "")))
+                if self.path == "/api/v1/phone/login":
+                    punching = body["employee_code"].startswith("MEM0")
+                    status = 200 if punching else sign_in_status
+                    cookie = f"ups_phone=token-{body['employee_code']}; Secure; HttpOnly"
+                    self._answer(status, {}, cookie if status == 200 else None)
+                elif self.path == "/api/v1/phone/notice/accept":
+                    self._answer(201, {})
+                elif self.path == "/api/v1/phone/punch/challenge":
+                    self._answer(200, {"challenge": "turn_left", "challenge_nonce": "n"})
+                else:
+                    self._answer(punch_status, {})
+
+        self.server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Handler)
+        self.url = f"http://127.0.0.1:{self.server.server_port}"
+        self.thread = threading.Thread(target=self.server.serve_forever, daemon=True)
+
+    def __enter__(self) -> FakePhoneServer:
+        self.thread.start()
+        return self
+
+    def __exit__(self, *exc) -> None:  # noqa: ANN002
+        self.server.shutdown()
+        self.server.server_close()
+
+
+def write_phone_fixture(path: Path) -> None:
+    faces = [
+        {
+            "employee_code": f"MEM{number:03d}",
+            "frontal": "F",
+            "turn_left": "L",
+            "turn_right": "R",
+        }
+        for number in (1, 2)
+    ]
+    path.write_text(
+        json.dumps(
+            {
+                "phone_password": "x",
+                "faces": faces,
+                "sign_in_codes": [f"MEMP{number:02d}" for number in range(1, 9)],
+            }
+        )
+    )
+
+
+def test_the_phone_check_signs_in_eight_phones_and_punches_with_four(tmp_path, capsys):
+    write_phone_fixture(tmp_path / "f.json")
+
+    with FakePhoneServer() as server:
+        code = face_memory_check.phone(tmp_path / "f.json", server.url, "https://x.invalid", 8, 4)
+
+    assert code == 0
+    summary = json.loads(capsys.readouterr().out.split("PHONE_MEMORY_CHECK ", 1)[1])
+    assert summary["sign_ins"] == {"200": 8}
+    assert summary["punches"] == {"200": 4}
+    # A punching phone sends its own cookie by hand (the real one is Secure, plain http is used).
+    punches = [seen for seen in server.seen if seen[1] == "/api/v1/phone/punch/face"]
+    assert len(punches) == 4
+    assert all(cookie.startswith("ups_phone=token-MEM0") for _, _, cookie in punches)
+
+
+def test_the_phone_check_accepts_429_for_a_sign_in_that_waited_too_long(tmp_path, capsys):
+    write_phone_fixture(tmp_path / "f.json")
+
+    with FakePhoneServer(sign_in_status=429) as server:
+        code = face_memory_check.phone(tmp_path / "f.json", server.url, "https://x.invalid", 8, 4)
+
+    assert code == 0
+    assert '"429": 8' in capsys.readouterr().out
+
+
+def test_the_phone_check_fails_on_a_server_error(tmp_path, capsys):
+    write_phone_fixture(tmp_path / "f.json")
+
+    with FakePhoneServer(sign_in_status=500) as server:
+        failed_sign_in = face_memory_check.phone(
+            tmp_path / "f.json", server.url, "https://x.invalid", 8, 4
+        )
+    with FakePhoneServer(punch_status=500) as server:
+        failed_punch = face_memory_check.phone(
+            tmp_path / "f.json", server.url, "https://x.invalid", 8, 4
+        )
+
+    assert failed_sign_in == 1
+    assert failed_punch == 1
+    capsys.readouterr()

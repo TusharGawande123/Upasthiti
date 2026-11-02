@@ -187,3 +187,25 @@ test("the public privacy notice fits a small phone, a phone and a tablet, withou
     await context.close();
   }
 });
+
+// M4b: the phone attendance pages that need no sign-in. The signed-in pages (home, my attendance,
+// passkey, notice) are measured in phone-punch.spec.ts, which signs in with a painted camera.
+test("the phone sign-in and check pages fit 360 px, iPhone 13, a phone and a tablet", async ({
+  browser,
+}) => {
+  const IPHONE_13 = { width: 390, height: 844 };
+  for (const size of [SMALL_PHONE, IPHONE_13, PHONE, TABLET]) {
+    const context = await browser.newContext({
+      baseURL: FRONTEND_URL,
+      viewport: size,
+      locale: "en-IN",
+    });
+    const reader = await context.newPage();
+    for (const path of ["/phone/login", "/phone/setup"]) {
+      await reader.goto(path, { waitUntil: "networkidle" });
+      await expect(reader.getByRole("heading").first()).toBeVisible();
+      await expectNoSidewaysScroll(reader, `${path} ${size.width}px`);
+    }
+    await context.close();
+  }
+});
