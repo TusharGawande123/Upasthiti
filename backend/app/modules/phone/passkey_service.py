@@ -217,16 +217,20 @@ def active_passkeys(session: Session, employee_id: uuid.UUID) -> list[PhonePassk
 
 
 def login_options(session: Session, *, employee_code: str, ip: str) -> dict[str, Any]:
-    """Options for ANY well-formed code; an unknown code gets the same shape with no keys."""
+    """Options for ANY well-formed code; no passkey (or no such code) gets one made-up key id."""
     check_sign_in_limit(ip)
     rp_id, _origin = relying_party()
     now = utc_now()
     employee = find_employee_by_code(session, employee_code)
     keys = active_passkeys(session, employee.id) if employee is not None else []
+    code = clean_code(employee_code)
+    # Same shape for everybody: a code without a passkey gets one made-up credential id, so the
+    # answer does not tell whether the code exists or has a passkey.
+    descriptors = [_descriptor(passkey) for passkey in keys] or [_dummy_descriptor(code)]
     options = generate_authentication_options(
         rp_id=rp_id,
         timeout=int(CHALLENGE_LIFE.total_seconds() * 1000),
-        allow_credentials=[_descriptor(passkey) for passkey in keys],
+        allow_credentials=descriptors,
         user_verification=UserVerificationRequirement.REQUIRED,
     )
     _store_challenge(
@@ -234,7 +238,7 @@ def login_options(session: Session, *, employee_code: str, ip: str) -> dict[str,
         ProofKind.PASSKEY_LOGIN,
         options.challenge,
         now,
-        claimed_code=clean_code(employee_code)[:12],
+        claimed_code=code[:12],
     )
     return json.loads(options_to_json(options))
 
@@ -371,6 +375,14 @@ def _use_challenge(
         raise ValueError("unknown, used or expired challenge")
     proof.used_at = now
     return proof
+
+
+def _dummy_descriptor(code: str) -> PublicKeyCredentialDescriptor:
+    """A credential id that belongs to nobody: HMAC of the code, so it is stable per code and
+    needs no storage. A phone offers it to the user, finds no such key and the sign-in fails."""
+    secret = get_settings().app_secret_key.encode("utf-8")
+    fake_id = hmac.new(secret, b"passkey-dummy-credential-v1:" + code.encode(), hashlib.sha256)
+    return PublicKeyCredentialDescriptor(id=fake_id.digest())
 
 
 def _descriptor(passkey: PhonePasskey) -> PublicKeyCredentialDescriptor:

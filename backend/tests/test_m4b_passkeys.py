@@ -227,6 +227,12 @@ def test_unknown_codes_get_options_of_the_same_shape(people: People, phone: Test
     assert known.status_code == unknown.status_code == 200
     assert set(known.json()["options"]) == set(unknown.json()["options"])
     assert unknown.json()["options"]["userVerification"] == "required"
+    # A code with no passkey (known or not) lists one made-up key id, the same one every time.
+    known_ids = [item["id"] for item in known.json()["options"]["allowCredentials"]]
+    unknown_ids = [item["id"] for item in unknown.json()["options"]["allowCredentials"]]
+    again = phone.post(f"{PHONE}/passkeys/login/options", json={"employee_code": "ZZ-1"})
+    assert len(known_ids) == len(unknown_ids) == 1 and known_ids != unknown_ids
+    assert [i["id"] for i in again.json()["options"]["allowCredentials"]] == unknown_ids
 
 
 # --- AC-56: removal -----------------------------------------------------------------------------

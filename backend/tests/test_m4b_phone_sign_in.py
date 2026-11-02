@@ -341,6 +341,27 @@ def test_ac_6_five_wrong_passwords_lock_for_15_minutes_counted_in_whole_minutes_
     assert all("Wrong-guess" not in str(row.after) for row in failures)
 
 
+def test_a_locked_account_also_does_the_dummy_password_check(
+    boss: TestClient,
+    db_session: Session,
+    people: People,
+    phone: TestClient,
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    from app.modules.phone import sign_in_service
+
+    switch_phone(boss, people.face_id)
+    give_password(db_session, people.face_id)
+    calls: list[str] = []
+    monkeypatch.setattr(sign_in_service, "dummy_password_check", calls.append)
+    with frozen_at(ist(MONDAY, 8, 0)):
+        for number in range(5):
+            sign_in(phone, password=f"Wrong-guess-{number}")
+        calls.clear()
+        assert sign_in(phone).status_code == 423
+    assert len(calls) == 1  # the time of a locked answer matches the other answers
+
+
 # --- AC-7: switched off while signed in ---------------------------------------------------------
 
 

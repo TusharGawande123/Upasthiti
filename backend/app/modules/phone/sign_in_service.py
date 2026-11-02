@@ -78,6 +78,8 @@ def sign_in_with_password(
 
     now = utc_now()
     if account.locked_until is not None and account.locked_until > now:
+        # Same work as a wrong password, so the timing does not tell "locked" from "unknown".
+        dummy_password_check(password)
         raise account_locked(account.locked_until, now)
     if not password_matches(account.password_hash, password):
         _count_wrong_password(session, account, code, employee, ip, now)
