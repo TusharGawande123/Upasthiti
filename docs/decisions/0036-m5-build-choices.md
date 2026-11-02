@@ -229,7 +229,8 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     `GATE_CODE_RULES` in `engine.py`. A retry (same sign-in + `client_punch_id`) is answered from the stored row
     before any other work after the notice and path checks. The phone has **no early-OUT alert** (decision 0036 line
     9 belongs to the gate screen; the M4b spec does not mention it for phones, so a phone OUT is stored at once and
-    carries no `early_out_mark`). **To confirm with Tushar:** should a phone OUT before the shift end ask first?
+    carries no `early_out_mark`). **Changed by line 77 (built, lines 88 to 90):** a phone OUT before the shift end now
+    asks first and Agree stores it with `early_out_mark` `EARLY_OUT_CONFIRMED`.
 46. **Location on the phone (P2):** a reading without `age_s` or older than `phone_location_max_age_seconds` counts as
     no reading (`LOCATION_REQUIRED`); a request without any location is a decided refusal, not a request error.
     A refused row still stores the position the phone sent. `plant_id` of a phone row = the employee's plant on
@@ -407,8 +408,7 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
 76. **Phone accuracy and distance (lines 59, 70, 73):** only the Super Admin sees them. The Corporate Head and the Plant Head see the method and the
     result. Confirmed as built.
 77. **Early OUT on the phone (line 45):** a phone OUT before the shift end asks first, like the gate does ("You are leaving before the shift
-    ends. Leave now?"). This is NOT built yet: it needs the early-out mark on phone punches and one confirm screen on /phone. To be planned as a
-    small follow-up on its own branch.
+    ends. Leave now?"). Built on branch `feat/phone-early-out-confirm` (commits 0db6d77 backend, 01c3545 phone screen; lines 88 to 90).
 78. **Location refusal texts at the gate and on the phone (line 74):** stay specific ("You are not at the plant" and the like). No neutral line.
 
 The other "to confirm with Tushar" lines of this file and the seven points of `docs/compliance/m5-m4b-open-points.md` are still open.
@@ -448,3 +448,23 @@ The other "to confirm with Tushar" lines of this file and the seven points of `d
 87. **Old specs corrected (line 79):** M5 spec rule 9 and the golden table still said "leave from E - g" (16:30), which decision 0036
     line 8 had already removed in the code; rule 9, the poster and form sections, AC-6b, AC-12b and AC-54 now say "leave from the shift end;
     an OUT up to the end grace is on time".
+88. **Early OUT on the phone, how it works (line 77):** the server decides, exactly as at the gate, with the same code
+    (`early_out_info`, `punch_early_out`, the 90-second signed token, `held_columns`). A phone face punch or gate-code punch that the
+    rules would accept as an OUT before the shift end stores nothing and answers `decision: "needs_confirmation"` with `early_out`
+    (tier `before_half` / `before_end`, minutes left, times) and a token. The token is bound to the **phone sign-in** and the punch id
+    (the gate binds it to the device). Agree calls `POST /phone/punch/early-out/confirm` with the token, the same `client_punch_id`,
+    a location read again and, for a gate-code punch, the selfie again; the server runs the place, IN/OUT and flag rules again and stores a
+    normal accepted OUT marked `EARLY_OUT_CONFIRMED` (a mark, not a flag). A face punch keeps the proven scores from the token and needs
+    no new pictures; a gate-code punch runs the whole rule list again. A retry of the same Agree gets the stored answer (no second row).
+    Cancel sends nothing. IN never asks; OUT at or after the shift end does not ask. SHIFT_ALREADY_CLOSED, the 30-minute cool-down and
+    the outside-plant tag are unchanged, and the confirmation can still be refused (for example from far away) and then stores a refusal,
+    never an OUT. An OUT on outside work also asks (it is judged by the shift like any OUT).
+89. **Gate code freshness at Agree (line 77):** a phone code lives 30 s (+5 s grace), too short for reading an alert. So the token also
+    holds the moment of the first scan and the code is judged as of that moment (`PunchContext.gate_code_checked_at`); the token itself
+    is still good for 90 s only, signed, and bound to the sign-in.
+90. **Phone screen (line 77):** one step, `phone-early-out-step.tsx`, built from the gate's texts (`gate.earlyOut.*`: tag, half or full title,
+    time rows, consequence, Agree, Cancel) plus one new line `phone.earlyOut.question` ("You are leaving before the shift ends. Leave
+    now?"), in the phone cards (one column, 60 px buttons). No countdown (the phone result screens have no timer; the token's 90 s decides
+    and a late Agree shows `EARLY_OUT_TOKEN_INVALID`). The body limit of the confirm path equals the gate-code path (it carries a selfie).
+    Backend tests `test_m4b_phone_early_out.py`, Vitest `phone-early-out-step.test.tsx` and `phone-flows.test.tsx`, Playwright phone spec
+    (the screen at 360 and 768 px with a made-up server answer: a real OUT needs 30 minutes after the IN and the real clock).
