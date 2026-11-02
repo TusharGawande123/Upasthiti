@@ -894,7 +894,9 @@
       "text_one": "{{count}} QR card ends in the next {{days}} days. Extend it or let it end.",
       "text_other": "{{count}} QR cards end in the next {{days}} days. Extend them or let them end.",
       "link": "See these cards",
-      "error": "The number could not be loaded."
+      "error": "The number could not be loaded.",
+      "phoneOn_one": "{{count}} with Phone punching on",
+      "phoneOn_other": "{{count}} with Phone punching on"
     },
     "face": {
       "title": "Face enrolment",
@@ -990,7 +992,8 @@
       "setStartDate": "Set the start date",
       "noEmployees": "No employees at this plant yet",
       "noEmployeesText": "Add employees or import an Excel sheet, then the numbers appear here.",
-      "goEmployees": "Go to Employees"
+      "goEmployees": "Go to Employees",
+      "onOutside": "On outside work: {{count}}"
     }
   },
   "users": {
@@ -2203,6 +2206,13 @@
     "tabs": {
       "details": "Details",
       "attendance": "Attendance"
+    },
+    "phone": {
+      "tag": "Phone",
+      "filterLabel": "Phone punching",
+      "any": "Phone punching: any",
+      "on": "Phone punching: on",
+      "off": "Phone punching: off"
     }
   },
   "contractors": {
@@ -2647,7 +2657,9 @@
       "sentNote": "After the Super Admin approves, the Super Admin issues and prints the cards. You cannot issue cards.",
       "noQr_one": "No QR card is needed for this file. The one person punches by face. There is nobody to issue a card to.",
       "noQr_other": "No QR cards are needed for this file. All {{count}} people punch by face. There is nobody to issue a card to."
-    }
+    },
+    "phoneOn": "Phone punching on",
+    "phoneEndedNote": "A card that has ended does not stop phone punching. When a contract ends, switch phone punching off on the employee page, or mark the person as left."
   },
   "punchReasons": {
     "SNAPSHOT_MISSING": "No photo was sent",
@@ -2761,7 +2773,12 @@
       "anyOffline": "Saved offline: any",
       "savedOffline": "Saved offline only",
       "review": "Review",
-      "anyReview": "Review: any"
+      "anyReview": "Review: any",
+      "channel": "Channel",
+      "anyChannel": "Any channel",
+      "outside": "Outside plant",
+      "anyOutside": "Outside plant: any",
+      "outsideOnly": "Outside plant: only"
     },
     "columns": {
       "time": "Time",
@@ -2773,7 +2790,8 @@
       "photo": "Photo",
       "actions": "Actions",
       "method": "Method",
-      "resultAndReason": "Result and reason"
+      "resultAndReason": "Result and reason",
+      "channel": "Channel"
     },
     "direction": {
       "in": "IN",
@@ -2824,7 +2842,8 @@
     "method": {
       "face": "Face",
       "card": "Card",
-      "faceByCode": "Face, by code"
+      "faceByCode": "Face, by code",
+      "phoneCode": "Phone code"
     },
     "how": {
       "face": "By face",
@@ -2880,7 +2899,15 @@
       "notShown": "Scores, the typed code and photos are shown to the Super Admin only.",
       "punchTime": "Punch time",
       "review": "Review",
-      "openReview": "Open in Needs review"
+      "openReview": "Open in Needs review",
+      "ownPlant": "Own plant",
+      "otherPlant": "At another plant",
+      "outsidePlant": "Outside plant",
+      "phone": "Signed-in phone",
+      "accuracy": "Location accuracy",
+      "accuracyValue": "{{meters}} m",
+      "positionHidden": "Position",
+      "positionHiddenText": "{{meters}} m from the fence. The exact position is only for the Super Admin."
     },
     "review": {
       "toCheck": "To check",
@@ -2898,7 +2925,10 @@
       "rejectedPlain": "Rejected",
       "needsCode": "Asked for the employee code"
     },
-    "countedFor": "Counted for {{name}} ({{code}})"
+    "countedFor": "Counted for {{name}} ({{code}})",
+    "outsidePlant": "Outside plant",
+    "outsidePlantLine": "Saved as an outside-plant punch. The office will check it.",
+    "atOtherPlant": "At plant {{plant}} (own plant {{own}})"
   },
   "notices": {
     "title": "Gate notices",
@@ -3245,7 +3275,9 @@
       "namesNo": "Names nobody",
       "showRepeats": "Show already-punched",
       "showRepeatsHelp": "Include scans that came a moment after a punch that already counts. They have nothing to approve.",
-      "clear": "Clear filters"
+      "clear": "Clear filters",
+      "channel": "Channel",
+      "anyChannel": "Any channel"
     },
     "count_one": "{{formatted}} punch · newest first",
     "count_other": "{{formatted}} punches · newest first",
@@ -3274,7 +3306,8 @@
       "review": "Review",
       "open": "Open",
       "details": "Details",
-      "openFor": "Review the punch of {{name}} at {{time}}"
+      "openFor": "Review the punch of {{name}} at {{time}}",
+      "outsideReason": "Outside work reason: {{reason}}"
     },
     "toast": {
       "confirm": "Confirmed",
@@ -3421,6 +3454,25 @@
       "rejected": "Rejected with an employee {{count}}",
       "toCheck": "Still to check {{count}}",
       "offline": "Attendance device offline in shifts: {{time}}"
+    },
+    "bulk": {
+      "single": "Single review",
+      "select": "Select",
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "limit": "100 punches are selected. That is the most at one time.",
+      "clear": "Clear selection",
+      "confirm": "Confirm selected ({{count}})",
+      "dialogTitle_one": "Confirm {{count}} punch?",
+      "dialogTitle_other": "Confirm {{count}} punches?",
+      "dialogDesc": "Each punch is confirmed on its own. One that cannot be confirmed is left as it is.",
+      "note": "Note (optional)",
+      "noteHint": "Up to 300 characters. It is saved with every confirmed punch.",
+      "rejectedNote": "Rejected punches are reviewed one by one. There is no bulk approval.",
+      "confirmedCount_one": "{{count}} punch was confirmed",
+      "confirmedCount_other": "{{count}} punches were confirmed",
+      "needSingle_one": "{{count}} needs a single review",
+      "needSingle_other": "{{count}} need a single review"
     }
   },
   "gate": {
@@ -4772,6 +4824,114 @@
         "message": "Something went wrong.",
         "next": "Please try again. If it repeats, please visit the plant office."
       }
+    }
+  },
+  "phoneAdmin": {
+    "title": "Phone attendance",
+    "badgeOn": "Phone punching on",
+    "badgeOff": "Phone punching off",
+    "on": "On",
+    "off": "Off",
+    "saving": "Saving…",
+    "viewOnly": "View only. Only the Super Admin can change phone attendance.",
+    "left": "This employee has left. Phone punching is switched off.",
+    "switch": {
+      "phone": "Phone punching",
+      "outside": "Outside work allowed"
+    },
+    "outside": {
+      "lockedOff": "Switch phone punching on first.",
+      "lockedQr": "Outside work is only for employees who punch with their face.",
+      "until": "Until {{date}}, the whole day counts",
+      "noEnd": "No end date",
+      "ended": "Outside work ended on {{date}}",
+      "change": "Change the end date",
+      "untilLabel": "Until (optional)",
+      "untilHint": "Today or later. The whole last day counts. Leave empty for no end date."
+    },
+    "empty": {
+      "off": "Phone punching is off. The employee punches only at the attendance device."
+    },
+    "account": {
+      "title": "Account",
+      "noPassword": "No password yet",
+      "activeFace": "Password set on {{date}} by face check",
+      "activeCard": "Password set on {{date}} by card check",
+      "locked": "Locked until {{time}}",
+      "newPassword": "New password required"
+    },
+    "notice": {
+      "accepted": "Accepted v{{version}} on {{date}}",
+      "none": "The notice is not accepted yet."
+    },
+    "sessions": {
+      "title": "Signed-in phones",
+      "empty": "No phone is signed in.",
+      "line": "Signed in {{started}} · last used {{used}}"
+    },
+    "signOutAll": "Sign out all phones",
+    "passkeys": {
+      "title": "Passkeys ({{count}} of {{max}})",
+      "empty": "No passkeys.",
+      "line": "Added {{added}} · last used {{used}}",
+      "remove": "Remove"
+    },
+    "requireNew": "Require a new password",
+    "requireNewNote": "This also removes the passkeys and signs out every phone.",
+    "reason": {
+      "label": "Reason (required)",
+      "hint": "3 to 300 characters. It is saved in the audit log.",
+      "error": "The reason needs 3 to 300 characters."
+    },
+    "dialog": {
+      "enable": {
+        "title": "Switch phone punching on?",
+        "desc": "The employee can then sign in on their own phone and punch. The attendance device keeps working.",
+        "confirm": "Switch on"
+      },
+      "disable": {
+        "title": "Switch phone punching off?",
+        "desc": "The employee will punch only at the attendance device.",
+        "confirm": "Switch off",
+        "effectOutside": "Outside work is switched off too.",
+        "effectSignOut": "Every signed-in phone is signed out.",
+        "effectPassword": "The password stays, in case phone punching is switched on again."
+      },
+      "outsideOn": {
+        "title": "Allow outside work?",
+        "desc": "On official work outside the plant, a phone punch is saved with its position and checked by the office.",
+        "confirm": "Allow outside work"
+      },
+      "outsideOff": {
+        "title": "Stop outside work?",
+        "desc": "A punch outside the plant will be refused again.",
+        "confirm": "Stop outside work"
+      },
+      "signOutAll": {
+        "title": "Sign out all phones?",
+        "desc_one": "{{count}} phone is signed in. It will be signed out.",
+        "desc_other": "{{count}} phones are signed in. They will be signed out.",
+        "confirm_one": "Sign out {{count}} phone",
+        "confirm_other": "Sign out {{count}} phones"
+      },
+      "requireNew": {
+        "title": "Require a new password?",
+        "desc": "The employee must prove it is them again before signing in.",
+        "confirm": "Require a new password",
+        "effectOld": "The old password stops working.",
+        "effectPasskeys": "The passkeys are removed.",
+        "effectPhones": "Every signed-in phone is signed out."
+      },
+      "removePasskey": {
+        "title": "Remove this passkey?",
+        "desc": "{{label}} will not sign in any more. The password still works.",
+        "confirm": "Remove passkey"
+      }
+    },
+    "toast": {
+      "signedOut_one": "{{count}} phone was signed out.",
+      "signedOut_other": "{{count}} phones were signed out.",
+      "newPassword": "A new password is now required."
     }
   }
 }

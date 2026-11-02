@@ -13,6 +13,8 @@ export type DashPlant = { id: string; code: string; name: string; is_demo: boole
 export type PlantNumbers = {
   inside_now: number;
   inside_temporary: number;
+  // M4b: employees on allowed outside work who punched at no plant (not counted inside).
+  on_outside_work?: number;
   expected: number;
   arrived: number;
   late: number;

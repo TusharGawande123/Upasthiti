@@ -352,7 +352,7 @@ describe("employee detail", () => {
     await user.selectOptions(within(dialog).getByLabelText("Category"), "c-9");
     await user.selectOptions(within(dialog).getByLabelText("Shift"), "s-9");
     fireEvent.change(within(dialog).getByLabelText("Starts on"), {
-      target: { value: "2026-11-01" },
+      target: { value: "2027-01-15" },
     });
     await user.type(within(dialog).getByLabelText("Reason"), "Plant closure");
     await user.click(within(dialog).getByRole("button", { name: "Transfer" }));
@@ -362,7 +362,7 @@ describe("employee detail", () => {
         to_plant_id: "p-2",
         category_id: "c-9",
         shift_id: "s-9",
-        effective_from: "2026-11-01",
+        effective_from: "2027-01-15",
         reason: "Plant closure",
       }),
     );

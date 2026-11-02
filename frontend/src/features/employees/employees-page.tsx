@@ -25,6 +25,7 @@ import { useMe } from "@/features/auth/use-auth";
 import { useContractors } from "@/features/contractors/use-contractors";
 import { FaceStateBadge } from "@/features/face/face-badges";
 import { FACE_FILTERS, type FaceFilter } from "@/features/face/use-face";
+import { PhoneTag } from "@/features/phone-admin/phone-tag";
 import { useNamedItems } from "@/features/plants/use-plants";
 import { formatNumber, formatRupees } from "@/lib/format";
 import { BulkDialog } from "./bulk-dialog";
@@ -60,6 +61,10 @@ export function EmployeesPage() {
     const fromAddress = searchParams.get("face_state");
     return FACE_FILTERS.find((filter) => filter === fromAddress) ?? "";
   });
+  const [phoneFilter, setPhoneFilter] = useState<"on" | "off" | "">(() => {
+    const fromAddress = searchParams.get("phone");
+    return fromAddress === "on" || fromAddress === "off" ? fromAddress : "";
+  });
   const [page, setPage] = useState(1);
   // Selected people, kept by id across pages. Employees of other pages are remembered here.
   const [selected, setSelected] = useState<Map<string, Employee>>(new Map());
@@ -92,6 +97,7 @@ export function EmployeesPage() {
     category_id: categoryId || undefined,
     contractor_id: contractorId || undefined,
     face_state: faceFilter || undefined,
+    phone: phoneFilter || undefined,
     page,
     page_size: PAGE_SIZE,
   });
@@ -258,6 +264,19 @@ export function EmployeesPage() {
               </option>
             ))}
           </Select>
+          <Select
+            aria-label={t("employees.phone.filterLabel")}
+            value={phoneFilter}
+            onChange={(event) => {
+              setPhoneFilter(event.target.value as "on" | "off" | "");
+              setPage(1);
+            }}
+            className="w-auto"
+          >
+            <option value="">{t("employees.phone.any")}</option>
+            <option value="on">{t("employees.phone.on")}</option>
+            <option value="off">{t("employees.phone.off")}</option>
+          </Select>
         </div>
 
         {employees.isError ? (
@@ -344,6 +363,7 @@ export function EmployeesPage() {
                             {employee.full_name}
                           </Link>
                           {employee.has_pending_change ? <ChangeWaiting /> : null}
+                          {employee.phone_punch_enabled ? <PhoneTag className="ml-2" /> : null}
                         </span>
                       </span>
                     </TableCell>
@@ -384,7 +404,7 @@ export function EmployeesPage() {
 
         {employees.data && rows.length === 0 ? (
           <p className="p-10 text-center text-muted-foreground">
-            {typedSearch || type || categoryId || contractorId || faceFilter
+            {typedSearch || type || categoryId || contractorId || faceFilter || phoneFilter
               ? t("employees.noMatch")
               : t("employees.empty")}
           </p>

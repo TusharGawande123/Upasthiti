@@ -116,7 +116,9 @@ export type PunchFilters = {
   flagged?: boolean;
   was_offline?: boolean;
   review_state?: ReviewState;
-  method?: "face" | "qr";
+  method?: "face" | "qr" | "gate_code";
+  channel?: "kiosk" | "phone";
+  outside_plant?: boolean;
   match_mode?: "code";
   asked_for_code?: boolean;
   no_face_photo?: boolean;

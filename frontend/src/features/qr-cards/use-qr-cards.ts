@@ -49,7 +49,12 @@ export type CardEmployee = {
   punch_method: "face" | "qr";
 };
 
-export type CardRow = { employee: CardEmployee; card: Card | null };
+// `phone_punch_enabled` (M4b): the employee may punch with a phone, which keeps working when the card ends.
+export type CardRow = {
+  employee: CardEmployee;
+  card: Card | null;
+  phone_punch_enabled?: boolean;
+};
 
 export type CardFilters = {
   plant_id?: string;
@@ -105,7 +110,8 @@ export function useEmployeeCards(employeeId: string) {
 export function useExpiringCount(enabled: boolean) {
   return useQuery({
     queryKey: [...QR_CARDS_KEY, "expiring-count"],
-    queryFn: () => apiGet<{ count: number; days: number }>("/qr-cards/expiring-count"),
+    queryFn: () =>
+      apiGet<{ count: number; days: number; phone_on_count?: number }>("/qr-cards/expiring-count"),
     enabled,
     refetchInterval: 5 * 60_000,
   });

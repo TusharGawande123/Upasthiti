@@ -23,6 +23,8 @@ export type ReviewFilters = {
   kiosk_id?: string;
   code?: string;
   method?: "qr" | "face";
+  // M4b: only punches made with a phone.
+  channel?: "phone";
   was_offline?: boolean;
   employee_id?: string;
   q?: string;

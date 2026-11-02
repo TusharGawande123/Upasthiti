@@ -48,6 +48,7 @@ const GROUP_ORDER = [
   "offline",
   "snapshots",
   "cards",
+  "phone",
   "kiosk_screen",
   "face",
   "privacy",

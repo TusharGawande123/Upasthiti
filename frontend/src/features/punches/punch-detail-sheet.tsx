@@ -23,7 +23,16 @@ import { describeError } from "@/features/auth/error-message";
 import { useSettings } from "@/features/settings/use-settings";
 import { formatDate, formatTimeWithSeconds } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { howText, MethodBadge, ResultBadge, ReviewMark, useReasonText } from "./punch-cells";
+import {
+  ChannelBadge,
+  howText,
+  MethodBadge,
+  OutsidePlantTag,
+  otherPlantLine,
+  ResultBadge,
+  ReviewMark,
+  useReasonText,
+} from "./punch-cells";
 import { type PunchDetail, type PunchFaceDetail, usePunchDetail } from "./use-punches";
 
 type Verdict = "passed" | "tooLow" | "notUsed";
@@ -323,10 +332,48 @@ export function PunchDetailSheet({
                         </Link>
                       </Row>
                     ) : null}
-                    <Row label={t("punches.columns.kiosk")}>
-                      {punch.kiosk?.name ?? t("punches.channel.phone")} ·{" "}
-                      <span className="code">{punch.plant.code}</span>
+                    <Row label={t("punches.columns.channel")}>
+                      <ChannelBadge channel={punch.channel} />
                     </Row>
+                    {punch.kiosk ? (
+                      <Row label={t("punches.columns.kiosk")}>
+                        {punch.kiosk.name} · <span className="code">{punch.plant.code}</span>
+                      </Row>
+                    ) : (
+                      <Row label={t("punches.detail.ownPlant")}>
+                        <span className="code">{punch.plant.code}</span>
+                      </Row>
+                    )}
+                    {otherPlantLine(punch, t) ? (
+                      <Row label={t("punches.detail.otherPlant")}>{otherPlantLine(punch, t)}</Row>
+                    ) : null}
+                    {punch.outside_plant ? (
+                      <Row label={t("punches.detail.outsidePlant")}>
+                        <OutsidePlantTag />
+                        <span className="mt-1 block text-xs text-muted-foreground">
+                          {t("punches.outsidePlantLine")}
+                        </span>
+                      </Row>
+                    ) : null}
+                    {punch.channel === "phone" && punch.phone_browser ? (
+                      <Row label={t("punches.detail.phone")}>{punch.phone_browser}</Row>
+                    ) : null}
+                    {punch.channel === "phone" && punch.location_accuracy_m != null ? (
+                      <Row label={t("punches.detail.accuracy")}>
+                        {t("punches.detail.accuracyValue", {
+                          meters: Math.round(punch.location_accuracy_m),
+                        })}
+                      </Row>
+                    ) : null}
+                    {punch.channel === "phone" &&
+                    !punch.location &&
+                    punch.geofence_distance_m != null ? (
+                      <Row label={t("punches.detail.positionHidden")}>
+                        {t("punches.detail.positionHiddenText", {
+                          meters: Math.round(punch.geofence_distance_m),
+                        })}
+                      </Row>
+                    ) : null}
                   </dl>
                 </section>
 

@@ -19,6 +19,7 @@ function CardsEndingSoon() {
   const expiring = useExpiringCount(true);
   const count = expiring.data?.count ?? 0;
   const days = expiring.data?.days ?? 14;
+  const phoneOn = expiring.data?.phone_on_count ?? 0;
   return (
     <Card>
       <CardHeader className="flex-row items-center gap-3">
@@ -31,6 +32,11 @@ function CardsEndingSoon() {
             {expiring.isError
               ? t("dashboard.cardsEndingSoon.error")
               : t("dashboard.cardsEndingSoon.text", { count, days })}
+            {phoneOn > 0 ? (
+              <span className="mt-1 block">
+                {t("dashboard.cardsEndingSoon.phoneOn", { count: phoneOn })}
+              </span>
+            ) : null}
           </CardDescription>
         </div>
       </CardHeader>

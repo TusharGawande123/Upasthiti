@@ -37,6 +37,8 @@ export type Employee = {
   has_pending_change: boolean;
   // M3: the face column (only meaningful for face employees; QR employees show "Card").
   face_state?: FaceState;
+  // M4b: phone punching is switched on for this employee (admin-controlled, decision 0004).
+  phone_punch_enabled?: boolean;
 };
 
 export type EmployeeDetail = {
@@ -75,6 +77,8 @@ export type EmployeeFilters = {
   shift_id?: string;
   contractor_id?: string;
   face_state?: FaceFilter;
+  /** M4b: employees with phone punching switched on or off. */
+  phone?: "on" | "off";
   page: number;
   page_size?: number;
 };

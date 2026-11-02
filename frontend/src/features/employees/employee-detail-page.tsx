@@ -23,6 +23,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { describeError } from "@/features/auth/error-message";
 import { useMe } from "@/features/auth/use-auth";
 import { EmployeeFacePanel } from "@/features/face/employee-face-panel";
+import { PhoneAttendanceCard } from "@/features/phone-admin/phone-attendance-card";
+import { PhoneTag } from "@/features/phone-admin/phone-tag";
 import { EmployeeCardPanel } from "@/features/qr-cards/employee-card-panel";
 import { formatDate, formatRupees, formatTime } from "@/lib/format";
 import { EmployeeStatusBadge, initialsOf, TypeBadge } from "./employee-badges";
@@ -112,6 +114,7 @@ export function EmployeeDetailPage() {
               <Badge tone="neutral">
                 <span className="code font-bold">{employee.plant_code}</span>
               </Badge>
+              {employee.phone_punch_enabled ? <PhoneTag /> : null}
             </div>
           </div>
         </div>
@@ -191,6 +194,7 @@ export function EmployeeDetailPage() {
                 <EmployeeFacePanel employee={employee} canManage={role === "super_admin"} />
               ) : null}
               <EmployeeCardPanel employee={employee} canManage={role === "super_admin"} />
+              <PhoneAttendanceCard employee={employee} canManage={role === "super_admin"} />
 
               <Card>
                 <CardHeader className="flex-row items-center justify-between">

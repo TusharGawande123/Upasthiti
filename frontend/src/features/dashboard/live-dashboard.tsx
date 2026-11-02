@@ -146,6 +146,11 @@ function InsideHero({ numbers, plantId }: { numbers: PlantNumbers; plantId: stri
         <span>{t("dashboard.live.permanent", { count: permanent })}</span>
         <span>{t("dashboard.live.insideTemporary", { count: temporary })}</span>
       </span>
+      {numbers.on_outside_work !== undefined ? (
+        <span className={cn("text-sm", numbers.on_outside_work === 0 && "text-muted-foreground")}>
+          {t("dashboard.live.onOutside", { count: numbers.on_outside_work })}
+        </span>
+      ) : null}
     </Link>
   );
 }
