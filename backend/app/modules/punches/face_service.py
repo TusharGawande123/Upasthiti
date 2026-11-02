@@ -379,9 +379,24 @@ def _face_snapshot(
     now: datetime,
     storage: Storage | None,
 ) -> PunchSnapshot | None:
-    """A 320 px photo of a rejected or code-path face punch; never for one that counts."""
+    return face_snapshot(session, punch, frames, first_code, now, storage)
+
+
+def face_snapshot(
+    session: Session,
+    punch: Punch,
+    frames: list[FaceFrame],
+    first_code: str | None,
+    now: datetime,
+    storage: Storage | None,
+    *,
+    rejected_reason: SnapshotReason = SnapshotReason.FACE_REJECTED,
+    no_photo_codes: tuple[str, ...] = NO_PHOTO_CODES,
+) -> PunchSnapshot | None:
+    """A 320 px photo of a rejected or code-path face punch; never for one that counts. The phone
+    (M4b) uses it too, with its own reason and its own "no new evidence" codes."""
     counts = punch.decision in (PunchDecision.ACCEPTED.value, PunchDecision.FLAGGED.value)
-    if counts or first_code in NO_PHOTO_CODES:
+    if counts or first_code in no_photo_codes:
         return None
     checked = small_photo(frames, get_int_setting(session, "snapshot_dark_threshold"))
     if checked is None:
@@ -389,7 +404,7 @@ def _face_snapshot(
     reason = (
         SnapshotReason.FACE_CODE
         if punch.decision == PunchDecision.NEEDS_CODE.value
-        else SnapshotReason.FACE_REJECTED
+        else rejected_reason
     )
     key = f"snapshots/{now:%Y/%m/%d}/{punch.id}.bin"
     stored_size = upload_snapshot(punch, checked, key, get_settings(), storage)

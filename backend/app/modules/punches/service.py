@@ -58,6 +58,7 @@ from app.modules.punches.models import (
     Punch,
     PunchMethod,
     PunchSnapshot,
+    SnapshotReason,
     SnapshotState,
 )
 from app.modules.punches.offline_time import OfflinePunch
@@ -94,6 +95,7 @@ def load_limits(session: Session) -> PunchLimits:
         same_person_two_devices_minutes=get_int_setting(session, "same_person_two_devices_minutes"),
         offline_max_hours=get_int_setting(session, "offline_max_hours"),
         attendance_window_before_hours=get_int_setting(session, "attendance_window_before_hours"),
+        gate_code_seconds=get_int_setting(session, "phone_gate_code_seconds"),
     )
 
 
@@ -167,7 +169,7 @@ def record_kiosk_punch(
     punch = _build_punch(kiosk, request, client, context, decision, now, offline)
     if early_out is not None:
         punch.early_out_mark = EARLY_OUT_OFFLINE if offline else EARLY_OUT_CONFIRMED
-    snapshot = _store_snapshot(session, punch, context, decision, now, storage)
+    snapshot = store_snapshot(session, punch, context, decision, now, storage)
     try:
         session.add(punch)
         session.flush()  # the unique (kiosk, client_punch_id) rule is checked here
@@ -359,13 +361,14 @@ def metres(value: float | None) -> Decimal | None:
     return None if value is None else Decimal(f"{value:.1f}")
 
 
-def _store_snapshot(
+def store_snapshot(
     session: Session,
     punch: Punch,
     context: PunchContext,
     decision: EngineDecision,
     now: datetime,
     storage: Storage | None,
+    reason: SnapshotReason = SnapshotReason.QR_PUNCH,
 ) -> PunchSnapshot | None:
     """Encrypt and upload the photo, and return its database record (not yet added).
 
@@ -390,6 +393,7 @@ def _store_snapshot(
         taken_at=now,
         expires_at=now + timedelta(days=retention_days),
         state=SnapshotState.STORED.value if stored_size else SnapshotState.UPLOAD_FAILED.value,
+        reason=reason.value,
     )
 
 

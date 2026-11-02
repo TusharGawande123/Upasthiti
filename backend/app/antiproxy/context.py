@@ -74,6 +74,8 @@ class PunchLimits:
     offline_max_hours: int = 72
     # M5 (spec §7 rule 5): where the attendance day of a shift starts, for `shift_closed`.
     attendance_window_before_hours: int = 4
+    # M4b (spec §7 rule 15): how long a phone code on the gate screen is valid (plus 5 s grace).
+    gate_code_seconds: int = 30
 
 
 @dataclass(frozen=True)
@@ -125,6 +127,10 @@ class PunchContext:
     is_offline: bool = False  # M4: a queued punch decided at sync
     time_proof: str | None = None  # offline only: "anchored" or "unproven" (§7 rule 8)
     received_at: datetime | None = None  # offline only: when the sync request arrived
+    # M4b phone punches: what the server knows from the employee's sign-in.
+    outside_work_allowed: bool = False  # the Super Admin's switch, judged on the punch's IST date
+    gate_code_text: str | None = None  # a gate-code punch: the scanned text (untrusted)
+    gate_device: KioskDevice | None = None  # the gate device that text names (looked up first)
     # What the rules find out, in order.
     snapshot: CheckedSnapshot | None = None
     card: QrCredential | None = None
@@ -134,6 +140,9 @@ class PunchContext:
     geofence_id: uuid.UUID | None = None
     geofence_distance_m: float | None = None
     related_punch_id: uuid.UUID | None = None
+    # M4b: the plant whose fence the position matched (the own plant, or another plant on outside
+    # work). None for an OUTSIDE_PLANT punch and for a refused one (spec M4b §7 rule 12).
+    location_plant_id: uuid.UUID | None = None
 
     @property
     def judges_at_punch_time(self) -> bool:

@@ -23,9 +23,12 @@ from app.antiproxy.rules.face_consistency import check_consistency
 from app.antiproxy.rules.face_frames import check_frames
 from app.antiproxy.rules.face_liveness import check_liveness
 from app.antiproxy.rules.face_match import check_match
+from app.antiproxy.rules.face_match_one_to_one import check_match_one_to_one
+from app.antiproxy.rules.gate_code import check_gate_code
 from app.antiproxy.rules.impossible_travel import check_impossible_travel
 from app.antiproxy.rules.kiosk_location import check_kiosk_location, check_location_age
 from app.antiproxy.rules.offline_time import check_offline_age, check_time_proven
+from app.antiproxy.rules.phone_location import check_phone_location, check_phone_location_at_gate
 from app.antiproxy.rules.qr_credential import check_qr_credential
 from app.antiproxy.rules.read_card import read_card
 from app.antiproxy.rules.shift_closed import check_shift_closed
@@ -73,6 +76,26 @@ FACE_RULES: tuple[FaceRule, ...] = (
     check_antispoof,
     check_consistency,
     check_match,
+)
+
+# M4b phone face punch (spec §7 rule 10): the same checks, then a 1:1 match against the signed-in
+# employee's own template instead of the 1:N search. The phone location rule runs before them.
+PHONE_LOCATION_RULES: tuple[Rule, ...] = (check_phone_location,)
+PHONE_FACE_RULES: tuple[FaceRule, ...] = (
+    check_challenge,
+    check_frames,
+    check_liveness,
+    check_antispoof,
+    check_consistency,
+    check_match_one_to_one,
+)
+# M4b gate-code punch (rule 11): the person is known from the sign-in. Location (own fence only),
+# the selfie, the gate code, then IN/OUT and the flag rules.
+GATE_CODE_RULES: tuple[Rule, ...] = (
+    check_phone_location_at_gate,
+    check_snapshot,
+    check_gate_code,
+    *AFTER_IDENTITY_RULES,
 )
 
 
