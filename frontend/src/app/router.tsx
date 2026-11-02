@@ -238,6 +238,90 @@ const adminPages: RouteObject[] = [
   },
 ];
 
+// The phone attendance area (M4b): its own small layout, no admin menu. Every page is lazy, so
+// neither the gate nor the admin ever downloads phone code.
+const phoneArea: RouteObject = {
+  path: "/phone",
+  lazy: page(
+    () => import("../features/phone/phone-layout"),
+    (m) => m.PhoneLayout,
+  ),
+  children: [
+    {
+      path: "login",
+      lazy: page(
+        () => import("../features/phone/login-page"),
+        (m) => m.PhoneLoginPage,
+      ),
+    },
+    {
+      path: "setup",
+      lazy: page(
+        () => import("../features/phone/setup-page"),
+        (m) => m.PhoneSetupPage,
+      ),
+    },
+    {
+      path: "setup/password",
+      lazy: page(
+        () => import("../features/phone/password-page"),
+        (m) => m.PhonePasswordPage,
+      ),
+    },
+    {
+      // Everything below needs a phone sign-in (and the accepted notice).
+      lazy: page(
+        () => import("../features/phone/phone-layout"),
+        (m) => m.RequirePhoneSession,
+      ),
+      children: [
+        {
+          index: true,
+          lazy: page(
+            () => import("../features/phone/home-page"),
+            (m) => m.PhoneHomePage,
+          ),
+        },
+        {
+          path: "notice",
+          lazy: page(
+            () => import("../features/phone/notice-page"),
+            (m) => m.PhoneNoticePage,
+          ),
+        },
+        {
+          path: "attendance",
+          lazy: page(
+            () => import("../features/phone/attendance-page"),
+            (m) => m.PhoneAttendancePage,
+          ),
+        },
+        {
+          path: "passkey",
+          lazy: page(
+            () => import("../features/phone/passkey-page"),
+            (m) => m.PhonePasskeyPage,
+          ),
+        },
+        {
+          path: "punch/face",
+          lazy: page(
+            () => import("../features/phone/face-punch-page"),
+            (m) => m.PhoneFacePunchPage,
+          ),
+        },
+        {
+          path: "punch/gate-code",
+          lazy: page(
+            () => import("../features/phone/gate-code-page"),
+            (m) => m.PhoneGateCodePage,
+          ),
+        },
+      ],
+    },
+  ],
+};
+
 export const routes: RouteObject[] = [
   {
     // Shown (blank) for the moment the first page's code is loading.
@@ -290,6 +374,7 @@ export const routes: RouteObject[] = [
           (m) => m.PrivacyPage,
         ),
       },
+      phoneArea,
       { path: "/kiosk", element: <OldGateAddress /> },
       { path: "*", element: <NotFoundPage /> },
     ],

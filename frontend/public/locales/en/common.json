@@ -799,7 +799,12 @@
     "CHALLENGE_EXPIRED": "Too slow. Please try again.",
     "CHALLENGE_INVALID": "This check was already used. Please try again.",
     "FRAMES_INVALID": "The camera pictures could not be read. Please try again.",
-    "NOT_BULK_CONFIRMABLE": "This punch needs a single review. It was left as it is."
+    "NOT_BULK_CONFIRMABLE": "This punch needs a single review. It was left as it is.",
+    "PHONE_SIGNED_OUT_ELSEWHERE": "You signed in on another phone, so this phone was signed out.",
+    "PHONE_BROWSER_UNSUPPORTED": "Please open this page in Chrome or Edge on your phone.",
+    "PASSKEY_CANCELLED": "The passkey was not used. You can try again or sign in with your password.",
+    "PHONE_LOCATION_DENIED": "Turn on location for this website. Please try again.",
+    "PHONE_NETWORK_OFFLINE": "No internet. Please try again when you have internet."
   },
   "nav": {
     "label": "Main menu",
@@ -4412,6 +4417,352 @@
       "off": "Off",
       "save": "Save my email alerts",
       "saved": "Email alerts saved."
+    }
+  },
+  "phone": {
+    "title": "Phone attendance",
+    "back": "Back",
+    "cancel": "Cancel",
+    "tryAgain": "Try again",
+    "backToSignIn": "Back to sign in",
+    "checking": "Checking…",
+    "in": "IN",
+    "out": "OUT",
+    "menu": {
+      "button": "Menu",
+      "title": "Menu",
+      "notice": "Privacy notice",
+      "passkeys": "Passkeys on this account",
+      "noPasskeys": "No passkeys yet.",
+      "stop": "Stop phone punching",
+      "stopConfirm": "You will not be able to punch with this phone until the office switches phone punching on again. Your job, pay and shift do not change. You can still punch at the attendance device.",
+      "signOut": "Sign out"
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Use your employee code and password.",
+      "code": "Employee code",
+      "password": "Password",
+      "show": "Show password",
+      "hide": "Hide password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "forgot": "First time or forgot your password?",
+      "or": "or",
+      "passkey": "Sign in with passkey",
+      "passkeyHint": "Type your employee code first.",
+      "passkeyWaiting": "Use your phone's screen lock: fingerprint, face unlock or PIN.",
+      "codeRequired": "Please type your employee code.",
+      "passwordRequired": "Please type your password."
+    },
+    "camera": {
+      "opening": "Starting the camera…",
+      "start": "Start camera",
+      "tapTitle": "Tap to start the camera",
+      "notFound": {
+        "title": "No camera found",
+        "message": "We could not open a camera on this phone.",
+        "steps": ["Close other apps that use the camera.", "Press “Try again”."]
+      }
+    },
+    "setup": {
+      "title": "Prove it is you",
+      "subtitle": "Choose one way. Then you set your password.",
+      "stepCheck": "Check",
+      "stepPassword": "Password",
+      "startCamera": "Start camera",
+      "begin": "Begin",
+      "face": {
+        "title": "Check my face",
+        "hint": "For people who punch with their face"
+      },
+      "card": {
+        "title": "Scan my ID card",
+        "hint": "For workers with an ID card",
+        "show": "Show your ID card to the camera",
+        "locating": "Finding your location…",
+        "cameraLabel": "Camera picture for your ID card"
+      },
+      "cardIntro": {
+        "title": "Location is needed",
+        "body": "Switch location on, and stand inside the plant. We read your location once, now."
+      }
+    },
+    "password": {
+      "title": "Set your password",
+      "passed": "Check passed, {{name}}",
+      "new": "New password",
+      "again": "Type it again",
+      "save": "Save and sign in",
+      "saving": "Saving…",
+      "validFor": "This check is valid for 5 minutes.",
+      "done": "Done",
+      "notYet": "Not yet",
+      "mismatch": "The two passwords are not the same. Please type it again.",
+      "checkAgain": "Check again",
+      "rule": {
+        "length": "At least 8 characters",
+        "notOnlyNumbers": "Not only numbers",
+        "notCode": "Not your employee code",
+        "notEasy": "Not an easy password like 12345678"
+      }
+    },
+    "notice": {
+      "title": "Phone punching notice",
+      "version": "Notice version {{version}}",
+      "agree": "I agree",
+      "notNow": "Not now",
+      "error": "The notice could not be loaded. Please try again."
+    },
+    "home": {
+      "hello": "Hello, {{name}}",
+      "today": "Today",
+      "lastPunch": "{{direction}} at {{time}}",
+      "none": "No punch yet today",
+      "via": {
+        "phone": "Phone",
+        "device": "Attendance device"
+      },
+      "outsideAllowed": "Outside work allowed",
+      "outsideUntil": "until {{date}}",
+      "location": {
+        "finding": "Finding your location…",
+        "ready": "Location ready",
+        "off": "Turn on location for this website.",
+        "weak": "Location not exact enough ({{meters}} m). Move outside, where the sky is open.",
+        "notAtPlant": "You are not at the plant"
+      },
+      "punchFace": "Punch with face",
+      "scanGateCode": "Scan the phone code at the gate",
+      "myAttendance": "My attendance",
+      "passkeyLink": "Sign in faster with a passkey",
+      "addToHome": "Add to home screen",
+      "loadError": "We could not load your page. Please try again."
+    },
+    "attendance": {
+      "title": "My attendance",
+      "subtitle": "The last 31 days",
+      "todayLabel": "Today",
+      "in": "IN",
+      "out": "OUT",
+      "worked": "Worked",
+      "missing": "–",
+      "notYet": "Not yet",
+      "help": "Something wrong? Please visit the plant office.",
+      "empty": "No attendance yet in the last 31 days.",
+      "loadError": "We could not load your attendance. Please try again."
+    },
+    "status": {
+      "present": "Present",
+      "half_day": "Half-day",
+      "short_hours": "Short hours",
+      "absent": "Absent",
+      "incomplete": "Incomplete",
+      "leave": "Leave",
+      "weekly_off": "Weekly off",
+      "holiday": "Holiday",
+      "open": "Open"
+    },
+    "passkey": {
+      "title": "Passkey",
+      "note": "A passkey signs you in with your phone's screen lock. Your fingerprint or face never leaves your phone.",
+      "add": "Add a passkey on this phone",
+      "waiting": "Waiting for your screen lock…",
+      "added": "Passkey added",
+      "removed": "Passkey removed.",
+      "remove": "Remove",
+      "count": "Your passkeys: {{count}} of {{max}}",
+      "addedOn": "Added {{date}}",
+      "lastUsed": "last used {{date}}",
+      "signInAgain": "Sign in again",
+      "notSupported": "This phone cannot make a passkey. Please sign in with your password."
+    },
+    "gateCode": {
+      "scan": "Scan the phone code at the gate",
+      "notGateCode": "This is not the phone code of the attendance device.",
+      "lookAtCamera": "Look at the camera"
+    },
+    "result": {
+      "serverTime": "Time"
+    },
+    "punch": {
+      "locating": "Finding your location…",
+      "outsidePlantLine": "Saved as an outside-plant punch. The office will check it.",
+      "NO_FACE": {
+        "title": "TRY AGAIN",
+        "message": "We could not see your face.",
+        "next": "Stand in front of the camera and try again."
+      },
+      "MULTIPLE_FACES": {
+        "title": "TRY AGAIN",
+        "message": "Only one person, please.",
+        "next": "Please try again."
+      },
+      "FACE_TOO_SMALL": {
+        "title": "TRY AGAIN",
+        "message": "Come a little closer.",
+        "next": "Please try again."
+      },
+      "FACE_QUALITY_LOW": {
+        "title": "TRY AGAIN",
+        "message": "The picture is too dark or blurry.",
+        "next": "Please try again."
+      },
+      "LIVENESS_FAILED": {
+        "title": "TRY AGAIN",
+        "message": "Please turn your head as the arrow shows, then look straight.",
+        "next": "Please try again."
+      },
+      "FACE_INCONSISTENT": {
+        "title": "TRY AGAIN",
+        "message": "The check did not pass.",
+        "next": "Please try again."
+      },
+      "CHALLENGE_EXPIRED": {
+        "title": "TRY AGAIN",
+        "message": "Too slow.",
+        "next": "Please try again."
+      },
+      "CHALLENGE_INVALID": {
+        "title": "TRY AGAIN",
+        "message": "The check could not be finished.",
+        "next": "Please try again."
+      },
+      "FRAMES_INVALID": {
+        "title": "TRY AGAIN",
+        "message": "The pictures could not be read.",
+        "next": "Please try again."
+      },
+      "SPOOF_SUSPECTED": {
+        "title": "NOT ACCEPTED",
+        "message": "The check did not pass.",
+        "next": "Please visit the plant office."
+      },
+      "FACE_NOT_RECOGNISED": {
+        "title": "NOT ACCEPTED",
+        "message": "We could not recognise you.",
+        "next": "Please visit the plant office."
+      },
+      "FACE_NOT_CONFIGURED": {
+        "title": "ERROR",
+        "message": "Face punch is not available here.",
+        "next": "Please visit the plant office."
+      },
+      "WRONG_PLANT": {
+        "title": "NOT ACCEPTED",
+        "message": "You are registered at another plant.",
+        "next": "Please visit the plant office."
+      },
+      "OUTSIDE_GEOFENCE": {
+        "title": "NOT ACCEPTED",
+        "message": "You are not at the plant.",
+        "next": "Please visit the plant office."
+      },
+      "GEOFENCE_NOT_SET": {
+        "title": "NOT ACCEPTED",
+        "message": "This plant is not set up for phone punching yet.",
+        "next": "Please visit the plant office."
+      },
+      "LOCATION_REQUIRED": {
+        "title": "TRY AGAIN",
+        "message": "We could not read your location.",
+        "next": "Please try again."
+      },
+      "PHONE_LOCATION_DENIED": {
+        "title": "TRY AGAIN",
+        "message": "Turn on location for this website.",
+        "next": "Please try again."
+      },
+      "GPS_ACCURACY_TOO_LOW": {
+        "title": "TRY AGAIN",
+        "message": "Your location is not exact enough.",
+        "next": "Move outside, where the sky is open. Please try again."
+      },
+      "COOLDOWN_ACTIVE": {
+        "title": "ALREADY PUNCHED",
+        "message": "You punched a moment ago.",
+        "next": "No need to punch again."
+      },
+      "OUT_TOO_SOON": {
+        "title": "ALREADY IN",
+        "message": "You are already IN.",
+        "next": "Please punch OUT a little later."
+      },
+      "SHIFT_ALREADY_CLOSED": {
+        "title": "SHIFT CLOSED",
+        "message": "Your shift is already closed.",
+        "next": "Please visit the plant office."
+      },
+      "GATE_CODE_INVALID": {
+        "title": "NOT ACCEPTED",
+        "message": "This phone code is not valid.",
+        "next": "Please visit the plant office."
+      },
+      "GATE_CODE_EXPIRED": {
+        "title": "TRY AGAIN",
+        "message": "The phone code has changed.",
+        "next": "Please scan the code again."
+      },
+      "NOT_A_GATE_CODE": {
+        "title": "TRY AGAIN",
+        "message": "This is not the phone code of the attendance device.",
+        "next": "Please scan the code again."
+      },
+      "SNAPSHOT_MISSING": {
+        "title": "TRY AGAIN",
+        "message": "The photo could not be taken.",
+        "next": "Please try again."
+      },
+      "SNAPSHOT_INVALID": {
+        "title": "TRY AGAIN",
+        "message": "The photo could not be taken.",
+        "next": "Please try again."
+      },
+      "PAYLOAD_TOO_LARGE": {
+        "title": "NOT SAVED",
+        "message": "The photo was too large.",
+        "next": "Please try again."
+      },
+      "EMPLOYEE_NOT_FACE": {
+        "title": "NOT ACCEPTED",
+        "message": "Punching with the phone code is not for you.",
+        "next": "Please visit the plant office."
+      },
+      "EMPLOYEE_NOT_QR": {
+        "title": "NOT ACCEPTED",
+        "message": "Punching with your face is not set for you.",
+        "next": "Please visit the plant office."
+      },
+      "PROOF_FAILED": {
+        "title": "NOT CONFIRMED",
+        "message": "We could not confirm it is you.",
+        "next": "Please try again, or visit the plant office."
+      },
+      "FACE_SERVICE_BUSY": {
+        "title": "PLEASE WAIT",
+        "message": "Many people are punching.",
+        "next": "Please try again in a moment."
+      },
+      "FACE_SERVICE_UNAVAILABLE": {
+        "title": "PLEASE WAIT",
+        "message": "Face punch is starting.",
+        "next": "Please wait a minute."
+      },
+      "TOO_MANY_REQUESTS": {
+        "title": "PLEASE WAIT",
+        "message": "Your punch was NOT saved.",
+        "next": "Wait a moment, then try again."
+      },
+      "NETWORK_OFFLINE": {
+        "title": "NOT SAVED",
+        "message": "No internet. Your punch was NOT saved.",
+        "next": "Try again when you have internet, or punch at the attendance device."
+      },
+      "INTERNAL_ERROR": {
+        "title": "ERROR",
+        "message": "Something went wrong.",
+        "next": "Please try again. If it repeats, please visit the plant office."
+      }
     }
   }
 }
