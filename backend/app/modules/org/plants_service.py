@@ -33,8 +33,10 @@ PLANT_CODE_PATTERN = re.compile(r"^[A-Z0-9]{2,10}$")
 DEFAULT_SHIFT_NAME = "General"
 DEFAULT_SHIFT_START = time(7, 0)
 DEFAULT_SHIFT_END = time(19, 0)
-# Client call of 2026-10-30 (decision 0034): grace 30 at both ends, overtime counts from 2 hours.
-DEFAULT_GRACE_MIN = 30
+# Client call of 2026-10-30 (decision 0034): grace 30 after the start and 30 after the end,
+# overtime counts from 2 hours.
+DEFAULT_GRACE_MIN = 30  # after the start
+DEFAULT_GRACE_AFTER_END_MIN = 30  # after the end (decision 0036 line 79)
 DEFAULT_HALF_DAY_MIN = 240
 DEFAULT_OVERTIME_MIN_MINUTES = 120
 DEFAULT_CATEGORIES = ("Staff", "Worker", "Operator", "Helper")
@@ -203,6 +205,7 @@ def _add_new_plant_defaults(session: Session, plant: Plant, actor: Actor) -> Non
         start_time=DEFAULT_SHIFT_START,
         end_time=DEFAULT_SHIFT_END,
         grace_min=DEFAULT_GRACE_MIN,
+        grace_after_end_min=DEFAULT_GRACE_AFTER_END_MIN,
         half_day_min=DEFAULT_HALF_DAY_MIN,
         overtime_min_minutes=DEFAULT_OVERTIME_MIN_MINUTES,
     )

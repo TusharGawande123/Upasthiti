@@ -31,6 +31,8 @@ SHIFTS = {
     "night": ShiftRules(time(19), time(7), 30, 240, 120),
     "office_g0": ShiftRules(time(9), time(17), 0, 240, 120),
     "office_m0": ShiftRules(time(9), time(17), 30, 240, 0),
+    "office_end0": ShiftRules(time(9), time(17), 30, 240, 120, 0),  # no grace after the end
+    "office_end120": ShiftRules(time(9), time(17), 30, 240, 120, 120),
 }
 DEFAULT_DAY = date(2026, 10, 30)  # a Friday
 DEFAULT_NOW = datetime(2026, 11, 20, 12, 0, tzinfo=IST)

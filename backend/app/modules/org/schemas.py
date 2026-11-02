@@ -124,7 +124,8 @@ class NamedItemResponse(BaseModel):
         return cls.model_validate(item, from_attributes=True)
 
 
-# Grace is the same at the start and the end; overtime counts from the shift end, only when it
+# Two graces: after the start (grace_min) and after the end (grace_after_end_min, shown only,
+# it changes no minutes); overtime counts from the shift end, only when it
 # reaches overtime_min_minutes (M5 spec §7 rules 9 and 11). An old client that still sends
 # `ot_after_min` is ignored: unknown fields are dropped.
 class CreateShiftRequest(BaseModel):
@@ -132,6 +133,7 @@ class CreateShiftRequest(BaseModel):
     start_time: time
     end_time: time
     grace_min: int = Field(default=30, ge=0, le=120)
+    grace_after_end_min: int = Field(default=30, ge=0, le=120)
     half_day_min: int = Field(default=240, ge=0, le=1440)
     overtime_min_minutes: int = Field(default=120, ge=0, le=480)
 
@@ -141,6 +143,7 @@ class UpdateShiftRequest(BaseModel):
     start_time: time | None = None
     end_time: time | None = None
     grace_min: int | None = Field(default=None, ge=0, le=120)
+    grace_after_end_min: int | None = Field(default=None, ge=0, le=120)
     half_day_min: int | None = Field(default=None, ge=0, le=1440)
     overtime_min_minutes: int | None = Field(default=None, ge=0, le=480)
     # The date the changed rules apply from (today or later; default today).
@@ -154,6 +157,7 @@ class ShiftRulesResponse(BaseModel):
     crosses_midnight: bool
     shift_length_min: int
     grace_min: int
+    grace_after_end_min: int
     half_day_min: int
     overtime_min_minutes: int
     created_at: datetime
@@ -167,6 +171,7 @@ class ShiftRulesResponse(BaseModel):
             crosses_midnight=version.crosses_midnight,
             shift_length_min=shift_length_minutes(version.start_time, version.end_time),
             grace_min=version.grace_min,
+            grace_after_end_min=version.grace_after_end_min,
             half_day_min=version.half_day_min,
             overtime_min_minutes=version.overtime_min_minutes,
             created_at=version.created_at,
@@ -182,6 +187,7 @@ class ShiftResponse(BaseModel):
     crosses_midnight: bool
     shift_length_min: int  # the full day (read-only)
     grace_min: int
+    grace_after_end_min: int
     half_day_min: int
     overtime_min_minutes: int
     is_active: bool
@@ -205,6 +211,7 @@ class ShiftResponse(BaseModel):
             crosses_midnight=shift.crosses_midnight,
             shift_length_min=shift_length_minutes(shift.start_time, shift.end_time),
             grace_min=shift.grace_min,
+            grace_after_end_min=shift.grace_after_end_min,
             half_day_min=shift.half_day_min,
             overtime_min_minutes=shift.overtime_min_minutes,
             is_active=shift.is_active,
