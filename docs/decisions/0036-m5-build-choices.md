@@ -425,3 +425,8 @@ The other "to confirm with Tushar" lines of this file and the seven points of `d
 81. **Phone texts (lines 30 to 33):** "Scan the QR code", "Move outside, where the sky is open.", "Please open this page in Chrome or Edge on your
     phone." and the gate panel heading "Phone code" are confirmed. The specs are updated with them.
 82. **Passkeys and a password reset (line 38):** a new password after a face or card proof does NOT remove passkeys. Confirmed as built.
+83. **All other "to confirm with Tushar" lines of this file (2026-11-02, in chat):** the lead said "theek hai" to the remaining lines as built
+    (whole-minute cut, early-OUT warning, offline early OUT, poster layout and icon, kept consent sign-in rows, `GET` and `POST` for the gate
+    code, a code naming no device, many-rejections alert for gate devices only, bulk-confirm test, outside-work reason, phone result texts and
+    Back button, style and menu budgets, CSP). The only exceptions are lines 77 and 79 (to be built) and the seven points of
+    `docs/compliance/m5-m4b-open-points.md`, which need the client, HR and legal.
