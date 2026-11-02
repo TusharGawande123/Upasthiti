@@ -177,6 +177,26 @@ describe("phone face punch", () => {
     expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
   }, 20_000);
 
+  it("with no internet shows NOT saved and writes nothing on the phone (AC-48)", async () => {
+    // The phone is online-only: nothing is queued in localStorage or IndexedDB (spec M4b AC-48).
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (url: string) => {
+        if (url === "/api/v1/phone/me") return Response.json(ME);
+        throw new TypeError("Failed to fetch");
+      }),
+    );
+    const storedBefore = JSON.stringify({ ...localStorage });
+    const databasesBefore = (await indexedDB.databases()).length;
+    renderRoute("/phone/punch/face");
+
+    expect(
+      await screen.findByText("No internet. Your punch was NOT saved.", {}, { timeout: 12_000 }),
+    ).toBeInTheDocument();
+    expect(JSON.stringify({ ...localStorage })).toBe(storedBefore);
+    expect((await indexedDB.databases()).length).toBe(databasesBefore);
+  }, 20_000);
+
   it("explains a refused location permission before the camera opens", async () => {
     fakeReading.denied = true;
     mockApi({ "GET /phone/me": { body: ME } });
@@ -329,6 +349,18 @@ describe("password setup: prove it is you", () => {
       location: { accuracy_m: 10 },
     });
     expect(fakes.started).toEqual(["environment"]);
+  });
+
+  it("says in plain words to wait when the card proof is asked too often (429)", async () => {
+    mockApi({ "POST /phone/proof/card": apiError(429, "TOO_MANY_REQUESTS") });
+    const user = userEvent.setup();
+    renderRoute("/phone/setup");
+    await user.click(await screen.findByRole("button", { name: /Scan my ID card/ }));
+    await user.click(screen.getByRole("button", { name: "Start camera" }));
+    await screen.findByLabelText("Camera picture for your ID card");
+    fakes.qrText = "UPS1.A.C000123.SIG";
+    expect(await screen.findByText("Wait a moment, then try again.")).toBeInTheDocument();
+    expect(screen.getByText("PLEASE WAIT")).toBeInTheDocument();
   });
 
   it("refuses a card read outside the plant without a retry button", async () => {

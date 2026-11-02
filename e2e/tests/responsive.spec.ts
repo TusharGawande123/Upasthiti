@@ -7,6 +7,7 @@ import {
   adminApi,
   logIn,
   makeKioskCode,
+  makePermanentEmployee,
   makePlant,
   makeWorkerWithCard,
   openKioskWithCard,
@@ -207,5 +208,38 @@ test("the phone sign-in and check pages fit 360 px, iPhone 13, a phone and a tab
       await expectNoSidewaysScroll(reader, `${path} ${size.width}px`);
     }
     await context.close();
+  }
+});
+
+// M5 and M4b: the employee page (Details with the "Phone attendance" card, and the Attendance tab)
+// needs an employee id, so it is measured here with a made-up employee.
+test("the employee page, its Attendance tab and the Phone attendance card fit 360 px and a tablet", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await logIn(page, SUPER_ADMIN_LOGIN);
+  await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
+  const api = adminApi(page);
+  const plant = await makePlant(api, "PH6");
+  const employee = await makePermanentEmployee(
+    api,
+    plant,
+    "PH6-001",
+    "Employee With A Fairly Long Name For The Phone Card",
+  );
+
+  for (const size of [SMALL_PHONE, TABLET]) {
+    await page.setViewportSize(size);
+    for (const path of [
+      `/admin/employees/${employee.id}`,
+      `/admin/employees/${employee.id}?tab=attendance`,
+    ]) {
+      await page.goto(path);
+      await settle(page);
+      if (!path.includes("tab=")) {
+        await expect(page.getByText("Phone attendance", { exact: true }).first()).toBeVisible();
+      }
+      await expectNoSidewaysScroll(page, `${size.width}px ${path}`);
+    }
   }
 });

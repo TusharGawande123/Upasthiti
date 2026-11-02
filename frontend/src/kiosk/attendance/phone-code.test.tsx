@@ -113,6 +113,26 @@ describe("phone code panel", () => {
     ).toBe(true);
   });
 
+  it("is hidden while a card punch is running and comes back when the gate is idle (AC-38)", async () => {
+    mockApi({ "GET /kiosk/me": { body: me() }, "POST /kiosk/gate-code": freshCode() });
+    await openGate();
+    const panel = () =>
+      screen.queryByRole("img", { name: "The phone code of this attendance device" });
+    expect(await screen.findByRole("img", { name: /phone code/ })).toBeInTheDocument();
+
+    fakes.qrText = "UPS1.A.C000123.SIG";
+    await screen.findByRole(
+      "heading",
+      { name: "Card read. Get ready for your photo." },
+      { timeout: 3000 },
+    );
+    fakes.qrText = null;
+    expect(panel()).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: /Cancel/ }));
+    expect(await screen.findByRole("img", { name: /phone code/ })).toBeInTheDocument();
+  });
+
   it("shows nothing when the setting is off", async () => {
     const calls = mockApi({ "GET /kiosk/me": { body: me({ enabled: false }) } });
     await openGate();

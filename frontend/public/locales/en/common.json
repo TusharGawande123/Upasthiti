@@ -4819,7 +4819,7 @@
       },
       "TOO_MANY_REQUESTS": {
         "title": "PLEASE WAIT",
-        "message": "Your punch was NOT saved.",
+        "message": "This was NOT saved.",
         "next": "Wait a moment, then try again."
       },
       "NETWORK_OFFLINE": {

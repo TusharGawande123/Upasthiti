@@ -219,3 +219,16 @@ test("the phone pages fit a 360 px phone and a 768 px tablet", async ({ page }) 
     }
   }
 });
+
+// AC-52 (F-74): the phone pages link the manifest of /phone and register no service worker.
+test("the phone pages link their own manifest and register no service worker", async ({ page }) => {
+  await page.goto("/phone/login", { waitUntil: "networkidle" });
+  await expect(page.locator('link[rel="manifest"]')).toHaveAttribute("href", "/phone.webmanifest");
+  const manifest = await (await page.request.get("/phone.webmanifest")).json();
+  expect(manifest.scope).toBe("/phone");
+  expect(manifest.display).toBe("standalone");
+  const registrations = await page.evaluate(async () =>
+    (await navigator.serviceWorker.getRegistrations()).map((entry) => entry.scope),
+  );
+  expect(registrations.filter((scope) => scope.includes("/phone"))).toEqual([]);
+});
