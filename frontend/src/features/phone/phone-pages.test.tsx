@@ -85,6 +85,9 @@ describe("phone sign in", () => {
       password: "Correct-Horse-42",
     });
     expect(await screen.findByText("Hello, Sunita")).toBeInTheDocument();
+    // The top bar (created on the sign-in page) must show the new session: name and Menu button.
+    expect(await screen.findByRole("button", { name: "Menu" })).toBeInTheDocument();
+    expect(screen.getByText(/Sunita Jadhav ·/)).toBeInTheDocument();
   });
 
   it("shows one wrong-password text and says how long a locked account waits", async () => {
