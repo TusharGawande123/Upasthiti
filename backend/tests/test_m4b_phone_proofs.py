@@ -145,7 +145,7 @@ def test_ac_11_every_not_you_case_gives_the_same_answer_after_one_second(
     assert len({str(answer.json()) for _, answer in answers}) == 1
     assert error_code(answers[0][1]) == "PROOF_FAILED"
     failed = db_session.scalars(
-        select(AuditLog).where(AuditLog.action == "phone_proof.failed")
+        select(AuditLog).where(AuditLog.action == "phone_proof.failed").order_by(AuditLog.at)
     ).all()
     assert [row.after for row in failed] == [{"kind": "face", "code": code} for code, _ in cases]
 
