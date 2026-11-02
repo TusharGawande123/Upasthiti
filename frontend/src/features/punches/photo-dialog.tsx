@@ -27,7 +27,7 @@ import { PunchResultText } from "./punch-cells";
 import { type PunchItem, useComparison, usePunchPhoto } from "./use-punches";
 
 function whenAndWhere(punch: PunchItem): string {
-  return `${formatDate(punch.server_received_at)} ${formatTimeWithSeconds(punch.server_received_at)} · ${punch.kiosk.name}`;
+  return `${formatDate(punch.server_received_at)} ${formatTimeWithSeconds(punch.server_received_at)} · ${punch.kiosk?.name ?? ""}`;
 }
 
 // The reasons a photo cannot be shown, each in plain words.
@@ -212,7 +212,7 @@ function CompareView({
                       {formatDate(item.server_received_at)}{" "}
                       {formatTimeWithSeconds(item.server_received_at)}
                     </p>
-                    <p className="text-xs text-muted-foreground">{item.kiosk.name}</p>
+                    <p className="text-xs text-muted-foreground">{item.kiosk?.name ?? ""}</p>
                     <PunchResultText punch={item} small />
                   </li>
                 ))}

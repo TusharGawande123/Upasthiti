@@ -42,9 +42,9 @@ const K134_LISTS = {
         start_time: "07:00:00",
         end_time: "19:00:00",
         crosses_midnight: false,
-        grace_min: 10,
+        grace_min: 30,
         half_day_min: 240,
-        ot_after_min: 480,
+        overtime_min_minutes: 120,
         is_active: true,
       },
     ],
@@ -333,9 +333,9 @@ describe("employee detail", () => {
             start_time: "07:00:00",
             end_time: "19:00:00",
             crosses_midnight: false,
-            grace_min: 10,
+            grace_min: 30,
             half_day_min: 240,
-            ot_after_min: 480,
+            overtime_min_minutes: 120,
             is_active: true,
           },
         ],
@@ -352,7 +352,7 @@ describe("employee detail", () => {
     await user.selectOptions(within(dialog).getByLabelText("Category"), "c-9");
     await user.selectOptions(within(dialog).getByLabelText("Shift"), "s-9");
     fireEvent.change(within(dialog).getByLabelText("Starts on"), {
-      target: { value: "2026-11-01" },
+      target: { value: "2027-01-15" },
     });
     await user.type(within(dialog).getByLabelText("Reason"), "Plant closure");
     await user.click(within(dialog).getByRole("button", { name: "Transfer" }));
@@ -362,7 +362,7 @@ describe("employee detail", () => {
         to_plant_id: "p-2",
         category_id: "c-9",
         shift_id: "s-9",
-        effective_from: "2026-11-01",
+        effective_from: "2027-01-15",
         reason: "Plant closure",
       }),
     );

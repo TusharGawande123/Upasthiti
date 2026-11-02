@@ -21,7 +21,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.antiproxy.context import Outcome, PunchContext, PunchLimits
+from app.antiproxy.context import DeviceIdentity, Outcome, PunchContext, PunchLimits
 from app.antiproxy.engine import (
     OFFLINE_QR_RULES,
     QR_RULES,
@@ -34,20 +34,31 @@ from app.core.config import Settings, get_settings
 from app.core.crypto import decode_key, encrypt_snapshot
 from app.core.storage import Storage, StorageError, get_storage
 from app.core.time import utc_now
+from app.modules.attendance.service import mark_punch_stale
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees.models import Employee
 from app.modules.kiosks.location_check import Location, check_location
 from app.modules.kiosks.models import KioskDevice
+from app.modules.kiosks.schemas import LocationReport
 from app.modules.punches.answers import (
     ALREADY_PUNCHED_CODES,
     punch_answer,
     refused_test_card_answer,
     self_test_answer,
 )
+from app.modules.punches.early_out import (
+    EARLY_OUT_CONFIRMED,
+    EARLY_OUT_OFFLINE,
+    EarlyOutInfo,
+    early_out_info,
+    prompt_for,
+)
 from app.modules.punches.models import (
+    Direction,
     Punch,
     PunchMethod,
     PunchSnapshot,
+    SnapshotReason,
     SnapshotState,
 )
 from app.modules.punches.offline_time import OfflinePunch
@@ -83,11 +94,16 @@ def load_limits(session: Session) -> PunchLimits:
         ),
         same_person_two_devices_minutes=get_int_setting(session, "same_person_two_devices_minutes"),
         offline_max_hours=get_int_setting(session, "offline_max_hours"),
+        attendance_window_before_hours=get_int_setting(session, "attendance_window_before_hours"),
+        gate_code_seconds=get_int_setting(session, "phone_gate_code_seconds"),
     )
 
 
 def reported_location(request: KioskPunchRequest) -> Location | None:
-    report = request.location
+    return reported_location_of(request.location)
+
+
+def reported_location_of(report: LocationReport | None) -> Location | None:
     return None if report is None else Location(report.lat, report.lon, report.accuracy_m)
 
 
@@ -99,9 +115,11 @@ def record_kiosk_punch(
     storage: Storage | None = None,
     after_photo: Callable[[uuid.UUID, bytes], None] | None = None,
     offline: OfflinePunch | None = None,
+    early_out_confirmed: bool = False,
 ) -> KioskPunchResponse:
     """`after_photo` gets the stored photo after the commit (M3 F-30: a face-in-photo check).
-    `offline` is set for a punch saved by the gate while offline and decided at sync (M4)."""
+    `offline` is set for a punch saved by the gate while offline and decided at sync (M4).
+    `early_out_confirmed`: the person agreed at the early-OUT alert (decision 0036 line 9)."""
     limits = load_limits(session)
 
     already_stored = find_punch(session, kiosk, request.client_punch_id)
@@ -113,7 +131,8 @@ def record_kiosk_punch(
     context = PunchContext(
         session=session,
         app_settings=get_settings(),
-        kiosk=kiosk,
+        plant_id=kiosk.plant_id,
+        device_identity=DeviceIdentity.of_kiosk(kiosk),
         now=now,
         limits=limits,
         qr_text=request.qr_payload,
@@ -140,14 +159,24 @@ def record_kiosk_punch(
             session, kiosk, context, client, now, decision.reason_codes[0]
         )
 
+    early_out = _early_out_of(session, context, decision, now, limits)
+    if early_out is not None and offline is None and not early_out_confirmed:
+        # Nothing is stored: the gate shows the alert, and Agree sends the token back.
+        session.rollback()
+        hold = {"method": PunchMethod.QR.value, "qr_text": request.qr_payload}
+        return prompt_for(kiosk, now, early_out, hold, request.client_punch_id)
+
     punch = _build_punch(kiosk, request, client, context, decision, now, offline)
-    snapshot = _store_snapshot(session, punch, context, decision, now, storage)
+    if early_out is not None:
+        punch.early_out_mark = EARLY_OUT_OFFLINE if offline else EARLY_OUT_CONFIRMED
+    snapshot = store_snapshot(session, punch, context, decision, now, storage)
     try:
         session.add(punch)
         session.flush()  # the unique (kiosk, client_punch_id) rule is checked here
         if snapshot is not None:
             session.add(snapshot)
         note_last_punch(kiosk, punch)
+        mark_punch_stale(session, punch)
         session.commit()
     except IntegrityError:
         # Another request with the same id won the race: undo and give its answer.
@@ -166,6 +195,28 @@ def record_kiosk_punch(
     if after_photo is not None and snapshot is not None and context.snapshot is not None:
         after_photo(snapshot.id, context.snapshot.jpeg)
     return punch_answer(session, punch, kiosk.name, limits)
+
+
+def _early_out_of(
+    session: Session,
+    context: PunchContext,
+    decision: EngineDecision,
+    now: datetime,
+    limits: PunchLimits,
+) -> EarlyOutInfo | None:
+    """The alert info when this punch is a counted OUT before the shift end."""
+    if (
+        decision.outcome is not Outcome.ALLOW
+        or decision.direction != Direction.OUT
+        or context.employee is None
+    ):
+        return None
+    return early_out_info(
+        session,
+        context.employee.id,
+        now,
+        window_before_hours=limits.attendance_window_before_hours,
+    )
 
 
 def find_punch(session: Session, kiosk: KioskDevice, client_punch_id: uuid.UUID) -> Punch | None:
@@ -310,13 +361,14 @@ def metres(value: float | None) -> Decimal | None:
     return None if value is None else Decimal(f"{value:.1f}")
 
 
-def _store_snapshot(
+def store_snapshot(
     session: Session,
     punch: Punch,
     context: PunchContext,
     decision: EngineDecision,
     now: datetime,
     storage: Storage | None,
+    reason: SnapshotReason = SnapshotReason.QR_PUNCH,
 ) -> PunchSnapshot | None:
     """Encrypt and upload the photo, and return its database record (not yet added).
 
@@ -341,6 +393,7 @@ def _store_snapshot(
         taken_at=now,
         expires_at=now + timedelta(days=retention_days),
         state=SnapshotState.STORED.value if stored_size else SnapshotState.UPLOAD_FAILED.value,
+        reason=reason.value,
     )
 
 

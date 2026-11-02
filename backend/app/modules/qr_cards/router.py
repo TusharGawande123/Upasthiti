@@ -93,7 +93,9 @@ def expiring_count(
 ) -> ExpiringCountResponse:
     days = get_int_setting(session, "qr_card_expiring_soon_days")
     return ExpiringCountResponse(
-        count=queries.count_expiring(session, today_ist(), days), days=days
+        count=queries.count_expiring(session, today_ist(), days),
+        days=days,
+        phone_on_count=queries.count_expiring_with_phone_on(session, today_ist(), days),
     )
 
 

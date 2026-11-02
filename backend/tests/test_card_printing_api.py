@@ -97,7 +97,11 @@ def test_every_print_is_counted_dated_and_audited_with_the_plant_on_the_card(
     assert row.print_count == 2
     assert row.last_printed_at is not None
     assert str(row.printed_plant_id) == k134.id
-    entries = list(db_session.scalars(select(AuditLog).where(AuditLog.action == "qr_card.print")))
+    entries = list(
+        db_session.scalars(
+            select(AuditLog).where(AuditLog.action == "qr_card.print").order_by(AuditLog.at)
+        )
+    )
     assert len(entries) == 2
     assert entries[0].request_id != entries[1].request_id
     assert entries[1].after is not None

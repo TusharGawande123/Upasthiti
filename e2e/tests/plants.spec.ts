@@ -47,11 +47,11 @@ test("Super Admin adds the 7 plants, sees readiness and adds a night shift", asy
   await dialog.getByLabel("Shift name").fill("Night");
   await dialog.getByLabel("Starts").fill("19:00");
   await dialog.getByLabel("Ends").fill("07:00");
-  await expect(
-    dialog.getByText("Night: starts 19:00, ends next day at 07:00 (12 h 00 min)."),
-  ).toBeVisible();
-  await dialog.getByRole("button", { name: "Save shift" }).click();
-  await expect(page.getByRole("cell", { name: /19:00–07:00/ })).toBeVisible();
+  // The shift form (M5): the full day is the shift length, and a night shift says it ends next day.
+  await expect(dialog.getByText("Ends the next day")).toBeVisible();
+  await expect(dialog.getByText("Full day: 12 h", { exact: true })).toBeVisible();
+  await dialog.getByRole("button", { name: "Save rules" }).click();
+  await expect(page.getByText(/19:00.{1,3}07:00/).first()).toBeVisible();
 });
 
 test("the setup wizard shows the plants step done and the geofence step open", async ({ page }) => {

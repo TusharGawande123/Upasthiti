@@ -157,7 +157,8 @@ def test_the_kiosks_location_and_address_are_stored_as_sent(
         "UPDATE punches SET decision = 'rejected'",
         "DELETE FROM punches",
         # The face tables that point to punches are named too, so the trigger is what refuses.
-        "TRUNCATE punches, punch_snapshots, face_pending_matches, punch_reviews",
+        "TRUNCATE punches, punch_snapshots, face_pending_matches, punch_reviews, "
+        "regularisations, regularisation_decisions, attendance_days",
     ],
 )
 def test_the_database_refuses_to_change_or_delete_a_punch(

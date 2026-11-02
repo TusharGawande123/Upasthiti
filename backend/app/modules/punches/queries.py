@@ -47,6 +47,9 @@ class PunchFilters:
     flagged: bool = False
     was_offline: bool = False
     review_state: str | None = None  # to_check / confirmed / not_accepted / approved
+    # M4b (spec §5.5): the gate device or the employee's phone, and "made outside every plant"
+    channel: str | None = None
+    outside_plant: bool = False
 
 
 def day_bounds(day: date) -> tuple[datetime, datetime]:
@@ -107,6 +110,10 @@ def punches_statement(
         statement = statement.where(Punch.decision == PunchDecision.FLAGGED.value)
     if filters.was_offline:
         statement = statement.where(Punch.was_offline.is_(True))
+    if filters.channel:
+        statement = statement.where(Punch.channel == filters.channel)
+    if filters.outside_plant:
+        statement = statement.where(Punch.reason_codes.contains(["OUTSIDE_PLANT"]))
     if filters.review_state:
         statement = _by_review_state(statement, filters.review_state)
     if filters.dark_only:

@@ -32,4 +32,19 @@ describe("check-translations script", () => {
     expect(result.stderr).toContain("kiosk.missing");
     expect(result.stderr).not.toContain("kiosk.title");
   });
+
+  it("fails when a gate text group has no next line or steps", () => {
+    const result = runCheck("", {
+      kiosk: {
+        punch: {
+          NO_FACE: { title: "A", message: "B" },
+          OK: { title: "A", message: "B", next: "C" },
+        },
+      },
+    });
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain("kiosk.punch.NO_FACE.next|steps");
+    expect(result.stderr).not.toContain("kiosk.punch.OK");
+  });
 });

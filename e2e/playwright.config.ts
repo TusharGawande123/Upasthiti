@@ -25,7 +25,23 @@ export default defineConfig({
     // there (this matters from M2 on: QR snapshots, face frames).
     trace: isCI ? "off" : "retain-on-failure",
   },
-  projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
+  projects: [
+    // The admin pages and the gate, on a laptop browser.
+    {
+      name: "chromium",
+      testIgnore: /phone-.*.spec.ts/,
+      use: { ...devices["Desktop Chrome"] },
+    },
+    // M4b (S-46): the phone pages on a Pixel 7 sized Chromium. The spec paints the camera, sets the
+    // location and adds a virtual authenticator (passkeys) itself. An iPhone (WebKit) cannot run the
+    // virtual authenticator, so only the Pixel project exists; the iPhone 13 size is checked in
+    // responsive.spec.ts.
+    {
+      name: "phone",
+      testMatch: /phone-.*.spec.ts/,
+      use: { ...devices["Pixel 7"] },
+    },
+  ],
   webServer: [
     {
       // A real Postgres database, wiped and filled with fake users by e2e_seed before the

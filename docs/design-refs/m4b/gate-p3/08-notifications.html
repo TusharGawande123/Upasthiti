@@ -1,0 +1,95 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P3 - Screen 8: new notice kind "Signed in on many phones" (F-70, spec 4.13 and 7 rule 27) in the bell and on /admin/notifications.
+  Super Admin only: the Corporate Head and the Plant Head never get this notice. The text has no names, no codes and no IP; the link opens the employee's
+  "Phone attendance" card.   States (URL hash): bell-open · page-default · page-filtered · page-read · corporate-head · plant-head · menu-open.
+  "Now" is Saturday 31/10/2026, about 09:20.   MOCKUP ONLY - fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti notifications</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+  <link rel="stylesheet" href="p3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="p3.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Notifications";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = roleOf(S);
+  window.MOCK_USER = USERS[ROLE];
+  const KIND = {
+    phone_many_phones: ["smartphone", "Signed in on many phones", "var(--warning-soft)", "var(--warning)"],
+    still_inside: ["siren", "Still inside", "var(--danger-soft)", "var(--danger)"],
+    device_offline: ["wifi-off", "Device offline", "var(--warning-soft)", "var(--warning)"],
+    review_digest: ["flag", "Review digest", "var(--primary-soft)", "var(--primary)"],
+    correction_requested: ["file-pen", "Correction asked", "var(--primary-soft)", "var(--primary)"],
+    incomplete_days: ["clock-alert", "Incomplete days", "var(--muted)", "var(--foreground)"],
+  };
+  /* kind, plant, text, time, link text, unread, urgent */
+  const ALL = [
+    ["phone_many_phones", "K134", PHONE_MANY_TEXT, "09:05", "Open Phone attendance", true],
+    ["still_inside", "K134", "2 people are still inside K134, 1 hour after the shift ended.", "Yesterday 19:05", "Open the list", true, true],
+    ["device_offline", "TP1", "Attendance device 'TP1 Gate' has been offline since 08:12. Check its power and internet.", "08:26", "Open attendance devices", true],
+    ["correction_requested", "K134", "Prakash Kale asked for a correction for 29/10/2026 at K134.", "Yesterday 17:40", "Open the request", true],
+    ["review_digest", "All plants", "7 punches are waiting in Needs review. The oldest is 3 days old.", "07:00", "Open Needs review", false],
+    ["incomplete_days", "K135", "3 days at K135 are missing an OUT (yesterday 30/10/2026).", "07:00", "Open the list", false],
+  ];
+  let ITEMS = ALL;
+  if (ROLE === "ph") ITEMS = ALL.filter((i) => i[1] === "K134" && i[0] !== "phone_many_phones" && i[0] !== "correction_requested");
+  if (ROLE === "ch") ITEMS = ALL.filter((i) => i[0] !== "phone_many_phones" && i[0] !== "correction_requested");
+  if (S === "page-read") ITEMS = ALL.map((i) => { const c = i.slice(); c[5] = false; return c; });
+  const unreadOf = (a) => a.filter((i) => i[5]).length;
+  const UNREAD = unreadOf(ITEMS);
+  const SHOWN = S === "page-filtered" ? ITEMS.filter((i) => i[0] === "phone_many_phones") : ITEMS;
+  window.MOCK_SHELL = { offline: 1, review: ROLE === "sa" ? 7 : 0, bell: UNREAD, menu: S === "menu-open" };
+
+  function item(i) {
+    const k = KIND[i[0]];
+    return `<article class="nitem ${i[5] ? "is-unread" : ""} ${i[6] ? "is-urgent" : ""}" aria-label="${i[5] ? "Unread. " : ""}${k[1]}"><span class="ni" style="background:${k[2]};color:${k[3]}">${ic(k[0])}</span>
+      <div><div class="nk"><span class="badge ${i[6] ? "badge-urgent" : "badge-outline"}">${ic(k[0])}${i[6] ? "Urgent · " : ""}${k[1]}</span><span class="badge badge-neutral">${ic("factory")}${i[1]}</span></div>
+      <p class="nt">${i[2]}</p><a class="nl" href="#">${i[4]}${ic("arrow-right")}</a></div>
+      <div class="nm2"><span>${i[3]}</span>${i[5] ? `<span class="unread-tag">Unread</span>` : ""}</div></article>`;
+  }
+  function bellPanel() {
+    const head = `<div class="bp-head"><h2>${ic("bell")}Notifications <span class="badge badge-danger">${UNREAD} unread</span></h2><button class="btn btn-ghost btn-sm2">${ic("check-check")}Mark all as read</button></div>`;
+    return `<div class="bell-panel" role="dialog" aria-label="Notifications">${head}<div class="bp-list">${ITEMS.slice(0, 5).map(item).join("")}</div><div class="bp-foot"><a class="btn btn-outline" href="#">${ic("list")}See all</a></div></div>`;
+  }
+  if (S === "bell-open") window.MOCK_SHELL.bellPanel = bellPanel();
+
+  function filters() {
+    const f = S === "page-filtered";
+    return `<div class="filters-row"><div class="grp">${sel("nk", "Kind", f ? "Signed in on many phones" : "All kinds", f)}${ROLE === "ph" ? "" : sel("np", "Plant", "All plants", false)}</div>
+      <div class="grp"><span class="gl">Show</span><div class="seg seg-sm" role="group" aria-label="Show"><button aria-pressed="true">All</button><button aria-pressed="false">${ic("circle-dot")}Unread <b>${UNREAD}</b></button><button aria-pressed="false">Read</button></div></div></div>`;
+  }
+  function page() {
+    const ro = ROLE !== "sa" ? `<div class="ro-strip mb">${ic("eye")}<span>The notice "Signed in on many phones" goes to the Super Admin only. The Super Admin is the only one who can act on phone access.</span></div>` : "";
+    return `<div class="page-narrow" style="max-width:960px"><div class="page-head anim-fade-up"><div><h1 class="page-title">Notifications</h1><p class="page-desc">Alerts for the plants you can see. The bell in the top bar shows the newest.</p></div><div class="head-actions">${UNREAD ? `<button class="btn btn-outline btn-lg">${ic("check-check")}Mark all as read</button>` : ""}</div></div>${ro}
+      <div class="emailnote" style="margin:0 0 16px">${ic("mail-x")}<span><b>Email is not set up on this server.</b>Alerts are shown in the bell and on this page.</span></div>
+      <div class="card">${filters()}${SHOWN.map(item).join("")}<div class="table-foot"><span>${SHOWN.length} notification${SHOWN.length === 1 ? "" : "s"} · kept for 90 days</span><span>Newest first · times in IST</span></div></div></div>`;
+  }
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

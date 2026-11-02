@@ -16,25 +16,35 @@ from app.core.logging import add_request_id_middleware, setup_logging
 from app.core.security_headers import add_security_headers_middleware
 from app.jobs.daily import run_daily_jobs_logged, start_scheduler
 from app.modules.approvals.router import router as approvals_router
+from app.modules.attendance.router import router as attendance_router
 from app.modules.audit.router import router as audit_router
 from app.modules.auth.dependencies import check_same_origin
 from app.modules.auth.router import router as auth_router
 from app.modules.contractors.router import router as contractors_router
+from app.modules.dashboard.router import router as dashboard_router
 from app.modules.employees.router import router as employees_router
 from app.modules.employees.search_router import router as search_router
 from app.modules.face.engine_provider import get_face_engine
 from app.modules.face.router import router as face_router
 from app.modules.health.router import router as health_router
+from app.modules.holidays.router import router as holidays_router
 from app.modules.kiosks.router import router as kiosks_router
+from app.modules.leave.router import router as leave_router
 from app.modules.notices.router import router as notices_router
+from app.modules.notifications.router import router as notifications_router
 from app.modules.org.router import router as org_router
+from app.modules.phone.admin_router import router as phone_admin_router
+from app.modules.phone.router import router as phone_router
 from app.modules.printing.router import router as printing_router
 from app.modules.punches.admin_router import router as punch_log_router
 from app.modules.punches.review_router import router as review_router
 from app.modules.punches.router import router as punches_router
 from app.modules.qr_cards.router import router as qr_cards_router
+from app.modules.regularisations.router import router as regularisations_router
+from app.modules.reports.router import router as reports_router
 from app.modules.settings.privacy_router import router as privacy_router
 from app.modules.settings.router import router as settings_router
+from app.modules.shift_swaps.router import router as shift_swaps_router
 from app.modules.users.router import router as users_router
 
 API_PREFIX = "/api/v1"
@@ -104,6 +114,16 @@ def create_app() -> FastAPI:
     api_router.include_router(notices_router)
     api_router.include_router(approvals_router)
     api_router.include_router(search_router)
+    api_router.include_router(holidays_router)
+    api_router.include_router(leave_router)
+    api_router.include_router(regularisations_router)
+    api_router.include_router(attendance_router)
+    api_router.include_router(notifications_router)
+    api_router.include_router(dashboard_router)
+    api_router.include_router(shift_swaps_router)
+    api_router.include_router(reports_router)
+    api_router.include_router(phone_router)
+    api_router.include_router(phone_admin_router)
     app.include_router(api_router)
     return app
 

@@ -4,7 +4,7 @@
 import { execFileSync } from "node:child_process";
 import { mkdirSync, rmSync } from "node:fs";
 import AxeBuilder from "@axe-core/playwright";
-import { type Browser, chromium, expect, type Page } from "@playwright/test";
+import { type Browser, chromium, expect, type Locator, type Page } from "@playwright/test";
 import { BACKEND_ENV, BACKEND_FOLDER, FRONTEND_URL, TMP_FOLDER } from "../backend-env";
 
 // Fake values from backend/app/scripts/e2e_seed.py (public, test database only).
@@ -444,12 +444,60 @@ export async function punchWithFace(
   device: Page,
   setHead: (yaw: number) => Promise<void>,
 ): Promise<void> {
+  // A window that is behind another one is slowed down by the browser: the painted camera would
+  // update only once a second and the gate's pictures would show the old head.
+  await device.bringToFront();
   await setHead(0);
+  // The gate takes its turn picture 1.5 s after it asks and its last picture 1.5 s later. A test
+  // that waits for the arrow and then turns the head from outside the browser can be too late
+  // when the window is busy or in the background. So the head is turned inside the page, the
+  // moment the screen asks (a DOM observer), and straightened when the screen says so.
+  // Also for a page that reloads by itself (the gate may update): the observer is put in again.
+  const followTheScreen = () => {
+    const win = window as unknown as { __head: { yaw: number }; __followsScreen?: boolean };
+    if (win.__followsScreen) return;
+    win.__followsScreen = true;
+    const follow = () => {
+      // `innerText` is only what is on the screen (hidden hints are not in it), so `textContent`
+      // would turn the head on a hint nobody can see.
+      // biome-ignore lint/performance/useDomNodeTextContent: the visible text is what matters here.
+      const text = document.body.innerText;
+      if (/now look straight again/i.test(text)) win.__head.yaw = 0;
+      else if (/turn your head to your/i.test(text)) {
+        win.__head.yaw = /\bLEFT\b/.test(text) ? 25 : -25;
+      }
+    };
+    new MutationObserver(follow).observe(document.documentElement, {
+      subtree: true,
+      childList: true,
+      characterData: true,
+    });
+  };
+  await device.addInitScript(followTheScreen);
+  await device.evaluate(followTheScreen);
   await device.getByRole("button", { name: /Punch with face/ }).click();
-  const asked = device.getByText(/^Turn your head to your/).first();
-  await expect(asked).toBeVisible({ timeout: 15_000 });
-  const toTheLeft = await device.getByText("LEFT", { exact: true }).isVisible();
-  await setHead(toTheLeft ? 25 : -25);
-  await expect(device.getByText("Now look straight again.")).toBeVisible({ timeout: 10_000 });
-  await setHead(0);
+  // On a busy machine the gate's pictures can still show the old head (the painted camera is a
+  // video stream with its own delay). The gate then says "Try again": a person would tap it, so
+  // does the test, at most twice. Anything else (the code pad, a result) is for the test to judge.
+  const tryAgain = device.getByRole("button", { name: /Try again/ });
+  const firstToShow = (name: string, target: Locator) =>
+    target
+      .first()
+      .waitFor({ timeout: 15_000 })
+      .then(() => name)
+      .catch(() => new Promise<string>(() => {})); // never answers: another one is faster
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    await device
+      .getByText(/^Turn your head to your/)
+      .first()
+      .waitFor({ timeout: 15_000 });
+    await device.getByText("Now look straight again.").waitFor({ timeout: 10_000 });
+    const next = await Promise.race([
+      firstToShow("retry", tryAgain),
+      firstToShow("result", device.getByText(/Back to scanning in/)),
+      firstToShow("code", device.getByRole("heading", { name: "Type your employee code" })),
+    ]);
+    if (next !== "retry" || attempt === 2) return;
+    await tryAgain.click();
+  }
 }

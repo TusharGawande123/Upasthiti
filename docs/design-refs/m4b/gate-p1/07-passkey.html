@@ -1,0 +1,67 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P1 - Screen 7: Passkey (F-80, spec 4.8c, 5.1b, 9 error table). Page /phone/passkey is a PROPOSED route (the spec names
+  only the home link "Sign in faster with a passkey" and the menu list with "Remove"). Shown only when the browser supports WebAuthn platform authenticators.
+  The sign-in button "Sign in with passkey" itself is on 01-login.html (passkey-* states).
+  States (URL hash): intro · waiting · added · list · removed · cancelled · recent-sign-in-required · limit
+  MOCKUP ONLY.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phone attendance: passkey</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="p1.css" />
+</head>
+<body>
+<div id="root"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="p1.js"></script>
+<script>
+  const T = {
+    cancelled: "Passkey cancelled. Please try again or use your password.",
+    recent: "Please sign in with your password again to add a passkey.",
+    limit: "You already have 3 passkeys. Remove one first.",
+  };
+  const K = {
+    a: ["Chrome on Android", "Added 28/10/2026 · last used 30/10/2026"],
+    b: ["Edge on Windows", "Added 12/10/2026"],
+    c: ["Samsung Internet on Android", "Added 03/10/2026"],
+    n: ["Chrome on Android", "Added 31/10/2026"],
+  };
+  const card = (k) => `<div class="pk-card"><span class="pki">${ic("fingerprint")}</span><span class="pkt">${k[0]}<small>${k[1]}</small></span><button class="rm" aria-label="Remove passkey: ${k[0]}">${ic("trash-2")}Remove</button></div>`;
+  const list = (ks) => `<section class="stack" aria-label="Your passkeys"><div class="pk-count">Your passkeys: ${ks.length} of 3</div><div class="pk-list">${ks.map(card).join("")}</div></section>`;
+  const back = `<div class="linkrow" style="justify-content:flex-start"><a class="plink" href="#">${ic("arrow-left")}Back</a></div>`;
+  const explain = `<div class="pc pk-hero anim-fade-up"><span class="big">${ic("fingerprint")}</span><h1 class="ptitle">Add a passkey on this phone</h1><p class="psub" style="text-align:center">Sign in with your phone's own screen lock: fingerprint, face unlock or PIN. Your password always keeps working.</p></div>`;
+  const add = (o) => P.btn("primary", "plus", "Add a passkey on this phone", o);
+  const note = `<p class="fine" style="text-align:center">Your fingerprint or face never leaves your phone.</p>`;
+
+  function render(s) {
+    switch (s) {
+      case "waiting":
+        return back + `<div class="pc pk-hero anim-fade-up" aria-busy="true"><span class="big wait">${ic("fingerprint")}</span><h1 class="ptitle">Add a passkey on this phone</h1><p class="psub" style="text-align:center">Use your phone's screen lock: fingerprint, face unlock or PIN.</p></div>` +
+          P.btn("primary", "", "Waiting for your phone…", { busy: true }) + list([K.a]);
+      case "added":
+        return back + `<div class="pc pk-hero anim-fade-up" role="status"><span class="big ok pop">${ic("circle-check")}</span><h1 class="ptitle">Passkey added</h1><p class="psub" style="text-align:center">Next time, type your employee code and tap “Sign in with passkey”.</p></div>` +
+          list([K.a, K.n]) + P.btn("outline", "house", "Back to home");
+      case "list":
+        return back + P.head("Your passkeys") + list([K.a, K.b]) + add({ cls: "" });
+      case "removed":
+        return back + P.msg("success", "circle-check", "", "Passkey removed.") + list([K.a]) + add({});
+      case "cancelled":
+        return back + explain + add({}) + P.msg("warning", "circle-slash", "", T.cancelled);
+      case "recent-sign-in-required":
+        return back + explain + P.msg("warning", "key-round", "", T.recent, P.btn("outline", "log-in", "Sign in again", { cls: "strong" })) + add({ disabled: true });
+      case "limit":
+        return back + P.head("Your passkeys") + P.msg("warning", "badge-alert", "", T.limit) + list([K.a, K.b, K.c]) + add({ disabled: true });
+      default:
+        return back + explain + add({}) + note + list([K.a]);
+    }
+  }
+  P.start({ user: P.FACE, render });
+</script>
+</body>
+</html>

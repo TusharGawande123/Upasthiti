@@ -1,0 +1,150 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P3 - Screen 3: punch log (/admin/punches) with Channel, the method "Phone code", the tag "Outside plant",
+  the punch detail of a phone punch and the Excel export columns (spec 4.13, 7 rules 1, 12, 22).
+  States (URL hash): default · filter-phone · filter-outside · filter-device · filter-empty · loading · error · corporate-head · plant-head ·
+  detail-inside · detail-outside · detail-outside-satellite · detail-outside-ch · detail-other-plant · detail-gate-code · detail-code-expired ·
+  detail-refused-outside · detail-ph · export · menu-open.   "Now" is Saturday 31/10/2026, about 09:20.   MOCKUP ONLY - fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti punch log</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+  <link rel="stylesheet" href="p3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="p3.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Punch log";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = roleOf(S, ["corporate-head", "detail-outside-ch"], ["plant-head", "detail-ph"]);
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 0, review: 7, bell: 4, menu: S === "menu-open" };
+  const SA = ROLE === "sa";
+
+  /* id, time, employee, channel, method, result (ok|no), direction, kind, where, device, phone browser, plant */
+  const ROWS = [
+    { id: "a", t: "09:14:08", emp: ["Sunita Jadhav", "EMP-0312"], ch: "phone", m: "face", res: "ok", dir: "in", kind: "outside", dev: "Phone", br: "Chrome · Android", plant: "K134", acc: "±18 m", dist: "3.2 km" },
+    { id: "b", t: "09:08:31", emp: ["Vijay Salunke", "EMP-0123"], ch: "phone", m: "face", res: "ok", dir: "in", kind: "other-plant", dev: "Phone", br: "Chrome · Android", plant: "K134", where: "At plant X-280 (own plant K134)", acc: "±9 m" },
+    { id: "c", t: "09:05:47", emp: ["Santosh Gaikwad", "T-2041"], ch: "phone", m: "phonecode", res: "ok", dir: "in", kind: "gate-code", dev: "Phone", br: "Samsung Internet · Android", plant: "K134", acc: "±12 m", gate: "Main gate phone" },
+    { id: "d", t: "08:58:12", emp: ["Rekha Bhosale", "EMP-0204"], ch: "device", m: "face", res: "ok", dir: "in", kind: "device", dev: "Main gate phone", plant: "K134" },
+    { id: "e", t: "08:47:55", emp: ["Anil Pawar", "T-2058"], ch: "phone", m: "phonecode", res: "no", kind: "code-expired", dev: "Phone", br: "Chrome · Android", plant: "K134", reason: ["Phone code was old", "GATE_CODE_EXPIRED", "The phone code has changed. Scan it again."], gate: "Main gate phone", acc: "±14 m" },
+    { id: "f", t: "08:41:20", emp: ["Ramesh Patil", "EMP-0457"], ch: "phone", m: "face", res: "no", kind: "refused-outside", dev: "Phone", br: "Safari · iPhone", plant: "K134", reason: ["Outside the fence", "OUTSIDE_GEOFENCE", "You are not at the plant. Please visit the plant office."], acc: "±15 m", dist: "1.4 km" },
+    { id: "g", t: "08:30:03", emp: ["Mohan Kulkarni", "T-2077"], ch: "device", m: "card", res: "ok", dir: "in", kind: "device", dev: "Gate tablet", plant: "K135" },
+    { id: "h", t: "08:10:44", emp: ["Lata Shinde", "EMP-0288"], ch: "device", m: "face", res: "ok", dir: "out", kind: "device", dev: "Gate PC", plant: "X280" },
+  ];
+  let rows = ROWS;
+  if (ROLE === "ph") rows = ROWS.filter((r) => r.plant === "K134");
+  if (S === "filter-phone") rows = rows.filter((r) => r.ch === "phone");
+  if (S === "filter-outside") rows = rows.filter((r) => r.kind === "outside");
+  if (S === "filter-device") rows = rows.filter((r) => r.ch === "device");
+  if (S === "filter-empty") rows = [];
+
+  const dirB = (r) => r.res === "no" ? `<span class="badge badge-danger">${ic("circle-x")}Rejected</span>` : `<span class="badge ${r.dir === "in" ? "badge-success" : "badge-info"}">${ic(r.dir === "in" ? "log-in" : "log-out")}${r.dir === "in" ? "IN" : "OUT"}</span>`;
+  const flagB = `<span class="badge badge-flag">${ic("flag")}Flagged</span>`;
+  const resCell = (r) => `<div class="res-stack"><div class="row2">${dirB(r)}${r.kind === "outside" ? outsideBadge + flagB : ""}</div>${r.kind === "outside" ? `<span class="sub" style="color:#6b3f00">Saved as an outside-plant punch. The office will check it.</span>` : ""}${r.reason ? `<span class="sub" style="color:var(--foreground)">${r.reason[0]} <span class="code muted">${r.reason[1]}</span></span>` : ""}${r.where ? `<span class="where-line">${ic("map-pin")}${r.where}</span>` : ""}</div>`;
+  const acts = (r) => `<div class="act"><button class="btn btn-ghost btn-icon" aria-label="Details of the punch at ${r.t}">${ic("panel-right-open")}</button></div>`;
+
+  function table(list) {
+    const trs = list.map((r) => `<tr class="${r.kind === "outside" ? "is-flagged" : ""} ${r.res === "no" ? "is-rejected" : ""}"><td class="time"><b class="tnum">${r.t}</b></td>
+      <td><span class="emp"><b>${r.emp[0]}</b><span class="code sub">${r.emp[1]}</span></span></td><td>${channelBadge[r.ch]}</td><td>${methodBadge[r.m]}</td><td>${resCell(r)}</td>
+      <td><b style="font-weight:600;white-space:nowrap">${r.ch === "phone" ? "Phone" : r.dev}</b><span class="code sub">${r.plant}</span></td><td>${acts(r)}</td></tr>`).join("");
+    return `<div class="ptable-wrap table-scroll"><table class="table ptable"><thead><tr><th>Punch time</th><th>Employee</th><th>Channel <span class="badge badge-info chg pl-new">New</span></th><th>Method</th><th>Result</th><th>Where</th><th><span class="sr-only">Actions</span></th></tr></thead><tbody>${trs}</tbody></table></div>`;
+  }
+  function cards(list) {
+    return `<div class="pcards">` + list.map((r) => `<div class="pcard ${r.kind === "outside" ? "is-flagged" : ""} ${r.res === "no" ? "is-rejected" : ""}"><div class="pcard-top"><b>${r.emp[0]}</b><span class="time">${r.t}</span></div>
+      <div class="meta"><span class="code">${r.emp[1]}</span> · ${r.ch === "phone" ? "Phone" : r.dev} · ${r.plant}</div>
+      <div class="badges">${channelBadge[r.ch]}${methodBadge[r.m]}${dirB(r)}${r.kind === "outside" ? outsideBadge : ""}</div>
+      ${r.reason ? `<div class="meta" style="margin-top:6px">${r.reason[0]} <span class="code">${r.reason[1]}</span></div>` : ""}${r.where ? `<div class="where-line" style="margin-top:6px">${ic("map-pin")}${r.where}</div>` : ""}
+      <div class="acts"><button class="btn btn-outline">${ic("panel-right-open")}Details</button></div></div>`).join("") + `</div>`;
+  }
+  function chip(icon, tone, n, label, pressed) {
+    return `<button class="chip" aria-pressed="${pressed ? "true" : "false"}"><span class="ci ci-${tone}">${ic(icon)}</span><span><b>${n}</b><small>${label}</small></span></button>`;
+  }
+
+  function page() {
+    const ph = ROLE === "ph";
+    const chips = `<div class="chips" role="group" aria-label="Totals of the day">${chip("log-in", "success", ph ? 268 : 412, "Accepted IN")}${chip("log-out", "primary", ph ? 21 : 37, "Accepted OUT")}${chip("circle-x", "danger", ph ? 6 : 9, "Rejected")}${chip("flag", "warning", ph ? 3 : 6, "Flagged")}${chip("smartphone", "primary", ph ? 24 : 31, "Phone punches", S === "filter-phone")}${chip("map-pin-off", "warning", ph ? 1 : 3, "Outside plant", S === "filter-outside")}<span class="chip-hint">Press a number to show only those punches</span></div>`;
+    const banner = !SA ? `<div class="alert alert-info mb">${ic("eye")}<span>Read-only${ph ? ", your plant only" : ""}. You see the channel and the tag. Only the Super Admin sees the map position of an outside-plant punch.</span></div>` : "";
+    const selA = (txt, on) => sel("f", txt.split(":")[0], txt, on);
+    const chOn = S === "filter-phone" ? "Channel: Phone" : S === "filter-device" ? "Channel: Attendance device" : "Channel: any";
+    const fbar = `<div class="fbar"><div class="datebox"><button class="btn btn-ghost btn-icon" aria-label="Previous day">${ic("chevron-left")}</button><span>${ic("calendar-days")}Today 31/10/2026</span><button class="btn btn-ghost btn-icon" aria-label="Next day" disabled>${ic("chevron-right")}</button></div>
+      <div class="search-box">${ic("search")}<input class="input" placeholder="Code or name" aria-label="Search by employee code or name" /></div>${selA("Method: any")}${selA("Result: any")}${selA("Device: any")}${selA("Reason: any")}</div>
+      <div class="filters2"><span class="lbl">New filters</span>${selA(chOn, S === "filter-phone" || S === "filter-device")}${selA(S === "filter-outside" ? "Outside plant: only" : "Outside plant: any", S === "filter-outside")}</div>`;
+    let body;
+    if (S === "loading") body = `<div style="padding:16px;display:grid;gap:12px">${'<div class="skeleton" style="height:56px"></div>'.repeat(6)}</div>`;
+    else if (S === "error") body = `<div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>The punch log could not be loaded</h3><p>The server did not answer. Nothing was changed. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div>`;
+    else if (!rows.length) body = `<div class="empty-box"><span class="big">${ic("search-x")}</span><h3>No punches match these filters</h3><p>Try another day, or clear the filters.</p><button class="btn btn-outline btn-lg">Clear filters</button></div>`;
+    else body = table(rows) + cards(rows);
+    const count = S === "filter-phone" ? "31 phone punches · newest first" : S === "filter-outside" ? "3 outside-plant punches · newest first" : S === "filter-device" ? "433 punches at attendance devices · newest first" : ph ? "294 punches · newest first" : "464 punches · newest first";
+    return `<div class="page-head anim-fade-up"><div><h1 class="page-title">Punch log</h1><p class="page-desc">Every punch at the attendance devices and by phone, accepted or rejected. The time is the time of the punch. Times in IST.</p></div>
+      <div class="head-actions"><button class="btn btn-outline btn-lg">${ic("file-spreadsheet")}Export day (.xlsx)</button></div></div>
+      ${banner}<section aria-label="Totals of the day">${chips}</section>
+      <div class="card" style="overflow:hidden">${fbar}<div class="countbar"><span>${S === "loading" || S === "error" ? "" : S === "filter-empty" ? "0 punches" : count}</span><span>${ic("radio")}<b style="color:var(--foreground)">Live</b> · updates every 30 s</span></div>${body}
+      <div class="table-foot"><span>${rows.length && S !== "loading" && S !== "error" ? "Showing 1–" + rows.length : ""}</span><div class="pager"><button class="btn btn-outline" disabled aria-label="Previous page">${ic("chevron-left")}</button><button class="btn btn-outline" aria-label="Next page">${ic("chevron-right")}</button></div></div></div>`;
+  }
+
+  /* ---------- detail side panel ---------- */
+  const DETAIL = { "detail-inside": "b", "detail-outside": "a", "detail-outside-satellite": "a", "detail-outside-ch": "a", "detail-other-plant": "b", "detail-gate-code": "c", "detail-code-expired": "e", "detail-refused-outside": "f", "detail-ph": "b" };
+  const OPEN = DETAIL[S] ? ROWS.find((r) => r.id === DETAIL[S]) : null;
+  if (S === "detail-inside") OPEN.where = null;
+  function sheet(r) {
+    const outside = r.kind === "outside";
+    const tone = r.res === "no" ? "danger" : outside ? "warning" : "success";
+    const ttl = r.res === "no" ? "Rejected · " + r.reason[0] : `Accepted ${r.dir === "in" ? "IN" : "OUT"}${outside ? " · Flagged" : ""}`;
+    const head = `<div class="sheet-head"><div class="dlg-icon" style="background:var(--${tone}-soft);color:var(--${tone})">${ic(tone === "danger" ? "circle-x" : outside ? "map-pin-off" : "circle-check")}</div><div><h2>${ttl}</h2><p class="tnum">31/10/2026 ${r.t} IST · ${r.ch === "phone" ? "Phone" : r.dev}</p></div><button class="btn btn-ghost btn-icon" aria-label="Close">${ic("x")}</button></div>`;
+    const where = r.where || (r.ch === "phone" && r.dist ? `${r.dist} from the fence` : r.ch === "phone" ? "Inside the fence of " + r.plant : r.dev + " · " + r.plant);
+    const facts = `<section class="sec"><h3>${ic("list")}Punch</h3><dl class="kv2"><dt>Employee</dt><dd><b>${r.emp[0]}</b> · <span class="code">${r.emp[1]}</span></dd><dt>Channel</dt><dd>${channelBadge[r.ch]}</dd><dt>Method</dt><dd>${methodBadge[r.m]}</dd><dt>Result</dt><dd>${dirB(r)} ${outside ? outsideBadge : ""}</dd><dt>Own plant</dt><dd>${r.plant}</dd>${r.where ? `<dt>Where</dt><dd><span class="where-line" style="margin:0">${ic("map-pin")}${r.where}</span></dd>` : ""}</dl></section>`;
+    let phoneSec = "";
+    if (r.ch === "phone") {
+      phoneSec = `<section class="sec"><h3>${ic("smartphone")}Phone</h3><dl class="kv2"><dt>Signed-in phone</dt><dd>${r.br}</dd><dt>Location accuracy</dt><dd>${r.acc}</dd><dt>Distance to the fence</dt><dd>${r.dist ? `<b>${r.dist}</b> from the fence of ${r.plant}` : r.where ? "Inside the fence of X-280" : "Inside the fence"}</dd>${r.gate ? `<dt>Phone code of</dt><dd>${r.gate} · ${r.plant}</dd>` : ""}</dl></section>`;
+    }
+    let reasonSec = "";
+    if (r.reason) reasonSec = `<section class="sec"><h3>${ic("circle-x")}Why it was rejected</h3><div class="flag-card"><b>${ic("circle-x")}${r.reason[0]}</b><p>${r.reason[2]}</p><span class="code">${r.reason[1]}</span></div></section>`;
+    if (outside) reasonSec = `<section class="sec"><h3>${ic("flag")}Flag</h3><div class="flag-card"><b>${ic("map-pin-off")}Outside plant</b><p>Saved as an outside-plant punch. The office will check it. Outside work is allowed for this employee until 03/11/2026.</p><span class="code">OUTSIDE_PLANT</span></div></section>`;
+    let mapSec = "";
+    if (outside) {
+      mapSec = SA ? `<section class="sec"><h3>${ic("map-pin")}Position</h3>${outsideMap({ sat: S === "detail-outside-satellite", dist: r.dist, acc: r.acc, time: "09:14" })}</section>`
+        : `<section class="sec"><h3>${ic("map-pin")}Position</h3><div class="lockline">${ic("lock")}<span><b>The map position is for the Super Admin only.</b>You see the distance to the fence: ${r.dist}.</span></div></section>`;
+    }
+    if (r.kind === "refused-outside" && SA) mapSec = `<section class="sec"><h3>${ic("map-pin")}Position</h3>${outsideMap({ dist: r.dist, acc: r.acc, time: "08:41" })}</section>`;
+    const photo = r.kind === "gate-code" ? `<section class="sec"><h3>${ic("image")}Photo</h3><div class="photo-box"><div class="photo-ph">${ic("user-round")}</div><div><p>Selfie taken with the phone code punch</p><small>Only the Super Admin opens it. Kept for the retention time.</small></div></div></section>` : "";
+    return `<div class="overlay"></div><aside class="sheet anim-sheet-r" role="dialog" aria-modal="true" aria-label="Punch details">${head}<div class="sheet-body">${facts}${phoneSec}${reasonSec}${mapSec}${photo}</div>${SA && (outside) ? `<div class="sheet-foot"><button class="btn btn-primary btn-lg">${ic("flag")}Open in Needs review</button></div>` : ""}</aside>`;
+  }
+
+  function exportDialog() {
+    const old = ["Time", "Employee code", "Employee name", "Method", "Direction", "Result", "Reason", "Device", "Plant", "Flags", "Review"];
+    const neu = ["Channel", "Outside plant"];
+    return `<div class="overlay"></div><div class="dialog anim-scale-in" role="dialog" aria-modal="true" aria-labelledby="ex"><div class="dlg-head"><span class="dlg-icon" style="background:var(--primary-soft);color:var(--primary)">${ic("file-spreadsheet")}</span><div><h2 class="dlg-title" id="ex">Export 31/10/2026 (.xlsx)</h2><p class="dlg-desc">One row per punch. No photos, no positions and no scores are in the file.</p></div></div>
+      <div class="dlg-body"><ul class="cols-list">${old.map((c) => `<li>${ic("check")}${c}</li>`).join("")}${neu.map((c) => `<li class="new">${ic("sparkles")}${c} <span class="badge badge-info chg">New</span></li>`).join("")}</ul></div>
+      <div class="dlg-foot"><button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">${ic("download")}Export</button></div></div>`;
+  }
+
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    const layer = document.getElementById("layer");
+    if (OPEN) layer.innerHTML = sheet(OPEN);
+    if (S === "export") layer.innerHTML = exportDialog();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

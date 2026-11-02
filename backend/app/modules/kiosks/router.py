@@ -8,6 +8,7 @@ import io
 import logging
 import re
 import uuid
+from datetime import datetime
 
 import segno
 from fastapi import APIRouter, Depends, Query, Request, Response
@@ -25,6 +26,7 @@ from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
 from app.modules.auth.rate_limit import heartbeat_limiter, report_limiter
 from app.modules.auth.scope import ensure_plant_in_scope, plant_filter
+from app.modules.dashboard.service import people_inside
 from app.modules.face.engine_provider import engine_state, get_face_engine, running_model_id
 from app.modules.face.state import common_code_prefixes, plant_has_enrolled_faces
 from app.modules.kiosks import service, status_service
@@ -33,6 +35,7 @@ from app.modules.kiosks.heartbeat_service import HeartbeatRequest, record_heartb
 from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.schemas import (
     CreateKioskRequest,
+    GateCodeResponse,
     HealthDay,
     HealthLatest,
     HealthResponse,
@@ -43,8 +46,10 @@ from app.modules.kiosks.schemas import (
     KioskMeResponse,
     KioskNoticeItem,
     KioskOfflineSettings,
+    KioskPhoneCodeSettings,
     KioskReportRequest,
     KioskResponse,
+    KioskScreenLines,
     KioskScreenSettings,
     KioskWithCodeResponse,
     OfflineAlertItem,
@@ -60,6 +65,7 @@ from app.modules.kiosks.time_anchor import anchor_for_request
 from app.modules.notices.queries import visible_notices
 from app.modules.org.geofence_service import current_geofence
 from app.modules.org.plants_service import get_plant
+from app.modules.phone import gate_code_service
 from app.modules.punches.sync_schemas import MAX_SYNC_ITEMS
 from app.modules.settings.service import get_int_setting, get_setting
 from app.modules.users.models import Role
@@ -325,6 +331,23 @@ def kiosk_heartbeat(
     return _me_answer(request, kiosk, session, engine)
 
 
+@router.api_route("/kiosk/gate-code", methods=["GET", "POST"], response_model=GateCodeResponse)
+def kiosk_gate_code(
+    kiosk: KioskDevice = Depends(require_kiosk), session: Session = Depends(get_session)
+) -> GateCodeResponse:
+    """The changing phone code of the gate screen (M4b spec §5.4, rule 15). The server signs it:
+    only a paired device can ask, at most 6 times a minute. The spec table says POST; GET is also
+    accepted because the request changes nothing and the signature covers the method either way."""
+    answer = gate_code_service.issue_for_gate(session, kiosk, utc_now())
+    return GateCodeResponse(
+        code_text=answer.code_text,
+        svg=answer.svg,
+        issued_at=answer.issued_at,
+        expires_at=answer.expires_at,
+        refresh_in_seconds=answer.refresh_in_seconds,
+    )
+
+
 def _me_answer(
     request: Request, kiosk: KioskDevice, session: Session, engine: FaceEngine
 ) -> KioskMeResponse:
@@ -347,7 +370,15 @@ def _me_answer(
         ],
         kiosk_settings=_screen_settings(session, kiosk, engine),
         time_anchor=anchor_for_request(request, kiosk.id, now),
+        inside_now=_inside_now(session, kiosk, now),
     )
+
+
+def _inside_now(session: Session, kiosk: KioskDevice, now: datetime) -> int | None:
+    """F-28: the plant's inside-now count for the idle screen (a number, never a name)."""
+    if get_setting(session, "kiosk_show_inside_count") != "on":
+        return None
+    return len(people_inside(session, [kiosk.plant_id], now))
 
 
 def _screen_settings(
@@ -374,6 +405,16 @@ def _screen_settings(
         ),
         location=_location_settings(session, kiosk),
         offline=_offline_settings(session),
+        screen=KioskScreenLines(
+            show_inside_count=get_setting(session, "kiosk_show_inside_count") == "on",
+            late_hint=get_setting(session, "kiosk_late_hint") == "on",
+            show_month_line=get_setting(session, "kiosk_show_month_line") == "on",
+        ),
+        phone_code=KioskPhoneCodeSettings(
+            enabled=get_setting(session, "kiosk_show_phone_code") == "on",
+            refresh_seconds=max(5, get_int_setting(session, "phone_gate_code_seconds") - 10),
+            show_seconds=get_int_setting(session, "kiosk_phone_code_show_seconds"),
+        ),
     )
 
 

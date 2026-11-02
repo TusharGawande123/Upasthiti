@@ -1,0 +1,133 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P3 - Screen 5: Settings (/admin/settings), new card "Phone attendance" and two new lines of the "Attendance device screen" card
+  (spec 4.13, 7 rule 23; the label texts are proposals: the spec gives keys, defaults and ranges).
+  States (URL hash): default · changed · range-error · cross-check-error · gate-cross-check-error · save-reason · corporate-head · plant-head · loading · error · menu-open
+  Below 768 px the sub-groups are accordions. MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti settings phone attendance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+  <link rel="stylesheet" href="p3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="p3.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Settings";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = roleOf(S);
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, review: 7, bell: 4, menu: S === "menu-open" };
+  const EDIT = ROLE === "sa";
+  const NARROW = window.innerWidth < 768;
+
+  /* key, label, help, value, default, min, max, unit */
+  const NUM = {
+    signin: [
+      ["idle", "Sign out after no use", "A phone is signed out when it was not used for this many days.", "7", "7", "1", "30", "days"],
+      ["max", "Longest time signed in", "A phone is signed out this many days after signing in, even if it is used every day. It must be at least as long as the days without use.", "30", "30", "1", "90", "days"],
+      ["sessions", "Phones signed in at the same time", "With 1, a new sign-in signs the older phone out (one phone at a time).", "1", "1", "1", "3", "phones"],
+      ["fails", "Wrong passwords before the lock", "After this many wrong passwords the account is locked for a while.", "5", "5", "3", "10", "tries"],
+      ["lock", "Lock time", "How long the account stays locked after too many wrong passwords.", "15", "15", "5", "120", "minutes"],
+    ],
+    punch: [
+      ["locage", "Oldest location reading", "A location reading older than this is treated as missing and the punch is refused.", "60", "60", "10", "120", "seconds"],
+      ["gate", "Phone code changes every", "The code on the attendance device screen changes this often. It must change faster than the punch cool-down.", "30", "30", "15", "60", "seconds"],
+    ],
+    alerts: [
+      ["many", "Alert for many phones: how many", "The bell tells the Super Admin when one employee signed in on this many different phones in 30 days.", "3", "3", "2", "10", "phones"],
+    ],
+    gate: [
+      ["shown", "Phone code stays on the screen for", "On a narrow gate screen the phone code is shown this long, then the screen goes back to the idle view.", "60", "60", "20", "180", "seconds"],
+    ],
+  };
+  const DRAFT = {};
+  if (S === "changed" || S === "save-reason") { DRAFT.sessions = "2"; DRAFT.idle = "14"; }
+  if (S === "range-error") DRAFT.idle = "45";
+  if (S === "cross-check-error") { DRAFT.idle = "20"; DRAFT.max = "10"; }
+  if (S === "gate-cross-check-error") DRAFT.gate = "60";
+  const ERR = {
+    idle: S === "range-error" ? "Allowed 1 to 30 days." : "",
+    max: S === "cross-check-error" ? "Must be at least as long as the days without use (20)." : "",
+    gate: S === "gate-cross-check-error" ? "The phone code must change faster than the punch cool-down." : "",
+  };
+
+  function numRow(r) {
+    const [key, label, help, value, def, min, max, unit] = r;
+    const changed = DRAFT[key] !== undefined;
+    const v = changed ? DRAFT[key] : value;
+    const err = changed && ERR[key];
+    return `<div class="srow ${changed ? "is-changed" : ""}"><div><label class="l" for="${key}">${label}${changed ? `<span class="badge badge-info chg">${ic("pencil")}Changed</span>` : ""}</label><p class="h">${help}</p><p class="d">Default: ${def} ${unit} · allowed ${min} to ${max} ${unit}</p></div>
+      <div><div class="inrow"><input class="input" id="${key}" value="${v}" ${EDIT ? "" : "readonly"} inputmode="numeric" ${err ? `aria-invalid="true" aria-describedby="e-${key}"` : ""}/><span class="unit">${unit}</span></div>${err ? `<p class="errline" id="e-${key}">${ic("circle-alert")}${err}</p>` : ""}${changed && EDIT ? `<button class="reset">${ic("rotate-ccw")}Reset to default</button>` : ""}</div></div>`;
+  }
+  function swRow(label, help, on, def, preview) {
+    return `<div class="srow"><div><span class="l">${label}</span><p class="h">${help}</p><p class="d">Default: ${def}</p>${preview ? `<span class="line-prev" aria-label="Example of the panel on the screen">${ic("monitor")}<span>${preview}</span></span>` : ""}</div>
+      <div class="swcell"><button class="sw" role="switch" aria-checked="${on}" ${EDIT ? "" : "disabled"}><span class="track"></span><span class="word">${on ? ic("check") + "On" : ic("minus") + "Off"}</span></button></div></div>`;
+  }
+  function group(title, icon, inner, count, openFirst, changedN) {
+    const open = !NARROW || openFirst || changedN;
+    return `<details class="subgroup" ${open ? "open" : ""}><summary><span class="sgi">${ic(icon)}</span><span><h3>${title}</h3><span class="cnt">${count} setting${count > 1 ? "s" : ""}</span></span>${changedN ? `<span class="badge badge-info chg changed-n">${changedN} changed</span>` : ""}<i data-lucide="chevron-down" class="chev"></i></summary>${inner}</details>`;
+  }
+  function card(id, title, icon, desc, groups) {
+    return `<section class="card set-card" id="${id}" aria-labelledby="${id}-t"><div class="set-head"><span class="hi">${ic(icon)}</span><div><h2 id="${id}-t">${title}</h2><p>${desc}</p></div><div class="right"><span class="badge badge-new">${ic("sparkles")}New in this version</span></div></div>${groups}</section>`;
+  }
+  function collapsed(icon, title, summary) {
+    return `<section class="card set-card collapsed-card"><div class="set-head" style="border-bottom:0;align-items:center"><span class="hi">${ic(icon)}</span><div><h2>${title}</h2><p class="summary">${summary}</p></div><div class="right"><i data-lucide="chevron-down" style="width:20px;height:20px;color:var(--muted-foreground)"></i></div></div></section>`;
+  }
+  const n = (arr) => arr.filter((r) => DRAFT[r[0]] !== undefined).length;
+
+  function page() {
+    if (S === "loading") return `<div class="page-narrow"><div class="skeleton" style="height:40px;width:260px;margin-bottom:16px"></div><div class="skeleton" style="height:360px;margin-bottom:16px"></div><div class="skeleton" style="height:240px;margin-bottom:16px"></div><div class="skeleton" style="height:240px"></div></div>`;
+    if (S === "error") return `<div class="page-narrow"><div class="page-head"><div><h1 class="page-title">Settings</h1></div></div><div class="card"><div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>Settings could not be loaded</h3><p>The server did not answer. Your settings are safe. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></div></div>`;
+    const sub = EDIT ? "Company-wide rules. Every change is saved in the audit log with a reason." : "Company-wide rules. Only the Super Admin can change them.";
+    const banner = !EDIT ? `<div class="alert alert-info mb">${ic("eye")}<span><b>View only.</b> Only the Super Admin can change these settings. You can read them to see how phone attendance works.</span></div>` : "";
+    const phone = card("phone", "Phone attendance", "smartphone", "How employees sign in and punch with their phone. Who may use a phone is set on each employee page.",
+      group("Signing in", "log-in", NUM.signin.map(numRow).join(""), 5, true, n(NUM.signin)) +
+      group("Location and phone code", "map-pin", NUM.punch.map(numRow).join(""), 2, false, n(NUM.punch)) +
+      group("Alerts", "bell-ring", NUM.alerts.map(numRow).join(""), 1, false, 0));
+    const gate = card("gate", "Attendance device screen", "tablet-smartphone", "Small lines on the screen at the plant gate. Texts of at least 24 px, never spoken, never with a name.",
+      group("Phone code on the gate screen", "qr-code",
+        swRow("Show the phone code", "A code that changes every few seconds. Employees scan it with their phone camera to punch by phone. It hides while the device is offline.", true, "On", "Phone code · scan with your phone") + NUM.gate.map(numRow).join(""), 2, true, n(NUM.gate)));
+    return `<div class="page-narrow" style="padding-bottom:96px"><div class="page-head anim-fade-up"><div><h1 class="page-title">Settings</h1><p class="page-desc">${sub}</p></div></div>${banner}
+      <div class="stack">${collapsed("timer", "Punch rules", "Cool-down 2 min · earliest OUT 30 min · longest open IN 20 h")}${collapsed("calendar-check", "Attendance and alerts", "Day window 4 h · still inside 60 min")}${phone}${gate}${collapsed("map-pin", "Location and anti-proxy", "Accuracy 50 m · margin 25 m")}${collapsed("scan-face", "Face recognition", "Match threshold 0.45 · anti-spoof 0.80")}</div></div>`;
+  }
+  function savebar() {
+    const bad = S === "range-error" || S === "cross-check-error" || S === "gate-cross-check-error";
+    const c = S === "changed" || S === "cross-check-error" ? 2 : 1;
+    return `<div class="savebar"><div><p>${ic("pencil")}${c} unsaved change${c > 1 ? "s" : ""}${bad ? " · fix the error first" : ""}</p><div style="display:flex;gap:8px"><button class="btn btn-outline">Discard</button><button class="btn btn-light" ${bad ? "disabled" : ""}>Save changes</button></div></div></div>`;
+  }
+  function reasonDialog() {
+    return dialog({ icon: "save", tone: "warning", title: "Save 2 changes?", desc: "Every change is saved in the audit log.", wide: true,
+      body: `<ul class="change-list"><li>${ic("smartphone")}<b>Phones signed in at the same time</b><span class="from tnum">1 phone</span>${ic("arrow-right")}<b class="tnum">2 phones</b></li><li>${ic("log-in")}<b>Sign out after no use</b><span class="from tnum">7 days</span>${ic("arrow-right")}<b class="tnum">14 days</b></li></ul>
+      <label class="label" for="why" style="margin-top:14px">Reason (required)</label><textarea class="input" id="why" style="width:100%">Workers share a family phone at home; the client asked to allow two phones for a month</textarea><div class="field-row" style="margin-top:6px"><span class="help">At least 10 characters.</span><span class="counter">86 / 300</span></div>`,
+      foot: `<button class="btn btn-outline btn-lg">Cancel</button><button class="btn btn-primary btn-lg">${ic("save")}Save changes</button>` });
+  }
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    const layer = document.getElementById("layer");
+    if (["changed", "range-error", "cross-check-error", "gate-cross-check-error"].includes(S)) layer.innerHTML = savebar();
+    if (S === "save-reason") layer.innerHTML = reasonDialog();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

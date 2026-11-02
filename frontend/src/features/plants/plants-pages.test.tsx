@@ -134,6 +134,26 @@ describe("plant detail", () => {
     expect(screen.getByText("None yet")).toBeInTheDocument();
   });
 
+  it("shows the start date and weekly off lines when the server sends them", async () => {
+    mockApi({
+      ...answers(SUPER_ADMIN),
+      "GET /plants/p-1/readiness": {
+        body: { ...READINESS, attendance_start_set: false, weekly_off_set: true },
+      },
+    });
+
+    renderRoute("/admin/plants/p-1");
+
+    expect(
+      await screen.findByText(
+        "Attendance has not started. Set the start date on the Overview tab.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("The weekly off is set.")).toBeInTheDocument();
+    // They are information only: the "left" count of the badge does not change.
+    expect(screen.getByText("Not ready · 2 left")).toBeInTheDocument();
+  });
+
   it("lets the Super Admin edit but gives a Plant Head a read-only view", async () => {
     mockApi(answers(PLANT_HEAD));
 
@@ -155,9 +175,9 @@ describe("plant detail", () => {
             start_time: "07:00:00",
             end_time: "19:00:00",
             crosses_midnight: false,
-            grace_min: 10,
+            grace_min: 30,
             half_day_min: 240,
-            ot_after_min: 480,
+            overtime_min_minutes: 120,
             is_active: true,
           },
         ],
@@ -167,17 +187,28 @@ describe("plant detail", () => {
 
     renderRoute("/admin/plants/p-1");
     await user.click(await screen.findByRole("tab", { name: "Shifts" }));
-    expect(await screen.findByText("07:00–19:00")).toBeInTheDocument();
+    expect(await screen.findByText("07:00 – 19:00")).toBeInTheDocument();
     await user.click(screen.getByRole("button", { name: "Add shift" }));
     const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Shift name"), "Night");
-    fireTime(within(dialog).getByLabelText("Starts"), "19:00");
-    fireTime(within(dialog).getByLabelText("Ends"), "07:00");
+    fireTime(within(dialog).getByLabelText("Shift starts"), "19:00");
+    fireTime(within(dialog).getByLabelText("Shift ends"), "07:00");
 
+    // M5: grace only after the start, the shift length is the full day, overtime from the shift end.
     expect(
-      await within(dialog).findByText("Night: starts 19:00, ends next day at 07:00 (12 h 00 min)."),
+      await within(dialog).findByText(
+        "On time until 19:30. Arriving up to 19:30 counts from 19:00.",
+      ),
     ).toBeInTheDocument();
-    expect(within(dialog).getByText("Late if the first punch is after 19:10.")).toBeInTheDocument();
+    expect(
+      within(dialog).getByText("Full day: 12 h. Arrive by 19:30 and stay until 07:00."),
+    ).toBeInTheDocument();
+    expect(
+      within(dialog).getByText(
+        "Overtime from 07:00, only when you stay 2 h or more after the shift end.",
+      ),
+    ).toBeInTheDocument();
+    expect(within(dialog).getByText(/This shift ends the next morning/)).toBeInTheDocument();
   });
 
   it("refuses a shift whose start and end time are the same", async () => {
@@ -189,12 +220,13 @@ describe("plant detail", () => {
     await user.click(await screen.findByRole("button", { name: "Add shift" }));
     const dialog = await screen.findByRole("dialog");
     await user.type(within(dialog).getByLabelText("Shift name"), "Odd");
-    fireTime(within(dialog).getByLabelText("Ends"), "07:00");
+    fireTime(within(dialog).getByLabelText("Shift starts"), "07:00");
+    fireTime(within(dialog).getByLabelText("Shift ends"), "07:00");
 
     expect(
       await within(dialog).findByText("Start and end time cannot be the same."),
     ).toBeInTheDocument();
-    expect(within(dialog).getByRole("button", { name: "Save shift" })).toBeDisabled();
+    expect(within(dialog).getByRole("button", { name: "Save rules" })).toBeDisabled();
   });
 
   it("opens the geofence tab with the map and the version list", async () => {

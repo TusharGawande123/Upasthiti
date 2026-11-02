@@ -26,8 +26,9 @@ export type PunchItem = {
   // True when the card belongs to a person of another plant and the viewer may not know who.
   employee_hidden: boolean;
   plant: { id: string; name: string; code: string | null };
-  kiosk: { id: string; name: string };
-  method: string; // "qr" (card) or "face"
+  // Empty for a phone face punch (M4b): it was made at no attendance device.
+  kiosk: { id: string; name: string } | null;
+  method: string; // "qr" (card), "face" or "gate_code" (a phone punch with the gate's changing code)
   direction: "in" | "out" | null;
   decision: "accepted" | "rejected" | "needs_code" | "flagged";
   reason_codes: string[];
@@ -44,6 +45,12 @@ export type PunchItem = {
   review_direction?: "in" | "out" | null;
   // Whom an approved review counts the punch for, when the row itself names nobody.
   counted_for?: { id: string; code: string; name: string } | null;
+  // M4b: how the punch was made, and on which signed-in phone ("Chrome on Android").
+  channel?: "kiosk" | "phone";
+  outside_plant?: boolean;
+  phone_browser?: string | null;
+  // The plant whose fence a phone punch matched, only when it is not the employee's own plant.
+  location_plant?: { id: string; name: string; code: string | null } | null;
 };
 
 export type ReviewState = "to_check" | "confirmed" | "not_accepted" | "approved";
@@ -79,6 +86,8 @@ export type PunchDetail = PunchItem & {
   time_proof?: "anchored" | "unproven" | null;
   geofence_distance_m?: number | null;
   location_age_s?: number | null;
+  // M4b: how exact the reading of a phone punch was (its position is for the Super Admin only).
+  location_accuracy_m?: number | null;
   related_punch_id?: string | null;
   reviews?: PunchReview[];
 };
@@ -107,7 +116,9 @@ export type PunchFilters = {
   flagged?: boolean;
   was_offline?: boolean;
   review_state?: ReviewState;
-  method?: "face" | "qr";
+  method?: "face" | "qr" | "gate_code";
+  channel?: "kiosk" | "phone";
+  outside_plant?: boolean;
   match_mode?: "code";
   asked_for_code?: boolean;
   no_face_photo?: boolean;

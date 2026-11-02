@@ -1,0 +1,107 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate C - Screen 4: Reports (/admin/reports), spec 4.11, 7 rule 18 (seven reports, Excel and PDF, limits).
+  States (URL hash): default · building · busy · too-large · range-error · rate-limit · done · plant-head · corporate-head · loading · error · menu-open
+  MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti reports</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Reports";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = S === "corporate-head" ? "ch" : S === "plant-head" ? "ph" : "sa";
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, bell: 4, menu: S === "menu-open" };
+  const SA = ROLE === "sa";
+
+  /* id, icon, title, sentence, period kind (day | month | range), extra field, limit text, extra note */
+  const REPORTS = [
+    ["daily-muster", "clipboard-list", "Daily muster", "Who came on one day: first IN, last OUT, hours, late, early exit and overtime.", "day", null, "One day. Portrait A4 for PDF."],
+    ["register", "table-2", "Monthly register", "A month for every person: one code per day (present, absent, leave, holiday, weekly off) and totals.", "month", null, "One month. The PDF is landscape A4."],
+    ["contractor-hours", "hard-hat", "Contractor hours", "Hours of temporary workers, grouped by contractor, with overtime hours. No rates and no money.", "month", "contractor", "One month. PDF is landscape A4."],
+    ["late-early-overtime", "timer", "Late, early and overtime", "Every day a permanent employee came late, left early or stayed for overtime, with totals per person.", "range", null, "Up to 31 days."],
+    ["exceptions", "triangle-alert", "Exceptions", "Days that need a look: missing OUT, short hours, unchecked flagged punches. Written in plain words.", "range", null, "Up to 31 days."],
+    ["rejected-punches", "shield-x", "Rejected punches", "Punches the attendance device refused, with the reason, the device and the method. No photos.", "range", null, "Up to 31 days."],
+    ["corrections", "file-pen", "Corrections", "Correction requests and decisions, and punch approvals from the review screen.", "range", null, "Up to 31 days.", "Reasons written in the review screen appear only in the Super Admin's file."],
+  ];
+
+  const rangeErr = S === "range-error";
+  const tooLarge = S === "too-large";
+
+  function period(r, id) {
+    const kind = r[4];
+    if (kind === "day") return field(id + "-d", "Day", "30/10/2026", { mode: "numeric", help: "Friday · DD/MM/YYYY", cls: "full" });
+    if (kind === "month") return `<div class="fld full"><label class="label" for="${id}-m">Month</label>${sel(id + "-m", "Month", "October 2026")}</div>`;
+    const bad = rangeErr && r[0] === "late-early-overtime";
+    return field(id + "-f", "From", bad ? "10/09/2026" : "01/10/2026", { mode: "numeric", help: "DD/MM/YYYY" }) + field(id + "-t", "To", "31/10/2026", { mode: "numeric", help: bad ? "" : "Up to 31 days from the start", err: bad ? "That is 52 days. This report covers up to 31 days." : "" });
+  }
+  function plantField(r, id) {
+    if (ROLE === "ph") return `<div class="fld full"><span class="label">Plant</span><div class="acc">${ic("lock")}<span><b>K134</b> · Sheet Shapers K-134</span><span style="margin-left:auto" class="muted">Your plant</span></div></div>`;
+    const v = tooLarge && r[0] === "register" ? "All plants" : "K134 · Sheet Shapers K-134";
+    return `<div class="fld full"><label class="label" for="${id}-p">Plant</label>${sel(id + "-p", "Plant", v)}</div>`;
+  }
+  function contractor(id) {
+    return `<div class="fld full"><label class="label" for="${id}-c">Contractor</label>${sel(id + "-c", "Contractor", "All contractors")}</div>`;
+  }
+
+  function card(r) {
+    const id = r[0];
+    const building = S === "building" && id === "daily-muster";
+    const other = S === "building" && !building;
+    const lock = building || other;
+    const bad = rangeErr && id === "late-early-overtime";
+    const big = tooLarge && id === "register";
+    let msg = "";
+    if (building) msg = `<div class="building" role="status">${spinner()}<span>Building the file… Large months can take up to 30 seconds. Please keep this page open.</span></div>`;
+    if (S === "busy" && id === "exceptions") msg = `<div class="err-inline" role="alert">${ic("circle-alert")}<span>Another report is still being built. Please wait for it to finish, then try again.</span></div>`;
+    if (big) msg = `<div class="err-inline" role="alert">${ic("circle-alert")}<span>This PDF would have more than 3,000 rows. Download the Excel file, or choose one plant.</span></div>`;
+    if (S === "rate-limit" && id === "rejected-punches") msg = `<div class="warn-inline" role="alert">${ic("clock")}<span>You have made 20 files in the last 10 minutes. Please wait 4 minutes and try again.</span></div>`;
+    if (S === "done" && id === "daily-muster") msg = `<div class="ok-inline" role="status">${ic("circle-check")}<span>Downloaded <b>daily-muster-K134-30-10-2026.xlsx</b> · 214 rows</span></div>`;
+    const btnLock = lock || bad || S === "busy" && id === "exceptions" && false;
+    const xl = `<button class="btn btn-excel" ${btnLock ? "disabled" : ""}>${building ? spinner() : ic("file-spreadsheet")}${building ? "Building…" : "Excel"}</button>`;
+    const pdf = `<button class="btn btn-pdf" ${btnLock || big ? "disabled" : ""}>${ic("file-text")}PDF</button>`;
+    const fields = period(r, id) + plantField(r, id) + (r[5] === "contractor" ? contractor(id) : "");
+    return `<section class="card rcardx ${building ? "is-building" : ""}" aria-labelledby="${id}-t"><div class="rh"><span class="hi">${ic(r[1])}</span><div><h2 id="${id}-t">${r[2]}</h2><p>${r[3]}</p></div></div>
+      <div class="rb">${fields}</div>
+      <div class="rf">${msg}<div class="btns">${xl}${pdf}</div><div class="limit">${ic("info")}<span>${r[6]}${big ? " PDF up to 3,000 rows." : ""}${r[7] ? " " + r[7] : ""}</span></div></div></section>`;
+  }
+
+  function body() {
+    if (S === "loading") return `<div class="rgrid">${Array.from({ length: 4 }).map(() => `<div class="card" style="padding:18px"><div class="skeleton" style="height:42px;width:60%;margin-bottom:14px"></div><div class="skeleton" style="height:16px;margin-bottom:10px"></div><div class="skeleton" style="height:48px;margin-bottom:10px"></div><div class="skeleton" style="height:48px"></div></div>`).join("")}</div>`;
+    if (S === "error") return `<div class="card"><div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>The reports page could not be loaded</h3><p>The list of plants did not arrive. Your data is safe. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></div>`;
+    const limits = `<div class="rlimits"><div class="li">${ic("layers-2")}<span><b>One file at a time</b>Wait for a file before you ask for the next one.</span></div><div class="li">${ic("gauge")}<span><b>20 files in 10 minutes</b>For each person. A file takes up to 30 seconds.</span></div><div class="li">${ic("file-text")}<span><b>PDF up to 3,000 rows</b>A bigger report: use Excel, it has no row limit.</span></div></div>`;
+    return `${limits}<div class="rgrid">${REPORTS.map(card).join("")}</div>
+      <p class="muted" style="font-size:13.5px;margin:16px 4px 0;display:flex;gap:8px">${ic("shield-check")}<span>Every file shows who made it and when. Every download is saved in the audit log. The files contain personal data: keep them on company computers.</span></p>`;
+  }
+
+  window.mockStart(function () {
+    const sub = ROLE === "ph" ? "Download attendance reports for your plant as Excel or PDF." : "Download attendance reports as Excel or PDF. Demo plants are not included.";
+    document.getElementById("page").innerHTML = `<div class="page-head anim-fade-up"><div><h1 class="page-title">Reports</h1><p class="page-desc">${sub}</p></div></div>${body()}`;
+    if (S === "done") document.getElementById("layer").innerHTML = `<div class="toast" role="status">${ic("circle-check")}<p><b>File downloaded.</b> daily-muster-K134-30-10-2026.xlsx</p></div>`;
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

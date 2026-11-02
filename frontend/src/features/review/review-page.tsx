@@ -32,6 +32,7 @@ import { addDays } from "@/lib/dates";
 import { formatDate, formatNumber, formatTime, todayIst } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import {
+  ChannelBadge,
   DirectionBadge,
   EmployeeCell,
   formatDelay,
@@ -40,6 +41,7 @@ import {
   ReviewMark,
   useReasonText,
 } from "../punches/punch-cells";
+import { BULK_MAX, BulkBar, BulkCell, BulkDialog, type BulkResult } from "./bulk-confirm";
 import { ReviewSheet } from "./review-sheet";
 import {
   type ReviewAction,
@@ -54,6 +56,7 @@ const PAGE_SIZE = 50;
 const TABS: ReviewTab[] = ["to_check", "rejected", "reviewed"];
 // Codes the "Code" filter offers: the M4 flags first, then the usual rejections.
 const FLAG_CODES = [
+  "OUTSIDE_PLANT",
   "LOCATION_AT_EDGE",
   "LOCATION_STALE",
   "IMPOSSIBLE_TRAVEL",
@@ -104,6 +107,10 @@ export function ReviewPage() {
   const [search, setSearch] = useState(read("q"));
   // ?punch=<id> opens one punch at once (a link from the punch log).
   const [openId, setOpenId] = useState<string | null>(read("punch") || null);
+  // M4b F-76: punches ticked for "Confirm selected" (kept with the row, for the dialog).
+  const [selected, setSelected] = useState<Map<string, ReviewListItem>>(new Map());
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [bulkOutcome, setBulkOutcome] = useState<{ ok: number; failed: string[] } | null>(null);
 
   const tab = (TABS.includes(read("tab") as ReviewTab) ? read("tab") : "to_check") as ReviewTab;
   const today = todayIst();
@@ -129,6 +136,7 @@ export function ReviewPage() {
     kiosk_id: read("kiosk_id") || undefined,
     code: read("code") || undefined,
     method: (read("method") || undefined) as ReviewFilters["method"],
+    channel: read("channel") === "phone" ? "phone" : undefined,
     was_offline: bool(read("was_offline")),
     employee_id: read("employee_id") || undefined,
     q: read("q") || undefined,
@@ -148,6 +156,7 @@ export function ReviewPage() {
     read("kiosk_id"),
     read("code"),
     read("method"),
+    read("channel"),
     read("was_offline"),
     read("employee_id"),
     read("q"),
@@ -155,6 +164,32 @@ export function ReviewPage() {
     tab === "rejected" ? read("include_cooldown") : "",
   ].filter(Boolean).length;
   const openIndex = rows.findIndex((row) => row.punch.id === openId);
+  // The check boxes only exist on the "To check" tab with the "Phone" filter.
+  const bulkMode = tab === "to_check" && read("channel") === "phone";
+  const atBulkLimit = selected.size >= BULK_MAX;
+  // A different list (tab, filter, page, plant) starts with nothing ticked.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset when the list changes
+  useEffect(() => {
+    setSelected(new Map());
+  }, [tab, plantId, page, bulkMode, dateFrom, dateTo]);
+  const toggleRow = (row: ReviewListItem) =>
+    setSelected((current) => {
+      const next = new Map(current);
+      if (next.has(row.punch.id)) next.delete(row.punch.id);
+      else if (next.size < BULK_MAX) next.set(row.punch.id, row);
+      return next;
+    });
+  const finishBulk = (results: BulkResult[]) => {
+    const names = new Map(rows.map((row) => [row.punch.id, row.punch.employee?.name ?? ""]));
+    const failed = results
+      .filter((result) => !result.ok)
+      .map(
+        (result) =>
+          `${names.get(result.punch_id) || t("review.row.unknown")}: ${t(`errors.${result.error_code ?? "UNKNOWN"}`, { defaultValue: t("errors.UNKNOWN") })}`,
+      );
+    setBulkOutcome({ ok: results.filter((result) => result.ok).length, failed });
+    setSelected(new Map());
+  };
 
   // After a review: the next row opens (fast work through a queue, spec §4.8).
   const afterReview = (action: ReviewAction) => {
@@ -310,6 +345,15 @@ export function ReviewPage() {
               <option value="face">{t("punches.method.face")}</option>
             </Select>
             <Select
+              aria-label={t("review.filters.channel")}
+              value={read("channel")}
+              onChange={(event) => set({ channel: event.target.value })}
+              className="w-auto"
+            >
+              <option value="">{t("review.filters.anyChannel")}</option>
+              <option value="phone">{t("punches.channel.phone")}</option>
+            </Select>
+            <Select
               aria-label={t("review.filters.offline")}
               value={read("was_offline")}
               onChange={(event) => set({ was_offline: event.target.value })}
@@ -358,6 +402,7 @@ export function ReviewPage() {
                     kiosk_id: undefined,
                     code: undefined,
                     method: undefined,
+                    channel: undefined,
                     was_offline: undefined,
                     employee_id: undefined,
                     q: undefined,
@@ -386,6 +431,31 @@ export function ReviewPage() {
           </span>
         </div>
 
+        {bulkOutcome ? (
+          <Alert tone={bulkOutcome.failed.length > 0 ? "warning" : "info"} className="m-4">
+            <CircleCheck aria-hidden />
+            <span>
+              {bulkOutcome.failed.length > 0
+                ? `${t("review.bulk.confirmedCount", { count: bulkOutcome.ok })}; ${t("review.bulk.needSingle", { count: bulkOutcome.failed.length })}.`
+                : `${t("review.bulk.confirmedCount", { count: bulkOutcome.ok })}.`}
+              {bulkOutcome.failed.length > 0 ? (
+                <span className="mt-1 block text-xs">{bulkOutcome.failed.join(" · ")}</span>
+              ) : null}
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="ml-auto"
+              onClick={() => setBulkOutcome(null)}
+            >
+              {t("common.close")}
+            </Button>
+          </Alert>
+        ) : null}
+        {tab === "rejected" && read("channel") === "phone" ? (
+          <p className="m-4 text-sm text-muted-foreground">{t("review.bulk.rejectedNote")}</p>
+        ) : null}
+
         {list.isError ? (
           <Alert tone="danger" className="m-4">
             <TriangleAlert aria-hidden />
@@ -409,6 +479,15 @@ export function ReviewPage() {
                   key={row.punch.id}
                   row={row}
                   tab={tab}
+                  bulk={
+                    bulkMode
+                      ? {
+                          checked: selected.has(row.punch.id),
+                          atLimit: atBulkLimit,
+                          onToggle: () => toggleRow(row),
+                        }
+                      : null
+                  }
                   onOpen={() => setOpenId(row.punch.id)}
                 />
               ))}
@@ -443,7 +522,23 @@ export function ReviewPage() {
             </Button>
           </div>
         ) : null}
+        {bulkMode ? (
+          <BulkBar
+            count={selected.size}
+            atLimit={atBulkLimit}
+            onClear={() => setSelected(new Map())}
+            onConfirm={() => setBulkOpen(true)}
+          />
+        ) : null}
       </Card>
+
+      {bulkOpen ? (
+        <BulkDialog
+          rows={[...selected.values()]}
+          onDone={finishBulk}
+          onClose={() => setBulkOpen(false)}
+        />
+      ) : null}
 
       {openId ? (
         <ReviewSheet
@@ -465,10 +560,12 @@ export function ReviewPage() {
 function ReviewRow({
   row,
   tab,
+  bulk,
   onOpen,
 }: {
   row: ReviewListItem;
   tab: ReviewTab;
+  bulk: { checked: boolean; atLimit: boolean; onToggle: () => void } | null;
   onOpen: () => void;
 }) {
   const { t } = useTranslation();
@@ -498,6 +595,14 @@ function ReviewRow({
       <div>
         <span className="tnum block font-semibold">{formatTime(time)}</span>
         <span className="tnum block text-xs text-muted-foreground">{formatDate(time)}</span>
+        {bulk ? (
+          <BulkCell
+            row={row}
+            checked={bulk.checked}
+            atLimit={bulk.atLimit}
+            onToggle={bulk.onToggle}
+          />
+        ) : null}
         {punch.was_offline ? (
           <span className="mt-1 flex items-start gap-1 text-xs font-semibold text-warning">
             <Hourglass className="mt-0.5 size-3.5 shrink-0" aria-hidden />
@@ -520,8 +625,14 @@ function ReviewRow({
         )}
       </div>
       <div className="min-w-0 text-sm">
-        <span className="block font-semibold">{punch.kiosk.name}</span>
+        <ChannelBadge channel={punch.channel} />
+        {punch.kiosk ? <span className="block font-semibold">{punch.kiosk.name}</span> : null}
         <span className="code block text-xs text-muted-foreground">{punch.plant.code}</span>
+        {row.outside_reason ? (
+          <span className="mt-1 block text-xs">
+            {t("review.row.outsideReason", { reason: row.outside_reason })}
+          </span>
+        ) : null}
         <span className="mt-1 inline-block">
           <MethodBadge method={punch.method} />
         </span>

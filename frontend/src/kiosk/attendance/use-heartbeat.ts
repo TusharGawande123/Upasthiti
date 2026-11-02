@@ -69,6 +69,8 @@ export function useHeartbeat(
     settings: me?.kiosk_settings ?? DEFAULT_SCREEN_SETTINGS,
     serverOffsetMs,
     online,
+    /** M5 F-28: a number only (null when the setting is off). */
+    insideNow: me?.inside_now ?? null,
     /** A punch answer or failure also tells whether the internet works. */
     setOnline,
   };

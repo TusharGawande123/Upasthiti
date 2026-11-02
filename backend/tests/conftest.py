@@ -5,6 +5,7 @@ import hashlib
 import os
 from collections.abc import Callable, Iterator
 from contextlib import nullcontext
+from datetime import datetime
 
 import pytest
 from fastapi import FastAPI
@@ -61,10 +62,12 @@ from app.modules.auth.rate_limit import (  # noqa: E402
     login_limiter,
     pairing_limiter,
     punch_limiter,
+    report_file_limiter,
     report_limiter,
 )
 from app.modules.face.engine_provider import get_face_engine  # noqa: E402
 from app.modules.face.gallery_cache import clear_all_galleries  # noqa: E402
+from app.modules.phone.rate_limits import reset_phone_limits  # noqa: E402
 from app.modules.punches.photo_check import get_task_sessions  # noqa: E402
 from tests.database import create_fresh_test_database, read_test_database_url  # noqa: E402
 
@@ -83,6 +86,25 @@ def fresh_settings() -> Iterator[None]:
     clear_cached_settings()
     yield
     clear_cached_settings()
+
+
+@pytest.fixture(autouse=True)
+def clock_started_near_midnight() -> Iterator[None]:
+    """S-40: with TEST_CLOCK_START_IST set (e.g. 2026-11-04T23:59:30), the clock of every test
+    starts at that Indian time and keeps ticking, so a test that quietly depends on "today"
+    breaks the way it would just after midnight. CI runs a few test files this way twice.
+    Normal runs leave the variable unset and nothing changes."""
+    start_text = os.environ.get("TEST_CLOCK_START_IST")
+    if not start_text:
+        yield
+        return
+    import time_machine
+
+    from app.core.time import IST
+
+    start = datetime.fromisoformat(start_text).replace(tzinfo=IST)
+    with time_machine.travel(start, tick=True):
+        yield
 
 
 @pytest.fixture
@@ -190,7 +212,25 @@ def fresh_rate_limits() -> Iterator[None]:
     failed_pairing_limiter.reset()
     punch_limiter.reset()
     report_limiter.reset()
+    report_file_limiter.reset()
     enrolment_shot_limiter.reset()
     challenge_limiter.reset()
     code_try_limiter.reset()
+    reset_phone_limits()
     yield
+
+
+@pytest.fixture
+def early_out_alert_off(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Switch the early-OUT alert off (M5 decision 0036 line 9) for a test about something else.
+
+    Without it, an OUT before the end of the plant's default shift 07:00-19:00 answers "needs
+    confirmation" at most times of the day, which has nothing to do with what such a test checks.
+    The alert has its own tests (test_m5_early_out.py), which do not use this fixture.
+    """
+    for module in (
+        "app.modules.punches.service",
+        "app.modules.punches.face_service",
+        "app.modules.punches.early_out",
+    ):
+        monkeypatch.setattr(f"{module}.early_out_info", lambda *args, **kwargs: None)

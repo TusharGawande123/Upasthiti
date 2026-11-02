@@ -10,7 +10,13 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy.orm import Session
 
-from app.antiproxy.context import Outcome, PunchContext, PunchLimits, RuleResult
+from app.antiproxy.context import (
+    DeviceIdentity,
+    Outcome,
+    PunchContext,
+    PunchLimits,
+    RuleResult,
+)
 from app.antiproxy.engine import run_qr_rules
 from app.antiproxy.rules.cooldown import check_in_out
 from app.antiproxy.rules.qr_credential import check_qr_credential
@@ -92,7 +98,8 @@ def make_context(db_session: Session, kiosk: KioskDevice) -> Callable[..., Punch
         values: dict[str, object] = {
             "session": db_session,
             "app_settings": get_settings(),
-            "kiosk": kiosk,
+            "plant_id": kiosk.plant_id,
+            "device_identity": DeviceIdentity.of_kiosk(kiosk),
             "now": NOW,
             "limits": LIMITS,
             "qr_text": None,
@@ -301,7 +308,11 @@ def test_a_card_works_only_at_its_owners_plant(
 ) -> None:
     other_gate = make_kiosk(db_session, tp1)
 
-    context = make_context(qr_text=worker.qr_text, kiosk=other_gate)
+    context = make_context(
+        qr_text=worker.qr_text,
+        plant_id=other_gate.plant_id,
+        device_identity=DeviceIdentity.of_kiosk(other_gate),
+    )
 
     assert card_result(context) == "WRONG_PLANT"
     assert context.employee is not None  # known, so the log can name the person

@@ -3,7 +3,13 @@
 1. Future-dated plant transfers take effect on their day.
 2. Login sessions that ended more than 30 days ago are deleted (they are not audit records).
 3. Card-punch photos past their retention are deleted from storage (M2; the rows stay).
+4. Shift rule versions that start today are copied into the shift row (M5, decision 0036).
+5. M4b: phone proofs older than a day and phone sign-ins ended 90 days ago are deleted, and an
+   outside-work switch whose "until" day is over is turned off (F-69).
 A second job removes short-lived face data every 5 minutes (M3, app/modules/face/cleanup.py).
+M5 adds two scheduled jobs of their own, because they can be long and must not slow a cold
+start: the nightly close of the attendance days (00:05 IST, and once after start-up) and the
+5-minute catch-up that recomputes stale days (app/modules/attendance/service.py).
 
 Render's free backend sleeps, so the job also runs once at start-up and is safe to repeat:
 doing it twice changes nothing the second time.
@@ -18,12 +24,21 @@ from sqlalchemy.orm import Session
 
 from app.core.db import get_session_factory
 from app.core.storage import Storage, StorageError, get_storage
-from app.core.time import IST, today_ist, utc_now
+from app.core.time import IST, to_ist, today_ist, utc_now
+from app.modules.attendance.service import close_recent_days, recompute_stale
 from app.modules.auth.models import LoginSession
 from app.modules.employees.operations import apply_due_transfers
 from app.modules.face.cleanup import run_face_cleanup
 from app.modules.kiosks.heartbeat_service import KEEP_SAMPLES_DAYS
 from app.modules.kiosks.models import KioskHeartbeat
+from app.modules.notifications.alerts import (
+    purge_old_notifications,
+    run_five_minute_alerts,
+    run_morning_alerts,
+)
+from app.modules.org.shift_rules_service import apply_due_rule_versions
+from app.modules.phone.access_service import end_expired_outside_work
+from app.modules.phone.cleanup import run_phone_cleanup
 from app.modules.punches.retention import purge_expired_snapshots
 
 logger = logging.getLogger(__name__)
@@ -51,6 +66,7 @@ def purge_old_heartbeats(session: Session, now: datetime, batch_size: int = 5000
 def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str, int]:
     """Do all daily work and say how much it did."""
     transfers = apply_due_transfers(session, today_ist())
+    shift_rules = apply_due_rule_versions(session, today_ist())
     cutoff = utc_now() - timedelta(days=SESSION_KEEP_DAYS)
     old_sessions = session.scalars(
         delete(LoginSession).where(LoginSession.expires_at < cutoff).returning(LoginSession.id)
@@ -58,9 +74,13 @@ def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str
     session.commit()
     return {
         "transfers_applied": transfers,
+        "shift_rules_applied": shift_rules,
         "sessions_deleted": len(old_sessions),
         "snapshots_purged": _purge_snapshots(session, storage),
         "heartbeats_deleted": purge_old_heartbeats(session, utc_now()),
+        "notifications_deleted": purge_old_notifications(session, utc_now()),
+        "outside_work_ended": end_expired_outside_work(session, today_ist()),
+        **run_phone_cleanup(session, utc_now()),
     }
 
 
@@ -92,12 +112,92 @@ def run_face_cleanup_logged() -> None:
         logger.exception("Face cleanup failed")
 
 
+def run_attendance_catch_up_logged() -> None:
+    """Recompute stale attendance days, batch after batch, until none are left (M5 rule 14)."""
+    try:
+        with get_session_factory()() as session:
+            total = 0
+            while True:
+                done = recompute_stale(session, utc_now())
+                total += done
+                if done == 0:
+                    break
+            if total:
+                logger.info("Attendance catch-up finished", extra={"fields": {"days": total}})
+    except Exception:
+        logger.exception("Attendance catch-up failed")
+
+
+def run_alerts_logged() -> None:
+    """The 5-minute alerts: device offline, people still inside, many refused punches (F-4)."""
+    try:
+        with get_session_factory()() as session:
+            run_five_minute_alerts(session, utc_now())
+    except Exception:
+        logger.exception("Alert check failed")
+
+
+def run_morning_alerts_logged() -> None:
+    """07:00 IST: yesterday's incomplete days, the review digest, absence streaks, the register
+    notice on the 2nd. Repeating it changes nothing (dedupe keys)."""
+    try:
+        with get_session_factory()() as session:
+            run_morning_alerts(session, utc_now())
+    except Exception:
+        logger.exception("Morning alerts failed")
+
+
+def run_morning_alerts_if_late_logged() -> None:
+    if to_ist(utc_now()).hour >= 7:
+        run_morning_alerts_logged()
+
+
+def run_attendance_close_logged() -> None:
+    """Every active employee gets a stored day for each of the last days (M5 rule 14 c)."""
+    try:
+        with get_session_factory()() as session:
+            days = close_recent_days(session, utc_now())
+        logger.info("Attendance close finished", extra={"fields": {"days": days}})
+    except Exception:
+        logger.exception("Attendance close failed")
+
+
 def start_scheduler() -> BackgroundScheduler:
     scheduler = BackgroundScheduler(timezone=IST)
     scheduler.add_job(run_daily_jobs_logged, "cron", hour=0, minute=5, id="daily")
     # Runs at once (catch up after a sleep), then every 5 minutes.
     scheduler.add_job(
         run_face_cleanup_logged, "interval", minutes=5, id="face-cleanup", next_run_time=utc_now()
+    )
+    # Also at once, then every 5 minutes. `next_run_time`, not a call at start-up, so a Render
+    # cold start does not wait for it.
+    scheduler.add_job(
+        run_attendance_catch_up_logged,
+        "interval",
+        minutes=5,
+        id="attendance-catch-up",
+        next_run_time=utc_now(),
+    )
+    scheduler.add_job(run_attendance_close_logged, "cron", hour=0, minute=5, id="attendance-close")
+    # Alerts: at once and then every 5 minutes (next_run_time keeps a cold start fast).
+    scheduler.add_job(
+        run_alerts_logged, "interval", minutes=5, id="alerts", next_run_time=utc_now()
+    )
+    scheduler.add_job(run_morning_alerts_logged, "cron", hour=7, minute=0, id="morning-alerts")
+    # A free server that slept through 07:00 still raises the morning alerts when it wakes
+    # (after 07:00 IST); the dedupe keys make a second run harmless.
+    scheduler.add_job(
+        run_morning_alerts_if_late_logged,
+        "date",
+        run_date=utc_now() + timedelta(seconds=90),
+        id="morning-alerts-at-start",
+    )
+    # Once after start-up too: days missed while the free server slept are closed.
+    scheduler.add_job(
+        run_attendance_close_logged,
+        "date",
+        run_date=utc_now() + timedelta(seconds=30),
+        id="attendance-close-at-start",
     )
     scheduler.start()
     return scheduler

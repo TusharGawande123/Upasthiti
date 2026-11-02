@@ -152,3 +152,15 @@
   }
 }
 /* biome-ignore-end lint/complexity/noImportantStyles: reduced motion must win */
+
+/* Emergency muster print sheet (M5 gate A): A4 portrait, page numbers in the footer. */
+@media print {
+  @page {
+    size: A4 portrait;
+    margin: 12mm;
+    @bottom-center {
+      content: "Page " counter(page) " of " counter(pages);
+      font-size: 9pt;
+    }
+  }
+}

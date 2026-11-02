@@ -16,6 +16,8 @@ export type Plant = {
   geofence_set: boolean;
   active_kiosks: number;
   active_employees: number;
+  // M5: attendance is worked out from this day (empty until the plant starts using the devices).
+  attendance_start_date?: string | null;
 };
 
 export type Readiness = {
@@ -29,6 +31,9 @@ export type Readiness = {
   // M4: a device of this plant works right now, and its location is good (optional on old servers).
   device_online?: boolean;
   location_good?: boolean;
+  // M5: the attendance start date and the weekly off are set (optional on old servers).
+  attendance_start_set?: boolean;
+  weekly_off_set?: boolean;
 };
 
 export type SetupStepKey = "plants" | "geofence" | "shifts_and_categories" | "kiosk" | "employees";
@@ -65,10 +70,25 @@ export type Shift = {
   start_time: string; // "07:00:00"
   end_time: string;
   crosses_midnight: boolean;
+  shift_length_min: number; // the full day (M5)
+  grace_min: number; // the same at the start and the end
+  half_day_min: number;
+  overtime_min_minutes: number; // overtime counts from the shift end, only from this many minutes
+  is_active: boolean;
+  rules_from: string | null; // date of the rules in force today
+  upcoming_rules: ShiftRules | null;
+};
+
+export type ShiftRules = {
+  effective_from: string;
+  start_time: string;
+  end_time: string;
+  crosses_midnight: boolean;
+  shift_length_min: number;
   grace_min: number;
   half_day_min: number;
-  ot_after_min: number;
-  is_active: boolean;
+  overtime_min_minutes: number;
+  created_at: string;
 };
 
 export type ShiftInput = {
@@ -77,8 +97,17 @@ export type ShiftInput = {
   end_time: string;
   grace_min: number;
   half_day_min: number;
-  ot_after_min: number;
+  overtime_min_minutes: number;
+  rules_effective_from?: string; // edit only: today (default) or a later date
 };
+
+// One entry of a plant's weekly-off history: from that date this ISO weekday is the day off.
+export type WeeklyOffItem = {
+  weekday: number; // 1 Monday ... 7 Sunday
+  effective_from: string;
+  created_at: string;
+};
+export type WeeklyOff = { current: WeeklyOffItem | null; history: WeeklyOffItem[] };
 
 // Departments and categories behave the same; only the address differs.
 export type NamedItemKind = "departments" | "categories";
@@ -124,6 +153,22 @@ export function useNamedItems(plantId: string, kind: NamedItemKind) {
   return useQuery({
     queryKey: [...PLANTS_KEY, plantId, kind],
     queryFn: () => apiGet<NamedItem[]>(`/plants/${plantId}/${kind}`),
+  });
+}
+
+export function useWeeklyOff(plantId: string) {
+  return useQuery({
+    queryKey: [...PLANTS_KEY, plantId, "weekly-off"],
+    queryFn: () => apiGet<WeeklyOff>(`/plants/${plantId}/weekly-off`),
+    enabled: Boolean(plantId),
+  });
+}
+
+export function useShiftRuleVersions(shiftId: string | undefined) {
+  return useQuery({
+    queryKey: [...PLANTS_KEY, "rule-versions", shiftId],
+    queryFn: () => apiGet<ShiftRules[]>(`/shifts/${shiftId}/rule-versions`),
+    enabled: Boolean(shiftId),
   });
 }
 
@@ -226,6 +271,24 @@ export function useShiftActiveToggle() {
   return useMutation({
     mutationFn: ({ id, active, reason }: { id: string; active: boolean; reason: string }) =>
       apiPost<Shift>(`/shifts/${id}/${active ? "reactivate" : "deactivate"}`, { reason }),
+    onSuccess: refresh,
+  });
+}
+
+export function useSetWeeklyOff(plantId: string) {
+  const refresh = useRefreshPlants();
+  return useMutation({
+    mutationFn: (input: { weekday: number; effective_from: string }) =>
+      apiPost<{ weekly_off: WeeklyOffItem }>(`/plants/${plantId}/weekly-off`, input),
+    onSuccess: refresh,
+  });
+}
+
+export function useSetAttendanceStartDate(plantId: string) {
+  const refresh = useRefreshPlants();
+  return useMutation({
+    mutationFn: (attendanceStartDate: string) =>
+      apiPatch<Plant>(`/plants/${plantId}`, { attendance_start_date: attendanceStartDate }),
     onSuccess: refresh,
   });
 }

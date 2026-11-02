@@ -221,6 +221,9 @@ export function QrCardsPage() {
 
   const employeesPanel = (
     <>
+      {state === "expiring" || state === "expired" ? (
+        <Alert tone="warning">{t("qrCards.phoneEndedNote")}</Alert>
+      ) : null}
       <Card className="overflow-hidden">
         <div className="flex flex-wrap items-center gap-3 border-b p-4">
           <Input
@@ -390,6 +393,11 @@ export function QrCardsPage() {
                           <span className="code text-xs text-muted-foreground">
                             {row.employee.code}
                           </span>
+                          {row.phone_punch_enabled ? (
+                            <span className="mt-1 block text-xs font-semibold text-primary">
+                              {t("qrCards.phoneOn")}
+                            </span>
+                          ) : null}
                         </span>
                       </span>
                     </TableCell>

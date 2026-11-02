@@ -25,6 +25,11 @@ class ReviewListItem(BaseModel):
     punch: ReviewPunch
     latest_review: PunchReviewOut | None
     approvable: bool  # a rejected punch the Super Admin may approve (spec §7 rule 7)
+    # M4b F-76: a clean outside-work phone punch that "Confirm selected" may confirm in a batch.
+    bulk_confirmable: bool = False
+    # M4b: why outside work was allowed for this person (the Super Admin's reason when switching
+    # it on), for OUTSIDE_PLANT punches. None when there is none or it was not recorded.
+    outside_reason: str | None = None
 
 
 class ReviewSummary(BaseModel):
@@ -45,6 +50,7 @@ class DigestPlant(BaseModel):
     rejected_with_employee: int
     to_check: int
     device_offline_minutes_in_shifts: int
+    phone_selfie_no_face: int = 0  # phone gate-code selfies with no face seen (F-30)
 
 
 class ReviewDigest(BaseModel):
@@ -64,7 +70,7 @@ class ContextFence(BaseModel):
 
 class RelatedPunch(BaseModel):
     punch: PunchDetail
-    relation: Literal["travel", "two_devices", "order"]
+    relation: Literal["travel", "two_devices", "order", "closing_out"]
     distance_m: float | None
     minutes_apart: float
     speed_kmh: float | None
@@ -99,6 +105,8 @@ class ReviewContext(BaseModel):
     reviews: list[PunchReviewOut]
     hints: list[ReviewHint]
     approvable: bool
+    bulk_confirmable: bool = False
+    outside_reason: str | None = None
     limits: dict[str, int]  # the settings the screen explains with (travel limit, cool-down)
 
 
@@ -135,3 +143,44 @@ class ReviewRequest(BaseModel):
 
 class ReviewCreated(BaseModel):
     review: PunchReviewOut
+
+
+# --- Bulk confirm of clean outside punches (M4b F-76) -------------------------------------------
+
+BULK_MAX_ITEMS = 100
+
+
+class BulkConfirmItem(BaseModel):
+    punch_id: uuid.UUID
+    # The latest review the screen showed (null when it showed none), as for a single review.
+    expected_latest_review_id: uuid.UUID | None = None
+
+
+class BulkConfirmRequest(BaseModel):
+    items: list[BulkConfirmItem] = Field(min_length=1, max_length=BULK_MAX_ITEMS)
+    note: str | None = Field(default=None, max_length=REASON_MAX_CHARACTERS)
+
+    @field_validator("note")
+    @classmethod
+    def trim_note(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        trimmed = value.strip()
+        return trimmed or None
+
+    @model_validator(mode="after")
+    def check_no_duplicates(self) -> BulkConfirmRequest:
+        ids = [item.punch_id for item in self.items]
+        if len(set(ids)) != len(ids):
+            raise ValueError("items: each punch only once")
+        return self
+
+
+class BulkConfirmResult(BaseModel):
+    punch_id: uuid.UUID
+    ok: bool
+    error_code: str | None = None
+
+
+class BulkConfirmResponse(BaseModel):
+    results: list[BulkConfirmResult]

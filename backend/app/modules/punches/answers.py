@@ -12,7 +12,12 @@ from sqlalchemy.orm import Session
 from app.antiproxy.context import PunchLimits
 from app.modules.employees.models import Employee
 from app.modules.punches.models import Direction, Punch, PunchDecision, PunchMethod
-from app.modules.punches.schemas import KioskPunchResponse, PunchDetails, PunchEmployee
+from app.modules.punches.schemas import (
+    EarlyOutPrompt,
+    KioskPunchResponse,
+    PunchDetails,
+    PunchEmployee,
+)
 
 # Two rejections are not really "no": the person IS checked in, they only scanned too soon.
 # They carry the name and the time of the earlier punch, and keep no new photo.
@@ -82,6 +87,24 @@ def self_test_answer(
         message_key="kiosk.punch.selfTest",
         voice_key="kiosk.voice.selfTest",
         details=PunchDetails(kiosk_name=kiosk_name, location_check=location_check),
+    )
+
+
+def early_out_answer(
+    kiosk_name: str, server_time: datetime, prompt: EarlyOutPrompt
+) -> KioskPunchResponse:
+    """No punch is stored yet: the gate shows the alert (Agree / Cancel). No name is shown."""
+    return KioskPunchResponse(
+        punch_id=None,
+        decision="needs_confirmation",
+        direction="out",
+        employee=None,
+        server_time=server_time,
+        reason_code=None,
+        message_key="kiosk.punch.earlyOut",
+        voice_key="kiosk.voice.earlyOut",
+        details=PunchDetails(kiosk_name=kiosk_name),
+        early_out=prompt,
     )
 
 

@@ -47,6 +47,7 @@ import { formatDate, formatNumber, formatTimeWithSeconds, todayIst } from "@/lib
 import { cn } from "@/lib/utils";
 import { PhotoDialog } from "./photo-dialog";
 import {
+  ChannelCell,
   DirectionBadge,
   EmployeeCell,
   MethodBadge,
@@ -79,7 +80,7 @@ type Focus =
   | "flagged"
   | "offline";
 // The Method filter: any, face, face punches decided by a typed code, or card.
-type MethodFilter = "" | "face" | "code" | "qr";
+type MethodFilter = "" | "face" | "code" | "qr" | "gate_code";
 
 function Chip({
   icon: Icon,
@@ -145,6 +146,8 @@ export function PunchesPage() {
   const [noFaceOnly, setNoFaceOnly] = useState(false);
   const [detailId, setDetailId] = useState<string | null>(null);
   const [kioskId, setKioskId] = useState("");
+  const [channel, setChannel] = useState<"" | "kiosk" | "phone">("");
+  const [outsideOnly, setOutsideOnly] = useState(false);
   const [reason, setReason] = useState("");
   const [darkOnly, setDarkOnly] = useState(false);
   const [focus, setFocus] = useState<Focus>("all");
@@ -181,6 +184,8 @@ export function PunchesPage() {
     was_offline: offlineOnly || undefined,
     review_state: reviewState || undefined,
     kiosk_id: kioskId || undefined,
+    channel: channel || undefined,
+    outside_plant: outsideOnly || undefined,
     reason_code: reason || undefined,
     dark_only: darkOnly || undefined,
     q: typedSearch.trim() || undefined,
@@ -201,6 +206,8 @@ export function PunchesPage() {
       reason ||
       darkOnly ||
       method ||
+      channel ||
+      outsideOnly ||
       askedOnly ||
       noFaceOnly ||
       offlineOnly ||
@@ -516,6 +523,26 @@ export function PunchesPage() {
             <option value="face">{t("punches.method.face")}</option>
             <option value="code">{t("punches.method.faceByCode")}</option>
             <option value="qr">{t("punches.method.card")}</option>
+            <option value="gate_code">{t("punches.method.phoneCode")}</option>
+          </Select>
+          <Select
+            aria-label={t("punches.filter.channel")}
+            value={channel}
+            onChange={(event) => apply(() => setChannel(event.target.value as typeof channel))}
+            className="w-auto"
+          >
+            <option value="">{t("punches.filter.anyChannel")}</option>
+            <option value="kiosk">{t("punches.channel.device")}</option>
+            <option value="phone">{t("punches.channel.phone")}</option>
+          </Select>
+          <Select
+            aria-label={t("punches.filter.outside")}
+            value={outsideOnly ? "yes" : ""}
+            onChange={(event) => apply(() => setOutsideOnly(event.target.value === "yes"))}
+            className="w-auto"
+          >
+            <option value="">{t("punches.filter.anyOutside")}</option>
+            <option value="yes">{t("punches.filter.outsideOnly")}</option>
           </Select>
           <Select
             aria-label={t("punches.filter.kiosk")}
@@ -580,7 +607,7 @@ export function PunchesPage() {
               <TableHead>{t("punches.columns.method")}</TableHead>
               <TableHead>{t("punches.columns.direction")}</TableHead>
               <TableHead>{t("punches.columns.resultAndReason")}</TableHead>
-              <TableHead>{t("punches.columns.kiosk")}</TableHead>
+              <TableHead>{t("punches.columns.channel")}</TableHead>
               <TableHead>{t("punches.columns.photo")}</TableHead>
               <TableHead>
                 <span className="sr-only">{t("punches.columns.actions")}</span>
@@ -720,8 +747,7 @@ function PunchRow({
         <ResultCell punch={punch} onOpenPunch={onOpenDetail} />
       </TableCell>
       <TableCell>
-        <span className="block font-semibold">{punch.kiosk.name}</span>
-        <span className="code text-xs text-muted-foreground">{punch.plant.code}</span>
+        <ChannelCell punch={punch} />
       </TableCell>
       <TableCell>
         <PhotoStateCell punch={punch} showDark={isSuperAdmin} />

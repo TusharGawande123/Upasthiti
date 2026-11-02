@@ -18,6 +18,9 @@ from app.modules.users.models import Role, User
 from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant
 
+# These tests are about something else than the early-OUT alert (M5).
+pytestmark = pytest.mark.usefixtures("early_out_alert_off")
+
 SETTINGS = "/api/v1/settings"
 ME = "/api/v1/kiosk/me"
 
@@ -345,6 +348,10 @@ def test_the_heartbeat_keeps_the_old_fields_and_adds_settings(
             "min_yaw_degrees": 18,
             "code_prefixes": [],
         },
+        # M5: the small lines of the gate screens (F-28 on, F-37 and F-2 off by default).
+        "screen": {"show_inside_count": True, "late_hint": False, "show_month_line": False},
+        # M4b: the phone code panel of the gate screen.
+        "phone_code": {"enabled": True, "refresh_seconds": 20, "show_seconds": 60},
     }
 
 

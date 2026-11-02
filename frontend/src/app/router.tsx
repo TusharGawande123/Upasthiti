@@ -111,6 +111,48 @@ const adminPages: RouteObject[] = [
     ),
   },
   {
+    path: "/admin/muster",
+    lazy: page(
+      () => import("../features/dashboard/muster-page"),
+      (m) => m.MusterPage,
+    ),
+  },
+  {
+    path: "/admin/attendance",
+    lazy: page(
+      () => import("../features/attendance/daily-page"),
+      (m) => m.DailyPage,
+    ),
+  },
+  {
+    path: "/admin/attendance/register",
+    lazy: page(
+      () => import("../features/attendance/register-page"),
+      (m) => m.RegisterPage,
+    ),
+  },
+  {
+    path: "/admin/corrections",
+    lazy: page(
+      () => import("../features/attendance/corrections-page"),
+      (m) => m.CorrectionsPage,
+    ),
+  },
+  {
+    path: "/admin/leave",
+    lazy: page(
+      () => import("../features/leave/leave-page"),
+      (m) => m.LeavePage,
+    ),
+  },
+  {
+    path: "/admin/holidays",
+    lazy: page(
+      () => import("../features/holidays/holidays-page"),
+      (m) => m.HolidaysPage,
+    ),
+  },
+  {
     path: "/admin/review",
     lazy: page(
       () => import("../features/review/review-page"),
@@ -153,6 +195,27 @@ const adminPages: RouteObject[] = [
     ),
   },
   {
+    path: "/admin/reports",
+    lazy: page(
+      () => import("../features/reports/reports-page"),
+      (m) => m.ReportsPage,
+    ),
+  },
+  {
+    path: "/admin/insights/punctuality",
+    lazy: page(
+      () => import("../features/insights/punctuality-page"),
+      (m) => m.PunctualityPage,
+    ),
+  },
+  {
+    path: "/admin/notifications",
+    lazy: page(
+      () => import("../features/notifications/notifications-page"),
+      (m) => m.NotificationsPage,
+    ),
+  },
+  {
     path: "/admin/settings",
     lazy: page(
       () => import("../features/settings/settings-page"),
@@ -174,6 +237,90 @@ const adminPages: RouteObject[] = [
     ),
   },
 ];
+
+// The phone attendance area (M4b): its own small layout, no admin menu. Every page is lazy, so
+// neither the gate nor the admin ever downloads phone code.
+const phoneArea: RouteObject = {
+  path: "/phone",
+  lazy: page(
+    () => import("../features/phone/phone-layout"),
+    (m) => m.PhoneLayout,
+  ),
+  children: [
+    {
+      path: "login",
+      lazy: page(
+        () => import("../features/phone/phone-login-page"),
+        (m) => m.PhoneLoginPage,
+      ),
+    },
+    {
+      path: "setup",
+      lazy: page(
+        () => import("../features/phone/phone-setup-page"),
+        (m) => m.PhoneSetupPage,
+      ),
+    },
+    {
+      path: "setup/password",
+      lazy: page(
+        () => import("../features/phone/phone-password-page"),
+        (m) => m.PhonePasswordPage,
+      ),
+    },
+    {
+      // Everything below needs a phone sign-in (and the accepted notice).
+      lazy: page(
+        () => import("../features/phone/phone-layout"),
+        (m) => m.RequirePhoneSession,
+      ),
+      children: [
+        {
+          index: true,
+          lazy: page(
+            () => import("../features/phone/phone-home-page"),
+            (m) => m.PhoneHomePage,
+          ),
+        },
+        {
+          path: "notice",
+          lazy: page(
+            () => import("../features/phone/phone-notice-page"),
+            (m) => m.PhoneNoticePage,
+          ),
+        },
+        {
+          path: "attendance",
+          lazy: page(
+            () => import("../features/phone/phone-attendance-page"),
+            (m) => m.PhoneAttendancePage,
+          ),
+        },
+        {
+          path: "passkey",
+          lazy: page(
+            () => import("../features/phone/phone-passkey-page"),
+            (m) => m.PhonePasskeyPage,
+          ),
+        },
+        {
+          path: "punch/face",
+          lazy: page(
+            () => import("../features/phone/phone-face-punch-page"),
+            (m) => m.PhoneFacePunchPage,
+          ),
+        },
+        {
+          path: "punch/gate-code",
+          lazy: page(
+            () => import("../features/phone/phone-gate-code-page"),
+            (m) => m.PhoneGateCodePage,
+          ),
+        },
+      ],
+    },
+  ],
+};
 
 export const routes: RouteObject[] = [
   {
@@ -227,6 +374,7 @@ export const routes: RouteObject[] = [
           (m) => m.PrivacyPage,
         ),
       },
+      phoneArea,
       { path: "/kiosk", element: <OldGateAddress /> },
       { path: "*", element: <NotFoundPage /> },
     ],

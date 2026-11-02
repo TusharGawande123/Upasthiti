@@ -1,0 +1,104 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P3 - Screen 9: audit log viewer showing the new actor type "Employee" (code and name) and the new phone actions (spec 8.4).
+  States (URL hash): default · filter-employee · filter-system · filter-empty · loading · error · corporate-head · plant-head ·
+  detail-self-stop · detail-passkey-login · detail-bulk-confirm · detail-system-off · detail-outside-on · detail-passkey-remove · menu-open.
+  Read-only for everyone. Corporate Head reads all plants, Plant Head reads own plant.   "Now" is Saturday 31/10/2026.   MOCKUP ONLY - fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti audit log</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+  <link rel="stylesheet" href="p3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="p3.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Audit log";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = roleOf(S);
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, review: ROLE === "sa" ? 7 : 0, bell: 4, menu: S === "menu-open" };
+  const SA = ROLE === "sa";
+
+  const ASHA = { t: "user", n: "Asha Rao", s: "Super Admin" };
+  const SYS = { t: "system", n: "System", s: "Daily job" };
+  const emp = (n, c) => ({ t: "employee", n: n, s: "Employee · " + c });
+  /* id, date, time, actor, action title, code, entity, plant, ip, reason, change [label, before, after] | null, extra rows */
+  const ROWS = [
+    { id: "bulk", d: "31/10/2026", t: "09:18:40", a: ASHA, title: "Punch confirmed (bulk)", code: "punch_review.confirm", ent: "Punch · Sunita Jadhav EMP-0312", plant: "K134", ip: "10.20.1.15", reason: "All three are on the visit list of the plant office", extra: [["Bulk", "Yes, 1 of 3 punches confirmed together"], ["Decision", "Confirmed"]] },
+    { id: "pk", d: "31/10/2026", t: "08:57:12", a: emp("Sunita Jadhav", "EMP-0312"), title: "Phone sign-in", code: "phone_auth.login", ent: "Employee EMP-0312", plant: "K134", ip: "49.36.112.8", extra: [["Method", "Passkey"], ["Phone", "Chrome · Android"]] },
+    { id: "fail", d: "31/10/2026", t: "08:12:03", a: emp("Dinesh Chavan", "EMP-0188"), title: "Phone sign-in failed", code: "phone_auth.login_failed", ent: "Employee EMP-0188", plant: "K135", ip: "106.51.20.77", extra: [["Code", "PHONE_CREDENTIALS_INVALID"]] },
+    { id: "off", d: "31/10/2026", t: "00:05:00", a: SYS, title: "Outside work off", code: "phone_access.outside_off", ent: "Employee EMP-0231 Kavita More", plant: "K134", ip: null, reason: "Until date passed", change: ["Outside work", "On until 30/10/2026", "Off"] },
+    { id: "self", d: "30/10/2026", t: "12:40:19", a: emp("Kavita More", "EMP-0231"), title: "Phone punching stopped by the employee", code: "phone_access.self_disabled", ent: "Employee EMP-0231", plant: "K134", ip: "49.36.112.8", change: ["Phone punching", "On", "Off"], extra: [["Also switched off", "Outside work; every signed-in phone signed out"]] },
+    { id: "on", d: "30/10/2026", t: "16:20:44", a: ASHA, title: "Outside work on", code: "phone_access.outside_on", ent: "Employee EMP-0312 Sunita Jadhav", plant: "K134", ip: "10.20.1.15", reason: "Three-day visit to the X-280 plant for the line start-up", change: ["Outside work", "Off", "On until 03/11/2026"] },
+    { id: "pkrm", d: "29/10/2026", t: "11:05:31", a: ASHA, title: "Passkey removed", code: "phone_passkey.remove", ent: "Employee EMP-0123 Vijay Salunke", plant: "K134", ip: "10.20.1.15", reason: "The phone is not the employee's own", extra: [["Passkey", "Samsung Internet on Android"], ["Removed by", "Super Admin"]] },
+    { id: "pkadd", d: "29/10/2026", t: "09:30:02", a: emp("Sunita Jadhav", "EMP-0312"), title: "Passkey added", code: "phone_passkey.add", ent: "Employee EMP-0312", plant: "K134", ip: "49.36.112.8", extra: [["Passkey", "Chrome on Android"]] },
+    { id: "en", d: "28/10/2026", t: "11:05:10", a: ASHA, title: "Phone punching on", code: "phone_access.enable", ent: "Employee EMP-0312 Sunita Jadhav", plant: "K134", ip: "10.20.1.15", reason: "She asked at the plant office. She lives far from the gate.", change: ["Phone punching", "Off", "On"] },
+    { id: "pw", d: "28/10/2026", t: "10:58:44", a: emp("Sunita Jadhav", "EMP-0312"), title: "Password set", code: "phone_account.password_set", ent: "Employee EMP-0312", plant: "K134", ip: "49.36.112.8", extra: [["Proved by", "Face check"]] },
+  ];
+  let rows = ROWS;
+  if (ROLE === "ph") rows = ROWS.filter((r) => r.plant === "K134");
+  if (S === "filter-employee") rows = rows.filter((r) => r.a.t === "employee");
+  if (S === "filter-system") rows = rows.filter((r) => r.a.t === "system");
+  if (S === "filter-empty") rows = [];
+  const OPENID = { "detail-self-stop": "self", "detail-passkey-login": "pk", "detail-bulk-confirm": "bulk", "detail-system-off": "off", "detail-outside-on": "on", "detail-passkey-remove": "pkrm" }[S];
+  const OPEN = OPENID ? ROWS.find((r) => r.id === OPENID) : null;
+
+  const ICON = { user: "user-round", employee: "smartphone", system: "cpu" };
+  const actor = (a) => `<span class="actor"><span class="ai ${a.t}">${ic(ICON[a.t])}</span><span><b>${a.n}</b><span class="sub">${a.s}</span></span></span>`;
+  const ipOf = (r) => r.ip && SA ? `<span class="code">${r.ip}</span>` : r.ip ? `<span class="muted">Hidden</span>` : "–";
+
+  function table() {
+    const trs = rows.map((r) => `<tr class="${r.a.t === "employee" ? "is-employee" : ""} ${OPEN && OPEN.id === r.id ? "is-open" : ""}"><td class="when"><b>${r.d}</b><small>${r.t}</small></td><td>${actor(r.a)}</td><td class="actcol"><b>${r.title}</b><span class="code">${r.code}</span></td><td>${r.ent}</td><td><b>${r.plant}</b></td><td>${ipOf(r)}</td><td><button class="btn btn-ghost btn-icon" aria-label="Details of ${r.title}">${ic("panel-right-open")}</button></td></tr>`).join("");
+    return `<div class="atable-wrap table-scroll"><table class="table atable"><thead><tr><th>Time (IST)</th><th>Actor</th><th>Action</th><th>Entity</th><th>Plant</th><th>IP</th><th><span class="sr-only">Details</span></th></tr></thead><tbody>${trs}</tbody></table></div>
+      <div class="acards">${rows.map((r) => `<div class="acard ${r.a.t === "employee" ? "is-employee" : ""}"><div class="top"><span>${r.d} ${r.t}</span><span>${r.plant}</span></div>${actor(r.a)}<div><b>${r.title}</b> <span class="code muted" style="font-size:12px;display:block">${r.code}</span></div><div class="muted" style="font-size:13.5px">${r.ent}</div><div><button class="btn btn-outline">${ic("panel-right-open")}Details</button></div></div>`).join("")}</div>`;
+  }
+  function sheet(r) {
+    const head = `<div class="sheet-head"><div class="dlg-icon" style="background:var(--primary-soft);color:var(--primary)">${ic(r.a.t === "employee" ? "smartphone" : r.a.t === "system" ? "cpu" : "shield-check")}</div><div><h2>${r.title}</h2><p class="code">${r.code}</p></div><button class="btn btn-ghost btn-icon" aria-label="Close">${ic("x")}</button></div>`;
+    const who = `<section class="sec"><dl class="kv2"><dt>When</dt><dd class="tnum">${r.d} ${r.t} IST</dd><dt>Who</dt><dd>${actor(r.a)}</dd><dt>Entity</dt><dd>${r.ent}</dd><dt>Plant</dt><dd>${r.plant}</dd><dt>From</dt><dd>${r.ip ? (SA ? `<span class="code">${r.ip}</span>` : "Hidden") : "The server itself"}</dd></dl></section>`;
+    const reason = r.reason ? `<section class="sec"><h3>${ic("message-square-text")}Reason</h3><div class="reason-q" style="font-size:14.5px;padding:10px 12px">${r.reason}</div></section>` : "";
+    const change = r.change ? `<section class="sec"><h3>${ic("diff")}Change</h3><b style="font-size:14px">${r.change[0]}</b><div class="diff"><div class="b"><small>Before</small><span>${r.change[1]}</span></div>${ic("arrow-right")}<div class="a"><small>After</small>${r.change[2]}</div></div></section>` : "";
+    const extra = r.extra ? `<section class="sec"><h3>${ic("list")}Details</h3><dl class="kv2">${r.extra.map((e) => `<dt>${e[0]}</dt><dd>${e[1]}</dd>`).join("")}</dl></section>` : "";
+    const note = r.a.t === "employee" ? `<section class="sec"><div class="lockline">${ic("user-round")}<span><b>Done by the employee.</b>The employee does not log in to the admin website. This entry was made from the employee's own phone page.</span></div></section>` : "";
+    return `<div class="overlay"></div><aside class="sheet anim-sheet-r" role="dialog" aria-modal="true" aria-label="Audit entry">${head}<div class="sheet-body">${who}${note}${reason}${change}${extra}</div><div class="sheet-foot"><span class="ro-line">${ic("lock")}This entry cannot be edited or deleted.</span></div></aside>`;
+  }
+  function page() {
+    const selA = (txt, on) => sel("f", txt.split(":")[0], txt, on);
+    const actorSel = S === "filter-employee" ? "Actor type: Employee" : S === "filter-system" ? "Actor type: System" : "Actor type: any";
+    const fbar = `<div class="fbar"><div class="datebox"><button class="btn btn-ghost btn-icon" aria-label="Earlier dates">${ic("chevron-left")}</button><span>${ic("calendar-days")}25/10/2026 – 31/10/2026</span><button class="btn btn-ghost btn-icon" aria-label="Pick dates">${ic("chevron-down")}</button></div>${selA(actorSel, S === "filter-employee" || S === "filter-system")}${selA("Action: any")}${selA("Entity: any")}${ROLE === "ph" ? `<span class="badge badge-outline">${ic("lock")}Plant K134</span>` : selA("Plant: all")}</div>`;
+    let body;
+    if (S === "loading") body = `<div style="padding:16px;display:grid;gap:12px">${'<div class="skeleton" style="height:56px"></div>'.repeat(7)}</div>`;
+    else if (S === "error") body = `<div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>The audit log could not be loaded</h3><p>The server did not answer. Nothing was changed. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div>`;
+    else if (!rows.length) body = `<div class="empty-box"><span class="big">${ic("search-x")}</span><h3>No entries match these filters</h3><p>Try other dates, or clear the filters.</p><button class="btn btn-outline btn-lg">Clear filters</button></div>`;
+    else body = table();
+    const ro = ROLE !== "sa" ? `<div class="ro-strip mb">${ic("eye")}<span>${ROLE === "ph" ? "Your plant only. " : ""}You can read every entry${ROLE === "ph" || ROLE === "ch" ? "; IP addresses are hidden" : ""}.</span></div>` : "";
+    return `<div class="page-head anim-fade-up"><div><h1 class="page-title">Audit log</h1><p class="page-desc">Every change and sign-in, who did it and when. Entries can never be edited or deleted. An employee who changes phone attendance on their own phone is shown as <b>Employee</b> with the code.</p></div><div class="head-actions"><span class="sa-only" style="height:28px;font-size:12px">${ic("lock")}Read-only</span></div></div>${ro}
+      <div class="card" style="overflow:hidden">${fbar}<div class="countbar"><span>${S === "loading" || S === "error" ? "" : rows.length + " entries · newest first"}</span><span>${ic("clock")}Times in IST</span></div>${body}<div class="table-foot"><span>${rows.length && S !== "loading" && S !== "error" ? "Showing 1–" + rows.length : ""}</span><div class="pager"><button class="btn btn-outline" disabled aria-label="Previous page">${ic("chevron-left")}</button><button class="btn btn-outline" aria-label="Next page">${ic("chevron-right")}</button></div></div></div>`;
+  }
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    if (OPEN) document.getElementById("layer").innerHTML = sheet(OPEN);
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

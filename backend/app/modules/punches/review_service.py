@@ -20,6 +20,8 @@ from sqlalchemy.orm import Session, aliased
 
 from app.core.errors import ApiError
 from app.core.time import IST, to_ist, today_ist, utc_now
+from app.modules.attendance.service import mark_punch_stale
+from app.modules.audit.models import AuditLog
 from app.modules.audit.service import Actor, record_audit
 from app.modules.employees.models import Employee
 from app.modules.kiosks.location_check import geofence_at
@@ -28,6 +30,7 @@ from app.modules.kiosks.status_service import offline_minutes_in_shifts
 from app.modules.org.geofence import distance_between_m, geofence_centre
 from app.modules.org.geofence_service import current_geofence
 from app.modules.org.models import Geofence, Plant
+from app.modules.phone.selfie_alert import count_without_face
 from app.modules.punches import presenter
 from app.modules.punches.counting import (
     counted_between,
@@ -35,8 +38,18 @@ from app.modules.punches.counting import (
     latest_review,
     latest_reviews,
 )
-from app.modules.punches.models import Direction, Punch, PunchDecision, PunchReview, ReviewAction
+from app.modules.punches.models import (
+    Direction,
+    Punch,
+    PunchChannel,
+    PunchDecision,
+    PunchReview,
+    ReviewAction,
+)
+from app.modules.punches.presenter import OUTSIDE_PLANT
 from app.modules.punches.review_schemas import (
+    BulkConfirmItem,
+    BulkConfirmResult,
     ContextFence,
     DigestPlace,
     DigestPlant,
@@ -61,7 +74,14 @@ HINT_DAYS = 7
 CARD_TWO_DEVICES_HINT = 2  # spec §7 rule 20: a fixed number, not a setting
 
 COOLDOWN = "COOLDOWN_ACTIVE"
-RELATED_FLAGS = {"IMPOSSIBLE_TRAVEL", "TWO_DEVICES_SOON", "SYNC_ORDER_CONFLICT"}
+# SHIFT_ALREADY_CLOSED (M5) is a refusal, not a flag, but it also points at one other punch: the OUT
+# that closed the day.
+RELATED_FLAGS = {
+    "IMPOSSIBLE_TRAVEL",
+    "TWO_DEVICES_SOON",
+    "SYNC_ORDER_CONFLICT",
+    "SHIFT_ALREADY_CLOSED",
+}
 
 # What the request says -> what the review row stores.
 ACTIONS = {
@@ -69,6 +89,8 @@ ACTIONS = {
     "not_accepted": ReviewAction.NOT_ACCEPTED.value,
     "approve": ReviewAction.APPROVED.value,
 }
+
+_REQUEST_NAMES = {value: key for key, value in ACTIONS.items()}  # stored action -> request name
 
 _latest = aliased(PunchReview, name="list_latest_review")
 _newer = aliased(PunchReview, name="list_newer_review")
@@ -99,6 +121,7 @@ class ReviewFilters:
     search: str | None = None
     names_employee: bool | None = None
     include_cooldown: bool = False
+    channel: str | None = None  # M4b: "phone" = only phone punches (rule 19)
 
 
 def default_dates() -> tuple[date, date]:
@@ -122,6 +145,12 @@ def _ist_bounds(date_from: date, date_to: date) -> tuple[datetime, datetime]:
     return start, datetime.combine(date_to + timedelta(days=1), time.min, tzinfo=IST)
 
 
+def _listed_when_rejected():  # noqa: ANN202 (a SQL condition)
+    """A refused phone punch is listed only when it names an employee (decision 0035 item 8, spec
+    M4b §7 rule 19). Gate punches keep the M4 rule: every refusal is listed."""
+    return or_(Punch.channel == PunchChannel.KIOSK.value, _named_person.is_not(None))
+
+
 def _hide_repeat_scans(statement: Select) -> Select:
     # A rejected row always has its rejection code first (spec §7 rule 2).
     return statement.where(func.coalesce(_first_code, "") != COOLDOWN)
@@ -136,7 +165,9 @@ def review_list_statement(filters: ReviewFilters) -> Select:
             Punch.decision == PunchDecision.FLAGGED.value, ~_has_review
         ).order_by(Punch.punch_time.desc(), Punch.id)
     elif filters.tab == "rejected":
-        statement = statement.where(Punch.decision == PunchDecision.REJECTED.value, ~_has_review)
+        statement = statement.where(
+            Punch.decision == PunchDecision.REJECTED.value, ~_has_review, _listed_when_rejected()
+        )
         if not filters.include_cooldown:
             statement = _hide_repeat_scans(statement)
         statement = statement.order_by(Punch.punch_time.desc(), Punch.id)
@@ -157,6 +188,7 @@ def _apply_filters(statement: Select, filters: ReviewFilters) -> Select:
         (Punch.kiosk_id, filters.kiosk_id),
         (Punch.method, filters.method),
         (Punch.was_offline, filters.was_offline),
+        (Punch.channel, filters.channel),
     ):
         if value is not None:
             statement = statement.where(column == value)
@@ -200,10 +232,52 @@ def _person(employee: Employee | None) -> PunchLogEmployee | None:
     return PunchLogEmployee(id=employee.id, code=employee.employee_code, name=employee.full_name)
 
 
+def is_bulk_confirmable(punch: Punch, latest: PunchReview | None) -> bool:
+    """F-76 (spec M4b §7 rule 28): a clean outside-work punch. The only flag is OUTSIDE_PLANT, a
+    face matched, nobody reviewed it yet. The engine flags OUTSIDE_PLANT only while outside work
+    is allowed for the person, so the row itself proves the permission of that day."""
+    return (
+        punch.channel == PunchChannel.PHONE.value
+        and punch.decision == PunchDecision.FLAGGED.value
+        and list(punch.reason_codes) == [OUTSIDE_PLANT]
+        and punch.employee_id is not None
+        and latest is None
+    )
+
+
+def outside_reasons(session: Session, punches: list[Punch]) -> dict[uuid.UUID, str | None]:
+    """Why outside work was allowed, for each OUTSIDE_PLANT punch: the reason of the Super Admin's
+    latest "outside work ON" entry before the punch (the reason lives in the audit log only)."""
+    outside = [p for p in punches if OUTSIDE_PLANT in p.reason_codes and p.employee_id]
+    if not outside:
+        return {}
+    rows = session.scalars(
+        select(AuditLog)
+        .where(
+            AuditLog.action == "phone_access.outside_on",
+            AuditLog.entity_id.in_({p.employee_id for p in outside}),
+        )
+        .order_by(AuditLog.at.desc())
+    ).all()
+    result: dict[uuid.UUID, str | None] = {}
+    for punch in outside:
+        earlier = next(
+            (
+                row
+                for row in rows
+                if row.entity_id == punch.employee_id and row.at <= punch.server_received_at
+            ),
+            None,
+        )
+        result[punch.id] = earlier.reason if earlier is not None else None
+    return result
+
+
 def review_items(session: Session, punches: list[Punch]) -> list[ReviewListItem]:
     viewer = super_admin_viewer()
     items = presenter.punch_items(session, punches, viewer)
     reviews = latest_reviews(session, [p.id for p in punches])
+    reasons = outside_reasons(session, punches)
     claimed = _people(session, {p.claimed_employee_id for p in punches if p.claimed_employee_id})
     history = presenter.review_outputs(session, list(reviews.values()))
     result = []
@@ -220,6 +294,8 @@ def review_items(session: Session, punches: list[Punch]) -> list[ReviewListItem]
                 ),
                 latest_review=history.get(review.id) if review else None,
                 approvable=is_approvable(punch),
+                bulk_confirmable=is_bulk_confirmable(punch, review),
+                outside_reason=reasons.get(punch.id),
             )
         )
     return result
@@ -231,6 +307,7 @@ def super_admin_viewer() -> presenter.Viewer:
         sees_dark_photos=True,
         sees_face_scores=True,
         sees_review_reasons=True,
+        sees_phone_positions=True,
     )
 
 
@@ -254,6 +331,7 @@ def review_summary(session: Session, plant_id: uuid.UUID | None, now: datetime) 
             .where(
                 Punch.decision == PunchDecision.REJECTED.value,
                 ~_has_review,
+                _listed_when_rejected(),
                 Punch.punch_time >= now - timedelta(days=7),
                 *plant_condition,
             )
@@ -303,6 +381,7 @@ def review_digest(session: Session, day: date, now: datetime) -> ReviewDigest:
         func.coalesce(_first_code, "") != COOLDOWN,
     )
     count_by_plant("to_check", _to_check_condition())
+    no_face = count_without_face(session, day)
 
     plants = list(
         session.scalars(select(Plant).where(Plant.is_active.is_(True)).order_by(Plant.code))
@@ -325,6 +404,7 @@ def review_digest(session: Session, day: date, now: datetime) -> ReviewDigest:
                 rejected_with_employee=numbers.get("rejected_with_employee", 0),
                 to_check=numbers.get("to_check", 0),
                 device_offline_minutes_in_shifts=offline,
+                phone_selfie_no_face=no_face.get(plant.id, 0),
             )
         )
     return ReviewDigest(date=day, plants=rows)
@@ -374,6 +454,7 @@ def review_context(session: Session, punch: Punch) -> ReviewContext:
     )
     fence = _fence_of(session, punch)
     approvable = is_approvable(punch)
+    reasons = outside_reasons(session, [punch])
     return ReviewContext(
         punch=presenter.punch_detail(session, punch, viewer),
         claimed_employee=_person(claimed),
@@ -390,6 +471,8 @@ def review_context(session: Session, punch: Punch) -> ReviewContext:
         reviews=presenter.review_history(session, punch.id, full=True),
         hints=_hints(session, punch, person_id, limits),
         approvable=approvable,
+        bulk_confirmable=is_bulk_confirmable(punch, latest_review(session, punch.id)),
+        outside_reason=reasons.get(punch.id),
         limits={
             "impossible_travel_kmh": limits.travel_kmh,
             "punch_cooldown_minutes": limits.cooldown_minutes,
@@ -418,6 +501,10 @@ def _fence_of(session: Session, punch: Punch) -> ContextFence | None:
 def suggested_direction(session: Session, punch: Punch, limits: _Limits) -> str:
     """The direction the IN/OUT rule (§7 rule 5) would give at the punch time, from what counts
     now. The cool-down and "OUT too soon" refusals do not apply: the Super Admin decides."""
+    if punch.reason_codes and punch.reason_codes[0] == "SHIFT_ALREADY_CLOSED":
+        # Usual case (M5 spec §7 rule 24): the person punched OUT by mistake earlier, and this is
+        # the real end of the shift.
+        return Direction.OUT.value
     person_id = punch.employee_id or punch.claimed_employee_id
     last = last_counted_before(session, person_id, punch.punch_time) if person_id else None
     if last is None or last.direction != Direction.IN.value:
@@ -472,7 +559,7 @@ def _related(
         for counted in counted_between(
             session, punch.employee_id, punch.punch_time - window, punch.punch_time + window
         ):
-            if counted.punch.kiosk_id != punch.kiosk_id and counted.punch.id != punch.id:
+            if counted.punch.device_key != punch.device_key and counted.punch.id != punch.id:
                 others.setdefault(counted.punch.id, counted.punch)
     here = _position(session, punch)
     related = []
@@ -503,7 +590,7 @@ def _relation(
     speed: float | None,
     limits: _Limits,
 ) -> str:
-    elsewhere = other.kiosk_id != punch.kiosk_id
+    elsewhere = other.device_key != punch.device_key  # another gate device or phone sign-in
     too_fast = (
         distance is not None
         and speed is not None
@@ -516,6 +603,8 @@ def _relation(
         return "two_devices"
     if "SYNC_ORDER_CONFLICT" in codes and other.id == punch.related_punch_id:
         return "order"
+    if "SHIFT_ALREADY_CLOSED" in codes and other.id == punch.related_punch_id:
+        return "closing_out"
     return "travel" if "IMPOSSIBLE_TRAVEL" in codes else "two_devices"
 
 
@@ -548,8 +637,16 @@ def _hints(
                     filter={"tab": "rejected", "employee_id": str(person_id), **dates},
                 )
             )
-    edge_flags = count(
-        Punch.kiosk_id == punch.kiosk_id, Punch.reason_codes.contains(["LOCATION_AT_EDGE"])
+    # A gate device that often stands at the edge of the fence. Only gate punches tell where the
+    # device stands (a phone punch's position is the phone's own, M4b).
+    edge_flags = (
+        count(
+            Punch.kiosk_id == punch.kiosk_id,
+            Punch.channel == PunchChannel.KIOSK.value,
+            Punch.reason_codes.contains(["LOCATION_AT_EDGE"]),
+        )
+        if punch.channel == PunchChannel.KIOSK.value
+        else 0
     )
     if edge_flags >= limits.hint_device_edge_flags:
         hints.append(
@@ -608,38 +705,117 @@ def add_review(
     latest = latest_review(session, punch.id)
     _check_not_changed(session, latest, request.expected_latest_review_id)
     _check_allowed(punch, request.action, latest)
+    review = _store_review(
+        session,
+        punch,
+        latest,
+        ACTIONS[request.action],
+        request.direction,
+        request.reason,
+        user_id,
+        actor,
+        bulk=False,
+    )
+    session.commit()
+    return presenter.review_outputs(session, [review])[review.id]
 
+
+def _store_review(
+    session: Session,
+    punch: Punch,
+    latest: PunchReview | None,
+    action: str,
+    direction: str | None,
+    reason: str | None,
+    user_id: uuid.UUID,
+    actor: Actor,
+    *,
+    bulk: bool,
+) -> PunchReview:
+    """Writes the review row and its audit row. The caller commits."""
     review = PunchReview(
         punch_id=punch.id,
-        action=ACTIONS[request.action],
-        direction=request.direction,
+        action=action,
+        direction=direction,
         employee_id=punch.employee_id or punch.claimed_employee_id,
-        reason=request.reason,
+        reason=reason,
         reviewed_by=user_id,
         reviewed_at=utc_now(),
         supersedes_review_id=latest.id if latest else None,
     )
     session.add(review)
     session.flush()
+    audit_after: dict[str, object] = {
+        "punch_id": str(punch.id),
+        "review_id": str(review.id),
+        "employee_id": str(review.employee_id) if review.employee_id else None,
+        "direction": review.direction,
+        "reason": review.reason,
+        "supersedes_review_id": str(latest.id) if latest else None,
+    }
+    if bulk:
+        audit_after["bulk"] = True
     record_audit(
         session,
         actor=actor,
-        action=f"punch_review.{request.action}",
+        action=f"punch_review.{_REQUEST_NAMES[action]}",
         entity_type="punch",
         entity_id=punch.id,
-        after={
-            "punch_id": str(punch.id),
-            "review_id": str(review.id),
-            "employee_id": str(review.employee_id) if review.employee_id else None,
-            "direction": review.direction,
-            "reason": review.reason,
-            "supersedes_review_id": str(latest.id) if latest else None,
-        },
+        after=audit_after,
         reason=review.reason,
         plant_id=punch.plant_id,
     )
+    # The review can change which day (and whose day) the punch counts for (M5 §7 rule 14).
+    mark_punch_stale(
+        session, punch, also_for=[review.employee_id, latest.employee_id if latest else None]
+    )
+    return review
+
+
+# --- Bulk confirm of clean outside punches (F-76) -----------------------------------------------
+
+
+def bulk_confirm(
+    session: Session,
+    items: list[BulkConfirmItem],
+    note: str | None,
+    user_id: uuid.UUID,
+    actor: Actor,
+) -> list[BulkConfirmResult]:
+    """Confirms each listed punch in its own short transaction (spec M4b §7 rule 28): a punch that
+    fails is reported and left alone, and never undoes the others."""
+    results = []
+    for item in items:
+        try:
+            _bulk_confirm_one(session, item, note, user_id, actor)
+            results.append(BulkConfirmResult(punch_id=item.punch_id, ok=True))
+        except ApiError as error:
+            session.rollback()
+            results.append(
+                BulkConfirmResult(punch_id=item.punch_id, ok=False, error_code=error.code)
+            )
+    return results
+
+
+def _bulk_confirm_one(
+    session: Session,
+    item: BulkConfirmItem,
+    note: str | None,
+    user_id: uuid.UUID,
+    actor: Actor,
+) -> None:
+    punch = session.scalar(select(Punch).where(Punch.id == item.punch_id).with_for_update())
+    if punch is None:
+        raise ApiError("NOT_FOUND", "Not found.", 404)
+    latest = latest_review(session, punch.id)
+    _check_not_changed(session, latest, item.expected_latest_review_id)
+    _check_allowed(punch, "confirm", latest)
+    if not is_bulk_confirmable(punch, latest):
+        raise ApiError("NOT_BULK_CONFIRMABLE", "This punch needs a single review.", 409)
+    _store_review(
+        session, punch, latest, ReviewAction.CONFIRMED.value, None, note, user_id, actor, bulk=True
+    )
     session.commit()
-    return presenter.review_outputs(session, [review])[review.id]
 
 
 def _check_not_changed(

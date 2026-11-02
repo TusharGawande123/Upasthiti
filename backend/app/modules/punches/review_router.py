@@ -13,8 +13,10 @@ from app.core.pagination import Page, PageParams, fetch_page, page_params
 from app.core.time import today_ist, utc_now
 from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
-from app.modules.punches import review_service
+from app.modules.punches import admin_service, review_service
 from app.modules.punches.review_schemas import (
+    BulkConfirmRequest,
+    BulkConfirmResponse,
     ReviewContext,
     ReviewCreated,
     ReviewDigest,
@@ -40,6 +42,7 @@ def review_filters(
     q: str | None = Query(default=None, max_length=60),
     names_employee: bool | None = None,
     include_cooldown: bool = False,
+    channel: Literal["kiosk", "phone"] | None = None,
 ) -> review_service.ReviewFilters:
     default_from, default_to = review_service.default_dates()
     date_from, date_to = date_from or default_from, date_to or default_to
@@ -57,6 +60,7 @@ def review_filters(
         search=q or None,
         names_employee=names_employee,
         include_cooldown=include_cooldown,
+        channel=channel,
     )
 
 
@@ -99,10 +103,11 @@ def reviews_digest(
 @router.get("/punches/{punch_id}/review-context", response_model=ReviewContext)
 def punch_review_context(
     punch_id: uuid.UUID,
-    _: CurrentUser = Depends(reviewer),
+    current_user: CurrentUser = Depends(reviewer),
     session: Session = Depends(get_session),
 ) -> ReviewContext:
     punch = review_service.get_punch_or_404(session, punch_id)
+    admin_service.record_position_view(session, current_user.actor, punch)  # Super Admin only
     return review_service.review_context(session, punch)
 
 
@@ -115,3 +120,16 @@ def review_punch(
 ) -> ReviewCreated:
     review = review_service.add_review(session, punch_id, body, current_user.id, current_user.actor)
     return ReviewCreated(review=review)
+
+
+@router.post("/reviews/bulk-confirm", response_model=BulkConfirmResponse)
+def bulk_confirm_reviews(
+    body: BulkConfirmRequest,
+    current_user: CurrentUser = Depends(reviewer),
+    session: Session = Depends(get_session),
+) -> BulkConfirmResponse:
+    """F-76: confirm clean outside-work phone punches in one go (Super Admin only)."""
+    results = review_service.bulk_confirm(
+        session, body.items, body.note, current_user.id, current_user.actor
+    )
+    return BulkConfirmResponse(results=results)

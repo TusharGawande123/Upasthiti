@@ -19,9 +19,15 @@ import {
   stopCamera,
 } from "./camera";
 import { loadFacing, saveFacing } from "./camera-preference";
-import { type PunchOutcome, sendPunch } from "./punch-client";
+import { type PunchOutcome, sendEarlyOutConfirm, sendPunch } from "./punch-client";
 import type { KioskScreenSettings } from "./punch-types";
-import { createQrDetector, isUpasthitiCard, type QrDetector, SameCardFilter } from "./qr-reader";
+import {
+  createQrDetector,
+  isUpasthitiCard,
+  PHONE_CODE_PREFIX,
+  type QrDetector,
+  SameCardFilter,
+} from "./qr-reader";
 import { takeSnapshot } from "./snapshot";
 import { useFacePunch } from "./use-face-punch";
 
@@ -73,6 +79,8 @@ export function useAttendance({
   const streamRef = useRef<MediaStream | null>(null);
   const activeFacing = useRef<Facing>(scanFacing);
   const sending = useRef(false);
+  // The last card photo: an early-OUT "Agree" sends it again (the first request stored nothing).
+  const lastPhoto = useRef<string | null>(null);
   const detectorRef = useRef<QrDetector | null>(null);
   const sameCard = useRef(new SameCardFilter());
   // Kept in a ref: a new function from the parent must never restart a punch in progress.
@@ -167,6 +175,7 @@ export function useAttendance({
   }, [cameraStarted, wantedFacing]);
 
   // 2. While scanning: look for a card about 6 times a second.
+  const [phoneCodeSeen, setPhoneCodeSeen] = useState(false);
   const scanning = screen.name === "scanning" && location.usable;
   const showingNotACard = screen.name === "scanning" && screen.notACard;
   useEffect(() => {
@@ -181,7 +190,9 @@ export function useAttendance({
         const text = await detector.detect(video);
         if (!text) return;
         if (!isUpasthitiCard(text)) {
-          // A UPI or product code: say so for 3 s, never send it.
+          // A UPI or product code: say so for 3 s, never send it. A phone code held to the gate
+          // camera (`UPG1.`) gets its own words (M4b spec §4.3); nothing is sent either way.
+          setPhoneCodeSeen(text.startsWith(PHONE_CODE_PREFIX));
           if (!showingNotACard) dispatch({ type: "not-a-card" });
           return;
         }
@@ -198,7 +209,10 @@ export function useAttendance({
 
   useEffect(() => {
     if (!showingNotACard) return;
-    const timer = setTimeout(() => dispatch({ type: "not-a-card-over" }), NOT_A_CARD_MS);
+    const timer = setTimeout(() => {
+      dispatch({ type: "not-a-card-over" });
+      setPhoneCodeSeen(false);
+    }, NOT_A_CARD_MS);
     return () => clearTimeout(timer);
   }, [showingNotACard]);
 
@@ -260,6 +274,7 @@ export function useAttendance({
       const video = videoRef.current;
       // Without a photo the server answers SNAPSHOT_MISSING, which is the honest result.
       const snapshotBase64 = video ? await takeSnapshot(video).catch(() => "") : "";
+      lastPhoto.current = snapshotBase64;
       dispatch({ type: "photo-taken" });
       const clientPunchId = crypto.randomUUID();
       const location = handlers.current.location.report();
@@ -279,6 +294,23 @@ export function useAttendance({
       sending.current = false;
     }
   }, [payload, cameraReady, finishPunch, saveCardPunch]);
+
+  // Agree at the early-OUT alert (decision 0036 line 9): the server stores the OUT now. A card
+  // punch sends its photo again (the first request stored nothing); a face punch has none.
+  const agreeEarlyOut = useCallback(async () => {
+    if (screen.name !== "early-out") return;
+    const photo = screen.via === undefined ? lastPhoto.current : null;
+    const prompt = screen.prompt;
+    dispatch({ type: "early-out-agree" });
+    const outcome = await sendEarlyOutConfirm(
+      { prompt, snapshotBase64: photo, location: handlers.current.location.report() },
+      { onSlow: () => dispatch({ type: "slow" }) },
+    );
+    finishPunch(outcome);
+  }, [screen, finishPunch]);
+
+  // Cancel, Escape or 20 seconds without an answer: nothing was stored, so nothing is sent.
+  const cancelEarlyOut = useCallback(() => dispatch({ type: "early-out-cancel" }), []);
 
   const cancelPhoto = useCallback(() => {
     if (payload === null || sending.current) return;
@@ -376,7 +408,9 @@ export function useAttendance({
     videoRef,
     lowLight,
     holdSeconds,
+    phoneCodeSeen,
     face: { ...facePunch, expireCode },
+    earlyOut: { agree: agreeEarlyOut, cancel: cancelEarlyOut },
     startCameraAfterTap,
     retryCamera,
     // For the "get ready" screen.

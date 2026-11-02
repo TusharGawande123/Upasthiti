@@ -7,6 +7,7 @@ import {
   adminApi,
   logIn,
   makeKioskCode,
+  makePermanentEmployee,
   makePlant,
   makeWorkerWithCard,
   openKioskWithCard,
@@ -27,6 +28,15 @@ const ADMIN_PAGES = [
   "/admin/qr-cards",
   "/admin/punches",
   "/admin/review",
+  "/admin/muster",
+  "/admin/attendance",
+  "/admin/attendance/register",
+  "/admin/corrections",
+  "/admin/leave",
+  "/admin/holidays",
+  "/admin/reports",
+  "/admin/insights/punctuality",
+  "/admin/notifications",
   "/admin/plants",
   "/admin/kiosks",
   "/admin/approvals",
@@ -176,5 +186,60 @@ test("the public privacy notice fits a small phone, a phone and a tablet, withou
     ).toBeVisible();
     await expectNoSidewaysScroll(reader, `privacy notice ${size.width}px`);
     await context.close();
+  }
+});
+
+// M4b: the phone attendance pages that need no sign-in. The signed-in pages (home, my attendance,
+// passkey, notice) are measured in phone-punch.spec.ts, which signs in with a painted camera.
+test("the phone sign-in and check pages fit 360 px, iPhone 13, a phone and a tablet", async ({
+  browser,
+}) => {
+  const IPHONE_13 = { width: 390, height: 844 };
+  for (const size of [SMALL_PHONE, IPHONE_13, PHONE, TABLET]) {
+    const context = await browser.newContext({
+      baseURL: FRONTEND_URL,
+      viewport: size,
+      locale: "en-IN",
+    });
+    const reader = await context.newPage();
+    for (const path of ["/phone/login", "/phone/setup"]) {
+      await reader.goto(path, { waitUntil: "networkidle" });
+      await expect(reader.getByRole("heading").first()).toBeVisible();
+      await expectNoSidewaysScroll(reader, `${path} ${size.width}px`);
+    }
+    await context.close();
+  }
+});
+
+// M5 and M4b: the employee page (Details with the "Phone attendance" card, and the Attendance tab)
+// needs an employee id, so it is measured here with a made-up employee.
+test("the employee page, its Attendance tab and the Phone attendance card fit 360 px and a tablet", async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  await logIn(page, SUPER_ADMIN_LOGIN);
+  await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
+  const api = adminApi(page);
+  const plant = await makePlant(api, "PH6");
+  const employee = await makePermanentEmployee(
+    api,
+    plant,
+    "PH6-001",
+    "Employee With A Fairly Long Name For The Phone Card",
+  );
+
+  for (const size of [SMALL_PHONE, TABLET]) {
+    await page.setViewportSize(size);
+    for (const path of [
+      `/admin/employees/${employee.id}`,
+      `/admin/employees/${employee.id}?tab=attendance`,
+    ]) {
+      await page.goto(path);
+      await settle(page);
+      if (!path.includes("tab=")) {
+        await expect(page.getByText("Phone attendance", { exact: true }).first()).toBeVisible();
+      }
+      await expectNoSidewaysScroll(page, `${size.width}px ${path}`);
+    }
   }
 });

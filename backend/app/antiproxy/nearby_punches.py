@@ -1,12 +1,13 @@
 """Where else was this person (or this card) around the time of a punch? Shared by the two flag
 rules impossible_travel and two_devices (M4 spec §7 rule 14, decision 0012).
 
-"Elsewhere" means at another gate device. Two kinds of punches tell where someone really was:
-the punches that count (accepted, flagged, approved) and WRONG_PLANT rejections, which show
-where a card was shown even though it was refused there.
+"Elsewhere" means at another gate device (M4b: or a phone punch). Two kinds of punches tell where
+someone really was: the punches that count (accepted, flagged, approved) and WRONG_PLANT
+rejections, which show where a card was shown even though it was refused there.
 """
 
 import uuid
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 
@@ -38,7 +39,7 @@ def punches_elsewhere(context: PunchContext, window: timedelta) -> list[OtherPun
     }
     for punch in _wrong_plant_refusals(context, start, end):
         found.setdefault(punch.id, punch)
-    return _describe(context, [p for p in found.values() if p.kiosk_id != context.kiosk.id])
+    return _describe(context, _at_other_devices(context, found.values()))
 
 
 def neighbours_elsewhere(context: PunchContext) -> list[OtherPunch]:
@@ -56,7 +57,14 @@ def neighbours_elsewhere(context: PunchContext) -> list[OtherPunch]:
     hour = timedelta(hours=1)
     for punch in _wrong_plant_refusals(context, context.now - hour, context.now + hour):
         found.setdefault(punch.id, punch)
-    return _describe(context, [p for p in found.values() if p.kiosk_id != context.kiosk.id])
+    return _describe(context, _at_other_devices(context, found.values()))
+
+
+def _at_other_devices(context: PunchContext, punches: Iterable[Punch]) -> list[Punch]:
+    """Another gate device, or a phone punch (M4b spec section 7 rule 14: two phone punches are at
+    another device only when their sign-ins differ)."""
+    here = context.device_identity.key
+    return [punch for punch in punches if punch.device_key != here]
 
 
 def _wrong_plant_refusals(context: PunchContext, start: datetime, end: datetime) -> list[Punch]:
@@ -98,7 +106,7 @@ def _describe(context: PunchContext, punches: list[Punch]) -> list[OtherPunch]:
 def _position_of_this_punch(context: PunchContext) -> tuple[float, float] | None:
     if context.location is not None:
         return context.location.lat, context.location.lon
-    return _plant_centre(context, context.kiosk.plant_id)
+    return _plant_centre(context, context.plant_id)
 
 
 def _position_of_stored_punch(context: PunchContext, punch: Punch) -> tuple[float, float] | None:

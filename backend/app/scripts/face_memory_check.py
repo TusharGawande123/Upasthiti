@@ -11,6 +11,12 @@ This script does the two parts around it, each in its own throw-away container o
            file with the device's key and the gate frames of each face.
   punch    sends `--count` face punches (challenge, then punch), signed like a gate device, prints
            one `FACE_MEMORY_CHECK {json}` line with the answers, and fails on any HTTP error.
+  phone    (M4b S-49, AC-59) the phone side: `--sign-ins` password sign-ins at the same moment plus
+           `--punches` phone face punches at the same moment (each employee signed in on their own
+           phone, notice accepted through the real endpoints). The server lets at most 2 argon2
+           checks run at once, so the rest wait or get 429; the check fails on any server error
+           (5xx) or any other unexpected answer, and the CI job then reads the container's peak
+           memory (the same 450 MB limit). It prints one `PHONE_MEMORY_CHECK {json}` line.
 
 A flat picture cannot turn its head, so the "turned" frames are made by a horizontal shear: it
 moves the nose sideways against the eyes, which is what the server measures as a head turn. The
@@ -24,6 +30,8 @@ Usage (the CI job shows the full commands):
   python -m app.scripts.face_memory_check prepare --fixture /work/fixture.json
   python -m app.scripts.face_memory_check punch --fixture /work/fixture.json \
       --url http://127.0.0.1:10000 --count 20
+  python -m app.scripts.face_memory_check phone --fixture /work/fixture.json \
+      --url http://127.0.0.1:10000 --sign-ins 8 --punches 4
 """
 
 import argparse
@@ -37,6 +45,7 @@ import urllib.error
 import urllib.request
 import uuid
 from collections import Counter
+from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -47,6 +56,7 @@ import numpy as np
 from cryptography.hazmat.primitives import hashes, serialization
 from cryptography.hazmat.primitives.asymmetric import ec
 from cryptography.hazmat.primitives.asymmetric.utils import decode_dss_signature
+from sqlalchemy.orm import Session
 
 from app.antiproxy.rules.face_frames import MAX_FRAME_BYTES, MIN_DETECTOR_SCORE
 from app.face.detector import DetectedFace
@@ -64,6 +74,9 @@ SHEARS = sorted((round(0.05 * step, 2) for step in range(-16, 17)), key=abs)
 YAW_SPARE = 4.0  # degrees beyond the settings' limits, so a rounding never decides
 CHALLENGE_PATH = "/api/v1/punch/challenge"
 PUNCH_PATH = "/api/v1/punch/kiosk"
+# M4b S-49: employees of the throw-away database with a phone password (never a real password).
+PHONE_PASSWORD = "Memcheck-Phone-Pass-1"  # noqa: S105 - a made-up value for a throw-away database
+EXTRA_SIGN_IN_EMPLOYEES = 8  # people who only sign in, so the punching phones stay signed in
 
 
 # ---------------------------------------------------------------------------- gate frames
@@ -323,6 +336,30 @@ def prepare(fixture_path: Path) -> int:
                     enrolled_at=utc_now(),
                 )
             )
+            add_phone_rows(session, employee.id, admin.id)
+            session.commit()
+        # M4b S-49: people who only sign in (no face needed), so 8 sign-ins can run at the same
+        # moment without ending the sessions of the phones that punch.
+        for number in range(1, EXTRA_SIGN_IN_EMPLOYEES + 1):
+            extra = create_employee(
+                session,
+                AuditContext(actor),
+                EmployeeValues(
+                    employee_code=f"MEMP{number:02d}",
+                    full_name=f"Memory Check Phone {number}",
+                    type="permanent",
+                    plant_id=plant.id,
+                    category_id=staff.id,
+                    department_id=None,
+                    shift_id=shift.id,
+                    contractor_id=None,
+                    punch_method="face",
+                    hourly_rate=None,
+                    ot_rate_per_hour=Decimal("150.00"),
+                    joined_on=today_ist() - timedelta(days=30),
+                ),
+            )
+            add_phone_rows(session, extra.id, admin.id)
             session.commit()
         kiosk_id = str(kiosk.id)
 
@@ -333,18 +370,46 @@ def prepare(fixture_path: Path) -> int:
             serialization.PrivateFormat.PKCS8,
             serialization.NoEncryption(),
         ).decode(),
+        "phone_password": PHONE_PASSWORD,
         "faces": [
             {
+                "employee_code": f"MEM{number:03d}",
                 "frontal": base64.b64encode(frames.frontal).decode(),
                 "turn_left": _text_or_none(frames.turn_left),
                 "turn_right": _text_or_none(frames.turn_right),
             }
-            for frames, _ in faces
+            for number, (frames, _) in enumerate(faces, start=1)
         ],
+        "sign_in_codes": [f"MEMP{number:02d}" for number in range(1, EXTRA_SIGN_IN_EMPLOYEES + 1)],
     }
     fixture_path.write_text(json.dumps(fixture), encoding="utf-8")
     print(f"Prepared {len(faces)} face employees and one gate device ({models.model_id}).")
     return 0
+
+
+def add_phone_rows(session: Session, employee_id: uuid.UUID, admin_id: uuid.UUID) -> None:
+    """Phone punching ON and a password, as if the employee had finished the first-time steps."""
+    from app.core.time import utc_now
+    from app.modules.auth.passwords import hash_password
+    from app.modules.phone.models import PhoneAccess, PhoneAccount
+
+    now = utc_now()
+    session.add(
+        PhoneAccess(
+            employee_id=employee_id,
+            phone_punch_enabled=True,
+            phone_changed_at=now,
+            phone_changed_by=admin_id,
+        )
+    )
+    session.add(
+        PhoneAccount(
+            employee_id=employee_id,
+            password_hash=hash_password(PHONE_PASSWORD),
+            password_set_at=now,
+            proof_kind="face",
+        )
+    )
 
 
 def _text_or_none(jpeg: bytes | None) -> str | None:
@@ -450,6 +515,125 @@ def punch(fixture_path: Path, base_url: str, origin: str, count: int) -> int:
     return 1 if http_errors else 0
 
 
+class PhoneClient:
+    """One employee's phone: signs in and keeps the `ups_phone` cookie by hand (the cookie is
+    Secure in production mode, so a cookie jar would not send it over plain http)."""
+
+    def __init__(self, base_url: str, origin: str) -> None:
+        self.base_url = base_url.rstrip("/")
+        self.origin = origin
+        self.cookie = ""
+
+    def call(self, method: str, path: str, payload: dict | None = None) -> tuple[int, dict]:
+        body = json.dumps(payload).encode() if payload is not None else None
+        headers = {"Origin": self.origin, "Content-Type": "application/json"}
+        if self.cookie:
+            headers["Cookie"] = self.cookie
+        request = urllib.request.Request(  # noqa: S310 - the URL is our own test server
+            self.base_url + path, data=body, method=method, headers=headers
+        )
+        try:
+            with urllib.request.urlopen(request, timeout=120) as response:  # noqa: S310
+                raw = response.read()
+                set_cookie = response.headers.get("Set-Cookie", "")
+                if set_cookie.startswith("ups_phone="):
+                    self.cookie = set_cookie.split(";", 1)[0]
+                return response.status, json.loads(raw) if raw else {}
+        except urllib.error.HTTPError as error:
+            return error.code, {}
+
+    def sign_in(self, code: str, password: str) -> int:
+        status, _ = self.call(
+            "POST", "/api/v1/phone/login", {"employee_code": code, "password": password}
+        )
+        return status
+
+    def accept_notice(self) -> int:
+        status, notice = self.call("GET", "/api/v1/phone/notice")
+        if status != 200:
+            return status
+        status, _ = self.call(
+            "POST",
+            "/api/v1/phone/notice/accept",
+            {"version": notice["version"], "text_sha256": notice["text_sha256"]},
+        )
+        return status
+
+
+def phone_face_punch(client: PhoneClient, face: dict, fallback: list[dict], index: int) -> int:
+    """Challenge, then the punch with this employee's own frames; returns the last HTTP status."""
+    status, challenge = client.call("POST", "/api/v1/phone/punch/challenge", {})
+    if status != 200:
+        return status
+    chosen = (
+        face
+        if face.get(challenge["challenge"])
+        else face_for(fallback, challenge["challenge"], index)
+    )
+    turn = chosen[challenge["challenge"]]
+    status, _ = client.call(
+        "POST",
+        "/api/v1/phone/punch/face",
+        {
+            "client_punch_id": str(uuid.uuid4()),
+            "challenge_nonce": challenge["challenge_nonce"],
+            "frames": [
+                {"role": "frontal", "jpeg": chosen["frontal"]},
+                {"role": "turn", "jpeg": turn},
+                {"role": "frontal", "jpeg": chosen["frontal"]},
+            ],
+            "location": GATE_LOCATION,
+            "app_version": "memcheck",
+        },
+    )
+    return status
+
+
+def phone(fixture_path: Path, base_url: str, origin: str, sign_ins: int, punches: int) -> int:
+    """S-49 (AC-59): `sign_ins` password sign-ins and `punches` phone face punches at the same
+    moment. Allowed answers: 200 for everything, 429 for a sign-in that waited too long for one of
+    the 2 argon2 slots. Any 5xx (a crash, an out-of-memory) or other answer fails the check."""
+    fixture = json.loads(fixture_path.read_text(encoding="utf-8"))
+    password = fixture["phone_password"]
+    faces = fixture["faces"]
+    punchers = []
+    # One employee can be signed in on one phone only (a second sign-in ends the first), so each
+    # punching phone gets its own employee: never more phones than enrolled faces.
+    for number in range(min(punches, len(faces))):
+        face = faces[number]
+        client = PhoneClient(base_url, origin)
+        # Not at the same moment: each punching phone must be signed in before the rush starts.
+        if client.sign_in(face["employee_code"], password) != 200 or client.accept_notice() != 201:
+            print(f"PHONE_MEMORY_CHECK setup failed for punching phone number {number}")
+            return 1
+        punchers.append((client, face, number))
+    codes = fixture["sign_in_codes"]
+    sign_in_codes = [codes[number % len(codes)] for number in range(sign_ins)]
+
+    def one_sign_in(code: str) -> int:
+        return PhoneClient(base_url, origin).sign_in(code, password)
+
+    def one_punch(item: tuple[PhoneClient, dict, int]) -> int:
+        client, face, number = item
+        return phone_face_punch(client, face, faces, number)
+
+    started = time.perf_counter()
+    with ThreadPoolExecutor(max_workers=sign_ins + punches) as pool:
+        sign_in_jobs = [pool.submit(one_sign_in, code) for code in sign_in_codes]
+        punch_jobs = [pool.submit(one_punch, item) for item in punchers]
+        sign_in_statuses = [job.result() for job in sign_in_jobs]
+        punch_statuses = [job.result() for job in punch_jobs]
+    summary = {
+        "sign_ins": dict(Counter(str(status) for status in sign_in_statuses)),
+        "punches": dict(Counter(str(status) for status in punch_statuses)),
+        "seconds": round(time.perf_counter() - started, 1),
+    }
+    print("PHONE_MEMORY_CHECK " + json.dumps(summary), flush=True)
+    bad_sign_ins = [status for status in sign_in_statuses if status not in (200, 429)]
+    bad_punches = [status for status in punch_statuses if status != 200]
+    return 1 if bad_sign_ins or bad_punches else 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="Face punch memory check (S-30).")
     commands = parser.add_subparsers(dest="command", required=True)
@@ -460,9 +644,17 @@ def main(argv: list[str] | None = None) -> int:
     punch_parser.add_argument("--url", required=True)
     punch_parser.add_argument("--origin", default="https://ci.example.invalid")
     punch_parser.add_argument("--count", type=int, default=20)
+    phone_parser = commands.add_parser("phone", help="phone sign-ins and phone face punches (S-49)")
+    phone_parser.add_argument("--fixture", type=Path, required=True)
+    phone_parser.add_argument("--url", required=True)
+    phone_parser.add_argument("--origin", default="https://ci.example.invalid")
+    phone_parser.add_argument("--sign-ins", type=int, default=8)
+    phone_parser.add_argument("--punches", type=int, default=4)
     args = parser.parse_args(argv)
     if args.command == "prepare":
         return prepare(args.fixture)
+    if args.command == "phone":
+        return phone(args.fixture, args.url, args.origin, args.sign_ins, args.punches)
     return punch(args.fixture, args.url, args.origin, args.count)
 
 

@@ -23,6 +23,8 @@ export type ReviewFilters = {
   kiosk_id?: string;
   code?: string;
   method?: "qr" | "face";
+  // M4b: only punches made with a phone.
+  channel?: "phone";
   was_offline?: boolean;
   employee_id?: string;
   q?: string;
@@ -42,6 +44,9 @@ export type ReviewListItem = {
   punch: ReviewPunch;
   latest_review: PunchReview | null;
   approvable: boolean;
+  // M4b F-76: a clean outside-work phone punch, and why outside work was allowed.
+  bulk_confirmable?: boolean;
+  outside_reason?: string | null;
 };
 
 export type ReviewSummary = {
@@ -55,6 +60,7 @@ export type DigestPlant = {
   flagged: number;
   rejected_with_employee: number;
   to_check: number;
+  phone_selfie_no_face?: number;
   device_offline_minutes_in_shifts: number;
 };
 
@@ -72,7 +78,7 @@ export type ContextFence = {
 
 export type RelatedPunch = {
   punch: PunchDetail;
-  relation: "travel" | "two_devices" | "order";
+  relation: "travel" | "two_devices" | "order" | "closing_out";
   distance_m: number | null;
   minutes_apart: number;
   speed_kmh: number | null;

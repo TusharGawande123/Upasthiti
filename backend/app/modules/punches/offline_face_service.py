@@ -16,7 +16,7 @@ from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.antiproxy.context import Outcome, PunchContext
+from app.antiproxy.context import DeviceIdentity, Outcome, PunchContext
 from app.antiproxy.engine import (
     AFTER_IDENTITY_RULES,
     LOCATION_RULES,
@@ -41,6 +41,7 @@ from app.core.time import to_ist
 from app.face.engine import FaceEngine
 from app.face.matcher import EMBEDDING_SIZE, Gallery
 from app.face.models import FaceModels
+from app.modules.attendance.service import mark_punch_stale
 from app.modules.employees.models import Employee, PunchMethod
 from app.modules.employees.rules import clean_code
 from app.modules.face.engine_provider import face_key
@@ -49,6 +50,7 @@ from app.modules.face.template_service import active_template
 from app.modules.kiosks.location_check import Location
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches.answers import punch_answer
+from app.modules.punches.early_out import EARLY_OUT_OFFLINE, punch_early_out
 from app.modules.punches.face_service import (
     NO_PHOTO_CODES,
     decode_frame,
@@ -144,7 +146,8 @@ def record_offline_face_punch(
         def job(models: FaceModels) -> tuple[str | None, FacePunchContext]:
             checked = FacePunchContext(
                 session=session,
-                kiosk=kiosk,
+                plant_id=kiosk.plant_id,
+                device_identity=DeviceIdentity.of_kiosk(kiosk),
                 now=now,
                 limits=face_limits,
                 models=models,
@@ -180,6 +183,16 @@ def record_offline_face_punch(
         kiosk, client_punch_id, client, context, candidate, decision, place, offline, model_id
     )
     punch.app_version = app_version
+    if (
+        punch_early_out(
+            session,
+            punch,
+            offline.punch_time,
+            window_before_hours=limits.attendance_window_before_hours,
+        )
+        is not None
+    ):
+        punch.early_out_mark = EARLY_OUT_OFFLINE  # no alert was possible offline (decision 0036)
     snapshot = _offline_photo(session, punch, frames, decision, now, storage)
     try:
         session.add(punch)
@@ -187,6 +200,7 @@ def record_offline_face_punch(
         if snapshot is not None:
             session.add(snapshot)
         note_last_punch(kiosk, punch)
+        mark_punch_stale(session, punch)
         session.commit()
     except IntegrityError:
         session.rollback()

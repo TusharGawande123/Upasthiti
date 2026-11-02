@@ -49,6 +49,8 @@ def punch_filters(
     flagged: bool = False,
     was_offline: bool = False,
     review_state: Literal["to_check", "confirmed", "not_accepted", "approved"] | None = None,
+    channel: Literal["kiosk", "phone"] | None = None,
+    outside_plant: bool = False,
 ) -> queries.PunchFilters:
     return queries.PunchFilters(
         day=day or today_ist(),
@@ -66,6 +68,8 @@ def punch_filters(
         flagged=flagged,
         was_offline=was_offline,
         review_state=review_state,
+        channel=channel,
+        outside_plant=outside_plant,
     )
 
 
@@ -75,6 +79,8 @@ def _viewer(current_user: CurrentUser, capability: Capability) -> presenter.View
         sees_dark_photos=current_user.access(Capability.VIEW_SNAPSHOTS) is not None,
         sees_face_scores=current_user.access(Capability.VIEW_FACE_SCORES) is not None,
         sees_review_reasons=current_user.access(Capability.REVIEW_PUNCHES) is not None,
+        # The Super Admin alone may see where a phone punch was made (M4b spec §4.13).
+        sees_phone_positions=current_user.access(Capability.VIEW_SNAPSHOTS) is not None,
     )
 
 
@@ -175,6 +181,8 @@ def get_punch(
 ) -> PunchDetail:
     who = _viewer(current_user, Capability.VIEW_PUNCHES)
     punch = queries.get_punch_in_scope(session, punch_id, who.only_plant_ids)
+    if who.sees_phone_positions:
+        admin_service.record_position_view(session, current_user.actor, punch)
     return presenter.punch_detail(session, punch, who)
 
 

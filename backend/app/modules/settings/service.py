@@ -1,13 +1,17 @@
 """Reads and changes settings. Other modules call get_int_setting() for rule values."""
 
 from dataclasses import dataclass
+from datetime import timedelta
 from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
+from app.core.time import today_ist
 from app.modules.audit.service import Actor, record_audit
+from app.modules.org.models import Shift
+from app.modules.org.shift_rules_service import shift_length_minutes
 from app.modules.punches.retention import shorten_snapshot_expiry
 from app.modules.settings.definitions import (
     DEFINITIONS_BY_KEY,
@@ -66,6 +70,9 @@ def update_settings(
     checked_values = {key: _check_value(key, value) for key, value in new_values.items()}
     _check_face_floor(session, checked_values)
     _check_m4_pairs(session, checked_values)
+    _check_window_fits_shifts(session, checked_values)
+    _check_phone_session_days(session, checked_values)
+    _check_gate_code_vs_cooldown(session, checked_values)
 
     for key, value in checked_values.items():
         stored = session.get(SettingValue, key)
@@ -86,6 +93,12 @@ def update_settings(
             after={"key": key, "value": value},
             reason=reason,
         )
+        if key == "attendance_window_before_hours":
+            # Every window moves: the last 62 days of all plants are recomputed (rule 14).
+            from app.modules.attendance.service import mark_plant_days_stale
+
+            today = today_ist()
+            mark_plant_days_stale(session, None, today - timedelta(days=62), today)
         if key == "snapshot_retention_days" and isinstance(value, int):
             # Lowering the retention also shortens photos that are already stored (spec §7
             # rule 4). Raising it only affects new photos.
@@ -192,6 +205,68 @@ def _check_m4_pairs(session: Session, new_values: dict[str, SettingValueType]) -
         too_close = smaller >= larger if "refresh" in smaller_key else smaller > larger
         if too_close:
             raise ApiError("SETTING_INVALID", message, 422, {"key": larger_key})
+
+
+def _check_window_fits_shifts(session: Session, new_values: dict[str, SettingValueType]) -> None:
+    """The day window starts N hours before a shift (M5 spec §7 rules 5 and 16). N must stay
+    below 24 hours minus the longest active shift, so a window never starts before the previous
+    shift has ended."""
+    value = new_values.get("attendance_window_before_hours")
+    if not isinstance(value, int | float):
+        return
+    longest = max(
+        (
+            shift_length_minutes(start, end)
+            for start, end in session.execute(
+                select(Shift.start_time, Shift.end_time).where(Shift.is_active.is_(True))
+            )
+        ),
+        default=0,
+    )
+    if value * 60 >= 24 * 60 - longest:
+        raise ApiError(
+            "SETTING_INVALID",
+            "The day window must start after the longest shift of the day before has ended.",
+            422,
+            {"key": "attendance_window_before_hours", "longest_shift_min": longest},
+        )
+
+
+def _check_phone_session_days(session: Session, new_values: dict[str, SettingValueType]) -> None:
+    """A phone sign-in ends after N idle days or M days in all (M4b spec §7 rule 23): M smaller
+    than N would make the idle limit meaningless."""
+    watched = ("phone_session_idle_days", "phone_session_max_days")
+    if not any(key in new_values for key in watched):
+        return
+    idle_days = _int_after_save(session, new_values, "phone_session_idle_days")
+    if _int_after_save(session, new_values, "phone_session_max_days") < idle_days:
+        raise ApiError(
+            "SETTING_INVALID",
+            "A phone sign-in cannot end before its idle limit.",
+            422,
+            {"key": "phone_session_max_days"},
+        )
+
+
+GATE_CODE_GRACE_SECONDS = 5  # the phone's upload time after the code changed (M4b rule 15)
+
+
+def _check_gate_code_vs_cooldown(session: Session, new_values: dict[str, SettingValueType]) -> None:
+    """A phone code must stop working before the punch cool-down ends (M4b spec §7 rule 15): then
+    one worker can never use the same code for a second punch, because that one is always
+    COOLDOWN_ACTIVE. So code life + grace must be shorter than the cool-down."""
+    watched = ("phone_gate_code_seconds", "punch_cooldown_minutes")
+    if not any(key in new_values for key in watched):
+        return
+    code_seconds = _int_after_save(session, new_values, "phone_gate_code_seconds")
+    cooldown_seconds = _int_after_save(session, new_values, "punch_cooldown_minutes") * 60
+    if code_seconds + GATE_CODE_GRACE_SECONDS >= cooldown_seconds:
+        raise ApiError(
+            "SETTING_INVALID",
+            "The phone code must change faster than the punch cool-down.",
+            422,
+            {"key": "phone_gate_code_seconds"},
+        )
 
 
 def _int_after_save(session: Session, new_values: dict[str, SettingValueType], key: str) -> int:

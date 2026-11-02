@@ -26,17 +26,20 @@ dependencies = [
     "sqlalchemy>=2.1.4",
     "tzdata>=2026.5",
     "uvicorn[standard]>=0.54.0",
+    "webauthn>=3.0.1",
     "xlsxwriter>=3.2.9",
 ]
 
 [dependency-groups]
 dev = [
     "faker>=40.43.0",
+    "hypothesis>=6.170.14",
     "pypdfium2>=5.14.0",
     "pyright>=1.1.414",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
     "ruff>=0.17.0",
+    "time-machine>=3.6.0",
     "zxing-cpp>=3.1.1",
 ]
 # Only for the hand-run load test (loadtest/, S-22); never installed in CI or the Docker image.
@@ -71,7 +74,7 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=82"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=84"
 markers = [
     "face_models: needs the downloaded face model files (skipped without them)",
 ]

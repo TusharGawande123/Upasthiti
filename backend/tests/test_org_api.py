@@ -55,9 +55,9 @@ def test_new_plant_gets_the_default_shift_and_categories(boss: TestClient) -> No
     assert [(s["name"], s["start_time"], s["end_time"]) for s in shifts] == [
         ("General", "07:00:00", "19:00:00")
     ]
-    assert shifts[0]["grace_min"] == 10
+    assert shifts[0]["grace_min"] == 30
     assert shifts[0]["half_day_min"] == 240
-    assert shifts[0]["ot_after_min"] == 480
+    assert shifts[0]["overtime_min_minutes"] == 120
     assert {c["name"] for c in categories} == {"Staff", "Worker", "Operator", "Helper"}
 
 

@@ -18,8 +18,11 @@ import {
   Keyboard,
   LogIn,
   LogOut,
+  MapPinOff,
   Moon,
+  QrCode,
   ScanFace,
+  Smartphone,
   TriangleAlert,
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
@@ -104,6 +107,15 @@ export function DirectionBadge({ direction }: { direction: PunchItem["direction"
 /** Face (blue) or Card (outline): icon and word, never colour alone (spec M3 §4.11). */
 export function MethodBadge({ method }: { method: string }) {
   const { t } = useTranslation();
+  // M4b: a phone punch with the gate's changing code ("Phone code").
+  if (method === "gate_code") {
+    return (
+      <Badge tone="primary">
+        <QrCode aria-hidden />
+        {t("punches.method.phoneCode")}
+      </Badge>
+    );
+  }
   return method === "face" ? (
     <Badge tone="primary">
       <ScanFace aria-hidden />
@@ -374,4 +386,54 @@ export function PhotoStateCell({ punch, showDark }: { punch: PunchItem; showDark
     default:
       return <span className="text-muted-foreground">– {t("punches.photoState.none")}</span>;
   }
+}
+
+/** Phone (blue) or Attendance device (outline): icon and word, never colour alone (M4b §4.13). */
+export function ChannelBadge({ channel }: { channel: "kiosk" | "phone" | undefined }) {
+  const { t } = useTranslation();
+  return channel === "phone" ? (
+    <Badge tone="primary">
+      <Smartphone aria-hidden />
+      {t("punches.channel.phone")}
+    </Badge>
+  ) : (
+    <Badge tone="neutral" className="border">
+      {t("punches.channel.device")}
+    </Badge>
+  );
+}
+
+/** The tag of a punch made outside the plant on allowed outside work (flag OUTSIDE_PLANT). */
+export function OutsidePlantTag() {
+  const { t } = useTranslation();
+  return (
+    <Badge tone="neutral" className="border border-dashed border-primary">
+      <MapPinOff aria-hidden />
+      {t("punches.outsidePlant")}
+    </Badge>
+  );
+}
+
+/** "At plant K200 (own plant K134)": a phone punch inside another plant's fence (M4b §4.13). */
+export function otherPlantLine(punch: PunchItem, t: TFunction): string | null {
+  if (!punch.location_plant) return null;
+  return t("punches.atOtherPlant", {
+    plant: punch.location_plant.code ?? punch.location_plant.name,
+    own: punch.plant.code ?? punch.plant.name,
+  });
+}
+
+/** The channel column: the channel, the device (if any), the plant and the outside-plant tag. */
+export function ChannelCell({ punch }: { punch: PunchItem }) {
+  const { t } = useTranslation();
+  const other = otherPlantLine(punch, t);
+  return (
+    <span className="block space-y-1">
+      <ChannelBadge channel={punch.channel} />
+      {punch.kiosk ? <span className="block font-semibold">{punch.kiosk.name}</span> : null}
+      <span className="code block text-xs text-muted-foreground">{punch.plant.code}</span>
+      {other ? <span className="block text-xs">{other}</span> : null}
+      {punch.outside_plant ? <OutsidePlantTag /> : null}
+    </span>
+  );
 }

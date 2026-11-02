@@ -104,6 +104,53 @@ def counted_between(
     return [CountedPunch(row[0], row[1]) for row in rows]
 
 
+@dataclass(frozen=True)
+class CountedForEmployee:
+    """One counted punch and the employee it counts for (M5 bulk reads)."""
+
+    employee_id: uuid.UUID
+    punch: Punch
+    direction: str  # "in" or "out"
+
+    @property
+    def punch_time(self) -> datetime:
+        return self.punch.punch_time
+
+
+def counted_for_employees(
+    session: Session, employee_ids: Sequence[uuid.UUID], start: datetime, end: datetime
+) -> list[CountedForEmployee]:
+    """Counted punches of many employees with start <= punch time <= end, in one query (M5 spec
+    §7 rule 2): the dashboard and a month of a plant need a few queries, not one per person.
+
+    Same conditions as `counted_between`, which a test checks on mixed data (AC-15): a punch
+    counts for the employee it names and for the employee of its approving review.
+    Sorted by employee, then punch time.
+    """
+    if not employee_ids:
+        return []
+    wanted = set(employee_ids)
+    approved_employee = case(
+        (_latest.action == ReviewAction.APPROVED.value, _latest.employee_id), else_=None
+    )
+    rows = session.execute(
+        select(Punch, _counted_direction, approved_employee)
+        .outerjoin(_latest, and_(_latest.punch_id == Punch.id, _is_latest_review))
+        .where(
+            _counts,
+            or_(Punch.employee_id.in_(wanted), approved_employee.in_(wanted)),
+            Punch.punch_time >= start,
+            Punch.punch_time <= end,
+        )
+    ).all()
+    counted: list[CountedForEmployee] = []
+    for punch, direction, approved_for in rows:
+        for employee_id in {punch.employee_id, approved_for} & wanted:
+            counted.append(CountedForEmployee(employee_id, punch, direction))
+    counted.sort(key=lambda item: (str(item.employee_id), item.punch_time, str(item.punch.id)))
+    return counted
+
+
 def latest_reviews(
     session: Session, punch_ids: Sequence[uuid.UUID]
 ) -> dict[uuid.UUID, PunchReview]:

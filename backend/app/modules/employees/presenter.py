@@ -18,6 +18,7 @@ from app.modules.employees.schemas import (
 from app.modules.face.engine_provider import running_model_id
 from app.modules.face.state import list_face_states
 from app.modules.org.models import Department, EmployeeCategory, Plant, Shift
+from app.modules.phone.models import PhoneAccess
 
 
 def _names(session: Session, model, ids: set[uuid.UUID], column) -> dict[uuid.UUID, str]:  # noqa: ANN001
@@ -66,6 +67,14 @@ def employee_responses(session: Session, employees: list[Employee]) -> list[Empl
     )
 
     states = list_face_states(session, employees, running_model_id())
+    phone_on = set(
+        session.scalars(
+            select(PhoneAccess.employee_id).where(
+                PhoneAccess.employee_id.in_([e.id for e in employees]),
+                PhoneAccess.phone_punch_enabled.is_(True),
+            )
+        )
+    )
 
     return [
         EmployeeResponse(
@@ -96,6 +105,7 @@ def employee_responses(session: Session, employees: list[Employee]) -> list[Empl
             left_reason=employee.left_reason,
             has_pending_change=employee.id in pending,
             face_state=states[employee.id],
+            phone_punch_enabled=employee.id in phone_on,
         )
         for employee in employees
     ]

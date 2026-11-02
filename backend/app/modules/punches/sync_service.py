@@ -43,6 +43,7 @@ from app.core.offline_crypto import (
 from app.core.storage import Storage
 from app.core.time import utc_now
 from app.face.engine import FaceEngine
+from app.modules.attendance.service import mark_punch_stale
 from app.modules.audit.service import Actor, record_audit
 from app.modules.kiosks.crypto import verify_signature
 from app.modules.kiosks.location_check import Location
@@ -364,6 +365,7 @@ def _unreadable(
     )
     try:
         session.add(punch)
+        mark_punch_stale(session, punch)
         session.commit()
     except IntegrityError:
         session.rollback()

@@ -1,0 +1,247 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P3 - Screen 1: employee page, card "Phone attendance" (spec 4.12, 7 rules 1, 3, 27, 29; F-69, F-70, F-80).
+  States (URL hash): default · phone-only · outside-no-end · outside-ended · two-phones · from-alert · off · qr-employee · no-password · locked ·
+  new-password · no-phones · left · history-open · loading · error · corporate-head · plant-head · plant-head-off ·
+  dialog-enable · dialog-disable · dialog-outside-on · dialog-outside-on-filled · dialog-outside-error-date · dialog-outside-edit · dialog-outside-off ·
+  dialog-reason-error · dialog-saving · dialog-sign-out-all · dialog-new-password · dialog-passkey-remove · dialog-conflict · dialog-server-error ·
+  toast-signed-out · menu-open.   MOCKUP ONLY - static HTML, fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti employee phone attendance</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+  <link rel="stylesheet" href="p3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="p3.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Employees";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = roleOf(S, ["corporate-head"], ["plant-head", "plant-head-off"]);
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, review: 7, bell: 4, menu: S === "menu-open" };
+  const SA = ROLE === "sa";
+  const NARROW = window.innerWidth < 768;
+
+  /* ---------- fake data ---------- */
+  const SESSION1 = { browser: "Chrome", system: "Android", started: "29/10/2026 08:41", last: "Today 08:57", ip: "49.36.112.8" };
+  const SESSION2 = { browser: "Samsung Internet", system: "Android", started: "30/10/2026 18:12", last: "30/10/2026 18:30", ip: "106.51.20.77" };
+  const PK1 = { label: "Chrome on Android", added: "28/10/2026", last: "30/10/2026" };
+  const PK2 = { label: "Samsung Internet on Android", added: "30/10/2026", last: null };
+  const H = {
+    outsideOn: ["map-pin", "Outside work on, until 03/11/2026", "30/10/2026 16:20", "Asha Rao", "Three-day visit to the X-280 plant for the line start-up", true],
+    enable: ["smartphone", "Phone punching on", "28/10/2026 11:05", "Asha Rao", "She asked at the plant office. She lives far from the gate.", true],
+    outsideOff: ["map-pin-off", "Outside work off", "01/11/2026 00:05", "System", "Until date passed", false],
+    selfStop: ["hand", "Phone punching stopped by the employee", "30/10/2026 12:40", "Sunita Jadhav (employee)", null, false],
+    disable: ["smartphone-nfc", "Phone punching off", "14/10/2026 10:12", "Asha Rao", "Phone not needed after the gate phone was repaired", false],
+    enable0: ["smartphone", "Phone punching on", "02/10/2026 09:30", "Asha Rao", "Gate queue is long at 07:00; the office allowed phone punching", true],
+    pwdReq: ["key-round", "New password required", "29/10/2026 15:02", "Asha Rao", "She changed her phone and forgot the password", false],
+    signOut: ["log-out", "All phones signed out", "29/10/2026 15:02", "Asha Rao", "She changed her phone and forgot the password", false],
+    ended: ["circle-slash", "Outside work ended", "03/11/2026", "System", null, false],
+  };
+
+  function cfgFor() {
+    const emp = EMP.face;
+    const base = { emp, on: true, outside: { until: "03/11/2026" }, account: { state: "active", date: "28/10/2026", proof: "face" }, notice: "28/10/2026", sessions: [SESSION1], passkeys: [PK1, PK2], hist: [H.outsideOn, H.enable, H.disable, H.enable0], histMore: 0 };
+    const k = S.replace(/^dialog-.*/, "default").replace(/^toast-.*/, "default");
+    const o = Object.assign({}, base);
+    if (k === "phone-only" || S === "dialog-outside-on" || S === "dialog-outside-on-filled" || S === "dialog-outside-error-date" || S === "dialog-reason-error-outside") { o.outside = null; o.hist = [H.enable, H.disable, H.enable0]; }
+    if (k === "outside-no-end") { o.outside = { until: null }; o.hist = [Object.assign([], H.outsideOn, { 1: "Outside work on, no end date", 4: "Visits to the other plants every week" }), H.enable, H.disable]; }
+    if (k === "outside-ended") { o.outside = { until: "30/10/2026", ended: true }; o.hist = [H.outsideOn, H.enable, H.disable]; }
+    if (k === "two-phones" || k === "from-alert") { o.sessions = [SESSION1, SESSION2]; if (k === "from-alert") o.highlight = true; }
+    if (k === "off") { o.on = false; o.outside = null; o.sessions = []; o.passkeys = []; o.hist = [H.selfStop, H.outsideOn, H.enable]; }
+    if (S === "dialog-enable") { o.on = false; o.outside = null; o.sessions = []; o.passkeys = []; o.hist = [H.disable, H.enable0]; }
+    if (k === "qr-employee") { o.emp = EMP.qr; o.outside = null; o.account.proof = "card"; o.account.date = "29/10/2026"; o.hist = [Object.assign([], H.enable, { 3: "Asha Rao", 4: "He asked at the plant office. Works at the far side of the plant.", 1: "Phone punching on" })]; o.passkeys = [{ label: "Chrome on Android", added: "29/10/2026", last: "Today" }]; o.sessions = [{ browser: "Chrome", system: "Android", started: "31/10/2026 08:20", last: "Today 09:05", ip: "49.36.112.8" }]; }
+    if (k === "no-password") { o.account = { state: "no_password" }; o.notice = null; o.sessions = []; o.passkeys = []; o.hist = [H.enable]; o.outside = null; }
+    if (k === "locked") { o.account = { state: "locked", until: "09:35" }; o.sessions = []; }
+    if (k === "new-password") { o.account = { state: "new_password" }; o.sessions = []; o.passkeys = []; o.hist = [H.pwdReq, H.outsideOn, H.enable]; }
+    if (k === "no-phones") { o.sessions = []; o.passkeys = []; }
+    if (k === "left") { o.on = false; o.outside = null; o.sessions = []; o.passkeys = []; o.left = true; o.hist = [["user-x", "Marked as left: phone punching, outside work and passwords switched off", "30/10/2026 17:45", "Asha Rao", "Contract ended", false], H.outsideOn, H.enable]; }
+    if (k === "history-open") { o.hist = [H.outsideOn, H.signOut, H.pwdReq, H.enable, H.disable, H.enable0]; o.openHist = true; }
+    if (k === "plant-head-off") { o.on = false; o.outside = null; o.sessions = []; o.passkeys = []; o.hist = [H.disable, H.enable0]; }
+    if (S === "dialog-outside-off" || S === "dialog-outside-edit") o.outside = { until: "03/11/2026" };
+    return o;
+  }
+  const C = cfgFor();
+  const qr = C.emp.method === "qr";
+
+  /* ---------- page pieces ---------- */
+  function identity() {
+    const e = C.emp;
+    const initials = initialsOf(e.name);
+    const btns = SA ? `<button class="btn btn-outline">${ic("pencil")}Edit</button><button class="btn btn-outline">${ic("arrow-left-right")}Transfer to another plant</button><button class="btn btn-danger-outline">${ic("log-out")}Mark as left</button>` : ROLE === "ch" ? `<button class="btn btn-outline">${ic("pencil")}Edit</button>` : "";
+    const phoneTag = C.on && !C.left ? `<span class="tag-phone">${ic("smartphone")}Phone</span>` : "";
+    return `<section class="card pa-idcard" aria-label="Employee"><div class="emp-head"><div class="emp-id"><span class="avatar avatar-lg" aria-hidden="true">${initials}</span><div><div class="meta">Employee code ${e.code}</div><h1>${e.name}</h1>
+      <div class="tag-row"><span class="badge badge-info">${ic(e.type === "Permanent" ? "id-card-lanyard" : "hard-hat")}${e.type}</span><span class="badge ${C.left ? "badge-neutral" : "badge-success"}">${ic(C.left ? "log-out" : "circle-check")}${C.left ? "Left" : "Active"}</span>${phoneTag}<span class="badge badge-outline"><b>${e.plant}</b>&nbsp;${e.plantFull}</span></div></div></div>
+      <div class="head-actions">${btns}</div></div></section>`;
+  }
+
+  function stateBadges() {
+    if (C.left) return `<span class="badge badge-neutral">${ic("smartphone-nfc")}Phone punching off</span>`;
+    let h = C.on ? `<span class="badge badge-on">${ic("smartphone")}Phone punching on</span>` : `<span class="badge badge-off-s">${ic("smartphone-nfc")}Phone punching off</span>`;
+    if (C.on && C.outside) h += C.outside.ended ? `<span class="badge badge-ended">${ic("map-pin-off")}<span>Outside work</span> ended</span>` : `<span class="badge badge-outside">${ic("map-pin")}Outside work allowed</span>`;
+    return h;
+  }
+
+  function switchRows() {
+    const first = SA && !C.left
+      ? sw(C.on, "Phone punching")
+      : stateWord(C.on, "On", "Off");
+    const firstHelp = C.on ? "The employee can also punch with their phone." : "Phone punching is off. The employee punches only at the attendance device.";
+    let secondControl, secondHelp = "";
+    const blockedQr = qr;
+    const blockedOff = !C.on;
+    if (SA && !C.left) secondControl = sw(!!C.outside, "Outside work allowed", { disabled: blockedQr || blockedOff });
+    else secondControl = stateWord(!!C.outside, "On", "Off");
+    if (blockedQr) secondHelp = `<span class="locknote">${ic("lock")}Outside work is only for employees who punch with their face.</span>`;
+    else if (blockedOff && SA) secondHelp = `<span class="locknote">${ic("lock")}Switch phone punching on first.</span>`;
+    else if (C.outside && !C.outside.ended) {
+      secondHelp = C.outside.until
+        ? `<span class="until">${ic("calendar-clock")}Until ${C.outside.until}, the whole day counts</span>`
+        : `<span class="until">${ic("infinity")}No end date</span>`;
+    } else if (C.outside && C.outside.ended) secondHelp = `<span class="until ended">${ic("calendar-x")}Outside work ended on ${C.outside.until}</span>`;
+    const editLink = SA && !C.left && C.on && C.outside && !C.outside.ended ? `<button class="btn btn-ghost btn-sm2 edit-link">${ic("calendar-clock")}Change the end date</button>` : "";
+    const editEnded = SA && C.on && C.outside && C.outside.ended ? `<button class="btn btn-ghost btn-sm2 edit-link">${ic("calendar-clock")}Change the end date</button>` : "";
+    return `<div class="pa-sw"><div><span class="l">${ic("smartphone")}Phone punching</span><p class="h">${firstHelp}</p></div><div>${first}</div></div>
+      <div class="pa-sw"><div><span class="l">${ic("map-pin")}Outside work allowed</span><p class="h">${C.outside && !C.outside.ended ? "Punches away from the plants are saved as outside-plant punches. The office checks them." : "Lets a face employee punch by phone away from the plants. Saved and checked by the office."}</p>${secondHelp}${editLink}${editEnded}</div><div>${secondControl}</div></div>`;
+  }
+
+  function accountSec() {
+    const a = C.account;
+    let acct;
+    if (a.state === "no_password") acct = `<span class="badge badge-neutral">${ic("key-round")}No password yet</span>`;
+    else if (a.state === "locked") acct = `<span class="badge badge-warning">${ic("lock")}Locked until ${a.until}</span>`;
+    else if (a.state === "new_password") acct = `<span class="badge badge-warning">${ic("key-round")}New password required</span>`;
+    else acct = `<span class="badge badge-success">${ic("circle-check")}Password set on ${a.date} by ${a.proof === "card" ? "card check" : "face check"}</span>`;
+    const notice = C.notice ? `<span class="badge badge-success">${ic("file-check")}Accepted v1 on ${C.notice}</span>` : `<span class="badge badge-neutral">${ic("file-clock")}Not accepted yet</span>`;
+    return `<section class="pa-sec" aria-labelledby="acc-h"><h3 id="acc-h">${ic("user-round-cog")}Account</h3><dl class="pa-kv"><dt>Punch method</dt><dd>${qr ? `${ic("id-card")}Card (QR). Punches by phone at the gate with the phone code.` : `${ic("scan-face")}Face. Punches by phone with a face check.`}</dd><dt>Password</dt><dd>${acct}</dd><dt>Notice</dt><dd>${notice}</dd></dl></section>`;
+  }
+
+  function sessionsSec() {
+    const list = C.sessions.length ? `<ul class="pa-list">${C.sessions.map((s, i) => `<li class="pa-item ${i === 0 ? "is-now" : ""}"><span class="ic">${ic("smartphone")}</span><div><b>${s.browser} · ${s.system}</b>
+      <div class="sub"><span>${ic("log-in")}Signed in ${s.started}</span><span>${ic("clock")}Last used ${s.last}</span>${SA ? `<span>${ic("globe")}IP <span class="code">${s.ip}</span></span>` : ""}</div></div></li>`).join("")}</ul>`
+      : `<div class="pa-empty">${ic("smartphone-nfc")}<span>No phone is signed in.</span></div>`;
+    const btn = SA && !C.left ? `<div class="pa-actions" style="margin-top:12px"><button class="btn btn-outline" ${C.sessions.length ? "" : "disabled"}>${ic("log-out")}Sign out all phones</button></div>` : "";
+    return `<section class="pa-sec" id="sessions" aria-labelledby="ses-h"><h3 id="ses-h">${ic("smartphone")}Signed-in phones ${countBadge(C.sessions.length)}</h3>${list}${btn}</section>`;
+  }
+
+  function passkeysSec() {
+    const list = C.passkeys.length ? `<ul class="pa-list">${C.passkeys.map((p) => `<li class="pa-item"><span class="ic">${ic("fingerprint")}</span><div><b>${p.label}</b>
+      <div class="sub"><span>${ic("plus")}Added ${p.added}</span><span>${ic("clock")}${p.last ? "Last used " + p.last : "Not used yet"}</span></div></div>${SA && !C.left ? `<button class="btn btn-outline" aria-label="Remove passkey ${p.label}">${ic("trash-2")}Remove</button>` : ""}</li>`).join("")}</ul>`
+      : `<div class="pa-empty">${ic("fingerprint")}<span>No passkeys.</span></div>`;
+    return `<section class="pa-sec" aria-labelledby="pk-h"><h3 id="pk-h">${ic("fingerprint")}Passkeys ${countBadge(C.passkeys.length + " of 3")}</h3>${list}</section>`;
+  }
+
+  function requireSec() {
+    if (!SA || C.left) return "";
+    return `<section class="pa-sec" aria-labelledby="rq-h"><h3 id="rq-h">${ic("key-round")}Password</h3><div class="pa-actions"><button class="btn btn-outline" ${C.account.state === "no_password" ? "disabled" : ""}>${ic("key-round")}Require a new password</button></div>
+      <p class="pa-note">${ic("info")}The employee must prove who they are again. This also removes their passkeys.</p></section>`;
+  }
+
+  function historySec() {
+    const rows = C.hist.map((h) => `<li><span class="hic ${h[5] ? "on" : ""}">${ic(h[0])}</span><div><b>${h[1]}</b><span class="by">${h[3]}</span>${h[4] ? `<q>${h[4]}</q>` : ""}</div><span class="when tnum">${h[2]}</span></li>`).join("");
+    const more = C.openHist ? "" : `<button class="btn btn-ghost btn-sm2" style="margin-top:8px">${ic("chevron-down")}Show all changes</button>`;
+    return `<section class="pa-sec" aria-labelledby="hs-h"><h3 id="hs-h">${ic("history")}History</h3><ol class="pa-hist" aria-label="Changes, newest first">${rows}</ol>${more}</section>`;
+  }
+
+  function phoneCard() {
+    const ro = !SA ? `<div class="pa-sec" style="padding-bottom:0"><div class="ro-strip" style="margin:0">${ic("eye")}<span><b>View only.</b> Only the Super Admin changes phone attendance.${ROLE === "ph" ? " You see your own plant." : ""}</span></div></div>` : "";
+    const showEmptyTop = !C.on && !C.left;
+    const emptyTop = showEmptyTop ? `<div class="pa-sec"><div class="pa-empty">${ic("smartphone-nfc")}<span>Phone punching is off. The employee punches only at the attendance device.</span></div></div>` : "";
+    const detail = C.on || C.left ? accountSec() + sessionsSec() + passkeysSec() + requireSec() : (C.account.state === "active" ? accountSec() : "");
+    return `<section class="card pa-card ${C.highlight ? "is-highlight" : ""}" id="phone-card" aria-labelledby="pa-h"><div class="pa-head"><span class="hi">${ic("smartphone")}</span><div><h2 id="pa-h">Phone attendance</h2><p>Phone punching is optional. The server checks every phone punch.</p></div><div class="right">${stateBadges()}</div></div>
+      ${ro}<div class="pa-sec">${switchRows()}</div>${emptyTop}${detail}${historySec()}</section>`;
+  }
+
+  function stubCards() {
+    const st = (icon, t, s) => `<section class="card set-card collapsed-card" style="margin-top:16px"><div class="set-head" style="align-items:center"><span class="hi">${ic(icon)}</span><div><h2>${t}</h2><p class="summary">${s}</p></div><div class="right"><i data-lucide="chevron-down" style="width:20px;height:20px;color:var(--muted-foreground)"></i></div></div></section>`;
+    return st("list", "Details", "Employee code, plant, department, shift, overtime rate, punch method") + st("history", "Plant history and shift history", "K134 since 02/04/2019");
+  }
+
+  function page() {
+    const crumbs = `<nav class="pa-crumbs" aria-label="Breadcrumb"><a href="#">Employees</a> &nbsp;›&nbsp; <b style="color:var(--foreground)">${C.emp.code} ${C.emp.name}</b></nav>`;
+    if (S === "loading") return `<div class="page-narrow">${crumbs}<div class="skeleton" style="height:120px;margin-bottom:16px"></div><div class="card pa-load"><div class="skeleton" style="height:44px;width:260px"></div><div class="skeleton" style="height:72px"></div><div class="skeleton" style="height:72px"></div><div class="skeleton" style="height:120px"></div><div class="skeleton" style="height:120px"></div></div></div>`;
+    if (S === "error") return `<div class="page-narrow">${crumbs}${identity()}<section class="card"><div class="pa-head"><span class="hi">${ic("smartphone")}</span><div><h2>Phone attendance</h2></div></div><div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>Phone attendance could not be loaded</h3><p>The server did not answer. Nothing was changed. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></section></div>`;
+    return `<div class="page-narrow" style="padding-bottom:40px">${crumbs}${identity()}${phoneCard()}${stubCards()}</div>`;
+  }
+
+  /* ---------- dialogs ---------- */
+  const WHO = `<div class="dlg-sum"><div class="row">${ic("user-round")}<b>${C.emp.name}</b><span class="code">${C.emp.code}</span><span class="badge badge-outline">${C.emp.plant}</span></div></div>`;
+  const REASON_OK = "She asked at the plant office. She lives far from the gate.";
+  function dlg() {
+    switch (S) {
+      case "dialog-enable":
+        return dialog({ icon: "smartphone", tone: "primary", wide: true, title: "Switch phone punching on?", desc: "The employee can sign in on their phone and punch. Every punch is checked by the server.",
+          body: `${WHO}${reasonField(REASON_OK)}`, foot: dlgFoot("smartphone", "Switch on") });
+      case "dialog-disable":
+        return dialog({ icon: "smartphone-nfc", tone: "warning", wide: true, title: "Switch phone punching off?", desc: "The employee punches only at the attendance device again.",
+          body: `${WHO}<ul class="dlg-effects"><li>${ic("map-pin-off")}Outside work is switched off too.</li><li>${ic("log-out")}Every signed-in phone is signed out.</li></ul><ul class="dlg-effects keep"><li>${ic("key-round")}The password stays. Switching on again later needs no new proof.</li></ul>${reasonField("Phone not needed after the gate phone was repaired")}`, foot: dlgFoot("smartphone-nfc", "Switch off") });
+      case "dialog-outside-on":
+        return dialog({ icon: "map-pin", tone: "primary", wide: true, title: "Allow outside work?", desc: "Punches away from the plants are saved and flagged for the office to check.",
+          body: `${WHO}<div class="fld"><label class="label" for="until">Until <span class="opt">(optional)</span></label><div class="dateline"><input class="input" id="until" inputmode="numeric" placeholder="DD/MM/YYYY" /></div><p class="help">Today or later. The whole last day counts. Leave empty for no end date.</p></div>${reasonField("")}`, foot: dlgFoot("map-pin", "Allow outside work") });
+      case "dialog-outside-on-filled":
+        return dialog({ icon: "map-pin", tone: "primary", wide: true, title: "Allow outside work?", desc: "Punches away from the plants are saved and flagged for the office to check.",
+          body: `${WHO}<div class="fld"><label class="label" for="until">Until <span class="opt">(optional)</span></label><div class="dateline"><input class="input" id="until" inputmode="numeric" value="03/11/2026" /></div><p class="help">Today or later. The whole last day counts. Leave empty for no end date.</p></div>${reasonField("Three-day visit to the X-280 plant for the line start-up")}`, foot: dlgFoot("map-pin", "Allow outside work") });
+      case "dialog-outside-error-date":
+        return dialog({ icon: "map-pin", tone: "primary", wide: true, title: "Allow outside work?", desc: "Punches away from the plants are saved and flagged for the office to check.",
+          body: `${WHO}<div class="fld"><label class="label" for="until">Until <span class="opt">(optional)</span></label><div class="dateline"><input class="input" id="until" inputmode="numeric" value="29/10/2026" aria-invalid="true" aria-describedby="until-e" /></div><p class="errline" id="until-e">${ic("circle-alert")}The end date cannot be in the past.</p></div>${reasonField("Three-day visit to the X-280 plant for the line start-up")}`, foot: dlgFoot("map-pin", "Allow outside work") });
+      case "dialog-outside-edit":
+        return dialog({ icon: "calendar-clock", tone: "primary", wide: true, title: "Change the end date?", desc: "Outside work is on until 03/11/2026. A new date is a new change and needs a reason.",
+          body: `${WHO}<div class="fld"><label class="label" for="until">Until <span class="opt">(optional)</span></label><div class="dateline"><input class="input" id="until" inputmode="numeric" value="07/11/2026" /></div><p class="help">Today or later. The whole last day counts. Leave empty for no end date.</p></div>${reasonField("The line start-up takes four more days")}`, foot: dlgFoot("calendar-clock", "Save the end date") });
+      case "dialog-outside-off":
+        return dialog({ icon: "map-pin-off", tone: "warning", wide: true, title: "Switch outside work off?", desc: "From now on a punch away from the plants is refused. Phone punching at the plants stays on.",
+          body: `${WHO}${reasonField("The visit is finished")}`, foot: dlgFoot("map-pin-off", "Switch off") });
+      case "dialog-reason-error":
+        return dialog({ icon: "smartphone-nfc", tone: "warning", wide: true, title: "Switch phone punching off?", desc: "The employee punches only at the attendance device again.",
+          body: `${WHO}${reasonField("No", REASON_ERR)}`, foot: dlgFoot("smartphone-nfc", "Switch off") });
+      case "dialog-saving":
+        return dialog({ icon: "smartphone-nfc", tone: "warning", wide: true, title: "Switch phone punching off?", desc: "The employee punches only at the attendance device again.",
+          body: `${WHO}${reasonField("Phone not needed after the gate phone was repaired")}`, foot: dlgFoot("smartphone-nfc", "Switch off", { saving: true }) });
+      case "dialog-sign-out-all":
+        return dialog({ icon: "log-out", tone: "warning", wide: true, title: "Sign out all phones?", desc: "Every phone of this employee is signed out. The employee can sign in again with the password or a passkey.",
+          body: `${WHO}<div class="dlg-sum"><div class="row">${ic("smartphone")}<b>Chrome · Android</b><span class="muted">Last used today 08:57</span></div><div class="row">${ic("smartphone")}<b>Samsung Internet · Android</b><span class="muted">Last used 30/10/2026 18:30</span></div></div>${reasonField("The phone was lost")}`, foot: dlgFoot("log-out", "Sign out 2 phones", { danger: true }) });
+      case "dialog-new-password":
+        return dialog({ icon: "key-round", tone: "danger", wide: true, title: "Require a new password?", desc: "The employee must prove who they are again to set a new password.",
+          body: `${WHO}<ul class="dlg-effects"><li>${ic("key-round")}The old password stops working now.</li><li>${ic("fingerprint")}All passkeys are removed (2).</li><li>${ic("log-out")}Every signed-in phone is signed out.</li></ul>${reasonField("She changed her phone and forgot the password")}`, foot: dlgFoot("key-round", "Require a new password", { danger: true }) });
+      case "dialog-passkey-remove":
+        return dialog({ icon: "fingerprint", tone: "danger", wide: true, title: "Remove this passkey?", desc: "The employee can no longer sign in with it. The password still works.",
+          body: `${WHO}<div class="dlg-sum"><div class="row">${ic("fingerprint")}<b>Samsung Internet on Android</b><span class="muted">Added 30/10/2026 · Not used yet</span></div></div>${reasonField("The phone is not the employee's own")}`, foot: dlgFoot("trash-2", "Remove passkey", { danger: true }) });
+      case "dialog-conflict":
+        return dialog({ icon: "smartphone", tone: "primary", wide: true, title: "Switch phone punching on?", desc: "The employee can sign in on their phone and punch. Every punch is checked by the server.",
+          body: `<div class="alert alert-warning" role="alert" style="margin-bottom:14px">${ic("triangle-alert")}<span><b>Phone punching is already on.</b> Another admin changed it a moment ago. Close this window to see the current state.</span></div>${WHO}${reasonField(REASON_OK)}`, foot: `<button class="btn btn-outline btn-lg">Close</button><button class="btn btn-primary btn-lg" disabled>${ic("smartphone")}Switch on</button>` });
+      case "dialog-server-error":
+        return dialog({ icon: "smartphone-nfc", tone: "warning", wide: true, title: "Switch phone punching off?", desc: "The employee punches only at the attendance device again.",
+          body: `<div class="alert alert-danger" role="alert" style="margin-bottom:14px">${ic("triangle-alert")}<span><b>It could not be saved.</b> Nothing was changed. Check the internet and try again.</span></div>${WHO}${reasonField("Phone not needed after the gate phone was repaired")}`, foot: dlgFoot("rotate-cw", "Try again") });
+    }
+    return "";
+  }
+
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    const layer = document.getElementById("layer");
+    if (S.indexOf("dialog-") === 0) layer.innerHTML = dlg();
+    if (S === "toast-signed-out") layer.innerHTML = `<div class="toast" role="status">${ic("circle-check")}<p>2 phones were signed out.</p><button class="btn btn-ghost btn-icon x" aria-label="Close">${ic("x")}</button></div>`;
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

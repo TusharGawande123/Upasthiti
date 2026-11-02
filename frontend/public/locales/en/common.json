@@ -197,6 +197,12 @@
         "next": "You can punch OUT after {{outTime}}.",
         "voice": "Already checked in."
       },
+      "SHIFT_ALREADY_CLOSED": {
+        "title": "SHIFT CLOSED",
+        "message": "Your shift is already closed.",
+        "next": "Please visit the plant office.",
+        "voice": "Your shift is already closed. Please visit the plant office."
+      },
       "NETWORK_OFFLINE": {
         "title": "NOT SAVED",
         "message": "No internet. Your punch was NOT saved.",
@@ -205,8 +211,8 @@
       },
       "SERVER_NO_ANSWER": {
         "title": "NOT SURE",
-        "message": "The server did not answer in time.",
-        "next": "Scan your card again. If it was saved, you will see it.",
+        "message": "No answer in time.",
+        "next": "Scan your card again.",
         "voice": "Not sure if saved. Please scan again."
       },
       "INTERNAL_ERROR": {
@@ -308,7 +314,7 @@
       },
       "CHALLENGE_INVALID": {
         "title": "NOT ACCEPTED",
-        "message": "Please try again.",
+        "message": "The check could not be finished.",
         "next": "Please try again.",
         "voice": "Please try again."
       },
@@ -411,7 +417,7 @@
       "chipChecking": "Checking…",
       "cardRead": "Card read. Look at the camera",
       "checking": "Checking…",
-      "serverWaking": "Please wait. The server is starting; this can take up to a minute.",
+      "serverWaking": "Please wait. This can take up to a minute.",
       "notACard": "This is not an Upasthiti ID card.",
       "lowLight": "Too dark. Please switch on the gate light.",
       "startCamera": "Start camera",
@@ -432,7 +438,9 @@
       "imReady": "I'm ready: take my photo",
       "cancelPhoto": "Cancel",
       "useBackCamera": "Use the back camera",
-      "useFrontCamera": "Use the front camera"
+      "useFrontCamera": "Use the front camera",
+      "insideNow": "Inside now: {{count}}",
+      "phoneCodeAtDevice": "This code is for phones. Show your ID card to this attendance device."
     },
     "result": {
       "in": "IN",
@@ -443,6 +451,8 @@
       "welcome": "Welcome,",
       "goodbye": "Goodbye,",
       "codeLine": "Employee code {{code}}",
+      "lateLine": "Late by {{count}} min",
+      "monthLine": "Days present this month: {{count}}",
       "codeChecked": "Employee code {{code}} · {{status}}",
       "checkedIn": "Checked in",
       "checkedOut": "Checked out",
@@ -551,6 +561,14 @@
       "typeCodeLine": "No internet right now. Type your code, then look at the camera.",
       "storageAlmostFull": "Storage almost full. Please tell the plant office.",
       "clockOffline": "(offline)"
+    },
+    "phoneCode": {
+      "title": "Phone code",
+      "line": "Workers with phone attendance: scan this with your phone",
+      "alt": "The phone code of this attendance device",
+      "timer": "The code changes in {{count}} seconds",
+      "notAvailable": "Phone code not available now. Show your ID card.",
+      "back": "Back"
     }
   },
   "health": {
@@ -638,6 +656,43 @@
     "SHIFT_EXISTS": "A shift with this name already exists in the plant.",
     "SHIFT_IN_USE": "Employees use this shift. Move them first.",
     "SHIFT_TIMES_INVALID": "Start and end time cannot be the same.",
+    "SHIFT_DAY_LIMITS_INVALID": "The half day must be shorter than the shift, and grace at most 120 minutes.",
+    "SHIFT_RULE_DATE_INVALID": "Rules can apply from today or a later date.",
+    "WEEKLY_OFF_DATE_INVALID": "The weekly off can change from today or a later date.",
+    "ATTENDANCE_START_INVALID": "Attendance days already exist: the start date can only move later.",
+    "ATTENDANCE_DATE_INVALID": "This day has not begun yet.",
+    "ATTENDANCE_DAY_NOT_ACTIVE": "Attendance does not apply to this day, or the day is not finished.",
+    "CORRECTION_NOT_ALLOWED": "This person was at another plant on that day.",
+    "CORRECTION_KIND_NOT_FOR_TEMPORARY": "A status is not set for temporary workers. Correct their punches instead.",
+    "CORRECTION_TIME_OUTSIDE_DAY": "The time is not inside this attendance day.",
+    "CORRECTION_TIME_IN_FUTURE": "The time is in the future.",
+    "CORRECTION_TOO_OLD": "This day is too old to ask for. Ask the Super Admin.",
+    "CORRECTION_DUPLICATE": "The same correction is already waiting for a decision.",
+    "CORRECTION_NEAR_PUNCH": "A punch already covers this time.",
+    "CORRECTION_PUNCH_NOT_COUNTED": "This punch does not count on that day.",
+    "CORRECTION_NOT_PENDING": "This request has already been decided.",
+    "CORRECTION_NO_LONGER_VALID": "This request no longer fits the day. Reject it instead.",
+    "CORRECTION_NOT_APPROVED": "Only an approved correction can be reversed.",
+    "CORRECTION_ALREADY_REVERSED": "This correction was already reversed.",
+    "RECOMPUTE_RANGE_TOO_LONG": "Choose at most 62 days.",
+    "REPORT_RANGE_TOO_LONG": "This period is too long. Please choose fewer days.",
+    "REPORT_KIND_UNKNOWN": "This report does not exist.",
+    "REPORT_BUSY": "Another report is still being built. Please wait for it to finish, then try again.",
+    "REPORT_TOO_LARGE": "This PDF would have more than 3,000 rows. Download the Excel file, or choose one plant.",
+    "EARLY_OUT_TOKEN_INVALID": "The confirmation is too old. Please punch again.",
+    "SHIFT_SWAP_INVALID": "This shift cannot be used for this person on this day.",
+    "SHIFT_SWAP_EXISTS": "This person already has a swap on this day.",
+    "SHIFT_SWAP_STARTED": "The day of this swap has already begun.",
+    "SHIFT_SWAP_NOT_ACTIVE": "This swap is already cancelled.",
+    "EMAIL_NOT_CONFIGURED": "Email is not set up on this server.",
+    "EMAIL_SEND_FAILED": "The email could not be sent. Try again later.",
+    "EMAIL_ADDRESS_MISSING": "Add your email address first.",
+    "LEAVE_RANGE_INVALID": "Leave can be up to 92 days, inside the employment dates.",
+    "LEAVE_OVERLAPS": "Leave already exists for part of these dates.",
+    "LEAVE_NOT_ACTIVE": "This leave is already cancelled.",
+    "HOLIDAY_EXISTS": "There is already a holiday on this date for one of these plants.",
+    "HOLIDAY_DATE_INVALID": "Choose a date within the last year or the next two years.",
+    "HOLIDAY_NOT_ACTIVE": "This holiday is already cancelled.",
     "GEOFENCE_INVALID": "The shape is not valid. Draw it again.",
     "GEOFENCE_TOO_SMALL": "The shape is too small (at least 100 m², or a 20 m circle).",
     "GEOFENCE_TOO_LARGE": "The shape is too large (at most 2 km², or a 1,000 m circle).",
@@ -652,7 +707,7 @@
     "OUTSIDE_GEOFENCE": "This device is not at the plant.",
     "LOCATION_REQUIRED": "The device did not report its location.",
     "DEVICE_REVOKED": "This device has been switched off.",
-    "DEVICE_SIGNATURE_INVALID": "This device is not paired.",
+    "DEVICE_SIGNATURE_INVALID": "This device is not paired. Pair it again.",
     "EMPLOYEE_CODE_EXISTS": "This employee code is already used. Codes are never reused.",
     "EMPLOYEE_CODE_PENDING": "This code is waiting for approval in another request.",
     "EMPLOYEE_NOT_FOUND": "This employee was not found.",
@@ -677,8 +732,8 @@
     "IMPORT_TOO_LARGE": "The file is too large (2 MB and 2,000 rows at most).",
     "IMPORT_HAS_ERRORS": "The file has errors. Nothing was saved.",
     "NONCE_REUSED": "This request was already used. Please try again.",
-    "PUBLIC_KEY_INVALID": "The device key is not valid. Ask the admin for help.",
-    "DATABASE_UNAVAILABLE": "The database is not reachable right now. Please try again in a minute.",
+    "PUBLIC_KEY_INVALID": "This device is not paired. Pair it again.",
+    "DATABASE_UNAVAILABLE": "The system is busy right now. Please try again in a minute.",
     "SUPER_ADMIN_EXISTS": "A Super Admin already exists.",
     "EXPORT_TOO_LARGE": "At most 5,000 punches per file. Choose one plant.",
     "QR_CARD_REVOKED": "A revoked card cannot be printed or changed. Issue a new card.",
@@ -723,12 +778,45 @@
     "PRIVACY_CONTACT_MISSING": "Set the privacy contact in Settings first.",
     "SETTING_INVALID": "The code-entry floor must be lower than the match threshold.",
     "OFFLINE_NOT_CONFIGURED": "Offline punches are not set up on this server yet.",
-    "ITEM_SIGNATURE_INVALID": "A saved punch was not signed by this device.",
+    "ITEM_SIGNATURE_INVALID": "A saved punch could not be checked.",
     "ITEM_COUNTER_INVALID": "A saved punch was already used or is out of order.",
     "ITEM_INVALID": "A saved punch could not be read.",
     "REVIEW_CHANGED": "This punch was reviewed in the meantime. Nothing was saved. Load the latest and decide again.",
     "REVIEW_NOT_ALLOWED": "This action does not fit this punch. Nothing was saved.",
-    "REVIEW_NO_EMPLOYEE": "No employee is known for this punch, so it cannot be approved."
+    "REVIEW_NO_EMPLOYEE": "No employee is known for this punch, so it cannot be approved.",
+    "PHONE_CREDENTIALS_INVALID": "Employee code or password is wrong. First time? Set your password.",
+    "PHONE_ACCOUNT_LOCKED": "Too many wrong passwords. Try again in {{minutes_left}} minutes, or reset your password.",
+    "PHONE_PUNCH_OFF": "Phone attendance is switched off for you. Please visit the plant office.",
+    "PHONE_NEW_PASSWORD_REQUIRED": "Please set a new password: tap 'First time or forgot your password?'.",
+    "PHONE_NOT_SIGNED_IN": "Please sign in again.",
+    "PHONE_NOTICE_REQUIRED": "Please read and accept the phone attendance notice first.",
+    "NOTICE_TEXT_CHANGED": "The notice was updated. Please read it again.",
+    "PHONE_FACE_NOT_READY": "Your face is not set up for attendance. Please visit the plant office.",
+    "PROOF_FAILED": "We could not confirm it is you. Please try again, or visit the plant office.",
+    "PROOF_TOKEN_INVALID": "This check has expired. Please check again.",
+    "PHONE_ACCESS_UNCHANGED": "Phone punching is already switched this way.",
+    "OUTSIDE_UNTIL_INVALID": "The end date cannot be in the past.",
+    "PHONE_RECENT_SIGN_IN_REQUIRED": "Please sign in with your password again to add a passkey.",
+    "PASSKEY_INVALID": "The passkey did not work. Please sign in with your password.",
+    "PASSKEY_LIMIT_REACHED": "You already have 3 passkeys. Remove one first.",
+    "PASSKEYS_NOT_CONFIGURED": "Passkeys are not set up on this server. Please sign in with your password.",
+    "NO_FACE": "We could not see your face. Stand in front of the camera and try again.",
+    "MULTIPLE_FACES": "More than one face was seen. Only you in front of the camera, please. Please try again.",
+    "FACE_TOO_SMALL": "Come closer to the camera. Please try again.",
+    "FACE_QUALITY_LOW": "The picture is not clear. Find more light and hold still. Please try again.",
+    "LIVENESS_FAILED": "Please turn your head as the arrow shows, then look straight. Please try again.",
+    "CHALLENGE_EXPIRED": "Too slow. Please try again.",
+    "CHALLENGE_INVALID": "This check was already used. Please try again.",
+    "GATE_CODE_INVALID": "This phone code is not valid.",
+    "GATE_CODE_EXPIRED": "The phone code has changed. Please scan it again.",
+    "NOT_A_GATE_CODE": "This is not the phone code of the attendance device.",
+    "FRAMES_INVALID": "The camera pictures could not be read. Please try again.",
+    "NOT_BULK_CONFIRMABLE": "This punch needs a single review. It was left as it is.",
+    "PHONE_SIGNED_OUT_ELSEWHERE": "You signed in on another phone, so this phone was signed out.",
+    "PHONE_BROWSER_UNSUPPORTED": "Please open this page in Chrome or Edge on your phone.",
+    "PASSKEY_CANCELLED": "The passkey was not used. You can try again or sign in with your password.",
+    "PHONE_LOCATION_DENIED": "Turn on location for this website. Please try again.",
+    "PHONE_NETWORK_OFFLINE": "No internet. Please try again when you have internet."
   },
   "nav": {
     "label": "Main menu",
@@ -752,7 +840,17 @@
     "notices": "Gate notices",
     "offline": "offline",
     "review": "Needs review",
-    "toCheck": "to check"
+    "toCheck": "to check",
+    "muster": "Emergency muster",
+    "attendance": "Attendance",
+    "register": "Monthly register",
+    "corrections": "Corrections",
+    "leave": "Leave",
+    "holidays": "Holidays",
+    "punctuality": "Punctuality",
+    "reports": "Reports",
+    "notifications": "Notifications",
+    "unread": "unread"
   },
   "userMenu": {
     "sessions": "My sessions",
@@ -792,14 +890,16 @@
   },
   "dashboard": {
     "welcome": "Welcome, {{name}}",
-    "placeholderTitle": "Live headcount comes in M5",
-    "placeholderText": "Setup, people and attendance device screens arrive in the next updates.",
+    "placeholderTitle": "System status",
+    "placeholderText": "Whether the server is running.",
     "cardsEndingSoon": {
       "title": "Cards ending soon",
       "text_one": "{{count}} QR card ends in the next {{days}} days. Extend it or let it end.",
       "text_other": "{{count}} QR cards end in the next {{days}} days. Extend them or let them end.",
       "link": "See these cards",
-      "error": "The number could not be loaded."
+      "error": "The number could not be loaded.",
+      "phoneOn_one": "{{count}} with Phone punching on",
+      "phoneOn_other": "{{count}} with Phone punching on"
     },
     "face": {
       "title": "Face enrolment",
@@ -832,6 +932,71 @@
       "loading": "Loading…",
       "error": "The device list could not be loaded.",
       "link": "View devices"
+    },
+    "live": {
+      "title": "Live dashboard",
+      "updated": "Updated {{time}}",
+      "refreshes": "refreshes every 30 seconds",
+      "stale": "Could not refresh at {{time}}. Showing numbers from {{old}}.",
+      "tryAgain": "Try again",
+      "allPlants": "All plants",
+      "tileLabel": "{{label}}, {{count}}. Open the list.",
+      "insideNow": "Inside now",
+      "people": "people",
+      "permanent": "Permanent: {{count}}",
+      "insideTemporary": "Of which temporary: {{count}}",
+      "expected": "Expected today",
+      "expectedSub": "Working day, not on leave",
+      "arrived": "Arrived",
+      "arrivedSub": "{{percent}}% of expected",
+      "late": "Late",
+      "lateSub": "Permanent staff, after the grace time",
+      "notArrived": "Not arrived yet",
+      "notArrivedSub": "Shift start and grace time are over",
+      "onLeave": "On leave",
+      "onLeaveSub": "Approved leave today",
+      "offToday": "Off today",
+      "offTodaySub": "Weekly off or holiday",
+      "exceptions": "Exceptions",
+      "exceptionsSub": "Incomplete, short hours, flags, corrections",
+      "daysToDecide": "Days to decide",
+      "daysToDecideText_one": "{{count}} day to decide",
+      "daysToDecideText_other": "{{count}} days to decide",
+      "shortHours": "{{count}} Short hours",
+      "incomplete": "{{count}} Incomplete",
+      "decideSub": "This month. Each day waits for a decision before any salary estimate.",
+      "temporaryOnSite": "Temporary workers on site",
+      "temporarySub": "Inside now, {{count}} in all, by contractor",
+      "noContractor": "No contractor",
+      "shifts": "Shifts today",
+      "shiftExpected": "{{count}} expected",
+      "shiftArrived": "{{count}} arrived",
+      "shiftLate": "{{count}} late",
+      "shiftNotStarted": "Shift not started",
+      "keptTitle": "Devices, checks and set-up",
+      "demoSwitch": "Show demo plants",
+      "demoSwitchHint": "Saved in this browser. Demo plants are never in the totals.",
+      "demoChip": "Demo plants shown",
+      "demoBadge": "Demo",
+      "table": {
+        "plant": "Plant",
+        "insideNow": "Inside now",
+        "expected": "Expected",
+        "arrived": "Arrived",
+        "late": "Late",
+        "notArrived": "Not arrived",
+        "onLeave": "On leave",
+        "exceptions": "Exceptions",
+        "total": "Total"
+      },
+      "notStartedShort": "Not started",
+      "notStarted": "Not started",
+      "notStartedText": "Attendance has not started at this plant yet. Live numbers begin on the attendance start date of the plant. Until then nobody is counted as late or absent.",
+      "setStartDate": "Set the start date",
+      "noEmployees": "No employees at this plant yet",
+      "noEmployeesText": "Add employees or import an Excel sheet, then the numbers appear here.",
+      "goEmployees": "Go to Employees",
+      "onOutside": "On outside work: {{count}}"
     }
   },
   "users": {
@@ -944,6 +1109,22 @@
       "offline": {
         "title": "Offline attendance devices",
         "description": "How long a gate device may work without internet, and when it counts as offline."
+      },
+      "attendance": {
+        "title": "Attendance days",
+        "description": "When a shift's day starts, and how far back corrections may be asked for."
+      },
+      "alerts": {
+        "title": "Alerts and email",
+        "description": "When the bell warns you, and how long alerts are kept."
+      },
+      "gate_lines": {
+        "title": "Attendance device screen: extra lines",
+        "description": "Short lines under a punch result on the attendance device."
+      },
+      "phone": {
+        "title": "Phone attendance",
+        "description": "Employees who sign in on their own phone to punch: sessions, lockout and the changing gate code."
       }
     },
     "items": {
@@ -1158,6 +1339,90 @@
       "offline_clock_drift_seconds": {
         "label": "Allowed clock difference",
         "help": "If the device's two clocks disagree by more than this, the time of an offline punch is marked as not proven."
+      },
+      "attendance_window_before_hours": {
+        "label": "Day starts before the shift",
+        "help": "A punch belongs to the shift day that starts this many hours before the shift start. With 4 h, the day of a 09:00 shift runs from 05:00 to 05:00 the next morning."
+      },
+      "correction_request_max_days": {
+        "label": "Corrections can be asked for up to",
+        "help": "How many days back a Corporate Head or Plant Head may ask for a correction. The Super Admin has no limit."
+      },
+      "still_inside_alert_minutes": {
+        "label": "Still inside after the shift",
+        "help": "Warn when someone has not punched OUT this long after the shift end."
+      },
+      "rejection_alert_count": {
+        "label": "Many refused punches",
+        "help": "Warn when a gate refuses this many punches in the time below."
+      },
+      "rejection_alert_minutes": {
+        "label": "Time for the refused punches",
+        "help": "The time span of the refused-punches warning."
+      },
+      "email_alerts": {
+        "label": "Email alerts",
+        "help": "Send alerts by email as well. Works only when the company's own email server is set up."
+      },
+      "notification_keep_days": {
+        "label": "Keep alerts for",
+        "help": "Alerts older than this are removed. Attendance records are never removed."
+      },
+      "absence_streak_days": {
+        "label": "Absent several days in a row",
+        "help": "Warn when a person is absent this many working days in a row."
+      },
+      "kiosk_show_inside_count": {
+        "label": "Show \"Inside now\" on the gate",
+        "help": "The gate screen shows how many people are inside the plant. No names."
+      },
+      "kiosk_late_hint": {
+        "label": "Gentle late hint at the gate",
+        "help": "After a late IN the gate shows \"You are 12 minutes late today.\" Off by default."
+      },
+      "kiosk_show_month_line": {
+        "label": "\"My month\" line at the gate",
+        "help": "After a punch the gate shows the person's present days this month. No name. Off by default."
+      },
+      "phone_session_idle_days": {
+        "label": "Phone sign-in idle days",
+        "help": "A phone is signed out when it is not used for this many days."
+      },
+      "phone_session_max_days": {
+        "label": "Phone sign-in longest life",
+        "help": "A phone is signed out after this many days at most, even if it is used every day."
+      },
+      "phone_max_sessions": {
+        "label": "Phones at a time",
+        "help": "How many phones one employee may be signed in on at once. 1 means a new sign-in signs the older phone out."
+      },
+      "phone_login_max_failures": {
+        "label": "Wrong passwords before lock",
+        "help": "After this many wrong passwords the employee is locked for a while."
+      },
+      "phone_login_lock_minutes": {
+        "label": "Lock time",
+        "help": "How long an employee is locked after too many wrong passwords."
+      },
+      "phone_location_max_age_seconds": {
+        "label": "Phone location age",
+        "help": "A phone punch is refused when the location reading is older than this."
+      },
+      "phone_many_phones_alert_count": {
+        "label": "Many-phones alert",
+        "help": "The bell warns the Super Admin when one employee signs in on this many different phones within 30 days."
+      },
+      "phone_gate_code_seconds": {
+        "label": "Gate code life",
+        "help": "How long a changing phone code on the attendance device screen can be scanned. It must stay shorter than the punch cool-down."
+      },
+      "kiosk_show_phone_code": {
+        "label": "Show phone code",
+        "help": "The attendance device screen shows a changing code that temporary workers scan with their phone."
+      },
+      "kiosk_phone_code_show_seconds": {
+        "label": "Phone code on screen time",
+        "help": "On a small screen the phone code button shows the code for this long."
       }
     },
     "units": {
@@ -1169,7 +1434,9 @@
       "km/h": "km/h",
       "months": "months",
       "s": "seconds",
-      "of 255": "of 255"
+      "of 255": "of 255",
+      "rejections": "punches",
+      "working days": "working days"
     },
     "choices": {
       "26": "26 days",
@@ -1232,7 +1499,22 @@
     "neighbourWarning": {
       "title": "Plants in MIDC Waluj are close together.",
       "text": "A larger value may let a device at a neighbouring plant punch here."
-    }
+    },
+    "newBadge": "New in this version",
+    "gate": {
+      "previewLabel": "On the screen:",
+      "inside": "Inside now: 214",
+      "late": "You are 40 minutes late today.",
+      "month": "This month: 18 days present",
+      "neverSpoken": "Never spoken · never shows a name",
+      "monthWarning": "People standing behind can read it. Tell the workers before you switch it on."
+    },
+    "email": {
+      "ready": "Email is set up on this server. Each person chooses their own alerts in Notifications.",
+      "sendTest": "Send a test email",
+      "testSent": "Test email sent to your address."
+    },
+    "windowError": "Must be below {{max}} hours. The longest active shift is {{longest}} hours (24 - {{longest}} = {{max}})."
   },
   "audit": {
     "title": "Audit log",
@@ -1261,7 +1543,8 @@
     "actors": {
       "user": "User",
       "kiosk": "Attendance device",
-      "system": "System"
+      "system": "System",
+      "employee": "Employee"
     }
   },
   "sessions": {
@@ -1413,7 +1696,9 @@
         "kiosk": "Attendance device at the gate",
         "employees": "Employees",
         "deviceOnline": "Attendance device online",
-        "locationGood": "Location good"
+        "locationGood": "Location good",
+        "attendanceStart": "Attendance start date",
+        "weeklyOff": "Weekly off"
       },
       "geofenceOk": "A geofence is set.",
       "geofenceNo": "No geofence. Draw it on the Geofence tab.",
@@ -1429,7 +1714,11 @@
       "deviceOnlineYes": "At least one device is in contact now.",
       "deviceOnlineNo": "No device has been in contact in the last minutes.",
       "locationGoodYes": "The device's last location was inside the fence.",
-      "locationGoodNo": "The device's last location is not good."
+      "locationGoodNo": "The device's last location is not good.",
+      "attendanceStartYes": "Attendance is worked out from the start date.",
+      "attendanceStartNo": "Attendance has not started. Set the start date on the Overview tab.",
+      "weeklyOffYes": "The weekly off is set.",
+      "weeklyOffNo": "No weekly off is set. Set it on the Overview tab."
     },
     "departments": {
       "description": "Departments of this plant (for example Press shop or Stores).",
@@ -1446,7 +1735,7 @@
       "empty": "No categories yet."
     },
     "shifts": {
-      "description": "Each shift has its own late limit and overtime start. Add a night shift any time.",
+      "description": "Each shift has its own grace, half day and smallest overtime. Add a night shift any time.",
       "add": "Add shift",
       "addTitle": "Add a shift",
       "editTitle": "Edit shift",
@@ -1456,9 +1745,10 @@
       "ends": "Ends",
       "times": "Times",
       "nextDay": "(next day)",
-      "grace": "Grace",
+      "grace": "Grace after the start",
       "halfDay": "Half-day limit",
-      "overtimeAfter": "Overtime after",
+      "overtimeMin": "Smallest overtime",
+      "rulesFrom": "These rules apply from",
       "min": "min",
       "minutes_one": "{{count}} min",
       "minutes_other": "{{count}} min",
@@ -1466,10 +1756,11 @@
       "thisShift": "This shift",
       "sentenceSameDay": "{{name}}: starts {{start}}, ends {{end}} ({{length}}).",
       "sentenceNextDay": "{{name}}: starts {{start}}, ends next day at {{end}} ({{length}}).",
-      "lateIf": "Late if the first punch is after {{time}}.",
-      "halfDayRule": "A half day needs at least {{length}} of work.",
-      "overtimeRule": "Overtime counts after {{length}} of work, at each employee's own rate.",
-      "futureOnly": "Changes apply from today. Days already worked out keep their values. The overtime rate is set on each employee.",
+      "graceRule": "On time until {{onTime}}. Leave from {{end}}: an OUT before that is an early exit.",
+      "fullDayRule": "Full day: {{length}} (the shift length).",
+      "halfDayRule": "Half-day from {{length}}. Below that: Short hours (you decide the day with a correction).",
+      "overtimeRule": "Overtime: from {{time}}, only when the person stays {{length}} or more.",
+      "futureOnly": "Days before the rules date keep their old rules. The overtime rate is set on each employee.",
       "save": "Save shift"
     },
     "poster": {
@@ -1697,6 +1988,10 @@
       "rejected": {
         "label": "Rejected punches",
         "hint": "Rejected punches you may approve"
+      },
+      "muster": {
+        "label": "Emergency muster",
+        "hint": "Who is inside the plant now"
       }
     }
   },
@@ -1910,6 +2205,17 @@
       "description": "The person becomes active again from the joining date you choose.",
       "confirm": "Reactivate",
       "done": "Reactivated."
+    },
+    "tabs": {
+      "details": "Details",
+      "attendance": "Attendance"
+    },
+    "phone": {
+      "tag": "Phone",
+      "filterLabel": "Phone punching",
+      "any": "Phone punching: any",
+      "on": "Phone punching: on",
+      "off": "Phone punching: off"
     }
   },
   "contractors": {
@@ -2354,7 +2660,9 @@
       "sentNote": "After the Super Admin approves, the Super Admin issues and prints the cards. You cannot issue cards.",
       "noQr_one": "No QR card is needed for this file. The one person punches by face. There is nobody to issue a card to.",
       "noQr_other": "No QR cards are needed for this file. All {{count}} people punch by face. There is nobody to issue a card to."
-    }
+    },
+    "phoneOn": "Phone punching on",
+    "phoneEndedNote": "A card that has ended does not stop phone punching. When a contract ends, switch phone punching off on the employee page, or mark the person as left."
   },
   "punchReasons": {
     "SNAPSHOT_MISSING": "No photo was sent",
@@ -2369,6 +2677,7 @@
     "WRONG_PLANT": "Registered at another plant",
     "COOLDOWN_ACTIVE": "Already punched (scanned again too soon)",
     "OUT_TOO_SOON": "Already IN (OUT not allowed yet)",
+    "SHIFT_ALREADY_CLOSED": "Shift already closed (OUT already made)",
     "NO_FACE": "No face seen",
     "MULTIPLE_FACES": "More than one person",
     "FACE_TOO_SMALL": "Face too far from the camera",
@@ -2389,6 +2698,8 @@
     "GEOFENCE_NOT_SET": "Plant has no fence",
     "OFFLINE_CHALLENGE_INVALID": "Offline face check not valid",
     "OFFLINE_EVIDENCE_UNREADABLE": "Saved punch could not be opened",
+    "GATE_CODE_INVALID": "Phone code not valid",
+    "GATE_CODE_EXPIRED": "Phone code had already changed",
     "LOCATION_AT_EDGE": "At the edge of the fence",
     "LOCATION_AT_EDGE_help": "The device was outside the drawn fence but inside the allowed margin. Usually GPS jitter; check the map.",
     "LOCATION_STALE": "Last known location reused (offline)",
@@ -2404,9 +2715,15 @@
     "SYNC_ORDER_CONFLICT": "Arrived after a later punch",
     "SYNC_ORDER_CONFLICT_help": "This offline punch arrived after a later punch of the same person was already counted, so IN and OUT may not alternate.",
     "OFFLINE_CHALLENGE_INVALID_help": "The saved face punch did not carry a valid head-turn instruction, so it was not checked further.",
-    "OFFLINE_EVIDENCE_UNREADABLE_help": "The saved punch could not be opened (damaged, or locked with an old key). Ask the person when they came."
+    "OFFLINE_EVIDENCE_UNREADABLE_help": "The saved punch could not be opened (damaged, or locked with an old key). Ask the person when they came.",
+    "OUTSIDE_PLANT": "Outside the plant (outside work)",
+    "OUTSIDE_PLANT_help": "The employee punched with their own phone outside every plant fence, and outside work is allowed for them. The punch counts at once. Check the place on the map and the reason for the visit."
   },
   "punches": {
+    "channel": {
+      "phone": "Phone",
+      "device": "Attendance device"
+    },
     "title": "Punch log",
     "description": "Every punch at the gate attendance devices, by card or by face, accepted or rejected. Times in IST.",
     "descriptionOwnPlant": "Every punch at your plant's gate, by card or by face, accepted or rejected. Times in IST.",
@@ -2459,7 +2776,12 @@
       "anyOffline": "Saved offline: any",
       "savedOffline": "Saved offline only",
       "review": "Review",
-      "anyReview": "Review: any"
+      "anyReview": "Review: any",
+      "channel": "Channel",
+      "anyChannel": "Any channel",
+      "outside": "Outside plant",
+      "anyOutside": "Outside plant: any",
+      "outsideOnly": "Outside plant: only"
     },
     "columns": {
       "time": "Time",
@@ -2471,7 +2793,8 @@
       "photo": "Photo",
       "actions": "Actions",
       "method": "Method",
-      "resultAndReason": "Result and reason"
+      "resultAndReason": "Result and reason",
+      "channel": "Channel"
     },
     "direction": {
       "in": "IN",
@@ -2522,7 +2845,8 @@
     "method": {
       "face": "Face",
       "card": "Card",
-      "faceByCode": "Face, by code"
+      "faceByCode": "Face, by code",
+      "phoneCode": "Phone code"
     },
     "how": {
       "face": "By face",
@@ -2578,7 +2902,15 @@
       "notShown": "Scores, the typed code and photos are shown to the Super Admin only.",
       "punchTime": "Punch time",
       "review": "Review",
-      "openReview": "Open in Needs review"
+      "openReview": "Open in Needs review",
+      "ownPlant": "Own plant",
+      "otherPlant": "At another plant",
+      "outsidePlant": "Outside plant",
+      "phone": "Signed-in phone",
+      "accuracy": "Location accuracy",
+      "accuracyValue": "{{meters}} m",
+      "positionHidden": "Position",
+      "positionHiddenText": "{{meters}} m from the fence. The exact position is only for the Super Admin."
     },
     "review": {
       "toCheck": "To check",
@@ -2596,7 +2928,10 @@
       "rejectedPlain": "Rejected",
       "needsCode": "Asked for the employee code"
     },
-    "countedFor": "Counted for {{name}} ({{code}})"
+    "countedFor": "Counted for {{name}} ({{code}})",
+    "outsidePlant": "Outside plant",
+    "outsidePlantLine": "Saved as an outside-plant punch. The office will check it.",
+    "atOtherPlant": "At plant {{plant}} (own plant {{own}})"
   },
   "notices": {
     "title": "Gate notices",
@@ -2943,7 +3278,9 @@
       "namesNo": "Names nobody",
       "showRepeats": "Show already-punched",
       "showRepeatsHelp": "Include scans that came a moment after a punch that already counts. They have nothing to approve.",
-      "clear": "Clear filters"
+      "clear": "Clear filters",
+      "channel": "Channel",
+      "anyChannel": "Any channel"
     },
     "count_one": "{{formatted}} punch · newest first",
     "count_other": "{{formatted}} punches · newest first",
@@ -2972,7 +3309,8 @@
       "review": "Review",
       "open": "Open",
       "details": "Details",
-      "openFor": "Review the punch of {{name}} at {{time}}"
+      "openFor": "Review the punch of {{name}} at {{time}}",
+      "outsideReason": "Outside work reason: {{reason}}"
     },
     "toast": {
       "confirm": "Confirmed",
@@ -3032,7 +3370,8 @@
     "relation": {
       "travel": "Impossible travel between these two punches",
       "two_devices": "The same person at two attendance devices",
-      "order": "This punch was sent after a later punch was already decided"
+      "order": "This punch was sent after a later punch was already decided",
+      "closing_out": "The OUT that closed this shift day"
     },
     "hints": {
       "title": "Seen before",
@@ -3117,7 +3456,1490 @@
       "flagged": "Flagged {{count}}",
       "rejected": "Rejected with an employee {{count}}",
       "toCheck": "Still to check {{count}}",
+      "selfieNoFace": "Phone selfies without a face {{count}}",
       "offline": "Attendance device offline in shifts: {{time}}"
+    },
+    "bulk": {
+      "single": "Single review",
+      "select": "Select",
+      "selected_one": "{{count}} selected",
+      "selected_other": "{{count}} selected",
+      "limit": "100 punches are selected. That is the most at one time.",
+      "clear": "Clear selection",
+      "confirm": "Confirm selected ({{count}})",
+      "dialogTitle_one": "Confirm {{count}} punch?",
+      "dialogTitle_other": "Confirm {{count}} punches?",
+      "dialogDesc": "Each punch is confirmed on its own. One that cannot be confirmed is left as it is.",
+      "note": "Note (optional)",
+      "noteHint": "Up to 300 characters. It is saved with every confirmed punch.",
+      "rejectedNote": "Rejected punches are reviewed one by one. There is no bulk approval.",
+      "confirmedCount_one": "{{count}} punch was confirmed",
+      "confirmedCount_other": "{{count}} punches were confirmed",
+      "needSingle_one": "{{count}} needs a single review",
+      "needSingle_other": "{{count}} need a single review"
+    }
+  },
+  "gate": {
+    "earlyOut": {
+      "tag": "Leaving early",
+      "half": {
+        "title": "Your half shift is not complete yet",
+        "consequence": "If you leave now, your day may count as short hours."
+      },
+      "full": {
+        "title": "Your full shift is not over yet",
+        "consequence": "If you leave now, your day may count as a half day."
+      },
+      "halfRemaining": "Half shift complete in",
+      "fullRemaining": "Full shift ends in",
+      "atTime": "at {{time}}",
+      "duration": "{{hours}} h {{minutes}} min",
+      "durationMinutes": "{{minutes}} min",
+      "cancelsIn": "Cancels in {{seconds}} s",
+      "agree": "Agree",
+      "cancel": "Cancel"
+    }
+  },
+  "attendance": {
+    "explain": {
+      "leave": "On leave ({{paid}}). No punches are needed.",
+      "holiday": "Holiday: {{name}}.",
+      "weeklyOff": "Weekly off.",
+      "noPunch": "No punch on this day.",
+      "inAt": "IN at {{time}}.",
+      "onTime": "IN at {{time}}: on time (on time until {{until}}).",
+      "late": "IN at {{time}}: {{duration}} late (on time until {{until}}).",
+      "noOut": "No OUT yet.",
+      "outAt": "OUT at {{time}}.",
+      "earlyExit": "You left {{duration}} before the shift end.",
+      "payable": "Payable time: {{duration}}.",
+      "workedForStatus": "Worked for the status: {{worked}} of {{full}}, so {{status}}.",
+      "overtimeReached": "Overtime: {{duration}} after the shift end.",
+      "overtimeNotReached": "{{duration}} after {{end}} did not reach the overtime minimum of {{minimum}}.",
+      "noOvertime": "No overtime: you left at or before the shift end ({{end}}).",
+      "extraPunches": "{{count}} extra punch(es) are not used for the hours.",
+      "corrected": "This day was corrected by an admin.",
+      "title": "Explain this day",
+      "source": "Worked out by the server, the same way as the list and the register.",
+      "paid": "paid",
+      "unpaid": "unpaid"
+    },
+    "title": "Attendance",
+    "subtitle": "One row for every person and day, worked out by the server from the punches.",
+    "toolsRegister": "Monthly register",
+    "downloadMuster": "Download daily muster",
+    "excel": "Excel",
+    "pdf": "PDF",
+    "downloadExcel": "Download Excel",
+    "downloadPdf": "Download PDF",
+    "decideBanner": {
+      "title": "{{count}} days to decide",
+      "text": "Short-hours days wait for a decision. Set each one to Present, Half-day or Absent.",
+      "show": "Show them"
+    },
+    "show": {
+      "from": "From the dashboard: {{tile}}.",
+      "closest": "This is the closest list. It may also show people the number does not count.",
+      "inside": "Inside now",
+      "expected": "Expected today",
+      "arrived": "Arrived",
+      "late": "Late",
+      "not_arrived": "Not arrived yet",
+      "on_leave": "On leave",
+      "off_today": "Off today",
+      "exceptions": "With exceptions",
+      "to_decide": "Days to decide"
+    },
+    "filter": {
+      "date": "Date",
+      "plant": "Plant",
+      "status": "Status",
+      "search": "Code or name",
+      "type": "Type",
+      "department": "Department",
+      "category": "Category",
+      "contractor": "Contractor",
+      "shift": "Shift",
+      "exceptions": "Has exceptions",
+      "corrected": "Corrected",
+      "clear": "Clear filters",
+      "all": "All",
+      "previousDay": "Previous day",
+      "nextDay": "Next day"
+    },
+    "tolerance": "{{shift}} {{start}}-{{end}}: On time until {{onTime}}. Leave from {{leave}}.",
+    "status": {
+      "present": "Present",
+      "half_day": "Half-day",
+      "short_hours": "Short hours",
+      "absent": "Absent",
+      "incomplete": "Incomplete",
+      "leave": "Leave",
+      "weekly_off": "Weekly off",
+      "holiday": "Holiday",
+      "worked_off_day": "Worked on off day",
+      "in_progress": "In progress"
+    },
+    "inProgress": {
+      "inside": "Inside since {{time}}",
+      "notArrived": "Not arrived yet",
+      "left": "Left at {{time}}"
+    },
+    "col": {
+      "employee": "Employee",
+      "status": "Status",
+      "in": "IN",
+      "out": "OUT",
+      "hours": "Hours",
+      "late": "Late",
+      "earlyExit": "Early exit",
+      "overtime": "Overtime",
+      "marks": "Marks"
+    },
+    "hoursOf": "{{worked}} of {{shift}}",
+    "mark": {
+      "corrected": "Corrected",
+      "pending": "Correction pending",
+      "flagged": "Flagged punch, not checked yet",
+      "extra": "Extra punches",
+      "exceptionsLegend": "Exceptions (count)"
+    },
+    "openDay": "Open day",
+    "showing": "Showing {{shown}} of {{total}} people",
+    "previous": "Previous",
+    "next": "Next",
+    "pageOf": "Page {{page}} of {{pages}}",
+    "empty": {
+      "title": "No attendance for these filters",
+      "text": "Nobody matches the date and filters you chose. Try another date, or clear the filters."
+    },
+    "error": {
+      "title": "The list could not be loaded",
+      "text": "Check your internet connection and try again. Nothing was changed.",
+      "tryAgain": "Try again"
+    },
+    "type": {
+      "permanent": "Permanent",
+      "temporary": "Temporary"
+    },
+    "register": {
+      "title": "Monthly register",
+      "subtitle": "One cell for every person and day. Open a cell to see the day.",
+      "month": "Month",
+      "correctedDot": "A black dot means the day was corrected.",
+      "scrollHint": "Scroll sideways inside this card to see all 31 days and the month totals. The name stays in place.",
+      "total": {
+        "present": "Present days",
+        "halfDay": "Half-days",
+        "shortHours": "Short-hours days",
+        "absent": "Absent",
+        "leave": "Leave paid / unpaid",
+        "weeklyOff": "Weekly offs",
+        "holiday": "Holidays",
+        "workedOffDay": "Worked on off days",
+        "incomplete": "Incomplete",
+        "workedHours": "Worked hours",
+        "overtimeHours": "Overtime hours",
+        "lateCount": "Late count"
+      },
+      "legend": "Legend",
+      "legendNone": "No result (future day or not employed)",
+      "none": "none",
+      "cellLabel": "{{name}}, day {{day}}, {{code}}{{corrected}}",
+      "correctedWord": ", corrected",
+      "empty": "No employees for this plant and month"
+    },
+    "code": {
+      "P": "Present",
+      "HD": "Half-day",
+      "SH": "Short hours",
+      "A": "Absent",
+      "INC": "Incomplete (OUT missing)",
+      "PL": "Paid leave",
+      "UL": "Unpaid leave",
+      "WO": "Weekly off",
+      "H": "Holiday",
+      "WO-W": "Worked on a weekly off",
+      "H-W": "Worked on a holiday"
+    },
+    "day": {
+      "title": "Day",
+      "at": "{{time}} on {{date}}",
+      "rulesLine": "{{shift}} {{start}}-{{end}} · full day {{full}}",
+      "toleranceLine": "On time until {{onTime}}. Leave from {{leave}}.",
+      "halfDayLine": "Half-day from {{half}}. Overtime from {{end}}, only when it is {{minimum}} or more.",
+      "window": "Punches from {{from}} to {{to}} count for this day.",
+      "pendingCount": "{{count}} correction pending",
+      "openPunchLog": "Open in punch log",
+      "correct": "Correct",
+      "ask": "Ask for a correction",
+      "roleSuper": "You are the Super Admin: you can correct this day directly.",
+      "roleHead": "You can ask for a correction. The Super Admin decides.",
+      "footSuper": "You correct directly. Every change is saved in the audit log.",
+      "footHead": "The Super Admin decides. Nothing changes until it is approved.",
+      "result": {
+        "in": "IN (first)",
+        "out": "OUT (last)",
+        "worked": "Worked",
+        "status": "Worked for the status",
+        "payable": "Payable",
+        "late": "Late",
+        "earlyExit": "Early exit",
+        "overtime": "Overtime"
+      }
+    },
+    "timeline": {
+      "title": "Timeline",
+      "count": "{{count}} items",
+      "counts": "Counts",
+      "notCounted": "Does not count",
+      "firstIn": "First IN: starts the hours",
+      "lastOut": "Last OUT: ends the hours",
+      "extra": "Extra punch: not used for the hours",
+      "notUsed": "Not used for this day",
+      "flagged": "Flagged, not checked yet",
+      "offline": "Saved offline",
+      "carryOver": "Punch of the next day's window, counted here",
+      "review": "Review",
+      "reasonSuperOnly": "Reason (Super Admin only)",
+      "reasonHidden": "Reason: only the Super Admin can see it"
+    },
+    "employee": {
+      "last12": "Last 12 months",
+      "last12Hint": "Each square has its register code, so colour is never the only cue.",
+      "presentCount": "{{count}} present",
+      "openDayHint": "Open a day to see its timeline.",
+      "previousMonth": "Previous month",
+      "nextMonth": "Next month",
+      "monthTotals": "Month totals",
+      "corrections": "Corrections and leave",
+      "noneThisMonth": "No leave and no corrections this month.",
+      "weekday": {
+        "mon": "Mon",
+        "tue": "Tue",
+        "wed": "Wed",
+        "thu": "Thu",
+        "fri": "Fri",
+        "sat": "Sat",
+        "sun": "Sun"
+      }
+    },
+    "swap": {
+      "cardTitle": "One-day shift swap",
+      "superOnly": "Super Admin only",
+      "title": "Work another shift on one day",
+      "button": "Work another shift on one day",
+      "explain": "On that day the person follows the rules of the shift you choose.",
+      "date": "Date (today or later)",
+      "shift": "Shift (same plant)",
+      "chooseShift": "Choose a shift",
+      "reason": "Reason",
+      "save": "Save the swap",
+      "created": "Shift swap saved",
+      "line": "Swapped to {{shift}} on {{date}}",
+      "by": "By {{name}}. Reason: {{reason}}",
+      "none": "No shift swap planned.",
+      "cancel": "Cancel the swap",
+      "cancelReason": "Why is the swap cancelled?",
+      "cancelConfirm": "Cancel this swap",
+      "cancelled": "Shift swap cancelled"
+    }
+  },
+  "muster": {
+    "title": "Emergency muster",
+    "note": "The list shows people whose last punch is IN. Visitors and people who did not punch are not on it.",
+    "count_one": "{{count}} person inside",
+    "count_other": "{{count}} people inside",
+    "peopleInside_one": "person inside",
+    "peopleInside_other": "people inside",
+    "listTime": "List of {{time}}",
+    "listTimeSaved": "List of {{time}}, saved copy",
+    "print": "Print",
+    "downloadPdf": "Download PDF",
+    "offline": "No connection. This is the list of {{time}}. People who punched since then are missing.",
+    "pdfNeedsConnection": "Download PDF needs a connection. Print works.",
+    "search": "Search code, name, department or contractor",
+    "matches": "{{count}} of {{total}} people match \"{{query}}\"",
+    "columns": {
+      "code": "Code",
+      "name": "Name",
+      "type": "Type",
+      "category": "Category",
+      "department": "Department",
+      "contractor": "Contractor",
+      "inTime": "IN time",
+      "device": "Attendance device"
+    },
+    "type": {
+      "permanent": "Permanent",
+      "temporary": "Temporary"
+    },
+    "showing": "Showing {{shown}} of {{total}} people. Print and PDF include everyone.",
+    "showMore": "Show {{count}} more",
+    "showAll": "Show all {{count}}",
+    "empty": "Nobody is inside right now",
+    "emptyText": "When someone punches IN at an attendance device, they appear here.",
+    "sheet": {
+      "rollCall": "Roll call done by: ______  Time: ______  Assembly point: ______",
+      "tick": "Tick",
+      "printedBy": "Printed {{time}} by {{name}}"
+    }
+  },
+  "attendanceExceptions": {
+    "OUT_MISSING": "IN is there but the OUT is missing.",
+    "OUT_WITHOUT_IN": "An OUT without an IN.",
+    "EXTRA_PUNCHES": "Extra punches are not used for the hours.",
+    "PUNCHES_ON_LEAVE": "Punches on a day of leave.",
+    "SHIFT_CHANGE_SHORT_DAY": "The shift changed, so this day is short.",
+    "POSSIBLE_DOUBLE_ENTRY": "Possible double entry."
+  },
+  "corrections": {
+    "title": "Corrections",
+    "subtitleSuper": "Requests from the Plant Heads and the Corporate Head wait here for your decision.",
+    "subtitleHead": "Ask for a change to a day. The Super Admin decides.",
+    "tab": {
+      "pending": "Pending",
+      "decided": "Decided",
+      "approvals": "Punch approvals",
+      "mine": "My requests"
+    },
+    "kind": {
+      "add_punch": "Add a punch",
+      "add_in_out": "Add IN and OUT",
+      "ignore_punch": "Ignore a punch",
+      "set_status": "Set the status",
+      "add_punchHint": "One missing IN or OUT",
+      "add_in_outHint": "Both are missing, for example when the attendance device was off",
+      "ignore_punchHint": "Hide a wrong punch",
+      "set_statusHint": "Present, Half-day or Absent",
+      "ignoreDisabled": "This day has no punches to ignore."
+    },
+    "state": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "withdrawn": "Withdrawn",
+      "reversed": "Reversed"
+    },
+    "in": "IN",
+    "out": "OUT",
+    "status": {
+      "present": "Present",
+      "half_day": "Half-day",
+      "absent": "Absent"
+    },
+    "approve": "Approve",
+    "reject": "Reject",
+    "withdraw": "Withdraw",
+    "reverse": "Reverse",
+    "cancel": "Cancel",
+    "rejectReason": "Why is it rejected? (shown to the requester)",
+    "rejectConfirm": "Reject this request",
+    "reverseReason": "Why is it reversed?",
+    "reverseConfirm": "Reverse this correction",
+    "reasonRange": "3 to 300 characters",
+    "askedBy": "Asked by {{name}}",
+    "waiting": "Waiting for the Super Admin",
+    "decidedBy": "Decided by {{name}} on {{date}}",
+    "done": {
+      "approve": "Request approved",
+      "reject": "Request rejected",
+      "withdraw": "Request withdrawn",
+      "reverse": "Correction reversed"
+    },
+    "empty": {
+      "title": "No requests waiting",
+      "text": "When a correction is asked for, it appears here."
+    },
+    "approvals": {
+      "title": "Punch approvals",
+      "hidden": "Reasons are only for the Super Admin",
+      "approved": "Approved",
+      "notAccepted": "Not accepted",
+      "open": "Open Needs review"
+    },
+    "before": "Before",
+    "after": "After",
+    "serverResult": "Day result worked out by the server",
+    "dialog": {
+      "titleSuper": "Correct this day",
+      "titleHead": "Ask for a correction",
+      "what": "What do you want to do?",
+      "direction": "Which punch is missing?",
+      "whichPunch": "Which punch should be ignored?",
+      "statusLabel": "Set the day to",
+      "dateAndTime": "date and time",
+      "nightHint": "For a night shift the OUT can be on the next day.",
+      "reason": "Reason",
+      "preview": "Preview of the day",
+      "previewWait": "Fill in the form and the day is shown here before you save.",
+      "previewLoading": "The server is working out the day...",
+      "infoSuper": "You are the Super Admin: this takes effect at once and is saved in the audit log.",
+      "infoHead": "The Super Admin decides. Nothing changes until it is approved.",
+      "save": "Save the correction",
+      "send": "Send the request",
+      "savedNow": "Correction saved",
+      "sent": "Request sent to the Super Admin"
+    },
+    "skipReason": {
+      "CORRECTION_NEAR_PUNCH": "A counted punch is too close to this time",
+      "ON_LEAVE": "On paid leave that day"
+    },
+    "bulk": {
+      "button": "Correct many people",
+      "title": "Correct many people",
+      "finished": "Finished.",
+      "stepOf": "Step {{step}} of 5",
+      "step": {
+        "plantDay": "Plant and day",
+        "what": "What to add",
+        "people": "People",
+        "reason": "Reason",
+        "preview": "Preview"
+      },
+      "choosePlant": "Choose a plant",
+      "option": {
+        "in_out": "Add IN and OUT",
+        "in": "Add IN only",
+        "out": "Add OUT only"
+      },
+      "what": {
+        "in_out": "Add IN {{inTime}} and OUT {{outTime}}",
+        "in": "Add IN {{inTime}}",
+        "out": "Add OUT {{outTime}}"
+      },
+      "inTime": "IN time",
+      "outTime": "OUT: date and time",
+      "outDate": "OUT date",
+      "chooseAbsent": "Choose everyone marked Absent that day",
+      "chosenCount": "{{count}} chosen, up to {{max}} allowed",
+      "limitReached": "You have chosen {{max}} people, the most one batch can hold.",
+      "back": "Back",
+      "next": "Next",
+      "summary": "Plant {{plant}}, {{date}}. {{what}}. Reason: \"{{reason}}\"",
+      "willChange": "people will change",
+      "willSkip": "will be skipped",
+      "chosen": "chosen, up to 200 allowed",
+      "skipped": "Skipped",
+      "skippedCount": "{{count}} people were skipped.",
+      "createSuper": "Create {{count}} corrections and approve all",
+      "sendHead": "Send {{count}} requests",
+      "doneSuper": "{{count}} corrections made and approved",
+      "doneHead": "{{count}} requests sent to the Super Admin",
+      "reverseBatch": "Reverse the whole batch",
+      "reverseWarn": "Reversing the batch undoes all {{count}} corrections at once. You must give a reason, and it is saved in the audit log.",
+      "reversed": "The batch was reversed: {{count}} corrections undone."
+    }
+  },
+  "leave": {
+    "title": "Leave",
+    "subtitle": {
+      "admin": "Days a person is away, paid or unpaid. Add leave here; people do not apply for it.",
+      "readOnly": "Leave of your plant. You can read it; the Super Admin changes it."
+    },
+    "add": "Add leave",
+    "cancel": "Cancel leave",
+    "keep": "Keep leave",
+    "save": "Save leave",
+    "change": "Change",
+    "col": {
+      "employee": "Employee",
+      "from": "From",
+      "to": "To",
+      "workingDays": "Working days",
+      "pay": "Pay",
+      "reason": "Reason",
+      "enteredBy": "Entered by",
+      "state": "State"
+    },
+    "pay": {
+      "all": "All",
+      "paid": "Paid",
+      "unpaid": "Unpaid"
+    },
+    "state": {
+      "active": "Active",
+      "cancelled": "Cancelled",
+      "all": "All"
+    },
+    "workingDaysNote": "Working days = days that are not a weekly off or a holiday",
+    "count_one": "{{count}} leave",
+    "count_other": "{{count}} leaves",
+    "filter": {
+      "search": "Employee name or code",
+      "plant": "Plant",
+      "allPlants": "All plants",
+      "month": "Month",
+      "pay": "Pay",
+      "state": "State",
+      "clear": "Clear filters"
+    },
+    "previewDays_one": "{{count}} working day.",
+    "previewDays_other": "{{count}} working days.",
+    "previewWeeklyOff": "{{date}} is a weekly off and is not counted as leave.",
+    "previewHoliday": "{{date}} is a holiday and is not counted as leave.",
+    "previewMore_one": "{{count}} more day is not counted.",
+    "previewMore_other": "{{count}} more days are not counted.",
+    "dialog": {
+      "add": {
+        "title": "Add leave",
+        "desc": "For one person, for whole days. Paid or unpaid. No approval needed."
+      },
+      "cancel": {
+        "title": "Cancel this leave?",
+        "desc": "The leave stays in the list as Cancelled. The attendance of those days is worked out again.",
+        "summary": "{{name}} · {{from}} to {{to}}"
+      }
+    },
+    "field": {
+      "employee": "Employee",
+      "firstDay": "First day",
+      "lastDay": "Last day",
+      "pay": "Pay",
+      "reason": "Reason",
+      "searchPeople": "Search employee name or code"
+    },
+    "pickEmployee": "Choose an employee",
+    "noPeople": "No active employee matches.",
+    "reasonHint": "Only the Super Admin can read this.",
+    "reasonCount": "{{count}} / 300",
+    "reasonRange": "3 to 300 characters",
+    "paid": {
+      "title": "Paid leave",
+      "hint": "Counts as a paid day"
+    },
+    "unpaid": {
+      "title": "Unpaid leave",
+      "hint": "Does not count as paid"
+    },
+    "cancelReason": {
+      "label": "Why is it cancelled? (required)",
+      "hint": "3 to 300 characters. It is saved in the audit log.",
+      "placeholder": "For example: she is coming to work"
+    },
+    "cancelledWithReason": "Cancelled: {{reason}}",
+    "cancelledBy": "Cancelled by {{name}}",
+    "readOnly": "View only. Only the Super Admin can add or cancel leave. A leave reason can be personal, so reasons are shown to the Super Admin only.",
+    "error": {
+      "dates": "The last day cannot be before the first day."
+    },
+    "toast": {
+      "added": "Leave saved.",
+      "cancelled": "Leave cancelled."
+    },
+    "empty": {
+      "title": "No leave entered yet",
+      "body": "When a person is away, add the leave here so the days are not counted as absent."
+    },
+    "filterEmpty": {
+      "title": "No leave matches these filters",
+      "body": "Try another month or clear the filters."
+    },
+    "loadError": "Leave could not be loaded",
+    "notCounted_one": "{{count}} day not counted",
+    "notCounted_other": "{{count}} days not counted"
+  },
+  "holidays": {
+    "title": "Holidays",
+    "subtitle": {
+      "admin": "The days the plants are closed. Weekly offs are set on each plant page.",
+      "readOnly": "The days your plant is closed. You can read them; the Super Admin changes them."
+    },
+    "add": "Add holiday",
+    "cancel": "Cancel",
+    "keep": "Keep holiday",
+    "save": "Save holiday",
+    "year": "Year",
+    "prevYear": "Previous year",
+    "nextYear": "Next year",
+    "plant": "Plant",
+    "allPlants": "All plants",
+    "scope": {
+      "all": "All plants",
+      "chosen": "Chosen plants",
+      "chosenCount_one": "{{count}} plant chosen",
+      "chosenCount_other": "{{count}} plants chosen",
+      "label": "Applies to",
+      "pickOne": "Choose at least one plant."
+    },
+    "pay": {
+      "label": "Pay",
+      "paid": "Paid holiday",
+      "paidHint": "Counts as a paid day",
+      "unpaid": "Unpaid holiday",
+      "unpaidHint": "Closed, but not paid",
+      "paidBadge": "Paid",
+      "unpaidBadge": "Unpaid"
+    },
+    "state": {
+      "active": "Active",
+      "past": "Past",
+      "cancelled": "Cancelled"
+    },
+    "cancelledWithReason": "Cancelled: {{reason}}",
+    "footer": "A holiday on the weekly off stays a weekly off",
+    "count_one": "{{count}} holiday in {{year}}",
+    "count_other": "{{count}} holidays in {{year}}",
+    "cancelledCount": "{{count}} cancelled",
+    "field": {
+      "date": "Date",
+      "name": "Name"
+    },
+    "dialog": {
+      "add": {
+        "title": "Add holiday",
+        "desc": "A day the plants are closed."
+      },
+      "cancel": {
+        "title": "Cancel this holiday?",
+        "desc": "The day becomes a normal working day again. Attendance for that day is worked out again.",
+        "summary": "{{name}} · {{date}}"
+      }
+    },
+    "cancelReason": {
+      "label": "Why is it cancelled? (required)",
+      "hint": "3 to 300 characters. It is saved in the audit log."
+    },
+    "error": {
+      "name": "The name needs 2 to 80 characters."
+    },
+    "toast": {
+      "added": "Holiday saved.",
+      "cancelled": "Holiday cancelled."
+    },
+    "empty": {
+      "title": "No holidays for {{year}} yet",
+      "bodyAdmin": "Add the days the plants are closed. A paid holiday counts as a paid day for everyone it covers.",
+      "bodyReader": "No holidays are entered for this year."
+    },
+    "readOnly": "View only. Only the Super Admin can add or cancel a holiday.",
+    "loadError": "The holidays could not be loaded"
+  },
+  "plantWeekly": {
+    "title": "Weekly off",
+    "change": "Change weekly off",
+    "history": "History",
+    "inForce": "In force",
+    "upcoming": "Upcoming",
+    "earlier": "Earlier",
+    "from": "from {{date}}",
+    "row": "From {{date}}",
+    "notSet": "Not set. Sunday is used until you set it.",
+    "upcomingNote": "Changes to {{day}} from {{date}}. Until then {{old}} stays the weekly off.",
+    "pastError": "The date must be today or later. A past weekly off cannot be changed.",
+    "dialogDesc": "Choose the weekday the plant is closed every week.",
+    "weekday": "Weekday",
+    "applyFrom": "Applies from",
+    "applyHint": "Today or later.",
+    "warning": "From {{date}} {{day}} is the weekly off and {{old}} becomes a working day at {{plant}}.",
+    "save": "Save weekly off",
+    "saved": "Weekly off saved.",
+    "day": {
+      "1": "Monday",
+      "2": "Tuesday",
+      "3": "Wednesday",
+      "4": "Thursday",
+      "5": "Friday",
+      "6": "Saturday",
+      "7": "Sunday"
+    }
+  },
+  "plantStart": {
+    "title": "Attendance start date",
+    "change": "Change start date",
+    "notSet": "Not set yet",
+    "hint": "Attendance is worked out from this day. Earlier days show no status. Once days exist, the date can only move later.",
+    "dialogDesc": "Attendance is worked out from this date.",
+    "field": "Start date",
+    "laterWarning": "Moving the date later hides {{from}} to {{to}}. Those days stay stored but show no status and leave the reports.",
+    "save": "Save start date",
+    "saved": "Start date saved."
+  },
+  "shiftForm": {
+    "new": "Add a shift",
+    "edit": "Edit shift: {{name}}",
+    "desc": "{{plant}}. Times are 24 hour, India time.",
+    "name": "Shift name",
+    "start": "Shift starts",
+    "end": "Shift ends",
+    "endsNextDay": "Ends the next day",
+    "fullDayLabel": "Full day",
+    "fullDayValue": "Full day: {{duration}}",
+    "fullDayNote": "= start to end. Not typed.",
+    "grace": "Grace after the start",
+    "graceHint": "Arriving this late still counts as on time. Default 30.",
+    "halfDay": "Half-day hours",
+    "halfDayHint": "Worked from this long counts as a half-day. Default 4 h.",
+    "hours": "hours",
+    "minutes": "minutes",
+    "overtimeMin": "Smallest overtime that counts",
+    "overtimeMinHint": "Staying less than this after the shift end is not overtime. Default 120 (2 h).",
+    "applyFrom": "These rules apply from",
+    "applyFromHint": "Today or later. Default today.",
+    "save": "Save rules",
+    "add": "Add shift",
+    "onTime": "On time until {{time}}. Arriving up to {{time}} counts from {{start}}.",
+    "fullDay": "Full day: {{duration}}. Arrive by {{time}} and stay until {{end}}.",
+    "earlyExit": "Leaving before {{end}} is an early exit. The real hours count; there is no grace at the end.",
+    "halfDayLine": "Half-day from {{half}}. Below {{half}} is Short hours: you decide that day with a correction.",
+    "overtimeHint": "Overtime from {{end}}, only when you stay {{ot}} or more after the shift end.",
+    "nightNote": "This shift ends the next morning. The attendance day is the day it starts.",
+    "helperTitle": "What these times mean",
+    "live": "updates as you type",
+    "helperInvite": "Enter the start and end times to see what they mean.",
+    "timeline": {
+      "onTime": "On time (grace)",
+      "hours": "Shift hours",
+      "overtime": "Overtime counts if you stay until {{time}} or later",
+      "alt": "Shift from {{start}} to {{end}}. On time until {{onTime}}. Overtime counts from {{overtime}}."
+    },
+    "futureNote": "Starts on {{date}}. Until then the rules in force today stay. The gate poster should be printed again after that date.",
+    "history": {
+      "title": "Rule history",
+      "row": "From {{date}}",
+      "summary": "Grace {{grace}} min · Half-day {{half}} · Overtime from {{ot}}",
+      "saved": "Saved on {{date}}",
+      "inForce": "In force",
+      "willApply": "Will apply",
+      "earlier": "Earlier",
+      "footnote": "Days already worked keep the rules of their day. A new rule starts on its date and never changes the past.",
+      "error": "The rule history could not be loaded."
+    },
+    "list": {
+      "fullDay": "Full day {{duration}}",
+      "grace": "Grace {{count}} min",
+      "halfDay": "Half-day {{duration}}",
+      "overtime": "Overtime from {{duration}}",
+      "editRules": "Edit rules",
+      "switchedOff": "Switched off",
+      "footer": "Rules shown are the ones in force today",
+      "count_one": "{{count}} shift",
+      "count_other": "{{count}} shifts",
+      "upcoming": "New rules from {{date}}"
+    },
+    "error": {
+      "grace": "Grace can be 0 to 120 minutes.",
+      "halfDay": "Half-day must be shorter than the full day ({{fullDay}}).",
+      "applyFrom": "Choose today or a later date.",
+      "name": "Enter a shift name."
+    },
+    "savedPoster": "Shift times changed. Print the gate poster again.",
+    "openPoster": "Open the gate poster"
+  },
+  "reports": {
+    "title": "Reports",
+    "subtitle": "Download attendance reports as Excel or PDF. Demo plants are not included.",
+    "limit": {
+      "oneAtATime": {
+        "title": "One file at a time",
+        "body": "Wait for a file before you ask for the next one."
+      },
+      "rate": {
+        "title": "20 files in 10 minutes",
+        "body": "For each person. A file takes up to 30 seconds."
+      },
+      "pdfRows": {
+        "title": "PDF up to 3,000 rows",
+        "body": "A bigger report: use Excel, it has no row limit."
+      }
+    },
+    "kind": {
+      "daily-muster": {
+        "title": "Daily muster",
+        "body": "Who came on one day: first IN, last OUT, hours, late, early exit and overtime.",
+        "limit": "One day. Portrait A4 for PDF."
+      },
+      "register": {
+        "title": "Monthly register",
+        "body": "A month for every person: one code per day (present, absent, leave, holiday, weekly off) and totals.",
+        "limit": "One month. The PDF is landscape A4."
+      },
+      "contractor-hours": {
+        "title": "Contractor hours",
+        "body": "Hours of temporary workers, grouped by contractor, with overtime hours. No rates and no money.",
+        "limit": "One month. PDF is landscape A4."
+      },
+      "late-early-overtime": {
+        "title": "Late, early and overtime",
+        "body": "Every day a permanent employee came late, left early or stayed for overtime, with totals per person.",
+        "limit": "Up to 31 days."
+      },
+      "exceptions": {
+        "title": "Exceptions",
+        "body": "Days that need a look: missing OUT, short hours, unchecked flagged punches. Written in plain words.",
+        "limit": "Up to 31 days."
+      },
+      "rejected-punches": {
+        "title": "Rejected punches",
+        "body": "Punches the attendance device refused, with the reason, the device and the method. No photos.",
+        "limit": "Up to 31 days."
+      },
+      "corrections": {
+        "title": "Corrections",
+        "body": "Correction requests and decisions, and punch approvals from the review screen.",
+        "limit": "Up to 31 days. Reasons written in the review screen appear only in the Super Admin's file."
+      }
+    },
+    "field": {
+      "day": "Day",
+      "month": "Month",
+      "from": "From",
+      "to": "To",
+      "plant": "Plant",
+      "contractor": "Contractor"
+    },
+    "allContractors": "All contractors",
+    "yourPlant": "Your plant",
+    "excel": "Excel",
+    "pdf": "PDF",
+    "building": "Building…",
+    "buildingNote": "Building the file… Large months can take up to 30 seconds. Please keep this page open.",
+    "done": "Downloaded {{file}}",
+    "toast": "File downloaded.",
+    "excelAllPdfLimited": "Excel covers all plants you may see. PDF is limited to 3,000 rows.",
+    "footer": "Every file shows who made it and when. Every download is saved in the audit log. The files contain personal data: keep them on company computers.",
+    "error": {
+      "range": "That is {{days}} days. This report covers up to 31 days.",
+      "order": "The last day cannot be before the first day.",
+      "rateLimit": "You have made 20 files in the last 10 minutes. Please wait a few minutes and try again.",
+      "load": "The reports page could not be loaded"
+    }
+  },
+  "insights": {
+    "punctuality": {
+      "title": "Punctuality",
+      "subtitle": "How on time permanent employees come, by week, group and weekday.",
+      "last30": "Last 30 days",
+      "groupBy": "Group by",
+      "group": {
+        "department": "Department",
+        "category": "Category",
+        "shift": "Shift",
+        "weekday": "Weekday"
+      },
+      "kpi": {
+        "onTime": "On time",
+        "late": "Late arrivals",
+        "averageLate": "Average late",
+        "earlyExits": "Early exits"
+      },
+      "minShort": "min",
+      "noComparison": "No arrivals in the period before.",
+      "delta": {
+        "pointsUp": "{{value}} points higher than the period before",
+        "pointsDown": "{{value}} points lower than the period before",
+        "more": "{{value}} more than before",
+        "fewer": "{{value}} fewer than before",
+        "longer": "{{value}} min longer than before",
+        "shorter": "{{value}} min shorter than before",
+        "same": "No change from before"
+      },
+      "chart": {
+        "weekly": "On time each week",
+        "weekday": "On time by weekday",
+        "weekStart": "Week starting (Monday)",
+        "weeklyAlt": "On time each week: {{values}}",
+        "weekdayAlt": "On time by weekday: {{values}}"
+      },
+      "by": {
+        "department": "By department",
+        "category": "By category",
+        "shift": "By shift",
+        "weekday": "By weekday"
+      },
+      "barNote": "On time = came by shift start plus grace · below 90% is marked ▼",
+      "below": "Below 90%",
+      "noValue": "Not set",
+      "col": {
+        "daysWithIn": "Days with an IN",
+        "onTime": "On time",
+        "lateArrivals": "Late arrivals",
+        "averageLate": "Average late",
+        "employee": "Employee",
+        "late": "Late",
+        "totalLate": "Total late"
+      },
+      "top": {
+        "title": "Most late arrivals",
+        "subtitle": "Top 10 in this period"
+      },
+      "lateDays_one": "{{count}} day",
+      "lateDays_other": "{{count}} days",
+      "viewMonth": "View month",
+      "weekday": {
+        "1": "Monday",
+        "2": "Tuesday",
+        "3": "Wednesday",
+        "4": "Thursday",
+        "5": "Friday",
+        "6": "Saturday",
+        "7": "Sunday"
+      },
+      "weekdayShort": {
+        "1": "Mon",
+        "2": "Tue",
+        "3": "Wed",
+        "4": "Thu",
+        "5": "Fri",
+        "6": "Sat",
+        "7": "Sun"
+      },
+      "note": "Permanent employees on working days only. Temporary workers have no late rule. Weekly offs, holidays and leave days are left out. Demo plants are not included.",
+      "chooseShorter": "Choose a shorter period",
+      "empty": {
+        "title": "No arrivals in this period",
+        "body": "Punctuality needs permanent employees with an IN on working days. Try a longer period or another plant."
+      },
+      "error": {
+        "range": "That is {{days}} days. Choose up to 92 days.",
+        "load": "Punctuality could not be loaded"
+      }
+    }
+  },
+  "notifications": {
+    "title": "Notifications",
+    "subtitle": "Alerts for the plants you can see. The bell in the top bar shows the newest.",
+    "loading": "Loading…",
+    "bell": {
+      "label": "Notifications, {{count}} unread",
+      "none": "Notifications, none unread"
+    },
+    "markAll": "Mark all as read",
+    "seeAll": "See all",
+    "unread": "Unread",
+    "urgent": "Urgent",
+    "unreadCount_one": "{{count}} unread",
+    "unreadCount_other": "{{count}} unread",
+    "allPlants": "All plants",
+    "yesterday": "Yesterday {{time}}",
+    "kind": {
+      "still_inside": "Still inside",
+      "device_offline": "Device offline",
+      "many_rejections": "Many rejections",
+      "incomplete_days": "Incomplete days",
+      "review_digest": "Review digest",
+      "correction_requested": "Correction asked",
+      "correction_decided": "Correction decided",
+      "absence_streak": "Long absence",
+      "monthly_register": "Register ready",
+      "phone_many_phones": "Many phones",
+      "phone_selfie_no_face": "Selfie without a face"
+    },
+    "text": {
+      "still_inside": "{{count}} people are still inside {{plant}}, {{minutes}} minutes after the shift ended.",
+      "device_offline": "Attendance device '{{device}}' at {{plant}} is offline. Check its power and internet.",
+      "many_rejections": "{{count}} punches were refused at {{plant}} in {{minutes}} minutes. Please check the device.",
+      "incomplete_days": "{{count}} days at {{plant}} are missing an OUT (yesterday {{date}}).",
+      "review_digest": "{{count}} punches are waiting in Needs review ({{flagged}} flagged, {{rejected}} refused).",
+      "absence_streak": "A person at {{plant}} has been absent for {{count}} working days in a row, since {{since}}.",
+      "correction_requested": "A correction was asked for {{date}} at {{plant}}.",
+      "correction_decided_approved": "Your correction for {{date}} was approved.",
+      "correction_decided_rejected": "Your correction for {{date}} was not approved. {{reason}}",
+      "monthly_register": "The register of {{month}} is ready for {{plant}}.",
+      "phone_many_phones": "An employee signed in on {{count}} phones in 30 days. Check the signed-in phones.",
+      "phone_selfie_no_face": "{{count}} phone selfies at {{plant}} on {{date}} show no face. Please check them in the punch log."
+    },
+    "link": {
+      "list": "Open the list",
+      "devices": "Open attendance devices",
+      "rejected": "Open rejected punches",
+      "review": "Open Needs review",
+      "month": "Open the month",
+      "request": "Open the request",
+      "correction": "Open the correction",
+      "register": "Open the register",
+      "phone": "Open the phone card",
+      "punches": "Open the punch log"
+    },
+    "filter": {
+      "kind": "All kinds",
+      "kindLabel": "Kind of alert",
+      "show": "Show",
+      "all": "All",
+      "clear": "Clear filters"
+    },
+    "empty": {
+      "bellTitle": "You are all caught up",
+      "bellBody": "Alerts about devices, people still inside and corrections appear here.",
+      "pageTitle": "No notifications yet",
+      "filterTitle": "No notifications match these filters",
+      "filterBody": "Try another kind, or show all notifications."
+    },
+    "error": {
+      "title": "Notifications could not be loaded",
+      "bell": "Check the internet. The bell tries again in a minute."
+    },
+    "footer": "{{count}} notifications. Old alerts are removed after the keeping time in Settings.",
+    "newestFirst": "Newest first · times in IST",
+    "showMore": "Show more",
+    "emailNotSetUp": {
+      "title": "Email is not set up on this server.",
+      "body": "Alerts are shown in the bell and on this page."
+    },
+    "email": {
+      "title": "My email alerts",
+      "intro": "Choose which alerts you also want by email. An email has no names or codes, only a short line and a link.",
+      "noAddress": "Add your email address to your user first. Then you can choose email alerts here.",
+      "master": "Send me alerts by email",
+      "registerByEmail": "Monthly register by email (Excel, your plants)",
+      "on": "On",
+      "off": "Off",
+      "save": "Save my email alerts",
+      "saved": "Email alerts saved."
+    }
+  },
+  "phone": {
+    "title": "Phone attendance",
+    "back": "Back",
+    "cancel": "Cancel",
+    "tryAgain": "Try again",
+    "backToSignIn": "Back to sign in",
+    "checking": "Checking…",
+    "in": "IN",
+    "out": "OUT",
+    "menu": {
+      "button": "Menu",
+      "title": "Menu",
+      "notice": "Privacy notice",
+      "passkeys": "Passkeys on this account",
+      "noPasskeys": "No passkeys yet.",
+      "stop": "Stop phone punching",
+      "stopConfirm": "You will not be able to punch with this phone until the office switches phone punching on again. Your job, pay and shift do not change. You can still punch at the attendance device.",
+      "signOut": "Sign out"
+    },
+    "login": {
+      "title": "Sign in",
+      "subtitle": "Use your employee code and password.",
+      "code": "Employee code",
+      "password": "Password",
+      "show": "Show password",
+      "hide": "Hide password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "forgot": "First time or forgot your password?",
+      "or": "or",
+      "passkey": "Sign in with passkey",
+      "passkeyHint": "Type your employee code first.",
+      "passkeyWaiting": "Use your phone's screen lock: fingerprint, face unlock or PIN.",
+      "codeRequired": "Please type your employee code.",
+      "passwordRequired": "Please type your password."
+    },
+    "camera": {
+      "opening": "Starting the camera…",
+      "start": "Start camera",
+      "tapTitle": "Tap to start the camera",
+      "notFound": {
+        "title": "No camera found",
+        "message": "We could not open a camera on this phone.",
+        "steps": ["Close other apps that use the camera.", "Press “Try again”."]
+      }
+    },
+    "setup": {
+      "title": "Prove it is you",
+      "subtitle": "Choose one way. Then you set your password.",
+      "stepCheck": "Check",
+      "stepPassword": "Password",
+      "startCamera": "Start camera",
+      "begin": "Begin",
+      "face": {
+        "title": "Check my face",
+        "hint": "For people who punch with their face"
+      },
+      "card": {
+        "title": "Scan my ID card",
+        "hint": "For workers with an ID card",
+        "show": "Show your ID card to the camera",
+        "locating": "Finding your location…",
+        "cameraLabel": "Camera picture for your ID card"
+      },
+      "cardIntro": {
+        "title": "Location is needed",
+        "body": "Switch location on, and stand inside the plant. We read your location once, now."
+      }
+    },
+    "password": {
+      "title": "Set your password",
+      "passed": "Check passed, {{name}}",
+      "new": "New password",
+      "again": "Type it again",
+      "save": "Save and sign in",
+      "saving": "Saving…",
+      "validFor": "This check is valid for 5 minutes.",
+      "done": "Done",
+      "notYet": "Not yet",
+      "mismatch": "The two passwords are not the same. Please type it again.",
+      "checkAgain": "Check again",
+      "rule": {
+        "length": "At least 8 characters",
+        "notOnlyNumbers": "Not only numbers",
+        "notCode": "Not your employee code",
+        "notEasy": "Not an easy password like 12345678"
+      }
+    },
+    "notice": {
+      "title": "Phone punching notice",
+      "version": "Notice version {{version}}",
+      "agree": "I agree",
+      "notNow": "Not now",
+      "error": "The notice could not be loaded. Please try again."
+    },
+    "home": {
+      "hello": "Hello, {{name}}",
+      "today": "Today",
+      "lastPunch": "{{direction}} at {{time}}",
+      "none": "No punch yet today",
+      "via": {
+        "phone": "Phone",
+        "device": "Attendance device"
+      },
+      "outsideAllowed": "Outside work allowed",
+      "outsideUntil": "until {{date}}",
+      "location": {
+        "finding": "Finding your location…",
+        "ready": "Location ready",
+        "off": "Turn on location for this website.",
+        "weak": "Location not exact enough ({{meters}} m). Move outside, where the sky is open.",
+        "notAtPlant": "You are not at the plant"
+      },
+      "punchFace": "Punch with face",
+      "scanGateCode": "Scan the phone code at the gate",
+      "myAttendance": "My attendance",
+      "passkeyLink": "Sign in faster with a passkey",
+      "addToHome": "Add to home screen",
+      "loadError": "We could not load your page. Please try again."
+    },
+    "attendance": {
+      "title": "My attendance",
+      "subtitle": "The last 31 days",
+      "todayLabel": "Today",
+      "in": "IN",
+      "out": "OUT",
+      "worked": "Worked",
+      "missing": "–",
+      "notYet": "Not yet",
+      "help": "Something wrong? Please visit the plant office.",
+      "empty": "No attendance yet in the last 31 days.",
+      "loadError": "We could not load your attendance. Please try again."
+    },
+    "status": {
+      "present": "Present",
+      "half_day": "Half-day",
+      "short_hours": "Short hours",
+      "absent": "Absent",
+      "incomplete": "Incomplete",
+      "leave": "Leave",
+      "weekly_off": "Weekly off",
+      "holiday": "Holiday",
+      "open": "Open"
+    },
+    "passkey": {
+      "title": "Passkey",
+      "note": "A passkey signs you in with your phone's screen lock. Your fingerprint or face never leaves your phone.",
+      "add": "Add a passkey on this phone",
+      "waiting": "Waiting for your screen lock…",
+      "added": "Passkey added",
+      "removed": "Passkey removed.",
+      "remove": "Remove",
+      "count": "Your passkeys: {{count}} of {{max}}",
+      "addedOn": "Added {{date}}",
+      "lastUsed": "last used {{date}}",
+      "signInAgain": "Sign in again",
+      "notSupported": "This phone cannot make a passkey. Please sign in with your password."
+    },
+    "gateCode": {
+      "scan": "Scan the phone code at the gate",
+      "notGateCode": "This is not the phone code of the attendance device.",
+      "lookAtCamera": "Look at the camera"
+    },
+    "result": {
+      "serverTime": "Time"
+    },
+    "punch": {
+      "locating": "Finding your location…",
+      "outsidePlantLine": "Saved as an outside-plant punch. The office will check it.",
+      "NO_FACE": {
+        "title": "TRY AGAIN",
+        "message": "We could not see your face.",
+        "next": "Stand in front of the camera and try again."
+      },
+      "MULTIPLE_FACES": {
+        "title": "TRY AGAIN",
+        "message": "Only one person, please.",
+        "next": "Please try again."
+      },
+      "FACE_TOO_SMALL": {
+        "title": "TRY AGAIN",
+        "message": "Come a little closer.",
+        "next": "Please try again."
+      },
+      "FACE_QUALITY_LOW": {
+        "title": "TRY AGAIN",
+        "message": "The picture is too dark or blurry.",
+        "next": "Please try again."
+      },
+      "LIVENESS_FAILED": {
+        "title": "TRY AGAIN",
+        "message": "Please turn your head as the arrow shows, then look straight.",
+        "next": "Please try again."
+      },
+      "FACE_INCONSISTENT": {
+        "title": "TRY AGAIN",
+        "message": "The check did not pass.",
+        "next": "Please try again."
+      },
+      "CHALLENGE_EXPIRED": {
+        "title": "TRY AGAIN",
+        "message": "Too slow.",
+        "next": "Please try again."
+      },
+      "CHALLENGE_INVALID": {
+        "title": "TRY AGAIN",
+        "message": "The check could not be finished.",
+        "next": "Please try again."
+      },
+      "FRAMES_INVALID": {
+        "title": "TRY AGAIN",
+        "message": "The pictures could not be read.",
+        "next": "Please try again."
+      },
+      "SPOOF_SUSPECTED": {
+        "title": "NOT ACCEPTED",
+        "message": "The check did not pass.",
+        "next": "Please visit the plant office."
+      },
+      "FACE_NOT_RECOGNISED": {
+        "title": "NOT ACCEPTED",
+        "message": "We could not recognise you.",
+        "next": "Please visit the plant office."
+      },
+      "FACE_NOT_CONFIGURED": {
+        "title": "ERROR",
+        "message": "Face punch is not available here.",
+        "next": "Please visit the plant office."
+      },
+      "WRONG_PLANT": {
+        "title": "NOT ACCEPTED",
+        "message": "You are registered at another plant.",
+        "next": "Please visit the plant office."
+      },
+      "OUTSIDE_GEOFENCE": {
+        "title": "NOT ACCEPTED",
+        "message": "You are not at the plant.",
+        "next": "Please visit the plant office."
+      },
+      "GEOFENCE_NOT_SET": {
+        "title": "NOT ACCEPTED",
+        "message": "This plant is not set up for phone punching yet.",
+        "next": "Please visit the plant office."
+      },
+      "LOCATION_REQUIRED": {
+        "title": "TRY AGAIN",
+        "message": "We could not read your location.",
+        "next": "Please try again."
+      },
+      "PHONE_LOCATION_DENIED": {
+        "title": "TRY AGAIN",
+        "message": "Turn on location for this website.",
+        "next": "Please try again."
+      },
+      "GPS_ACCURACY_TOO_LOW": {
+        "title": "TRY AGAIN",
+        "message": "Your location is not exact enough.",
+        "next": "Move outside, where the sky is open. Please try again."
+      },
+      "COOLDOWN_ACTIVE": {
+        "title": "ALREADY PUNCHED",
+        "message": "You punched a moment ago.",
+        "next": "No need to punch again."
+      },
+      "OUT_TOO_SOON": {
+        "title": "ALREADY IN",
+        "message": "You are already IN.",
+        "next": "Please punch OUT a little later."
+      },
+      "SHIFT_ALREADY_CLOSED": {
+        "title": "SHIFT CLOSED",
+        "message": "Your shift is already closed.",
+        "next": "Please visit the plant office."
+      },
+      "GATE_CODE_INVALID": {
+        "title": "NOT ACCEPTED",
+        "message": "This phone code is not valid.",
+        "next": "Please visit the plant office."
+      },
+      "GATE_CODE_EXPIRED": {
+        "title": "TRY AGAIN",
+        "message": "The phone code has changed.",
+        "next": "Please scan the code again."
+      },
+      "NOT_A_GATE_CODE": {
+        "title": "TRY AGAIN",
+        "message": "This is not the phone code of the attendance device.",
+        "next": "Please scan the code again."
+      },
+      "SNAPSHOT_MISSING": {
+        "title": "TRY AGAIN",
+        "message": "The photo could not be taken.",
+        "next": "Please try again."
+      },
+      "SNAPSHOT_INVALID": {
+        "title": "TRY AGAIN",
+        "message": "The photo could not be taken.",
+        "next": "Please try again."
+      },
+      "PAYLOAD_TOO_LARGE": {
+        "title": "NOT SAVED",
+        "message": "The photo was too large.",
+        "next": "Please try again."
+      },
+      "EMPLOYEE_NOT_FACE": {
+        "title": "NOT ACCEPTED",
+        "message": "Punching with the phone code is not for you.",
+        "next": "Please visit the plant office."
+      },
+      "EMPLOYEE_NOT_QR": {
+        "title": "NOT ACCEPTED",
+        "message": "Punching with your face is not set for you.",
+        "next": "Please visit the plant office."
+      },
+      "PROOF_FAILED": {
+        "title": "NOT CONFIRMED",
+        "message": "We could not confirm it is you.",
+        "next": "Please try again, or visit the plant office."
+      },
+      "FACE_SERVICE_BUSY": {
+        "title": "PLEASE WAIT",
+        "message": "Many people are punching.",
+        "next": "Please try again in a moment."
+      },
+      "FACE_SERVICE_UNAVAILABLE": {
+        "title": "PLEASE WAIT",
+        "message": "Face punch is starting.",
+        "next": "Please wait a minute."
+      },
+      "TOO_MANY_REQUESTS": {
+        "title": "PLEASE WAIT",
+        "message": "This was NOT saved.",
+        "next": "Wait a moment, then try again."
+      },
+      "NETWORK_OFFLINE": {
+        "title": "NOT SAVED",
+        "message": "No internet. Your punch was NOT saved.",
+        "next": "Try again when you have internet, or punch at the attendance device."
+      },
+      "INTERNAL_ERROR": {
+        "title": "ERROR",
+        "message": "Something went wrong.",
+        "next": "Please try again. If it repeats, please visit the plant office."
+      }
+    }
+  },
+  "phoneAdmin": {
+    "title": "Phone attendance",
+    "badgeOn": "Phone punching on",
+    "badgeOff": "Phone punching off",
+    "on": "On",
+    "off": "Off",
+    "saving": "Saving…",
+    "viewOnly": "View only. Only the Super Admin can change phone attendance.",
+    "left": "This employee has left. Phone punching is switched off.",
+    "switch": {
+      "phone": "Phone punching",
+      "outside": "Outside work allowed"
+    },
+    "outside": {
+      "lockedOff": "Switch phone punching on first.",
+      "lockedQr": "Outside work is only for employees who punch with their face.",
+      "until": "Until {{date}}, the whole day counts",
+      "noEnd": "No end date",
+      "ended": "Outside work ended on {{date}}",
+      "change": "Change the end date",
+      "untilLabel": "Until (optional)",
+      "untilHint": "Today or later. The whole last day counts. Leave empty for no end date."
+    },
+    "empty": {
+      "off": "Phone punching is off. The employee punches only at the attendance device."
+    },
+    "account": {
+      "title": "Account",
+      "noPassword": "No password yet",
+      "activeFace": "Password set on {{date}} by face check",
+      "activeCard": "Password set on {{date}} by card check",
+      "locked": "Locked until {{time}}",
+      "newPassword": "New password required"
+    },
+    "notice": {
+      "accepted": "Accepted v{{version}} on {{date}}",
+      "none": "The notice is not accepted yet."
+    },
+    "sessions": {
+      "title": "Signed-in phones",
+      "empty": "No phone is signed in.",
+      "line": "Signed in {{started}} · last used {{used}}"
+    },
+    "signOutAll": "Sign out all phones",
+    "passkeys": {
+      "title": "Passkeys ({{count}} of {{max}})",
+      "empty": "No passkeys.",
+      "line": "Added {{added}} · last used {{used}}",
+      "remove": "Remove"
+    },
+    "requireNew": "Require a new password",
+    "requireNewNote": "This also removes the passkeys and signs out every phone.",
+    "reason": {
+      "label": "Reason (required)",
+      "hint": "3 to 300 characters. It is saved in the audit log.",
+      "error": "The reason needs 3 to 300 characters."
+    },
+    "dialog": {
+      "enable": {
+        "title": "Switch phone punching on?",
+        "desc": "The employee can then sign in on their own phone and punch. The attendance device keeps working.",
+        "confirm": "Switch on"
+      },
+      "disable": {
+        "title": "Switch phone punching off?",
+        "desc": "The employee will punch only at the attendance device.",
+        "confirm": "Switch off",
+        "effectOutside": "Outside work is switched off too.",
+        "effectSignOut": "Every signed-in phone is signed out.",
+        "effectPassword": "The password stays, in case phone punching is switched on again."
+      },
+      "outsideOn": {
+        "title": "Allow outside work?",
+        "desc": "On official work outside the plant, a phone punch is saved with its position and checked by the office.",
+        "confirm": "Allow outside work"
+      },
+      "outsideOff": {
+        "title": "Stop outside work?",
+        "desc": "A punch outside the plant will be refused again.",
+        "confirm": "Stop outside work"
+      },
+      "signOutAll": {
+        "title": "Sign out all phones?",
+        "desc_one": "{{count}} phone is signed in. It will be signed out.",
+        "desc_other": "{{count}} phones are signed in. They will be signed out.",
+        "confirm_one": "Sign out {{count}} phone",
+        "confirm_other": "Sign out {{count}} phones"
+      },
+      "requireNew": {
+        "title": "Require a new password?",
+        "desc": "The employee must prove it is them again before signing in.",
+        "confirm": "Require a new password",
+        "effectOld": "The old password stops working.",
+        "effectPasskeys": "The passkeys are removed.",
+        "effectPhones": "Every signed-in phone is signed out."
+      },
+      "removePasskey": {
+        "title": "Remove this passkey?",
+        "desc": "{{label}} will not sign in any more. The password still works.",
+        "confirm": "Remove passkey"
+      }
+    },
+    "toast": {
+      "signedOut_one": "{{count}} phone was signed out.",
+      "signedOut_other": "{{count}} phones were signed out.",
+      "newPassword": "A new password is now required."
     }
   }
 }

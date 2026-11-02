@@ -56,6 +56,31 @@ class CodeEntry(BaseModel):
     tries_left: int
 
 
+class EarlyOutPrompt(BaseModel):
+    """The warning the gate shows before an OUT that is earlier than the shift end (decision
+    0036 line 9). Nothing has been stored yet: Agree sends `token` to the confirm endpoint."""
+
+    token: str
+    client_punch_id: uuid.UUID  # the id the confirmation must use (the token is bound to it)
+    expires_at: datetime
+    tier: Literal["before_half", "before_end"]
+    half_remaining_min: int | None  # only before the half shift is complete
+    half_at: datetime | None
+    full_remaining_min: int
+    shift_end: datetime
+
+
+class EarlyOutConfirmRequest(BaseModel):
+    """Agree at the early-OUT alert. A card punch sends its photo again (it was never stored)."""
+
+    client_punch_id: uuid.UUID
+    token: str = Field(min_length=20, max_length=2000)
+    snapshot_jpeg: str | None = Field(default=None, max_length=6 * MAX_BODY_BYTES)
+    device_time: datetime | None = None
+    location: LocationReport | None = None
+    app_version: str | None = Field(default=None, max_length=40)
+
+
 class PunchEmployee(BaseModel):
     display_name: str
     employee_code: str
@@ -72,9 +97,16 @@ class PunchDetails(BaseModel):
     location_check: str | None = None  # M4 self test: "ok" or the location rule's code
 
 
+class GateLines(BaseModel):
+    """Small server-made lines for the result screen (M5 F-37, F-2): numbers, never a name."""
+
+    late_minutes: int | None = None
+    month_days_present: int | None = None
+
+
 class KioskPunchResponse(BaseModel):
     punch_id: uuid.UUID | None  # none for a self test: nothing is recorded
-    decision: Literal["accepted", "rejected", "self_test", "needs_code"]
+    decision: Literal["accepted", "rejected", "self_test", "needs_code", "needs_confirmation"]
     direction: Literal["in", "out"] | None
     employee: PunchEmployee | None
     server_time: datetime
@@ -83,6 +115,8 @@ class KioskPunchResponse(BaseModel):
     voice_key: str
     details: PunchDetails
     code_entry: CodeEntry | None = None  # only with decision "needs_code"
+    early_out: EarlyOutPrompt | None = None  # only with decision "needs_confirmation"
+    gate_lines: GateLines | None = None  # M5: only online accepted punches, only when switched on
     time_anchor: TimeAnchor | None = None  # M4 §7 rule 8: set by the route
 
 
@@ -164,7 +198,7 @@ class PunchLogItem(BaseModel):
     employee: PunchLogEmployee | None
     employee_hidden: bool
     plant: PunchLogPlace
-    kiosk: PunchLogPlace
+    kiosk: PunchLogPlace | None  # None: a phone face punch (M4b), made at no gate device
     method: str
     direction: Literal["in", "out"] | None
     decision: str
@@ -184,6 +218,14 @@ class PunchLogItem(BaseModel):
     # Whom an approved review counts this punch for when the punch row names nobody (spec M4 §7
     # rule 6); never set for a person of a plant the viewer may not see.
     counted_for: PunchLogEmployee | None = None
+    # M4b (spec §5.5): how the punch was made. A phone punch has no gate device (`kiosk` is empty
+    # for a face punch). `phone_browser` says on which signed-in phone, e.g. "Chrome on Android".
+    channel: Literal["kiosk", "phone"] = "kiosk"
+    outside_plant: bool = False  # flagged OUTSIDE_PLANT: made inside no plant fence (outside work)
+    phone_browser: str | None = None
+    # The plant whose fence the punch position matched, only when that is NOT the employee's own
+    # plant ("At plant K200 (own plant K134)").
+    location_plant: PunchLogPlace | None = None
 
 
 class PunchLocation(BaseModel):
@@ -221,6 +263,9 @@ class PunchDetail(PunchLogItem):
     location_age_s: int | None = None
     related_punch_id: uuid.UUID | None = None
     reviews: list[PunchReviewOut] = []  # newest first
+    # M4b: the position of a phone punch is for the Super Admin only (`location` is empty for the
+    # other roles), but everyone may see how exact the reading was.
+    location_accuracy_m: float | None = None
 
 
 class PunchSummaryResponse(BaseModel):

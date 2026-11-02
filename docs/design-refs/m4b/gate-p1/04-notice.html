@@ -1,0 +1,58 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P1 - Screen 4: Phone punching notice /phone/notice (spec 4.7, 7 rule 20, 9 PHONE_NOTICE_REQUIRED).
+  Shown after the first sign-in and again when the notice version changes. Buttons: "I agree" and "Not now" (Not now signs out).
+  States (URL hash): default · loading · error · saving · notice-required · notice-changed
+  MOCKUP ONLY. The notice wording below is a LAYOUT DRAFT built from the bullets of spec 4.7; the real text is the server file phone-notice-v1.en.txt.
+  {{privacy_contact}}, {{company_address}} and {{retention_days}} are shown filled with fake values.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phone attendance: notice</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="p1.css" />
+</head>
+<body>
+<div id="root"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="p1.js"></script>
+<script>
+  const T = {
+    required: "Please read and accept the phone attendance notice first.",
+    changed: "The notice was updated. Please read it again.",
+    error: "The notice could not be loaded. Please try again.",
+  };
+  const sec = (icon, h, body) => `<section class="nsec"><span class="nic">${ic(icon)}</span><div><h3>${h}</h3>${body}</div></section>`;
+  const notice = `<div class="notice-scroll anim-fade-up" tabindex="0" role="region" aria-label="Phone punching notice">
+    ${sec("map-pin", "What we collect", `<ul><li>Your location, only at the moment of a punch or card check. Never in the background.</li><li>Face pictures for the check. They are not kept, unless the punch is refused.</li><li>A selfie when you punch with the gate code.</li><li>The name of your browser, for the list of phones you signed in on.</li></ul>`)}
+    ${sec("target", "Why", `<p>Only for your attendance.</p>`)}
+    ${sec("eye", "Who sees it", `<p>The Super Admin. Only the Super Admin sees an exact position outside the plant.</p>`)}
+    ${sec("clock", "How long", `<p>Punch records are kept as the law requires. Selfies are kept for 60 days.</p>`)}
+    ${sec("hand", "Your choice", `<p>Phone punching is optional. If you say no, or stop later, your job, pay and shift are not affected. To stop, use “Stop phone punching” in the menu.</p>`)}
+    ${sec("mail", "Questions", `<p>privacy@sheetshapers.example<br>Sheet Shapers, MIDC Waluj</p>`)}
+  </div>`;
+  const ver = `<div class="nver">${ic("file-text")}Notice version 1</div>`;
+  const bar = (busy) => `<div class="stickybar">${busy ? P.btn("primary", "", "Saving…", { busy: true }) : P.btn("primary", "check", "I agree")}${P.btn("outline", "log-out", "Not now", { disabled: busy })}</div>`;
+  const head = P.head("Phone punching notice");
+
+  function render(s) {
+    switch (s) {
+      case "loading":
+        return head + `<div class="pc stack anim-fade-up" aria-busy="true">${[90, 100, 70, 100, 85, 60, 100, 75].map((w) => `<div class="sk" style="height:20px;width:${w}%"></div>`).join("")}</div>` +
+          `<div class="stickybar">${P.btn("primary", "check", "I agree", { disabled: true })}${P.btn("outline", "log-out", "Not now")}</div>`;
+      case "error":
+        return head + `<div class="pc state-card anim-fade-up" role="alert"><span class="state-ic si-danger">${ic("file-warning")}</span><h2>${T.error}</h2><div style="width:100%" class="stack">${P.btn("primary", "rotate-ccw", "Try again")}${P.btn("outline", "log-out", "Not now")}</div></div>`;
+      case "saving": return head + ver + notice + bar(true);
+      case "notice-required": return head + P.msg("warning", "shield-alert", "", T.required) + ver + notice + bar(false);
+      case "notice-changed": return head + P.msg("info", "refresh-cw", "", T.changed) + `<div class="nver">${ic("file-text")}Notice version 2</div>` + notice + bar(false);
+      default: return head + ver + notice + bar(false);
+    }
+  }
+  P.start({ user: P.FACE, render, wide: false });
+</script>
+</body>
+</html>

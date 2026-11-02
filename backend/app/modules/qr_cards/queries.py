@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session, aliased
 from app.core.errors import ApiError
 from app.core.pagination import PageParams, fetch_page
 from app.modules.employees.models import Employee, EmployeeStatus
+from app.modules.phone.models import PhoneAccess
 from app.modules.qr_cards.models import CardKind, QrCredential
 from app.modules.qr_cards.states import CardState
 
@@ -114,6 +115,25 @@ def count_expiring(session: Session, today: date, expiring_soon_days: int) -> in
             .where(
                 QrCredential.kind == CardKind.EMPLOYEE.value,
                 Employee.status == EmployeeStatus.ACTIVE.value,
+                *_state_conditions(QrCredential, CardState.EXPIRING, today, expiring_soon_days),
+            )
+        )
+        or 0
+    )
+
+
+def count_expiring_with_phone_on(session: Session, today: date, expiring_soon_days: int) -> int:
+    """Of the cards counted by `count_expiring`, the owners with phone punching on (M4b)."""
+    return (
+        session.scalar(
+            select(func.count())
+            .select_from(QrCredential)
+            .join(Employee, Employee.id == QrCredential.employee_id)
+            .join(PhoneAccess, PhoneAccess.employee_id == Employee.id)
+            .where(
+                QrCredential.kind == CardKind.EMPLOYEE.value,
+                Employee.status == EmployeeStatus.ACTIVE.value,
+                PhoneAccess.phone_punch_enabled.is_(True),
                 *_state_conditions(QrCredential, CardState.EXPIRING, today, expiring_soon_days),
             )
         )

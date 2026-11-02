@@ -32,7 +32,7 @@ import argparse
 import sys
 import uuid
 
-from sqlalchemy import and_, delete, func, or_, select, text
+from sqlalchemy import and_, delete, func, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.config import load_settings_or_exit
@@ -49,6 +49,10 @@ from app.scripts.remove_demo_plant import (
     _remove_face_data,
     _table,
     delete_photo_files,
+    phone_sessions_of,
+    remove_attendance_rows,
+    remove_rows_before_punches,
+    set_protection,
 )
 
 MAX_EMPLOYEES = 20
@@ -115,6 +119,7 @@ def build_plan(
     plan.card_ids = _ids(
         session, "qr_credentials", "id", cards.c.employee_id.in_(plan.employee_ids)
     )
+    plan.phone_session_ids = phone_sessions_of(session, plan.employee_ids)
     plan.punch_ids = _ids(
         session,
         "punches",
@@ -123,6 +128,7 @@ def build_plan(
             punches.c.kiosk_id.in_(plan.kiosk_ids),
             punches.c.employee_id.in_(plan.employee_ids),
             punches.c.claimed_employee_id.in_(plan.employee_ids),
+            punches.c.phone_session_id.in_(plan.phone_session_ids),
         ),
     )
 
@@ -179,6 +185,7 @@ def build_plan(
         "photos": len(plan.photo_keys),
         "reviews of those punches": len(plan.review_ids),
         "device health samples": plan.heartbeat_count,
+        "phone sign-ins": len(plan.phone_session_ids),
     }
     return plan
 
@@ -249,8 +256,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
 
     # Only inside this transaction: switch the punches "never change or delete" trigger off, and
     # make sure it is on again (a rollback would undo this too).
-    session.execute(text("ALTER TABLE punches DISABLE TRIGGER USER"))
-    session.execute(text("ALTER TABLE punch_reviews DISABLE TRIGGER USER"))
+    set_protection(session, on=False)
     try:
         t = _table
         _remove_face_data(session, plan)
@@ -263,6 +269,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         session.execute(
             delete(t("punch_snapshots")).where(t("punch_snapshots").c.punch_id.in_(plan.punch_ids))
         )
+        remove_rows_before_punches(session, employee_ids, plan.punch_ids)
         session.execute(delete(t("punches")).where(t("punches").c.id.in_(plan.punch_ids)))
         session.execute(
             delete(t("qr_credentials")).where(t("qr_credentials").c.id.in_(plan.card_ids))
@@ -280,6 +287,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         session.execute(
             delete(t("change_requests")).where(t("change_requests").c.employee_id.in_(employee_ids))
         )
+        remove_attendance_rows(session, employee_ids, plan.phone_session_ids)
         session.execute(delete(t("employees")).where(t("employees").c.id.in_(employee_ids)))
         session.execute(
             delete(t("kiosk_pairing_codes")).where(
@@ -288,8 +296,7 @@ def remove(session: Session, plan: RemovalPlan) -> None:
         )
         session.execute(delete(t("kiosk_devices")).where(t("kiosk_devices").c.id.in_(kiosk_ids)))
     finally:
-        session.execute(text("ALTER TABLE punches ENABLE TRIGGER USER"))
-        session.execute(text("ALTER TABLE punch_reviews ENABLE TRIGGER USER"))
+        set_protection(session, on=True)
 
     # One line that says it happened (counts only: no names, no codes of people).
     record_audit(
@@ -308,7 +315,8 @@ def _show(plan: RemovalPlan) -> None:
     print(f"Plant: {plan.plant_code} ({plan.plant_name}); the plant itself stays.")
     for label, count in plan.counts.items():
         print(f"  {count:>5}  {label}")
-    print("  Also: their face data, shifts, plant history and change requests.")
+    print("  Also: their face data, shifts, plant history, change requests, leave, shift")
+    print("        swaps, corrections, attendance days and phone punching data.")
     print("        The audit log is not touched.")
 
 

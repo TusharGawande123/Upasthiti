@@ -5,6 +5,10 @@
 //
 // It looks for t("some.key") calls and i18nKey="some.key" props in src/. Keys built at
 // runtime (t(`status.${name}`)) cannot be checked this way, so write keys out in full.
+// The families of runtime keys whose pieces we can list (kiosk.punch.<CODE>.*, phone.punch.<CODE>.*,
+// kiosk.problem.<NAME>.*) are checked for completeness instead: every entry must carry all its parts.
+// The server error codes (errors.<CODE>) are checked by check-error-codes.mjs, which `npm run
+// i18n:check` runs right after this one.
 
 import { readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
@@ -52,6 +56,44 @@ const usedKeys = findUsedKeys();
 const isKnown = (key) =>
   knownKeys.has(key) || knownKeys.has(`${key}_one`) || knownKeys.has(`${key}_other`);
 const missingKeys = [...usedKeys].filter(([key]) => !isKnown(key));
+
+// family path -> the parts every entry needs. Each part may be satisfied by any of its alternatives
+// (the gate screens for a camera problem show "steps" instead of one "next" line).
+// Entries that are plain texts, not groups (locating, newCode ...), are skipped on purpose.
+const FAMILIES = {
+  "kiosk.punch": [["title"], ["message"], ["next", "steps"]],
+  "phone.punch": [["title"], ["message"], ["next"]],
+  "kiosk.problem": [["title"], ["message"], ["steps"]],
+};
+
+function valueAt(translations, path) {
+  return path.split(".").reduce((node, part) => node?.[part], translations);
+}
+
+function findIncompleteFamilyEntries(translations) {
+  const incomplete = [];
+  for (const [familyPath, parts] of Object.entries(FAMILIES)) {
+    const family = valueAt(translations, familyPath);
+    if (typeof family !== "object" || family === null) continue; // not in this file (tests)
+    for (const [entryName, entry] of Object.entries(family)) {
+      if (typeof entry !== "object" || entry === null) continue;
+      for (const alternatives of parts) {
+        if (!alternatives.some((part) => part in entry)) {
+          incomplete.push(`${familyPath}.${entryName}.${alternatives.join("|")}`);
+        }
+      }
+    }
+  }
+  return incomplete;
+}
+
+const englishTexts = JSON.parse(readFileSync(ENGLISH_FILE, "utf8"));
+const incompleteEntries = findIncompleteFamilyEntries(englishTexts);
+if (incompleteEntries.length > 0) {
+  console.error(`Incomplete text groups in ${ENGLISH_FILE}:`);
+  for (const key of incompleteEntries) console.error(`  - ${key}`);
+  process.exit(1);
+}
 
 if (missingKeys.length > 0) {
   console.error(`Missing from ${ENGLISH_FILE}:`);

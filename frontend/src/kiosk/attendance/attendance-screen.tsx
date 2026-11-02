@@ -23,12 +23,14 @@ import { LocationChip, NeedsLocationScreen } from "../location/needs-location";
 import { QUEUE_ALMOST_FULL_SHARE, queueFillShare } from "../offline/offline-queue";
 import { useOfflineGate } from "../offline/use-offline";
 import { CodePad } from "./code-pad";
+import { EarlyOutView } from "./early-out-view";
 import { FaceView, showsFaceView } from "./face-view";
 import { buildHeartbeat, emptyFacts, type HeartbeatFacts } from "./heartbeat-report";
+import { PhoneCodePanel } from "./phone-code-panel";
 import { type CodeEntry, canTryAgain, canTryAgainAfterFailure, type KioskMe } from "./punch-types";
 import { ResultView } from "./result-view";
 import { ScanningView } from "./scanning-view";
-import { ConnectionChip, QueueChip, TopClock } from "./top-bar";
+import { ConnectionChip, InsideNowChip, QueueChip, TopClock } from "./top-bar";
 import { useAttendance } from "./use-attendance";
 import { useHeartbeat } from "./use-heartbeat";
 import { useErrorReporter, useSelfUpdate, useSoundAndBanner } from "./use-kiosk-extras";
@@ -200,6 +202,7 @@ export function AttendanceScreen({
           {sound.bannerVisible ? <SoundBanner onTap={sound.onBannerTap} /> : null}
           <ConnectionChip online={heartbeat.online} savesOffline={offline.canSave} />
           <QueueChip count={offline.queue.count} sending={heartbeat.online} />
+          {idleScreen ? <InsideNowChip count={heartbeat.insideNow} /> : null}
           <LocationChip place={place} />
           <TopClock offsetMs={heartbeat.serverOffsetMs} />
         </div>
@@ -242,6 +245,7 @@ export function AttendanceScreen({
           videoRef={attendance.videoRef}
           notices={heartbeat.notices}
           lowLight={attendance.lowLight}
+          phoneCodeSeen={attendance.phoneCodeSeen}
           camera={attendance.camera}
           getReady={attendance.getReady}
           face={{
@@ -253,6 +257,13 @@ export function AttendanceScreen({
           onStartCamera={attendance.startCameraAfterTap}
         />
       </div>
+      <PhoneCodePanel
+        enabled={heartbeat.settings.phone_code?.enabled === true}
+        online={heartbeat.online}
+        idle={screen.name === "scanning" && !screen.notACard && !place.paused}
+        showSeconds={heartbeat.settings.phone_code?.show_seconds ?? 60}
+        serverOffsetMs={heartbeat.serverOffsetMs}
+      />
       {screen.name === "camera-problem" ? (
         <ProblemScreen
           icon={CAMERA_PROBLEM_ICONS[screen.code]}
@@ -296,6 +307,13 @@ export function AttendanceScreen({
           onSubmit={(code) => void attendance.face.submitCode(code)}
           onCancel={attendance.face.cancel}
           onExpired={attendance.face.expireCode}
+        />
+      ) : null}
+      {screen.name === "early-out" ? (
+        <EarlyOutView
+          prompt={screen.prompt}
+          onAgree={() => void attendance.earlyOut.agree()}
+          onCancel={attendance.earlyOut.cancel}
         />
       ) : null}
       {screen.name === "result" || screen.name === "failed" ? (

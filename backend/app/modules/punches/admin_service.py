@@ -80,6 +80,26 @@ def read_snapshot(
     return jpeg
 
 
+def record_position_view(session: Session, actor: Actor, punch: Punch) -> None:
+    """The Super Admin opened the exact position of a phone punch (where a person was outside
+    work). Like a photo view, it is audited: "who looked at my location" has an answer. Commits."""
+    if punch.channel != "phone" or punch.lat is None:
+        return
+    record_audit(
+        session,
+        actor=actor,
+        action="punch.location_view",
+        entity_type="punch",
+        entity_id=punch.id,
+        after={
+            "punch_id": str(punch.id),
+            "employee_id": str(punch.employee_id) if punch.employee_id else None,
+        },
+        plant_id=punch.plant_id,
+    )
+    session.commit()
+
+
 # --- Excel export -------------------------------------------------------------------------------
 
 # People read this file, so the gate device is an "attendance device" here (decision 0013).
@@ -102,6 +122,9 @@ COLUMNS = (
     ("Flags", 40),
     ("Review", 18),
     ("Counted for", 30),
+    # M4b (spec §4.13): how the punch was made, and whether it was made outside every plant.
+    ("Channel", 20),
+    ("Outside plant", 14),
 )
 HIDDEN_EMPLOYEE = "Card of another plant"
 RESULT_TEXTS = {
@@ -110,6 +133,7 @@ RESULT_TEXTS = {
     "needs_code": "Asked for code",
     "rejected": "Rejected",
 }
+CHANNEL_TEXTS = {"kiosk": "Attendance device", "phone": "Phone"}
 REVIEW_TEXTS = {
     "to_check": "To check",
     "confirmed": "Confirmed",
@@ -170,7 +194,7 @@ def _row(item: PunchLogItem) -> list[str]:
         f"{item.plant.code} · {item.plant.name}",
         code,
         name,
-        item.kiosk.name,
+        item.kiosk.name if item.kiosk is not None else "",
         (item.direction or "").upper(),
         RESULT_TEXTS.get(item.decision, "Rejected"),
         reason,
@@ -181,6 +205,8 @@ def _row(item: PunchLogItem) -> list[str]:
         "; ".join(f"{reason_text(flag)} ({flag})" for flag in _flag_codes(item)),
         _review_text(item),
         f"{item.counted_for.code} · {item.counted_for.name}" if item.counted_for else "",
+        CHANNEL_TEXTS.get(item.channel, item.channel),
+        "Yes" if item.outside_plant else "No",
     ]
 
 

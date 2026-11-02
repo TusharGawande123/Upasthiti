@@ -29,6 +29,14 @@ ENROLMENT_SHOT_LIMIT = 256 * 1024
 _ENROLMENT_SESSIONS_PATH = "/api/v1/face/enrolment-sessions/"
 _IMPORT_PATH_SUFFIX = "/employees/import"
 
+# M4b phone pages (spec §5, §7 rules 10 and 11). A phone face punch and a face proof carry the
+# same frames as the gate's face punch; a gate-code punch carries one selfie like a card punch.
+# Everything else a phone sends (sign-in, notice, card proof, passkeys) is a few short fields.
+PHONE_FACE_PATHS = ("/api/v1/phone/punch/face", "/api/v1/phone/proof/face")
+PHONE_GATE_CODE_PATH = "/api/v1/phone/punch/gate-code"
+PHONE_BODY_LIMIT = 16 * 1024
+_PHONE_PATHS = "/api/v1/phone/"
+
 
 def body_limit_for(path: str) -> int:
     if path == FACE_PUNCH_PATH:
@@ -37,6 +45,12 @@ def body_limit_for(path: str) -> int:
         return CODE_TRY_BODY_LIMIT
     if path == SYNC_PATH:
         return SYNC_BODY_LIMIT
+    if path in PHONE_FACE_PATHS:
+        return FACE_PUNCH_BODY_LIMIT
+    if path == PHONE_GATE_CODE_PATH:
+        return KIOSK_BODY_LIMIT
+    if path.startswith(_PHONE_PATHS):
+        return PHONE_BODY_LIMIT
     if path.startswith(_KIOSK_PATHS):
         return KIOSK_BODY_LIMIT
     if path.startswith(_ENROLMENT_SESSIONS_PATH) and path.endswith("/shots"):

@@ -24,7 +24,7 @@ from sqlalchemy import delete, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
-from app.antiproxy.context import Outcome, PunchContext, PunchLimits, RuleResult
+from app.antiproxy.context import DeviceIdentity, Outcome, PunchContext, PunchLimits, RuleResult
 from app.antiproxy.engine import (
     AFTER_IDENTITY_RULES,
     LOCATION_RULES,
@@ -51,6 +51,7 @@ from app.face.engine import FaceEngine
 from app.face.images import ImageInvalidError, decode_jpeg
 from app.face.matcher import cosine
 from app.face.models import FaceModels
+from app.modules.attendance.service import mark_punch_stale
 from app.modules.employees.models import Employee, EmployeeStatus, PunchMethod
 from app.modules.employees.rules import clean_code
 from app.modules.face.engine_provider import face_key, ready_model_id, run_face_job
@@ -60,7 +61,14 @@ from app.modules.face.template_service import active_template
 from app.modules.kiosks.location_check import Location
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches.answers import ALREADY_PUNCHED_CODES, punch_answer
+from app.modules.punches.early_out import (
+    early_out_info,
+    face_hold,
+    prompt_for,
+    punch_early_out,
+)
 from app.modules.punches.models import (
+    Direction,
     FacePendingMatch,
     MatchMode,
     Punch,
@@ -116,9 +124,7 @@ def issue_challenge(session: Session, kiosk: KioskDevice, engine: FaceEngine) ->
             PunchChallenge.kiosk_id == kiosk.id, PunchChallenge.issued_at < now - CHALLENGE_KEEP
         )
     )
-    two_steps = get_int_setting(session, "face_challenge_steps") >= 2  # F-43
-    options = ("left_then_right", "right_then_left") if two_steps else ("turn_left", "turn_right")
-    challenge = secrets.choice(options)  # chosen by the server, never by the device
+    challenge = choose_challenge(session)
     nonce = secrets.token_urlsafe(16)  # 128 random bits, 22 characters
     expires_at = now + timedelta(seconds=get_int_setting(session, "face_challenge_seconds"))
     session.add(
@@ -136,14 +142,26 @@ def issue_challenge(session: Session, kiosk: KioskDevice, engine: FaceEngine) ->
         challenge=challenge,  # type: ignore[arg-type]
         expires_at=expires_at,
         server_time=now,
-        capture=CaptureRules(
-            min_frames=2,
-            max_frames=4,
-            max_width=640,
-            max_height=480,
-            max_frame_bytes=MAX_FRAME_BYTES,
-            min_yaw_degrees=get_int_setting(session, "face_min_yaw_degrees"),
-        ),
+        capture=capture_rules(session),
+    )
+
+
+def choose_challenge(session: Session) -> str:
+    """The head turn, chosen by the server, never by the device (also used by the phone, M4b)."""
+    two_steps = get_int_setting(session, "face_challenge_steps") >= 2  # F-43
+    options = ("left_then_right", "right_then_left") if two_steps else ("turn_left", "turn_right")
+    return secrets.choice(options)
+
+
+def capture_rules(session: Session) -> CaptureRules:
+    """What the camera page must send: the same for the gate and the phone (M4b)."""
+    return CaptureRules(
+        min_frames=2,
+        max_frames=4,
+        max_width=640,
+        max_height=480,
+        max_frame_bytes=MAX_FRAME_BYTES,
+        min_yaw_degrees=get_int_setting(session, "face_min_yaw_degrees"),
     )
 
 
@@ -189,7 +207,8 @@ def record_face_punch(
     def job(models: FaceModels) -> tuple[RuleResult, FacePunchContext]:
         context = FacePunchContext(
             session=session,
-            kiosk=kiosk,
+            plant_id=kiosk.plant_id,
+            device_identity=DeviceIdentity.of_kiosk(kiosk),
             now=now,
             limits=face_limits,
             models=models,
@@ -209,11 +228,18 @@ def record_face_punch(
         result, context = run_face_job(engine, job)
         if result.outcome is Outcome.ALLOW and context.employee is not None:
             place.employee = context.employee
-            decision = combine(place_decision, _after_identity(session, place))
+            decision = combine(place_decision, lock_and_decide_in_out(session, place))
         else:
             decision = rejected_after(place_decision, result.reason_code or "INTERNAL_ERROR")
 
     punch = _face_punch_row(kiosk, request, client, context, decision, place, now, model_id)
+    early_out = punch_early_out(
+        session, punch, now, window_before_hours=limits.attendance_window_before_hours
+    )
+    if early_out is not None:
+        # Nothing is stored; the commit keeps the challenge used. Agree sends the token back.
+        session.commit()
+        return prompt_for(kiosk, now, early_out, face_hold(punch), request.client_punch_id)
     first_code = decision.reason_codes[0] if decision.outcome is Outcome.REJECT else None
     snapshot = _face_snapshot(session, punch, frames, first_code, now, storage)
     pending, token = _pending_match(session, kiosk, punch, context, first_code, now, model_id, key)
@@ -225,6 +251,7 @@ def record_face_punch(
         if pending is not None:
             session.add(pending)
         note_last_punch(kiosk, punch)
+        mark_punch_stale(session, punch)
         session.commit()
     except IntegrityError:
         session.rollback()
@@ -265,7 +292,8 @@ def place_context(
     return PunchContext(
         session=session,
         app_settings=get_settings(),
-        kiosk=kiosk,
+        plant_id=kiosk.plant_id,
+        device_identity=DeviceIdentity.of_kiosk(kiosk),
         now=now,
         limits=limits,
         qr_text=None,
@@ -275,7 +303,7 @@ def place_context(
     )
 
 
-def _after_identity(session: Session, context: PunchContext) -> EngineDecision:
+def lock_and_decide_in_out(session: Session, context: PunchContext) -> EngineDecision:
     """IN/OUT and the flag rules, with the employee's row locked (two gates at once)."""
     employee = context.employee
     if employee is None:
@@ -351,9 +379,24 @@ def _face_snapshot(
     now: datetime,
     storage: Storage | None,
 ) -> PunchSnapshot | None:
-    """A 320 px photo of a rejected or code-path face punch; never for one that counts."""
+    return face_snapshot(session, punch, frames, first_code, now, storage)
+
+
+def face_snapshot(
+    session: Session,
+    punch: Punch,
+    frames: list[FaceFrame],
+    first_code: str | None,
+    now: datetime,
+    storage: Storage | None,
+    *,
+    rejected_reason: SnapshotReason = SnapshotReason.FACE_REJECTED,
+    no_photo_codes: tuple[str, ...] = NO_PHOTO_CODES,
+) -> PunchSnapshot | None:
+    """A 320 px photo of a rejected or code-path face punch; never for one that counts. The phone
+    (M4b) uses it too, with its own reason and its own "no new evidence" codes."""
     counts = punch.decision in (PunchDecision.ACCEPTED.value, PunchDecision.FLAGGED.value)
-    if counts or first_code in NO_PHOTO_CODES:
+    if counts or first_code in no_photo_codes:
         return None
     checked = small_photo(frames, get_int_setting(session, "snapshot_dark_threshold"))
     if checked is None:
@@ -361,7 +404,7 @@ def _face_snapshot(
     reason = (
         SnapshotReason.FACE_CODE
         if punch.decision == PunchDecision.NEEDS_CODE.value
-        else SnapshotReason.FACE_REJECTED
+        else rejected_reason
     )
     key = f"snapshots/{now:%Y/%m/%d}/{punch.id}.bin"
     stored_size = upload_snapshot(punch, checked, key, get_settings(), storage)
@@ -531,7 +574,7 @@ def record_code_try(
             )
         place = _origin_place(session, kiosk, now, limits, pending)
         place.employee = claimed
-        decision = combine(_origin_flags(session, pending), _after_identity(session, place))
+        decision = combine(_origin_flags(session, pending), lock_and_decide_in_out(session, place))
         return _final_code_row(
             session,
             kiosk,
@@ -647,6 +690,30 @@ def _final_code_row(
         place = _origin_place(session, kiosk, now, limits, pending)
     counts = decision.outcome is Outcome.ALLOW
     origin = session.get(Punch, pending.origin_punch_id) if pending else None
+    counted_out = counts and decision.direction == Direction.OUT and employee is not None
+    early_out = (
+        early_out_info(
+            session,
+            employee.id,  # type: ignore[union-attr]
+            now,
+            window_before_hours=limits.attendance_window_before_hours,
+        )
+        if counted_out
+        else None
+    )
+    if early_out is not None and pending is not None:
+        hold = {
+            "method": PunchMethod.FACE.value,
+            "employee_id": str(employee.id),  # type: ignore[union-attr]
+            "match_mode": MatchMode.CODE.value,
+            "match_score": None if score is None else str(score_decimal(score)),
+            "face_model_id": pending.model_id,
+            "follows_punch_id": str(pending.origin_punch_id),
+            "claimed_employee_id": str(claimed.id) if claimed else None,
+        }
+        session.delete(pending)  # the person was found; the alert continues without the pad
+        session.commit()
+        return prompt_for(kiosk, now, early_out, hold, request.client_punch_id)
     punch = Punch(
         id=uuid.uuid4(),
         client_punch_id=request.client_punch_id,
@@ -677,6 +744,7 @@ def _final_code_row(
         if pending is not None:
             session.delete(pending)
         note_last_punch(kiosk, punch)
+        mark_punch_stale(session, punch)
         session.commit()
     except IntegrityError:
         session.rollback()

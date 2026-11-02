@@ -54,6 +54,6 @@ def check_offline_code_match(
     if score < threshold:
         return RuleResult.rejected("FACE_NOT_RECOGNISED")
     context.employee = candidate.employee
-    if candidate.plant_id != context.kiosk.plant_id:
+    if candidate.plant_id != context.plant_id:
         return RuleResult.rejected("WRONG_PLANT")
     return RuleResult.passed()

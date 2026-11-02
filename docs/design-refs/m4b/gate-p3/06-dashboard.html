@@ -1,0 +1,78 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P3 - Screen 6: dashboard (/admin) with the line "On outside work: N" next to "Inside now", a small card "Phone attendance"
+  and a phone line on "Cards ending soon" (spec 4.13, 7 rule 22, §13 risk row). Only the parts that change are drawn in full; the rest of the M5 dashboard is unchanged.
+  States (URL hash): default · plant-k134 · zero · plant-head · corporate-head · loading · error · menu-open.   "Now" is Saturday 31/10/2026, 09:20.
+  MOCKUP ONLY - fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+  <link rel="stylesheet" href="p3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="p3.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Dashboard";
+  const S = location.hash.replace("#", "") || "default";
+  const ROLE = roleOf(S);
+  window.MOCK_USER = USERS[ROLE];
+  window.MOCK_SHELL = { offline: 1, review: 7, bell: 4, menu: S === "menu-open" };
+  const SA = ROLE === "sa";
+  const K134 = S === "plant-k134" || ROLE === "ph";
+  const D = S === "zero" ? { inside: 0, perm: 0, temp: 0, out: 0 } : K134 ? { inside: 96, perm: 52, temp: 44, out: 1 } : { inside: 214, perm: 116, temp: 98, out: 3 };
+
+  function inside() {
+    const total = D.perm + D.temp || 1;
+    const out = D.out === 0 ? `<div class="out-line zero">${ic("map-pin")}On outside work: 0</div>` : `<div class="out-line">${ic("map-pin")}On outside work: ${D.out}</div>`;
+    return `<section class="inside-card" aria-labelledby="in-h"><div class="hd"><span class="round-ic" style="background:var(--primary-soft);color:var(--primary)">${ic("log-in")}</span><span id="in-h">Inside now</span></div>
+      <div class="num">${D.inside}<small> people</small></div>
+      <div style="height:12px;border-radius:99px;background:var(--muted);overflow:hidden;display:flex"><span style="width:${D.perm / total * 100}%;background:var(--primary)"></span><span style="flex:1;background:repeating-linear-gradient(45deg,#f5b700 0 6px,#d9a400 6px 12px)"></span></div>
+      <div style="display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-weight:600;font-size:14.5px"><span>Permanent: ${D.perm}</span><span>Of which temporary: ${D.temp}</span></div>${out}
+      <p class="muted" style="margin:10px 0 0;font-size:13px">People on outside work who punched in away from the plants are not counted inside. A person punching in at another plant is counted inside that plant.</p></section>`;
+  }
+  function tiles() {
+    const t = (icon, title, big, sub, tone) => `<a class="card kcard" href="#" style="padding:18px;text-decoration:none;color:inherit;display:grid;gap:6px"><span style="display:flex;gap:10px;align-items:center;font-weight:700"><span class="round-ic" style="width:36px;height:36px;background:var(--${tone}-soft);color:var(--${tone})">${ic(icon)}</span>${title}</span><b style="font-size:40px;line-height:1;letter-spacing:-.03em">${big}</b><span class="muted" style="font-size:13.5px">${sub}</span></a>`;
+    return `<div class="dash-two">${t("users", "Expected today", K134 ? 104 : 236, "Working day, not on leave", "primary")}${t("user-check", "Arrived", K134 ? 99 : 221, K134 ? "95% of expected" : "94% of expected", "success")}</div>`;
+  }
+  function small() {
+    const dev = `<a class="pcard-d" href="#"><span class="round-ic" style="background:var(--primary-soft);color:var(--primary)">${ic("tablet-smartphone")}</span><div><b>Attendance devices</b><span class="t">6 online · 1 offline</span></div><span class="big" style="color:var(--warning)">1</span></a>`;
+    const chk = SA ? `<a class="pcard-d" href="#"><span class="round-ic" style="background:var(--warning-soft);color:var(--warning)">${ic("flag")}</span><div><b>To check</b><span class="t">Flagged punches nobody has looked at</span></div><span class="big" style="color:var(--warning)">7</span></a>` : "";
+    const cards = SA ? `<a class="pcard-d" href="#"><span class="round-ic" style="background:var(--warning-soft);color:var(--warning)">${ic("calendar-clock")}</span><div><b>Cards ending soon</b><span class="t">QR cards that end in 14 days · <b style="display:inline;font-size:13.5px;color:var(--primary-soft-foreground)">2 with Phone punching on</b></span></div><span class="big" style="color:var(--warning)">4</span></a>` : "";
+    const ph = `<a class="pcard-d" href="#"><span class="round-ic" style="background:var(--primary-soft);color:var(--primary)">${ic("smartphone")}</span><div><b>Phone attendance</b><span class="t">On outside work: ${D.out}</span></div><span class="big">${D.out}</span></a>`;
+    return `<h2 style="font-size:18px;margin:24px 0 12px">Devices, checks and set-up <span class="muted" style="font-size:13px;font-weight:500;margin-left:6px">kept from earlier milestones</span></h2><div class="dash-two">${dev}${ph}${chk}${cards}</div>`;
+  }
+  function page() {
+    if (S === "loading") return `<div class="page-narrow"><div class="skeleton" style="height:40px;width:240px;margin-bottom:16px"></div><div class="skeleton" style="height:260px;margin-bottom:16px"></div><div class="dash-two"><div class="skeleton" style="height:140px"></div><div class="skeleton" style="height:140px"></div></div><div class="dash-two" style="margin-top:16px"><div class="skeleton" style="height:90px"></div><div class="skeleton" style="height:90px"></div></div></div>`;
+    const head = `<div class="page-head anim-fade-up"><div><h1 class="page-title">Dashboard</h1><p class="page-desc">Saturday 31/10/2026</p><p style="margin:6px 0 0;font-size:14px"><span style="display:inline-block;width:9px;height:9px;border-radius:99px;background:var(--success);margin-right:6px"></span><b>Updated 09:20</b> <span class="muted">refreshes every 30 seconds</span></p></div>
+      <div class="head-actions">${ROLE === "ph" ? `<span class="badge badge-outline" style="height:44px;padding:0 14px">${ic("lock")}Plant K134</span>` : sel("pl", "Plant", K134 ? "Plant: Sheet Shapers K-134" : "Plant: all plants", true)}</div></div>`;
+    if (S === "error") return `<div class="page-narrow">${head}<div class="card"><div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>The dashboard could not be loaded</h3><p>The server did not answer. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div></div></div>`;
+    const ro = ROLE === "ph" ? `<div class="ro-strip mb">${ic("eye")}<span>Your plant only. A person of another plant who punched in here by phone is counted inside and shown in the muster with the home plant.</span></div>` : "";
+    return `<div class="page-narrow" style="padding-bottom:40px">${head}${ro}<div class="stack">${inside()}${tiles()}</div>${small()}</div>`;
+  }
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>

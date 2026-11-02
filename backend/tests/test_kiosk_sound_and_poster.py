@@ -2,6 +2,7 @@
 (spec M2 §4.12, §5.5, §7 rules 1 and 20; F-1, F-27, F-34; AC-36). Real PostgreSQL; fake data."""
 
 import uuid
+from datetime import date, time
 
 import pypdfium2
 import pytest
@@ -14,7 +15,7 @@ from sqlalchemy.orm import Session
 from app.core.time import utc_now
 from app.modules.audit.models import AuditLog
 from app.modules.kiosks.models import KioskDevice
-from app.modules.org.models import Plant
+from app.modules.org.models import Plant, Shift
 from app.modules.printing import poster_pdf
 from app.modules.users.models import Role, User
 from app.modules.users.plant_access import set_user_plant
@@ -174,7 +175,17 @@ def test_the_privacy_box_fits_above_the_help_line(retention_days: int) -> None:
     pdf.add_font(poster_pdf.FONT_NAME, "", str(poster_pdf.FONT_FOLDER / "Inter-Regular.ttf"))
     pdf.add_font(poster_pdf.FONT_NAME, "B", str(poster_pdf.FONT_FOLDER / "Inter-Bold.ttf"))
     pdf.add_page()
-    box_top = 199.0  # below the two ways, the result box and the NOT ACCEPTED note
+    # Below the two ways, the two small boxes and the shift box at its tallest (six lines:
+    # six shifts, or five and the "and N more shifts" line; M5 spec §4.17).
+    box_top = (
+        poster_pdf.WAYS_Y_MM
+        + poster_pdf.WAYS_HEIGHT_MM
+        + 3
+        + poster_pdf.SMALL_BOX_HEIGHT_MM
+        + 3
+        + poster_pdf.shifts_box_height(pdf, 9)
+        + 3
+    )
 
     assert (
         poster_pdf.privacy_box_height(pdf, retention_days) <= poster_pdf.BOTTOM_LIMIT_MM - box_top
@@ -224,3 +235,46 @@ def test_an_unknown_plant_has_no_poster(boss: TestClient) -> None:
     response = boss.get(f"/api/v1/plants/{uuid.uuid4()}/gate-poster.pdf")
 
     assert response.json()["error"]["code"] == "PLANT_NOT_FOUND"
+
+
+def test_the_poster_lists_the_active_shifts_with_the_rules_of_today(
+    boss: TestClient, db_session: Session, k134: PlantIds
+) -> None:
+    """M5 spec §4.17: one line per active shift, never fixed text; a stopped shift is left out."""
+    boss.post(
+        f"/api/v1/plants/{k134.id}/shifts",
+        json={"name": "Night", "start_time": "19:00", "end_time": "07:00", "grace_min": 15},
+    )
+    boss.post(
+        f"/api/v1/plants/{k134.id}/shifts",
+        json={"name": "Old shift", "start_time": "05:00", "end_time": "13:00"},
+    )
+    old = db_session.scalars(
+        select(Shift).where(Shift.plant_id == uuid.UUID(k134.id), Shift.name == "Old shift")
+    ).one()
+    old.is_active = False
+    db_session.commit()
+
+    text = poster_text(boss.get(f"/api/v1/plants/{k134.id}/gate-poster.pdf"))
+
+    assert "Your shift times" in text and "Shift times as on" in text
+    assert "19:00–07:00: on time until 19:15, leave from 07:00." in text
+    assert "Old shift" not in text
+    assert "One IN and one OUT per shift." in text
+    assert "Please visit the plant office if your shift is closed by mistake." in text
+
+
+def test_more_than_six_shifts_say_and_n_more() -> None:
+    shifts = [
+        poster_pdf.PosterShift(f"Shift {number}", time(number, 0), time(number + 8, 0), 30)
+        for number in range(1, 9)
+    ]
+    content = poster_pdf.gate_poster_pdf(
+        "Plant", "K1", 60, "example.app/privacy", shifts, date.today()
+    )
+    document = pypdfium2.PdfDocument(content)
+    text = " ".join(document[0].get_textpage().get_text_range().split())
+
+    assert len(document) == 1
+    assert "Shift 5" in text and "Shift 6" not in text
+    assert "and 3 more shifts: ask the plant office" in text

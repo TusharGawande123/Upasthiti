@@ -3,7 +3,8 @@
 import enum
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, Index, String, text
+from sqlalchemy import CheckConstraint, DateTime, Index, String, Text, false, text
+from sqlalchemy.dialects.postgresql import ARRAY
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.core.db import Base
@@ -39,6 +40,11 @@ class User(IdMixin, TimestampMixin, Base):
     role: Mapped[str] = mapped_column(String(20))
     is_active: Mapped[bool] = mapped_column(default=True)
     must_change_password: Mapped[bool] = mapped_column(default=True)
+    # M5 (spec §7 rule 20): email alerts, used only when the server has SMTP settings.
+    email_alerts_enabled: Mapped[bool] = mapped_column(default=False, server_default=false())
+    email_alert_kinds: Mapped[list[str]] = mapped_column(
+        ARRAY(Text), default=list, server_default=text("'{}'::text[]")
+    )
     failed_login_count: Mapped[int] = mapped_column(default=0)
     locked_until: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))

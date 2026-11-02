@@ -221,6 +221,34 @@ class KioskOfflineSettings(BaseModel):
     sync_max_bytes: int
 
 
+class KioskScreenLines(BaseModel):
+    """Which small lines the gate screen may show (M5 spec §4.16): "Inside now" (F-28), the gentle
+    late hint (F-37) and the "My month" line (F-2). The numbers come from the server; no names."""
+
+    show_inside_count: bool
+    late_hint: bool
+    show_month_line: bool
+
+
+class KioskPhoneCodeSettings(BaseModel):
+    """The changing phone code panel of the gate screen (M4b spec §4.2, §5.4). `enabled` follows the
+    setting only: the code answer itself is empty when no worker could use it."""
+
+    enabled: bool
+    refresh_seconds: int
+    show_seconds: int  # a narrow gate (a phone) shows the code this long after a tap
+
+
+class GateCodeResponse(BaseModel):
+    """`code_text` and `svg` are null when the panel must not show (spec §5.4)."""
+
+    code_text: str | None
+    svg: str | None
+    issued_at: datetime
+    expires_at: datetime
+    refresh_in_seconds: int
+
+
 class KioskScreenSettings(BaseModel):
     """What the kiosk screen needs from the server settings (spec §5.2)."""
 
@@ -234,6 +262,8 @@ class KioskScreenSettings(BaseModel):
     face: KioskFaceSettings | None = None  # M3
     location: KioskLocationSettings | None = None  # M4
     offline: KioskOfflineSettings | None = None  # M4
+    screen: KioskScreenLines | None = None  # M5
+    phone_code: KioskPhoneCodeSettings | None = None  # M4b
 
 
 class KioskMeResponse(BaseModel):
@@ -245,6 +275,8 @@ class KioskMeResponse(BaseModel):
     notices: list[KioskNoticeItem]
     kiosk_settings: KioskScreenSettings
     time_anchor: TimeAnchor | None = None  # M4 §7 rule 8
+    # M5 F-28: how many people are inside the plant now; null when the setting is off.
+    inside_now: int | None = None
 
 
 class KioskReportRequest(BaseModel):

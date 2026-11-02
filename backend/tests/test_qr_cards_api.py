@@ -553,7 +553,7 @@ def test_cards_ending_soon_are_counted(boss: TestClient, k134: PlantIds) -> None
 
     counted = boss.get(f"{CARDS}/expiring-count").json()
 
-    assert counted == {"count": 1, "days": 14}
+    assert counted == {"count": 1, "days": 14, "phone_on_count": 0}
 
 
 # --- Bulk -------------------------------------------------------------------------------------

@@ -1,0 +1,96 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P1 - Screen 5: Phone home /phone (spec 4.8, 4.1 menu, 4.8c passkey link, 9 error table).
+  The punch flows themselves (face punch, gate-code scan, results) are gate P2: here only the button that starts them.
+  States (URL hash): face-default · face-out · face-no-punch · face-outside-work · face-outside-no-date · face-location-off · face-location-weak ·
+    face-not-ready · qr-default · qr-not-at-plant · qr-location-off · no-passkey-support · punch-off · loading · error · menu-open · menu-no-passkeys
+  MOCKUP ONLY. Face employee = Sunita Jadhav E0412; gate-code (ID card) worker = Ramesh Pawar T0877. Today = Saturday 31/10/2026.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Phone attendance: home</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="p1.css" />
+</head>
+<body>
+<div id="root"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="p1.js"></script>
+<script>
+  const T = {
+    notReady: "Your face is not set up for attendance. Please visit the plant office.",
+    off: "Phone attendance is switched off for you. Please visit the plant office.",
+    load: "We could not load your page. Please try again.",
+  };
+  const QRSTATES = ["qr-default", "qr-not-at-plant", "qr-location-off"];
+  const PASSKEYS = [["Chrome on Android", "Added 28/10/2026 · last used 30/10/2026"], ["Edge on Windows", "Added 12/10/2026"]];
+
+  const chip = {
+    ok: `<div class="locchip ok anim-fade-up" role="status">${ic("map-pin-check")}<span>Location ready</span></div>`,
+    off: `<div class="locchip warn anim-fade-up" role="status">${ic("map-pin-off")}<span>Turn on location</span><a class="go" href="#">Turn on</a></div>`,
+    weak: `<div class="locchip warn anim-fade-up" role="status">${ic("satellite-dish")}<span>Location not exact enough (80 m). Move outside, where the sky is open.</span></div>`,
+    notplant: `<div class="locchip bad anim-fade-up" role="status">${ic("map-pin-x")}<span>You are not at the plant</span></div>`,
+  };
+
+  function greet(u) {
+    return `<div class="pc greet anim-fade-up"><span class="avatar-l" aria-hidden="true">${P.initials(u.name)}</span><div style="min-width:0"><h1>Hello, ${u.first}</h1><p>${ic("factory")}${u.plant}</p></div></div>`;
+  }
+  function today(last) {
+    if (!last) return `<div class="pc today anim-fade-up anim-delay-1"><span class="tic none">${ic("clock")}</span><div><div class="tl">Today</div><div class="tv">No punch yet today</div></div></div>`;
+    const inn = last.dir === "IN";
+    return `<div class="pc today anim-fade-up anim-delay-1"><span class="tic ${inn ? "in" : "out"}">${ic(inn ? "log-in" : "log-out")}</span><div><div class="tl">Your last punch today</div><div class="tv">${last.dir} at ${last.time}<small>${ic(last.via === "phone" ? "smartphone" : "tablet-smartphone")}${last.via === "phone" ? "Phone" : "Attendance device"}</small></div></div></div>`;
+  }
+  const outside = (until) => `<div class="outside-badge anim-fade-up" role="status">${ic("briefcase")}<div>Outside work allowed${until ? `<small>until ${until}</small>` : ""}</div></div>`;
+  const mainBtn = (u) => u.method === "qr"
+    ? P.btn("primary", "qr-code", "Scan the QR code", { cls: "pbtn-xl" })
+    : P.btn("primary", "scan-face", "Punch with face", { cls: "pbtn-xl" });
+  const links = (pk) => `<div class="homelinks anim-fade-up anim-delay-2">
+    <button class="linkbtn"><span class="lic">${ic("calendar-days")}</span>My attendance<span class="chev">${ic("chevron-right")}</span></button>
+    ${pk ? `<button class="linkbtn"><span class="lic">${ic("fingerprint")}</span>Sign in faster with a passkey<span class="chev">${ic("chevron-right")}</span></button>` : ""}</div>`;
+
+  function home(o) {
+    return greet(o.u) + today(o.last) + (o.outside !== undefined ? outside(o.outside) : "") + chip[o.chip] + `<div class="anim-fade-up anim-delay-1">${mainBtn(o.u)}</div>` + links(o.pk !== false);
+  }
+  const FACE_IN = { dir: "IN", time: "07:02", via: "device" };
+
+  function userOf(s) { return QRSTATES.indexOf(s) >= 0 ? P.QR : P.FACE; }
+  function render(s) {
+    const F = P.FACE, Q = P.QR;
+    switch (s) {
+      case "face-out": return home({ u: F, last: { dir: "OUT", time: "19:04", via: "phone" }, chip: "ok" });
+      case "face-no-punch": return home({ u: F, last: null, chip: "ok" });
+      case "face-outside-work": return home({ u: F, last: FACE_IN, chip: "ok", outside: "15/11/2026" });
+      case "face-outside-no-date": return home({ u: F, last: FACE_IN, chip: "ok", outside: "" });
+      case "face-location-off": return home({ u: F, last: FACE_IN, chip: "off" });
+      case "face-location-weak": return home({ u: F, last: FACE_IN, chip: "weak" });
+      case "face-not-ready":
+        return greet(F) + P.msg("warning", "scan-face", "", T.notReady) + `<div class="homelinks anim-fade-up"><button class="linkbtn"><span class="lic">${ic("calendar-days")}</span>My attendance<span class="chev">${ic("chevron-right")}</span></button></div>`;
+      case "qr-default": return home({ u: Q, last: { dir: "IN", time: "06:58", via: "phone" }, chip: "ok" });
+      case "qr-not-at-plant": return home({ u: Q, last: null, chip: "notplant" });
+      case "qr-location-off": return home({ u: Q, last: null, chip: "off" });
+      case "no-passkey-support": return home({ u: F, last: FACE_IN, chip: "ok", pk: false });
+      case "punch-off":
+        return `<div class="pc state-card anim-fade-up" role="alert"><span class="state-ic si-warning">${ic("smartphone")}</span><h2>${T.off}</h2><div style="width:100%" class="stack">${P.btn("outline", "log-in", "Back to sign in")}</div></div>`;
+      case "loading":
+        return `<div class="pc greet" aria-busy="true"><span class="sk" style="width:64px;height:64px;border-radius:22px"></span><div style="flex:1" class="stack"><div class="sk" style="height:26px;width:70%"></div><div class="sk" style="height:18px;width:30%"></div></div></div>
+          <div class="pc"><div class="sk" style="height:56px"></div></div><div class="sk" style="height:60px;border-radius:16px"></div><div class="sk" style="height:84px;border-radius:20px"></div><div class="sk" style="height:64px;border-radius:16px"></div>`;
+      case "error":
+        return `<div class="pc state-card anim-fade-up" role="alert"><span class="state-ic si-danger">${ic("cloud-off")}</span><h2>${T.load}</h2><div style="width:100%" class="stack">${P.btn("primary", "rotate-ccw", "Try again")}</div></div>`;
+      case "menu-open":
+      case "menu-no-passkeys":
+        return home({ u: F, last: FACE_IN, chip: "ok" });
+      default: return home({ u: F, last: FACE_IN, chip: "ok" });
+    }
+  }
+  P.start({
+    user: (s) => (s === "punch-off" ? null : userOf(s)),
+    render,
+    menu: (s) => (s === "menu-open" ? PASSKEYS : s === "menu-no-passkeys" ? [] : null),
+  });
+</script>
+</body>
+</html>

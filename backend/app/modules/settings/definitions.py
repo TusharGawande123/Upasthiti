@@ -8,7 +8,7 @@ screen shows it read-only, because changing it would have no effect yet.
 from dataclasses import dataclass
 
 # Bump this in each milestone, so its settings become editable.
-CURRENT_MILESTONE = 4
+CURRENT_MILESTONE = 5
 
 SettingValueType = int | float | str | None
 
@@ -17,7 +17,7 @@ SettingValueType = int | float | str | None
 class SettingDefinition:
     key: str
     # screen card: kiosk, kiosk_screen, punch, antiproxy, offline, face, privacy, snapshots,
-    # cards, salary, security
+    # cards, salary, security, attendance, alerts, phone
     group: str
     default: SettingValueType
     unit: str
@@ -133,6 +133,42 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     SettingDefinition("offline_queue_max_items", "offline", 2000, "punches", 4, 200, 10000),
     SettingDefinition("offline_queue_max_mb", "offline", 200, "MB", 4, 20, 1000),
     SettingDefinition("offline_clock_drift_seconds", "offline", 120, "s", 4, 30, 600),
+    # Attendance processing (M5 spec §7 rule 16).
+    # The day of a shift starts this long before the shift start (rule 5).
+    SettingDefinition("attendance_window_before_hours", "attendance", 4, "h", 5, 1, 8),
+    SettingDefinition("correction_request_max_days", "attendance", 31, "days", 5, 1, 92),
+    SettingDefinition("still_inside_alert_minutes", "alerts", 60, "min", 5, 15, 240),
+    SettingDefinition("rejection_alert_count", "alerts", 10, "rejections", 5, 3, 100),
+    SettingDefinition("rejection_alert_minutes", "alerts", 30, "min", 5, 5, 240),
+    # Has no effect while the SMTP variables are not set (spec §7 rule 20).
+    SettingDefinition("email_alerts", "alerts", "off", "", 5, allowed_values=("on", "off")),
+    SettingDefinition("notification_keep_days", "alerts", 90, "days", 5, 30, 365),
+    SettingDefinition("absence_streak_days", "alerts", 3, "working days", 5, 2, 10),
+    # Small lines on the gate screen (F-28, F-37, F-2); never a name.
+    SettingDefinition(
+        "kiosk_show_inside_count", "kiosk_screen", "on", "", 5, allowed_values=("on", "off")
+    ),
+    SettingDefinition(
+        "kiosk_late_hint", "kiosk_screen", "off", "", 5, allowed_values=("on", "off")
+    ),
+    SettingDefinition(
+        "kiosk_show_month_line", "kiosk_screen", "off", "", 5, allowed_values=("on", "off")
+    ),
+    # M4b phone punching (spec M4b §7 rule 23): employee sign-in on their own phone. Built in the
+    # M5 pull request, so they are editable from milestone 5.
+    SettingDefinition("phone_session_idle_days", "phone", 7, "days", 5, 1, 30),
+    SettingDefinition("phone_session_max_days", "phone", 30, "days", 5, 1, 90),
+    SettingDefinition("phone_max_sessions", "phone", 1, "phones", 5, 1, 3),
+    SettingDefinition("phone_login_max_failures", "phone", 5, "tries", 5, 3, 10),
+    SettingDefinition("phone_login_lock_minutes", "phone", 15, "min", 5, 5, 120),
+    SettingDefinition("phone_location_max_age_seconds", "phone", 60, "s", 5, 10, 120),
+    SettingDefinition("phone_many_phones_alert_count", "phone", 3, "phones", 5, 2, 10),
+    # The changing code on the gate screen that temporary workers scan with their phone (rule 15).
+    SettingDefinition("phone_gate_code_seconds", "phone", 30, "s", 5, 15, 60),
+    SettingDefinition(
+        "kiosk_show_phone_code", "kiosk_screen", "on", "", 5, allowed_values=("on", "off")
+    ),
+    SettingDefinition("kiosk_phone_code_show_seconds", "kiosk_screen", 60, "s", 5, 20, 180),
     SettingDefinition(
         "salary_day_basis", "salary", 30, "days", 7, allowed_values=(26, 30, "actual")
     ),

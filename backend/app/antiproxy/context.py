@@ -18,7 +18,7 @@ from app.core.config import Settings
 from app.modules.employees.models import Employee
 from app.modules.kiosks.location_check import Location
 from app.modules.kiosks.models import KioskDevice
-from app.modules.punches.models import Direction
+from app.modules.punches.models import Direction, PunchChannel
 from app.modules.punches.snapshots import CheckedSnapshot
 from app.modules.qr_cards.models import QrCredential
 
@@ -72,6 +72,38 @@ class PunchLimits:
     impossible_travel_min_distance_m: int = 500
     same_person_two_devices_minutes: int = 10
     offline_max_hours: int = 72
+    # M5 (spec §7 rule 5): where the attendance day of a shift starts, for `shift_closed`.
+    attendance_window_before_hours: int = 4
+    # M4b (spec §7 rule 15): how long a phone code on the gate screen is valid (plus 5 s grace).
+    gate_code_seconds: int = 30
+
+
+@dataclass(frozen=True)
+class DeviceIdentity:
+    """Which device sends the punch: a gate device, or (M4b) one phone sign-in. The rules use it
+    for "the same device" (face challenges) and "another device" (travel and two-devices flags)."""
+
+    kiosk_id: uuid.UUID | None = None
+    phone_session_id: uuid.UUID | None = None
+
+    def __post_init__(self) -> None:
+        if (self.kiosk_id is None) == (self.phone_session_id is None):
+            raise ValueError("A punch comes from exactly one gate device or one phone sign-in")
+
+    @classmethod
+    def of_kiosk(cls, kiosk: KioskDevice) -> DeviceIdentity:
+        return cls(kiosk_id=kiosk.id)
+
+    @classmethod
+    def of_phone_session(cls, phone_session_id: uuid.UUID) -> DeviceIdentity:
+        return cls(phone_session_id=phone_session_id)
+
+    @property
+    def key(self) -> tuple[str, uuid.UUID | None]:
+        """Comparable with `Punch.device_key` of a stored punch."""
+        if self.phone_session_id is not None:
+            return (PunchChannel.PHONE.value, self.phone_session_id)
+        return (PunchChannel.KIOSK.value, self.kiosk_id)
 
 
 @dataclass
@@ -79,7 +111,10 @@ class PunchContext:
     # What the server knows and trusts.
     session: Session
     app_settings: Settings
-    kiosk: KioskDevice
+    # The plant the punch is judged for: the gate device's plant (M4b: for a phone punch, the
+    # employee's plant), and the device that sent it.
+    plant_id: uuid.UUID
+    device_identity: DeviceIdentity
     # The punch time: the server clock for a live punch, the proven time for an offline one
     # (M4). The kiosk's own clock is never used for a decision.
     now: datetime
@@ -92,6 +127,10 @@ class PunchContext:
     is_offline: bool = False  # M4: a queued punch decided at sync
     time_proof: str | None = None  # offline only: "anchored" or "unproven" (§7 rule 8)
     received_at: datetime | None = None  # offline only: when the sync request arrived
+    # M4b phone punches: what the server knows from the employee's sign-in.
+    outside_work_allowed: bool = False  # the Super Admin's switch, judged on the punch's IST date
+    gate_code_text: str | None = None  # a gate-code punch: the scanned text (untrusted)
+    gate_device: KioskDevice | None = None  # the gate device that text names (looked up first)
     # What the rules find out, in order.
     snapshot: CheckedSnapshot | None = None
     card: QrCredential | None = None
@@ -101,6 +140,9 @@ class PunchContext:
     geofence_id: uuid.UUID | None = None
     geofence_distance_m: float | None = None
     related_punch_id: uuid.UUID | None = None
+    # M4b: the plant whose fence the position matched (the own plant, or another plant on outside
+    # work). None for an OUTSIDE_PLANT punch and for a refused one (spec M4b §7 rule 12).
+    location_plant_id: uuid.UUID | None = None
 
     @property
     def judges_at_punch_time(self) -> bool:

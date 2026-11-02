@@ -1,0 +1,155 @@
+<!doctype html>
+<!--
+  Upasthiti - M5 design gate A, screens 1 and 2: Dashboard /admin (one plant and "All plants"), spec 4.1.
+  States (URL hash): default · stale · loading · picker-open · demo · not-started · no-employees · plant-head ·
+                     all-plants · all-plants-demo · all-plants-loading · menu-open
+  Add ?shot before the # to hide the state tag and freeze the animations.
+  MOCKUP ONLY - static HTML, fake data (data.js), no real names.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti dashboard</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..900&family=JetBrains+Mono:wght@700&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m5.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="data.js"></script>
+<script>
+  window.MOCK_ACTIVE = "Dashboard";
+  const S = location.hash.replace("#", "") || "default";
+  const PH = S === "plant-head";
+  const ALL = S.indexOf("all-plants") === 0;
+  const DEMO = S === "demo" || S === "all-plants-demo";
+  const LOADING = S === "loading" || S === "all-plants-loading";
+  window.MOCK_USER = PH ? { name: "Prakash Kale", role: "Plant Head · K134" } : { name: "Asha Rao", role: "Super Admin" };
+  window.MOCK_SHELL = { offline: 1, review: 7, menu: S === "menu-open", banner: null };
+
+  const P = window.PLANTS[0]; /* K134 */
+  const tile = (o) => `<a class="tile ${o.cls || ""} ${o.tone} ${o.n === 0 ? "zero" : ""} anim-up" style="--i:${o.i}" href="#" aria-label="${o.aria}">
+      <span class="lab"><span class="ic">${ic(o.icon)}</span>${o.label}</span>${ic("arrow-up-right").replace("<i ", '<i class="go" ')}
+      <span class="num flash">${inr(o.n)}${o.unit ? `<small>${o.unit}</small>` : ""}</span><span class="sub">${o.sub}</span></a>`;
+
+  /* ---------- Top: title, plant picker, live line ---------- */
+  function pickerMenu() {
+    const opts = window.PLANTS.map((p) => `<div class="opt" role="option" aria-selected="${p.code === "K134"}">${ic(p.code === "K134" ? "check" : "factory")}<b>${p.code}</b><span>${p.name.replace("Sheet Shapers ", "")}</span><span class="sub">${p.started ? p.inside + " inside" : "Not started"}</span></div>`).join("");
+    return `<div class="menu" role="listbox" aria-label="Plant">
+      <div class="opt" role="option" aria-selected="false">${ic("layers")}<b>All plants</b><span class="sub">${inr(sumPlants(window.PLANTS).inside)} inside</span></div><hr/>${opts}<hr/>
+      <div class="switch-row"><span>Show demo plants<small>Saved in this browser. Demo plants are never in the totals.</small></span><button class="switch" role="switch" aria-checked="false" aria-label="Show demo plants"></button></div></div>`;
+  }
+  function pageTop() {
+    const demoChip = DEMO ? `<span class="demo-chip">${ic("flask-conical")}Demo plants shown</span>` : "";
+    const label = ALL ? "All plants" : "Sheet Shapers K-134";
+    const picker = PH
+      ? `<div class="plant-fixed">${ic("factory")}<div><small>Your plant</small>Sheet Shapers K-134</div></div>`
+      : `<div class="picker-wrap"><button class="picker" aria-haspopup="listbox" aria-expanded="${S === "picker-open"}" aria-label="Plant: ${label}">${ic(ALL ? "layers" : "factory")}<span><small>Plant</small>${label}</span>${ic("chevrons-up-down").replace("<i ", '<i class="chev" ')}</button>${S === "picker-open" ? pickerMenu() : ""}</div>`;
+    const stale = S === "stale";
+    const live = LOADING
+      ? `<p class="live-line"><span class="skeleton" style="width:260px;height:16px"></span></p>`
+      : stale
+        ? `<p class="live-line" aria-live="polite">${ic("triangle-alert").replace("<i ", '<i style="width:16px;height:16px;color:var(--warning-ink)" ')}<span><strong>Updated 09:02</strong> <span class="sep">·</span> refreshes every 30 seconds</span></p>`
+        : `<p class="live-line" aria-live="polite"><span class="live-dot" aria-hidden="true"></span><span><strong>Updated 09:02</strong> <span class="sep">·</span> refreshes every 30 seconds</span></p>`;
+    return `<div class="dtop"><div class="dtop-left"><h1>Dashboard</h1><p class="date">${TODAY}</p>${DEMO ? `<div class="chips-line">${demoChip}</div>` : ""}</div>${picker}</div>${live}
+      ${stale ? `<div class="stale" role="alert">${ic("triangle-alert")}<span>Could not refresh at 09:03. Showing numbers from 09:02.</span><button class="btn btn-outline">${ic("refresh-cw")}Try again</button></div>` : ""}`;
+  }
+
+  /* ---------- One plant ---------- */
+  function tilesBlock() {
+    if (LOADING) return `<div class="tiles" aria-busy="true"><div class="tile tile-hero"><div class="skeleton" style="height:18px;width:140px"></div><div class="skeleton" style="height:70px;width:150px;margin-top:10px"></div><div class="skeleton" style="height:14px;width:100%;margin-top:14px"></div></div>${'<div class="tile"><div class="skeleton" style="height:18px;width:110px"></div><div class="skeleton" style="height:40px;width:80px;margin-top:10px"></div></div>'.repeat(2)}${'<div class="tile"><div class="skeleton" style="height:18px;width:110px"></div><div class="skeleton" style="height:40px;width:80px;margin-top:10px"></div></div>'.repeat(4)}<div class="tile t-exc"><div class="skeleton" style="height:18px;width:110px"></div><div class="skeleton" style="height:40px;width:80px;margin-top:10px"></div></div><div class="tile tile-decide"><div class="skeleton" style="height:18px;width:160px"></div><div class="skeleton" style="height:40px;width:200px;margin-top:10px"></div></div></div>`;
+    const pctPerm = ((P.inside - P.temp) / P.inside) * 100;
+    const hero = `<a class="tile tile-hero tone-info anim-up" style="--i:0" href="#" aria-label="Inside now, ${P.inside} people, of which ${P.temp} temporary. Open the list.">
+      <span class="lab"><span class="ic" style="background:var(--primary);color:#fff">${ic("log-in")}</span>Inside now</span>${ic("arrow-up-right").replace("<i ", '<i class="go" ')}
+      <span class="num flash">${P.inside}<small>people</small></span>
+      <div class="split"><div class="split-bar" role="img" aria-label="${P.inside - P.temp} permanent, ${P.temp} temporary"><i class="perm" style="width:${pctPerm}%"></i><i class="temp" style="width:${100 - pctPerm}%"></i></div>
+        <div class="split-key"><span><i class="k-perm"></i>Permanent: ${P.inside - P.temp}</span><span><i class="k-temp"></i>Of which temporary: ${P.temp}</span></div></div>
+      <span class="outside-line">${ic("map-pin")}On outside work: 3</span></a>`;
+    const t = [
+      tile({ i: 1, tone: "tone-info", icon: "users", label: "Expected today", n: P.expected, sub: "Working day, not on leave", aria: `Expected today, ${P.expected}. Open the list.` }),
+      tile({ i: 2, tone: "tone-ok", icon: "user-check", label: "Arrived", n: P.arrived, sub: `${Math.round((P.arrived / P.expected) * 100)}% of expected`, aria: `Arrived, ${P.arrived}. Open the list.` }),
+      tile({ i: 3, tone: "tone-warn", cls: "alert-warn", icon: "clock-alert", label: "Late", n: P.late, sub: "Permanent staff, after the grace time", aria: `Late, ${P.late}. Open the list.` }),
+      tile({ i: 4, tone: "tone-warn", cls: "alert-warn", icon: "user-x", label: "Not arrived yet", n: P.notArrived, sub: "Shift start and grace time are over", aria: `Not arrived yet, ${P.notArrived}. Open the list.` }),
+      tile({ i: 5, tone: "tone-neutral", icon: "plane", label: "On leave", n: P.leave, sub: "Approved leave today", aria: `On leave, ${P.leave}. Open the list.` }),
+      tile({ i: 6, tone: "tone-neutral", icon: "calendar-off", label: "Off today", n: P.off, sub: "Weekly off or holiday", aria: `Off today, ${P.off}. Open the list.` }),
+      tile({ i: 7, tone: "tone-danger", cls: "alert-danger t-exc", icon: "triangle-alert", label: "Exceptions", n: P.exceptions, sub: "Incomplete, short hours, flags, corrections", aria: `Exceptions, ${P.exceptions}. Open the list.` }),
+    ].join("");
+    const decide = `<a class="tile tile-decide tone-warn alert-warn anim-up" style="--i:8" href="#" aria-label="5 days to decide: 3 Short hours, 2 Incomplete. Open the days.">
+      <span class="lab"><span class="ic">${ic("scale")}</span>Days to decide</span>${ic("arrow-up-right").replace("<i ", '<i class="go" ')}
+      <div class="decide-body"><span class="num flash">5<small>days to decide</small></span>
+        <div class="decide-chips"><span class="dchip">${ic("timer")}3 Short hours</span><span class="dchip is-incomplete">${ic("circle-help")}2 Incomplete</span></div></div>
+      <span class="sub">This month. Each day waits for a decision before any salary estimate.</span></a>`;
+    return `<div class="tiles">${hero}${t}${decide}</div>`;
+  }
+
+  function tempCard() {
+    const total = P.temp;
+    const rows = CONTRACTORS.map(([n, c]) => `<li class="${n === "No contractor" ? "is-none" : ""}"><span class="nm ${n === "No contractor" ? "none" : ""}">${n}</span><span class="ct">${c}</span><span class="bar" role="img" aria-label="${c} of ${total}"><i style="width:${(c / 34) * 100}%"></i></span></li>`).join("");
+    return `<section class="card" aria-labelledby="tw"><div class="small-card-head"><span class="round-ic" style="background:var(--warning-soft);color:var(--warning-ink)">${ic("hard-hat")}</span><div><h2 id="tw">Temporary workers on site</h2><p>Inside now, ${total} in all, by contractor</p></div></div><ul class="tlist">${rows}</ul></section>`;
+  }
+  function shiftCard() {
+    return `<section class="card" aria-labelledby="sf"><div class="small-card-head"><span class="round-ic" style="background:var(--primary-soft);color:var(--primary)">${ic("sun-moon")}</span><div><h2 id="sf">Shifts today</h2><p>One line per shift</p></div></div>
+      <div class="shift"><div class="sh-top">${ic("sun")}<b>General</b><span class="t">07:00–19:00</span></div><div class="sh-stats"><span class="sstat">${ic("users")}230 expected</span><span class="sstat ok">${ic("user-check")}221 arrived</span><span class="sstat late">${ic("clock-alert")}12 late</span></div></div>
+      <div class="shift"><div class="sh-top">${ic("moon")}<b>Night</b><span class="t">19:00–07:00</span></div><div class="sh-stats"><span class="sstat">${ic("users")}6 expected</span><span class="sstat wait">${ic("hourglass")}Shift not started</span></div></div>
+      <p class="shift-line">General 07:00–19:00 · 230 expected · 221 arrived · 12 late. People of a shift that has not started are not counted as "not arrived".</p></section>`;
+  }
+  function keptCards() {
+    const sa = !PH;
+    const dev = `<a class="card kcard" href="#"><span class="round-ic" style="background:var(--primary-soft);color:var(--primary)">${ic("tablet-smartphone")}</span><div><b>Attendance devices</b><span class="t">6 online · 1 offline · 0 need location</span></div><span class="big" style="color:var(--warning-ink)">1</span></a>`;
+    const chk = `<a class="card kcard" href="#"><span class="round-ic" style="background:var(--warning-soft);color:var(--warning-ink)">${ic("flag")}</span><div><b>To check</b><span class="t">Flagged punches nobody has looked at</span></div><span class="big" style="color:var(--warning-ink)">7</span></a>`;
+    const qr = `<a class="card kcard" href="#"><span class="round-ic" style="background:var(--warning-soft);color:var(--warning-ink)">${ic("calendar-clock")}</span><div><b>Cards ending soon</b><span class="t">QR cards that end in 14 days</span></div><span class="big">4</span></a>`;
+    const face = `<a class="card kcard" href="#"><span class="round-ic" style="background:var(--success-soft);color:var(--success)">${ic("scan-face")}</span><div><b>Face enrolment</b><span class="t">288 of 300 permanent employees</span></div><span class="big">96%</span></a>`;
+    return `<h2 class="sec-title">Devices, checks and set-up <small>kept from earlier milestones</small></h2><div class="keep">${dev}${sa ? chk + qr + face : ""}</div>`;
+  }
+
+  function onePlant() {
+    if (S === "not-started") return `<section class="card"><div class="empty-big"><span class="round">${ic("calendar-clock")}</span><h2>Attendance has not started at this plant yet</h2><p>Live numbers begin on the attendance start date of the plant. Until then nobody is counted as late or absent.</p><a class="btn btn-primary btn-lg" href="#">${ic("calendar-plus")}Set the start date</a></div></section>`;
+    if (S === "no-employees") return `<section class="card"><div class="empty-big"><span class="round">${ic("users")}</span><h2>No employees at this plant yet</h2><p>Add employees or import an Excel sheet, then the numbers appear here.</p><a class="btn btn-primary btn-lg" href="#">${ic("user-plus")}Go to Employees</a></div></section>`;
+    return `${tilesBlock()}${LOADING ? "" : `<div class="pair">${tempCard()}${shiftCard()}</div>${keptCards()}`}`;
+  }
+
+  /* ---------- All plants ---------- */
+  const numCell = (v, kind) => v === 0 ? `<span class="zero">0</span>` : kind === "exc" ? `<span class="exc">${ic("triangle-alert")}${v}</span>` : kind === "late" ? `<span class="late-n">${v}</span>` : v;
+  function allPlants() {
+    if (S === "all-plants-loading") return `<section class="card" aria-busy="true"><div style="padding:16px;display:grid;gap:12px">${'<div class="skeleton" style="height:44px"></div>'.repeat(8)}</div></section>`;
+    const list = window.PLANTS.concat(DEMO ? [window.DEMO_PLANT] : []);
+    const real = window.PLANTS;
+    const T = sumPlants(real);
+    const head = ["Plant", ["log-in", "Inside now"], ["users", "Expected"], ["user-check", "Arrived"], ["clock-alert", "Late"], ["user-x", "Not arrived"], ["plane", "On leave"], ["triangle-alert", "Exceptions"]];
+    const th = head.map((h) => `<th scope="col">${Array.isArray(h) ? `<span class="h">${ic(h[0])}${h[1]}</span>` : h}</th>`).join("");
+    const row = (p) => p.started
+      ? `<tr class="${p.demo ? "is-demo" : ""}"><td class="plant"><a href="#" aria-label="Open the dashboard of ${p.name}">${p.code}${p.demo ? `<span class="badge badge-demo">${ic("flask-conical")}Demo</span>` : ""}<small>${p.name}</small></a></td><td class="inside">${p.inside}</td><td>${p.expected}</td><td>${p.arrived}</td><td>${numCell(p.late, "late")}</td><td>${numCell(p.notArrived)}</td><td>${numCell(p.leave)}</td><td>${numCell(p.exceptions, "exc")}</td></tr>`
+      : `<tr class="not-started"><td class="plant"><a href="#">${p.code}<small>${p.name}</small></a></td><td colspan="7" class="span-note"><span class="badge badge-neutral">${ic("calendar-clock")}Not started</span> Attendance has not started at this plant yet</td></tr>`;
+    const foot = `<tr><td class="plant">Total${DEMO ? "<small style='font-weight:500'>Demo plants not included</small>" : ""}</td><td>${T.inside}</td><td>${T.expected}</td><td>${T.arrived}</td><td>${T.late}</td><td>${T.notArrived}</td><td>${T.leave}</td><td>${T.exceptions}</td></tr>`;
+    const table = `<div class="ptab-wrap table-scroll"><table class="ptab"><caption class="sr-only">Live numbers of every plant, ${TODAY}, updated 09:02</caption><thead><tr>${th}</tr></thead><tbody>${list.map(row).join("")}</tbody><tfoot>${foot}</tfoot></table></div>`;
+    const stat = (cls, icon, v, w) => `<div class="${cls}"><b>${ic(icon)}${v}</b><small>${w}</small></div>`;
+    const card = (p) => p.started
+      ? `<article class="pc"><div class="pc-top"><div><a href="#">${p.code}</a>${p.demo ? `<span class="badge badge-demo">${ic("flask-conical")}Demo</span>` : ""}<small>${p.name}</small></div><div class="inside">${p.inside}<small>inside now</small></div></div>
+        <div class="pc-grid">${stat("", "users", p.expected, "Expected")}${stat("", "user-check", p.arrived, "Arrived")}${stat(p.late ? "late" : "", "clock-alert", p.late, "Late")}${stat("", "user-x", p.notArrived, "Not arrived")}${stat("", "plane", p.leave, "On leave")}${stat(p.exceptions ? "exc" : "", p.exceptions ? "triangle-alert" : "check", p.exceptions, "Exceptions")}</div></article>`
+      : `<article class="pc"><div class="pc-top"><div><a href="#">${p.code}</a><small>${p.name}</small></div><span class="badge badge-neutral" style="margin-left:auto">${ic("calendar-clock")}Not started</span></div><p class="pc-note">Attendance has not started at this plant yet</p></article>`;
+    const total = `<article class="pc total"><div class="pc-top"><div><a href="#" style="color:var(--primary-soft-foreground);pointer-events:none">Total</a><small>${DEMO ? "Demo plants not included" : "All 6 plants that have started"}</small></div><div class="inside">${T.inside}<small>inside now</small></div></div>
+      <div class="pc-grid">${stat("", "users", T.expected, "Expected")}${stat("", "user-check", T.arrived, "Arrived")}${stat("late", "clock-alert", T.late, "Late")}${stat("", "user-x", T.notArrived, "Not arrived")}${stat("", "plane", T.leave, "On leave")}${stat("exc", "triangle-alert", T.exceptions, "Exceptions")}</div></article>`;
+    return `<section class="card" style="overflow:hidden">${table}<div class="pcards">${total}${list.map(card).join("")}</div></section>
+      <p style="margin:12px 2px 0;font-size:13.5px;color:var(--muted-foreground)">A plant name opens that plant's dashboard. Each number there opens the attendance list.</p>`;
+  }
+
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = `<div class="page-wide">${pageTop()}${ALL ? allPlants() : onePlant()}</div>`;
+    const tags = { default: "Super Admin, plant K134", stale: "could not refresh: yellow line", loading: "loading", "picker-open": "plant picker open", demo: "demo plants shown", "not-started": "attendance has not started", "no-employees": "no employees", "plant-head": "Plant Head: no picker", "all-plants": "All plants", "all-plants-demo": "All plants, demo shown", "all-plants-loading": "All plants loading", "menu-open": "phone menu" };
+    document.getElementById("state-tag").textContent = "State: " + (tags[S] || S);
+  });
+</script>
+</body>
+</html>

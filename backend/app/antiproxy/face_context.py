@@ -12,11 +12,11 @@ from datetime import datetime
 import numpy as np
 from sqlalchemy.orm import Session
 
+from app.antiproxy.context import DeviceIdentity
 from app.face.detector import DetectedFace
 from app.face.matcher import Gallery, MatchResult
 from app.face.models import FaceModels
 from app.modules.employees.models import Employee
-from app.modules.kiosks.models import KioskDevice
 
 FRONTAL, TURN = "frontal", "turn"
 
@@ -51,7 +51,8 @@ class FaceFrame:
 class FacePunchContext:
     # What the server knows and trusts.
     session: Session
-    kiosk: KioskDevice
+    plant_id: uuid.UUID  # the gate device's plant (M4b phone: the employee's plant)
+    device_identity: DeviceIdentity
     now: datetime  # taken when the request arrived, before waiting for the face worker
     limits: FaceLimits
     models: FaceModels
@@ -69,6 +70,11 @@ class FacePunchContext:
     employee: Employee | None = None
     embeddings: list[np.ndarray] = field(default_factory=list)
     code_score: float | None = None  # M4 offline: the 1:1 score against the typed code
+    # M4b phone: the signed-in employee and their own opened template (None = not enrolled for
+    # the running model); the face is compared with this one person only (1:1).
+    expected_employee: Employee | None = None
+    own_template: np.ndarray | None = None
+    one_to_one_score: float | None = None
 
     @property
     def frontal_frames(self) -> list[FaceFrame]:

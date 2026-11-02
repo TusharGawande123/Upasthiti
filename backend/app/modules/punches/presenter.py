@@ -17,8 +17,15 @@ from sqlalchemy.orm import Session
 from app.modules.employees.models import Employee
 from app.modules.kiosks.models import KioskDevice
 from app.modules.org.models import Plant
+from app.modules.phone.models import PhoneSession
 from app.modules.punches.counting import latest_reviews, review_state
-from app.modules.punches.models import Punch, PunchReview, PunchSnapshot, ReviewAction
+from app.modules.punches.models import (
+    Punch,
+    PunchChannel,
+    PunchReview,
+    PunchSnapshot,
+    ReviewAction,
+)
 from app.modules.punches.schemas import (
     PunchDetail,
     PunchFaceDetail,
@@ -33,6 +40,8 @@ from app.modules.punches.schemas import (
 )
 from app.modules.users.models import User
 
+OUTSIDE_PLANT = "OUTSIDE_PLANT"  # the flag of a phone punch made inside no plant fence
+
 
 @dataclass(frozen=True)
 class Viewer:
@@ -40,6 +49,7 @@ class Viewer:
     sees_dark_photos: bool  # the Super Admin
     sees_face_scores: bool = False  # the Super Admin (spec M3 §7 rule 1)
     sees_review_reasons: bool = False  # the Super Admin (spec M4 §5.4)
+    sees_phone_positions: bool = False  # the Super Admin: the map position of a phone punch (M4b)
 
 
 @dataclass(frozen=True)
@@ -50,6 +60,7 @@ class _Related:
     snapshots: dict[uuid.UUID, PunchSnapshot]
     followers: dict[uuid.UUID, uuid.UUID]  # "asked for code" row -> the row that followed it
     reviews: dict[uuid.UUID, PunchReview]  # punch id -> its latest review
+    phones: dict[uuid.UUID, PhoneSession]  # phone sign-ins behind phone punches
 
 
 def _load_related(session: Session, punches: Sequence[Punch]) -> _Related:
@@ -90,11 +101,16 @@ def _load_related(session: Session, punches: Sequence[Punch]) -> _Related:
     people |= {r.employee_id for r in reviews.values() if _counts_by_approval(r) and r.employee_id}
     return _Related(
         employees=by_id(Employee, people),
-        kiosks=by_id(KioskDevice, {p.kiosk_id for p in punches}),
-        plants=by_id(Plant, {p.plant_id for p in punches}),
+        kiosks=by_id(KioskDevice, {p.kiosk_id for p in punches if p.kiosk_id is not None}),
+        plants=by_id(
+            Plant,
+            {p.plant_id for p in punches}
+            | {p.location_plant_id for p in punches if p.location_plant_id},
+        ),
         snapshots=snapshots,
         followers=followers,
         reviews=reviews,
+        phones=by_id(PhoneSession, {p.phone_session_id for p in punches if p.phone_session_id}),
     )
 
 
@@ -151,10 +167,25 @@ def offline_delay_seconds(punch: Punch) -> int | None:
     return max(0, round((punch.server_received_at - punch.offline_punch_time).total_seconds()))
 
 
+def _phone_browser(punch: Punch, related: _Related) -> str | None:
+    """ "Chrome on Android" for a phone punch (browser and system only, never the user agent)."""
+    phone = related.phones.get(punch.phone_session_id) if punch.phone_session_id else None
+    return f"{phone.browser} on {phone.system}" if phone is not None else None
+
+
+def _other_plant(punch: Punch, related: _Related) -> PunchLogPlace | None:
+    """The plant whose fence a phone punch matched, when it is not the employee's own plant."""
+    if punch.location_plant_id is None or punch.location_plant_id == punch.plant_id:
+        return None
+    plant = related.plants.get(punch.location_plant_id)
+    return PunchLogPlace(id=plant.id, name=plant.name, code=plant.code) if plant else None
+
+
 def _item(punch: Punch, related: _Related, viewer: Viewer) -> PunchLogItem:
     employee, hidden = _employee(punch, related, viewer)
     plant = related.plants[punch.plant_id]
-    kiosk = related.kiosks[punch.kiosk_id]
+    # M4b: a phone face punch has no gate device.
+    kiosk = related.kiosks[punch.kiosk_id] if punch.kiosk_id is not None else None
     review = related.reviews.get(punch.id)
     approved = review is not None and review.action == ReviewAction.APPROVED.value
     return PunchLogItem(
@@ -163,7 +194,7 @@ def _item(punch: Punch, related: _Related, viewer: Viewer) -> PunchLogItem:
         employee=employee,
         employee_hidden=hidden,
         plant=PunchLogPlace(id=plant.id, name=plant.name, code=plant.code),
-        kiosk=PunchLogPlace(id=kiosk.id, name=kiosk.name),
+        kiosk=PunchLogPlace(id=kiosk.id, name=kiosk.name) if kiosk is not None else None,
         method=punch.method,
         direction=punch.direction,  # type: ignore[arg-type]
         decision=punch.decision,
@@ -178,6 +209,10 @@ def _item(punch: Punch, related: _Related, viewer: Viewer) -> PunchLogItem:
         review_state=review_state(punch, review),  # type: ignore[arg-type]
         review_direction=review.direction if approved else None,  # type: ignore[union-attr]
         counted_for=_counted_for(punch, related, viewer),
+        channel=punch.channel,  # type: ignore[arg-type]
+        outside_plant=OUTSIDE_PLANT in punch.reason_codes,
+        phone_browser=_phone_browser(punch, related),
+        location_plant=_other_plant(punch, related),
     )
 
 
@@ -236,13 +271,15 @@ def review_outputs(
 
 def punch_detail(session: Session, punch: Punch, viewer: Viewer) -> PunchDetail:
     item = punch_items(session, [punch], viewer)[0]
+    # The map position of a phone punch shows where a person was outside work: Super Admin only.
+    position_hidden = punch.channel == PunchChannel.PHONE.value and not viewer.sees_phone_positions
     location = (
         PunchLocation(
             lat=float(punch.lat),
             lon=float(punch.lon),
             accuracy_m=float(punch.accuracy_m) if punch.accuracy_m is not None else None,
         )
-        if punch.lat is not None and punch.lon is not None
+        if punch.lat is not None and punch.lon is not None and not position_hidden
         else None
     )
     return PunchDetail(
@@ -250,9 +287,11 @@ def punch_detail(session: Session, punch: Punch, viewer: Viewer) -> PunchDetail:
         app_version=punch.app_version,
         device_time=punch.device_claimed_at,
         location=location,
+        # Accuracy and distance to the fence also say where a person was: hidden with the position.
+        location_accuracy_m=None if position_hidden else _number(punch.accuracy_m),
         face=_face_detail(session, punch) if viewer.sees_face_scores else None,
         time_proof=punch.time_proof,  # type: ignore[arg-type]
-        geofence_distance_m=_number(punch.geofence_distance_m),
+        geofence_distance_m=None if position_hidden else _number(punch.geofence_distance_m),
         location_age_s=punch.location_age_s,
         related_punch_id=punch.related_punch_id,
         reviews=review_history(session, punch.id, viewer.sees_review_reasons),

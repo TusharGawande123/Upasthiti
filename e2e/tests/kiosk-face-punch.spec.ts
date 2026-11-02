@@ -61,16 +61,7 @@ test("a face punch checks the worker IN, then says ALREADY IN", async ({ page, b
     await expect(device.getByRole("button", { name: /Punch with face/ })).toBeEnabled();
     await expectNoSeriousAccessibilityIssues(device);
 
-    // The gate takes the turn picture 1.5 s after the arrow shows: turn the head at once.
-    await setHead(0);
-    await device.getByRole("button", { name: /Punch with face/ }).click();
-    await expect(device.getByText(/^Turn your head to your/).first()).toBeVisible({
-      timeout: 15_000,
-    });
-    const toTheLeft = await device.getByText("LEFT", { exact: true }).isVisible();
-    await setHead(toTheLeft ? 25 : -25);
-    await expect(device.getByText("Now look straight again.")).toBeVisible({ timeout: 10_000 });
-    await setHead(0);
+    await punchWithFace(device, setHead);
 
     await expect(device.getByText("IN", { exact: true })).toBeVisible({ timeout: 15_000 });
     await expect(device.getByText(ASHA.name)).toBeVisible();

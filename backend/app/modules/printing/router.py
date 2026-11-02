@@ -8,17 +8,20 @@ import uuid
 
 from fastapi import APIRouter, Depends, Response
 from pydantic import BaseModel, Field
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.db import get_session
 from app.core.errors import ApiError
+from app.core.time import to_ist, utc_now
 from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
 from app.modules.auth.scope import plant_filter
+from app.modules.org.models import Shift
 from app.modules.org.plants_service import get_plant
 from app.modules.printing import service
-from app.modules.printing.poster_pdf import gate_poster_pdf
+from app.modules.printing.poster_pdf import PosterShift, gate_poster_pdf
 from app.modules.printing.service import PrintedPdf, PrintLayout
 from app.modules.settings.service import get_int_setting
 
@@ -83,11 +86,14 @@ def gate_poster(
     plant = get_plant(session, plant_id)
     # The address of the public privacy page, printed as text (no QR code, decision 0020).
     origin = get_settings().allowed_origin.removeprefix("https://").removeprefix("http://")
+    today = to_ist(utc_now()).date()
     content = gate_poster_pdf(
         plant.name,
         plant.code,
         get_int_setting(session, "snapshot_retention_days"),
         f"{origin}/privacy",
+        _active_shifts(session, plant.id),
+        today,
     )
     return Response(
         content=content,
@@ -97,3 +103,16 @@ def gate_poster(
             "Cache-Control": "no-store",
         },
     )
+
+
+def _active_shifts(session: Session, plant_id: uuid.UUID) -> list[PosterShift]:
+    """The plant's active shifts with the rules in force today, earliest start first."""
+    shifts = session.scalars(
+        select(Shift)
+        .where(Shift.plant_id == plant_id, Shift.is_active.is_(True))
+        .order_by(Shift.start_time, Shift.name)
+    )
+    return [
+        PosterShift(shift.name, shift.start_time, shift.end_time, shift.grace_min)
+        for shift in shifts
+    ]

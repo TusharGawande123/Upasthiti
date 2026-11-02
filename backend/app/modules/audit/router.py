@@ -18,6 +18,7 @@ from app.core.pagination import Page, PageParams, fetch_page, page_params
 from app.modules.audit.models import AuditLog
 from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Access, Capability
+from app.modules.employees.models import Employee
 from app.modules.users.models import User
 
 router = APIRouter(prefix="/audit", tags=["audit"])
@@ -29,6 +30,8 @@ class AuditEntryResponse(BaseModel):
     actor_type: str
     actor_id: uuid.UUID | None
     actor_name: str | None
+    # M4b: for an employee actor (phone events) the employee's code; the name is in `actor_name`.
+    actor_code: str | None = None
     action: str
     entity_type: str
     entity_id: uuid.UUID | None
@@ -76,9 +79,13 @@ def list_audit_entries(
 
     entries, total = fetch_page(session, statement, params)
     actor_names = _names_of_actors(session, entries)
+    employee_actors = _employee_actors(session, entries)
     sees_review_reasons = current_user.access(Capability.REVIEW_PUNCHES) is not None
     return Page(
-        items=[_entry_response(entry, actor_names, sees_review_reasons) for entry in entries],
+        items=[
+            _entry_response(entry, actor_names, employee_actors, sees_review_reasons)
+            for entry in entries
+        ],
         page=params.page,
         page_size=params.page_size,
         total=total,
@@ -86,7 +93,10 @@ def list_audit_entries(
 
 
 def _entry_response(
-    entry: AuditLog, actor_names: dict[uuid.UUID, str], sees_review_reasons: bool
+    entry: AuditLog,
+    actor_names: dict[uuid.UUID, str],
+    employee_actors: dict[uuid.UUID, tuple[str, str]],
+    sees_review_reasons: bool,
 ) -> AuditEntryResponse:
     before, after, reason = entry.before, entry.after, entry.reason
     # A review's reason is free text that may name a person: like the punch log, only the Super
@@ -96,12 +106,20 @@ def _entry_response(
         reason = None
         before = _without_reason(before)
         after = _without_reason(after)
+    employee = (
+        employee_actors.get(entry.actor_id)
+        if entry.actor_type == "employee" and entry.actor_id
+        else None
+    )
     return AuditEntryResponse(
         id=entry.id,
         at=entry.at,
         actor_type=entry.actor_type,
         actor_id=entry.actor_id,
-        actor_name=actor_names.get(entry.actor_id) if entry.actor_id else None,
+        actor_name=employee[1]
+        if employee
+        else (actor_names.get(entry.actor_id) if entry.actor_id else None),
+        actor_code=employee[0] if employee else None,
         action=entry.action,
         entity_type=entry.entity_type,
         entity_id=entry.entity_id,
@@ -128,3 +146,18 @@ def _names_of_actors(session: Session, entries: list[AuditLog]) -> dict[uuid.UUI
         return {}
     rows = session.execute(select(User.id, User.name).where(User.id.in_(user_ids)))
     return {user_id: name for user_id, name in rows}
+
+
+def _employee_actors(session: Session, entries: list[AuditLog]) -> dict[uuid.UUID, tuple[str, str]]:
+    """Employees who acted on their own phone (M4b): employee id -> (code, name)."""
+    employee_ids = {
+        entry.actor_id for entry in entries if entry.actor_type == "employee" and entry.actor_id
+    }
+    if not employee_ids:
+        return {}
+    rows = session.execute(
+        select(Employee.id, Employee.employee_code, Employee.full_name).where(
+            Employee.id.in_(employee_ids)
+        )
+    )
+    return {employee_id: (code, name) for employee_id, code, name in rows}

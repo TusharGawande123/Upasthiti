@@ -111,6 +111,11 @@ export function DigestCard() {
                 <span className={row.to_check > 0 ? "font-semibold text-warning" : ""}>
                   {t("review.digest.toCheck", { count: row.to_check })}
                 </span>
+                {row.phone_selfie_no_face ? (
+                  <span className="font-semibold text-warning">
+                    {t("review.digest.selfieNoFace", { count: row.phone_selfie_no_face })}
+                  </span>
+                ) : null}
                 <span className="text-muted-foreground">
                   {t("review.digest.offline", {
                     time: formatMinutes(row.device_offline_minutes_in_shifts, t),

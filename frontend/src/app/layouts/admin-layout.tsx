@@ -1,10 +1,15 @@
 // The admin shell: left menu, top bar (search, plant filter, user menu) and the page itself.
 // The menu shows only what the user's role may use; the server checks it again anyway.
 import {
+  Bell,
+  CalendarCheck,
+  CalendarHeart,
   CircleDashed,
   CircleX,
   ClipboardCheck,
   Factory,
+  FileBarChart,
+  FilePenLine,
   FileSpreadsheet,
   Flag,
   HardHat,
@@ -13,6 +18,7 @@ import {
   LayoutDashboard,
   ListChecks,
   Megaphone,
+  Plane,
   Printer,
   QrCode,
   ScanFace,
@@ -20,15 +26,19 @@ import {
   Search,
   Send,
   Settings,
+  Siren,
+  Table2,
   Tablet,
+  TrendingUp,
   TriangleAlert,
   UserRound,
   Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Outlet } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import { usePendingCount } from "@/features/approvals/use-approvals";
+import { useCorrectionSummary } from "@/features/attendance/use-attendance-admin";
 import { BrandMark } from "@/features/auth/brand-mark";
 import { type Me, type Role, useMe } from "@/features/auth/use-auth";
 import {
@@ -36,6 +46,8 @@ import {
   OfflineBadge,
   useOfflineSummary,
 } from "@/features/kiosks/offline-alert";
+import { NotificationBell } from "@/features/notifications/notification-bell";
+import { useUnreadCount } from "@/features/notifications/use-notifications";
 import { useExpiringCount } from "@/features/qr-cards/use-qr-cards";
 import { useReviewSummary } from "@/features/review/use-review";
 import { CommandPalette, type PaletteCommand } from "@/features/search/command-palette";
@@ -49,6 +61,44 @@ const ALL_ROLES: Role[] = ["super_admin", "corporate_head", "plant_head"];
 // New pages are added here as their features arrive.
 const NAV_ITEMS: NavItem[] = [
   { to: "/admin", labelKey: "nav.dashboard", icon: LayoutDashboard, roles: ALL_ROLES, end: true },
+  // M5: everyone inside the plant now, for roll call in an emergency (every role).
+  { to: "/admin/muster", labelKey: "nav.muster", icon: Siren, roles: ALL_ROLES },
+  // M5: the day-by-day list, the month register and the requests to correct a day (every role;
+  // only the Super Admin decides).
+  {
+    to: "/admin/attendance",
+    labelKey: "nav.attendance",
+    icon: CalendarCheck,
+    roles: ALL_ROLES,
+    end: true,
+  },
+  { to: "/admin/attendance/register", labelKey: "nav.register", icon: Table2, roles: ALL_ROLES },
+  {
+    to: "/admin/corrections",
+    labelKey: "nav.corrections",
+    icon: FilePenLine,
+    roles: ALL_ROLES,
+    badge: "pendingCorrections",
+  },
+  // M5: the days a person is away and the days the plants are closed (every role reads).
+  { to: "/admin/leave", labelKey: "nav.leave", icon: Plane, roles: ALL_ROLES },
+  { to: "/admin/holidays", labelKey: "nav.holidays", icon: CalendarHeart, roles: ALL_ROLES },
+  // M5: how on time people are, the seven reports, and the alerts (every role; the server limits
+  // what a Plant Head or Corporate Head sees).
+  {
+    to: "/admin/insights/punctuality",
+    labelKey: "nav.punctuality",
+    icon: TrendingUp,
+    roles: ALL_ROLES,
+  },
+  { to: "/admin/reports", labelKey: "nav.reports", icon: FileBarChart, roles: ALL_ROLES },
+  {
+    to: "/admin/notifications",
+    labelKey: "nav.notifications",
+    icon: Bell,
+    roles: ALL_ROLES,
+    badge: "unreadNotifications",
+  },
   { to: "/admin/setup", labelKey: "nav.setup", icon: ListChecks, roles: ["super_admin"] },
   {
     to: "/admin/approvals",
@@ -107,10 +157,22 @@ function AdminShell({ user }: { user: Me }) {
   const { t } = useTranslation();
   const [paletteOpen, setPaletteOpen] = useState(false);
   const items = visibleNavItems(user.role);
+  // The dashboard and the muster have their own plant picker on the page (design gate A).
+  const { pathname } = useLocation();
+  const pickerOnPage =
+    pathname === "/admin" ||
+    pathname === "/admin/muster" ||
+    pathname === "/admin/attendance" ||
+    pathname === "/admin/attendance/register" ||
+    pathname === "/admin/leave" ||
+    pathname === "/admin/holidays" ||
+    pathname === "/admin/insights/punctuality";
   const pending = usePendingCount(user.role === "super_admin");
   const expiring = useExpiringCount(user.role === "super_admin");
   const deviceSummary = useOfflineSummary();
   const reviews = useReviewSummary(user.role === "super_admin");
+  const corrections = useCorrectionSummary(user.role === "super_admin");
+  const unreadNotifications = useUnreadCount();
 
   // Ctrl+K (or Cmd+K on a Mac) opens the palette from anywhere in the admin area.
   useEffect(() => {
@@ -129,6 +191,8 @@ function AdminShell({ user }: { user: Me }) {
     if (item.badge === "expiringCards") return expiring.data?.count ?? 0;
     if (item.badge === "offlineDevices") return deviceSummary?.offline ?? 0;
     if (item.badge === "toCheck") return reviews.data?.to_check ?? 0;
+    if (item.badge === "pendingCorrections") return corrections.data?.pending ?? 0;
+    if (item.badge === "unreadNotifications") return unreadNotifications.data?.unread ?? 0;
     return 0;
   };
 
@@ -201,10 +265,19 @@ function AdminShell({ user }: { user: Me }) {
         ]
       : [];
   commands.push(...faceListCommands);
+  // M5: reachable from the palette for every role, so it is quick to find in an emergency.
+  commands.push({
+    id: "muster",
+    kind: "go",
+    label: t("palette.command.muster.label"),
+    hint: t("palette.command.muster.hint"),
+    icon: Siren,
+    to: "/admin/muster",
+  });
 
   return (
     <div className="flex min-h-screen">
-      <aside className="sticky top-0 hidden h-screen w-16 shrink-0 flex-col border-r bg-card lg:flex xl:w-64">
+      <aside className="print:hidden sticky top-0 hidden h-screen w-16 shrink-0 flex-col border-r bg-card lg:flex xl:w-64">
         <div className="flex h-16 items-center px-4 xl:px-5">
           <span className="xl:hidden">
             <span className="grid size-9 place-items-center rounded-lg bg-primary">
@@ -224,7 +297,7 @@ function AdminShell({ user }: { user: Me }) {
       </aside>
 
       <div className="flex min-w-0 flex-1 flex-col">
-        <header className="sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-card/90 px-3 backdrop-blur sm:gap-3 sm:px-5 lg:px-8">
+        <header className="print:hidden sticky top-0 z-30 flex h-16 items-center gap-2 border-b bg-card/90 px-3 backdrop-blur sm:gap-3 sm:px-5 lg:px-8">
           <MobileMenu items={items} badgeFor={badgeFor} />
           <div className="hidden sm:block lg:hidden">
             <BrandMark />
@@ -246,9 +319,10 @@ function AdminShell({ user }: { user: Me }) {
           >
             <Search className="size-4" aria-hidden />
           </button>
-          <PlantFilterSelect />
+          {pickerOnPage ? null : <PlantFilterSelect />}
           <div className="ml-auto flex shrink-0 items-center gap-2">
             <OfflineBadge summary={deviceSummary} />
+            <NotificationBell />
             <UserMenu user={user} />
           </div>
         </header>

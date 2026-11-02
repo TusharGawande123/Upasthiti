@@ -1,0 +1,70 @@
+<!doctype html>
+<!--
+  Upasthiti - M4b design gate P3 - Screen 7: "Cards ending soon" list (QR cards, filter "Ending soon") with the line "Phone punching on" (spec §13 risk row, §14 answer 7).
+  Super Admin only (QR cards belong to the Super Admin). States (URL hash): default · phone-only · empty · loading · error · menu-open.
+  "Now" is Saturday 31/10/2026.   MOCKUP ONLY - fake data.
+-->
+<html lang="en-IN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Upasthiti cards ending soon</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:opsz,wght@14..32,400..800&display=swap" rel="stylesheet" />
+  <script src="https://unpkg.com/lucide@0.469.0/dist/umd/lucide.min.js"></script>
+  <link rel="stylesheet" href="tokens.css" />
+  <link rel="stylesheet" href="m3.css" />
+  <link rel="stylesheet" href="gc.css" />
+  <link rel="stylesheet" href="m4c.css" />
+  <link rel="stylesheet" href="m5c.css" />
+  <link rel="stylesheet" href="p3.css" />
+</head>
+<body>
+<div class="app">
+  <aside id="sidebar" class="sidebar"></aside>
+  <div class="main">
+    <header id="topbar" class="topbar"></header>
+    <main class="page" id="page"></main>
+  </div>
+</div>
+<div id="layer"></div>
+<div class="state-tag" id="state-tag"></div>
+<script src="shell.js"></script>
+<script src="p3.js"></script>
+<script>
+  window.MOCK_ACTIVE = "QR cards";
+  const S = location.hash.replace("#", "") || "default";
+  window.MOCK_USER = USERS.sa;
+  window.MOCK_SHELL = { offline: 1, review: 7, bell: 4, menu: S === "menu-open" };
+
+  /* name, code, plant, contractor, ends, days left, phone punching on */
+  const ALL = [
+    ["Santosh Gaikwad", "T-2041", "K134", "Shree Manpower", "04/11/2026", 4, true],
+    ["Anil Pawar", "T-2058", "K134", "Omkar Staffing", "09/11/2026", 9, true],
+    ["Mohan Kulkarni", "T-2077", "K135", "Shree Manpower", "12/11/2026", 12, false],
+    ["Ganesh More", "T-2102", "X280", "Sai Labour Contractors", "14/11/2026", 14, false],
+  ];
+  let rows = ALL;
+  if (S === "phone-only") rows = ALL.filter((r) => r[6]);
+  if (S === "empty") rows = [];
+
+  function list() {
+    if (S === "loading") return `<div style="padding:16px;display:grid;gap:12px">${'<div class="skeleton" style="height:64px"></div>'.repeat(4)}</div>`;
+    if (S === "error") return `<div class="err-box"><span class="big">${ic("cloud-off")}</span><h3>The cards could not be loaded</h3><p>The server did not answer. Check the internet and try again.</p><button class="btn btn-primary btn-lg">${ic("refresh-cw")}Try again</button></div>`;
+    if (!rows.length) return `<div class="empty-box"><span class="big" style="background:var(--success-soft);color:var(--success)">${ic("circle-check")}</span><h3>No cards end in the next 14 days</h3><p>When a card is about to end, it appears here.</p></div>`;
+    return rows.map((r) => `<div class="cend ${r[6] ? "has-phone" : ""}"><div><b>${r[0]} <span class="code" style="font-weight:500">${r[1]}</span></b><div class="sub"><span>${ic("factory")} ${r[2]}</span><span>${ic("hard-hat")} ${r[3]}</span><span>${ic("calendar-clock")} Card ends ${r[4]} · in ${r[5]} days</span></div></div>
+      <div class="tags">${r[6] ? `<span class="badge badge-on">${ic("smartphone")}Phone punching on</span>` : `<span class="badge badge-off-s">${ic("smartphone-nfc")}Phone punching off</span>`}<button class="btn btn-outline" aria-label="Open ${r[0]}">${ic("chevron-right")}Open</button></div></div>`).join("");
+  }
+  function page() {
+    const nOn = ALL.filter((r) => r[6]).length;
+    const note = S === "empty" || S === "loading" || S === "error" ? "" : `<div class="alert alert-warning mb">${ic("triangle-alert")}<span><b>A card that has ended does not stop phone punching.</b> When a contract ends, switch phone punching off on the employee page, or mark the person as left.</span></div>`;
+    return `<div class="page-narrow" style="padding-bottom:40px"><div class="page-head anim-fade-up"><div><h1 class="page-title">QR cards</h1><p class="page-desc">Cards that end in the next 14 days.</p></div><div class="head-actions"><span class="sa-only" style="height:28px;font-size:12px">${ic("lock")}Super Admin only</span></div></div>
+      ${note}<div class="card list-card"><div class="fbar"><div class="seg seg-sm" role="group" aria-label="Show"><button aria-pressed="${S !== "phone-only"}">${ic("calendar-clock")}Ending soon <b>${S === "empty" ? 0 : ALL.length}</b></button><button aria-pressed="${S === "phone-only"}">${ic("smartphone")}Phone punching on <b>${S === "empty" ? 0 : nOn}</b></button></div></div>
+      <div class="countbar"><span>${S === "loading" || S === "error" ? "" : rows.length + " card" + (rows.length === 1 ? "" : "s") + " · soonest first"}</span><span>${ic("clock")}Times in IST</span></div>${list()}</div></div>`;
+  }
+  window.mockStart(function () {
+    document.getElementById("page").innerHTML = page();
+    document.getElementById("state-tag").textContent = "State: " + S;
+  });
+</script>
+</body>
+</html>
