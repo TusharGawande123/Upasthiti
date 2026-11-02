@@ -26,6 +26,7 @@ import { CodePad } from "./code-pad";
 import { EarlyOutView } from "./early-out-view";
 import { FaceView, showsFaceView } from "./face-view";
 import { buildHeartbeat, emptyFacts, type HeartbeatFacts } from "./heartbeat-report";
+import { PhoneCodePanel } from "./phone-code-panel";
 import { type CodeEntry, canTryAgain, canTryAgainAfterFailure, type KioskMe } from "./punch-types";
 import { ResultView } from "./result-view";
 import { ScanningView } from "./scanning-view";
@@ -244,6 +245,7 @@ export function AttendanceScreen({
           videoRef={attendance.videoRef}
           notices={heartbeat.notices}
           lowLight={attendance.lowLight}
+          phoneCodeSeen={attendance.phoneCodeSeen}
           camera={attendance.camera}
           getReady={attendance.getReady}
           face={{
@@ -255,6 +257,13 @@ export function AttendanceScreen({
           onStartCamera={attendance.startCameraAfterTap}
         />
       </div>
+      <PhoneCodePanel
+        enabled={heartbeat.settings.phone_code?.enabled === true}
+        online={heartbeat.online}
+        idle={screen.name === "scanning" && !screen.notACard && !place.paused}
+        showSeconds={heartbeat.settings.phone_code?.show_seconds ?? 60}
+        serverOffsetMs={heartbeat.serverOffsetMs}
+      />
       {screen.name === "camera-problem" ? (
         <ProblemScreen
           icon={CAMERA_PROBLEM_ICONS[screen.code]}

@@ -6,11 +6,11 @@ import { MapPin } from "lucide-react";
 import { useCallback, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { CARD_PREFIX } from "@/kiosk/attendance/qr-reader";
-import { readPhoneLocation, useCamera, useQrScan } from "./camera-hooks";
 import { type PhoneLocation, type ProofAnswer, phoneApi } from "./phone-api";
+import { readPhoneLocation, useCamera, useQrScan } from "./phone-camera-hooks";
+import { CameraProblem, CodedProblem } from "./phone-problem-views";
 import { codeOfFailure } from "./phone-problems";
 import { Notice, PhoneButton, PhoneCard, PhoneTitle } from "./phone-ui";
-import { CameraProblem, CodedProblem } from "./problem-views";
 
 type Step = "intro" | "locating" | "scanning" | "checking";
 

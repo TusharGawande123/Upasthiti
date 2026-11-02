@@ -9,9 +9,9 @@ import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router";
 import type { ProofAnswer } from "./phone-api";
 import { phoneBrowserSupported } from "./phone-browser";
+import { SetupCardProof } from "./phone-setup-card-proof";
+import { SetupFaceProof } from "./phone-setup-face-proof";
 import { PhoneTitle, ProblemCard, StepPills } from "./phone-ui";
-import { SetupCardProof } from "./setup-card-proof";
-import { SetupFaceProof } from "./setup-face-proof";
 
 type Way = "choose" | "face" | "card";
 

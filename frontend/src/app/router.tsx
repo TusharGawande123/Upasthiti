@@ -250,21 +250,21 @@ const phoneArea: RouteObject = {
     {
       path: "login",
       lazy: page(
-        () => import("../features/phone/login-page"),
+        () => import("../features/phone/phone-login-page"),
         (m) => m.PhoneLoginPage,
       ),
     },
     {
       path: "setup",
       lazy: page(
-        () => import("../features/phone/setup-page"),
+        () => import("../features/phone/phone-setup-page"),
         (m) => m.PhoneSetupPage,
       ),
     },
     {
       path: "setup/password",
       lazy: page(
-        () => import("../features/phone/password-page"),
+        () => import("../features/phone/phone-password-page"),
         (m) => m.PhonePasswordPage,
       ),
     },
@@ -278,42 +278,42 @@ const phoneArea: RouteObject = {
         {
           index: true,
           lazy: page(
-            () => import("../features/phone/home-page"),
+            () => import("../features/phone/phone-home-page"),
             (m) => m.PhoneHomePage,
           ),
         },
         {
           path: "notice",
           lazy: page(
-            () => import("../features/phone/notice-page"),
+            () => import("../features/phone/phone-notice-page"),
             (m) => m.PhoneNoticePage,
           ),
         },
         {
           path: "attendance",
           lazy: page(
-            () => import("../features/phone/attendance-page"),
+            () => import("../features/phone/phone-attendance-page"),
             (m) => m.PhoneAttendancePage,
           ),
         },
         {
           path: "passkey",
           lazy: page(
-            () => import("../features/phone/passkey-page"),
+            () => import("../features/phone/phone-passkey-page"),
             (m) => m.PhonePasskeyPage,
           ),
         },
         {
           path: "punch/face",
           lazy: page(
-            () => import("../features/phone/face-punch-page"),
+            () => import("../features/phone/phone-face-punch-page"),
             (m) => m.PhoneFacePunchPage,
           ),
         },
         {
           path: "punch/gate-code",
           lazy: page(
-            () => import("../features/phone/gate-code-page"),
+            () => import("../features/phone/phone-gate-code-page"),
             (m) => m.PhoneGateCodePage,
           ),
         },

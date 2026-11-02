@@ -22,10 +22,10 @@ import { Link } from "react-router";
 import { measureLocation } from "@/kiosk/location";
 import { distanceToFenceM } from "@/kiosk/location/fence-distance";
 import { formatDate, formatTime } from "@/lib/format";
-import { passkeysSupported } from "./passkey-support";
 import type { PhoneMe } from "./phone-api";
+import { passkeysSupported } from "./phone-passkey-support";
 import { Notice, PhoneCard } from "./phone-ui";
-import { usePhoneMe } from "./use-phone";
+import { usePhoneMe } from "./phone-use-phone";
 
 type ChipState = "finding" | "ready" | "off" | "weak" | "not_at_plant";
 

@@ -12,11 +12,11 @@ import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { describeError } from "@/features/auth/error-message";
 import { ApiError } from "@/lib/api-client";
-import { PasskeyCancelled, passkeysSupported, signWithPasskey } from "./passkey-support";
 import { phoneApi, type SignedIn } from "./phone-api";
 import { phoneBrowserSupported } from "./phone-browser";
+import { PasskeyCancelled, passkeysSupported, signWithPasskey } from "./phone-passkey-support";
 import { Notice, PhoneButton, PhoneCard, PhoneTitle, ProblemCard } from "./phone-ui";
-import { useAfterSignIn } from "./use-phone";
+import { useAfterSignIn } from "./phone-use-phone";
 
 const loginSchema = z.object({
   employee_code: z.string().trim().min(1, "codeRequired"),

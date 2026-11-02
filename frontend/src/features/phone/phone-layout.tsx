@@ -23,7 +23,7 @@ import {
   usePhoneMe,
   useSignOut,
   useStopPhonePunching,
-} from "./use-phone";
+} from "./phone-use-phone";
 
 function useManifestLink() {
   useEffect(() => {

@@ -439,7 +439,8 @@
       "cancelPhoto": "Cancel",
       "useBackCamera": "Use the back camera",
       "useFrontCamera": "Use the front camera",
-      "insideNow": "Inside now: {{count}}"
+      "insideNow": "Inside now: {{count}}",
+      "phoneCodeAtDevice": "This code is for phones. Show your ID card to this attendance device."
     },
     "result": {
       "in": "IN",
@@ -560,6 +561,14 @@
       "typeCodeLine": "No internet right now. Type your code, then look at the camera.",
       "storageAlmostFull": "Storage almost full. Please tell the plant office.",
       "clockOffline": "(offline)"
+    },
+    "phoneCode": {
+      "title": "Phone code",
+      "line": "Workers with phone attendance: scan this with your phone",
+      "alt": "The phone code of this attendance device",
+      "timer": "The code changes in {{count}} seconds",
+      "notAvailable": "Phone code not available now. Show your ID card.",
+      "back": "Back"
     }
   },
   "health": {

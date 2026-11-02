@@ -21,7 +21,13 @@ import {
 import { loadFacing, saveFacing } from "./camera-preference";
 import { type PunchOutcome, sendEarlyOutConfirm, sendPunch } from "./punch-client";
 import type { KioskScreenSettings } from "./punch-types";
-import { createQrDetector, isUpasthitiCard, type QrDetector, SameCardFilter } from "./qr-reader";
+import {
+  createQrDetector,
+  isUpasthitiCard,
+  PHONE_CODE_PREFIX,
+  type QrDetector,
+  SameCardFilter,
+} from "./qr-reader";
 import { takeSnapshot } from "./snapshot";
 import { useFacePunch } from "./use-face-punch";
 
@@ -169,6 +175,7 @@ export function useAttendance({
   }, [cameraStarted, wantedFacing]);
 
   // 2. While scanning: look for a card about 6 times a second.
+  const [phoneCodeSeen, setPhoneCodeSeen] = useState(false);
   const scanning = screen.name === "scanning" && location.usable;
   const showingNotACard = screen.name === "scanning" && screen.notACard;
   useEffect(() => {
@@ -183,7 +190,9 @@ export function useAttendance({
         const text = await detector.detect(video);
         if (!text) return;
         if (!isUpasthitiCard(text)) {
-          // A UPI or product code: say so for 3 s, never send it.
+          // A UPI or product code: say so for 3 s, never send it. A phone code held to the gate
+          // camera (`UPG1.`) gets its own words (M4b spec §4.3); nothing is sent either way.
+          setPhoneCodeSeen(text.startsWith(PHONE_CODE_PREFIX));
           if (!showingNotACard) dispatch({ type: "not-a-card" });
           return;
         }
@@ -200,7 +209,10 @@ export function useAttendance({
 
   useEffect(() => {
     if (!showingNotACard) return;
-    const timer = setTimeout(() => dispatch({ type: "not-a-card-over" }), NOT_A_CARD_MS);
+    const timer = setTimeout(() => {
+      dispatch({ type: "not-a-card-over" });
+      setPhoneCodeSeen(false);
+    }, NOT_A_CARD_MS);
     return () => clearTimeout(timer);
   }, [showingNotACard]);
 
@@ -396,6 +408,7 @@ export function useAttendance({
     videoRef,
     lowLight,
     holdSeconds,
+    phoneCodeSeen,
     face: { ...facePunch, expireCode },
     earlyOut: { agree: agreeEarlyOut, cancel: cancelEarlyOut },
     startCameraAfterTap,

@@ -16,7 +16,7 @@ import {
 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import type { FaceRunScreen } from "./use-face-run";
+import type { FaceRunScreen } from "./phone-use-face-run";
 
 const HINTS: Record<string, { icon: LucideIcon; text: string }> = {
   closer: { icon: ZoomIn, text: "kiosk.face.hintCloser" },

@@ -81,11 +81,13 @@ function FrameStrip({
 
 function CameraPanel({
   screen,
+  phoneCodeSeen,
   videoRef,
   mirrored,
   onStartCamera,
 }: {
   screen: AttendanceScreen;
+  phoneCodeSeen: boolean;
   videoRef: RefObject<HTMLVideoElement | null>;
   /** True for the front camera: it shows the worker like a mirror. */
   mirrored: boolean;
@@ -137,7 +139,13 @@ function CameraPanel({
         <FrameStrip icon={Loader2} text={t("kiosk.attendance.checking")} tone="blue" />
       ) : null}
       {look === "not-a-card" ? (
-        <FrameStrip icon={TriangleAlert} text={t("kiosk.attendance.notACard")} tone="amber" />
+        <FrameStrip
+          icon={TriangleAlert}
+          text={t(
+            phoneCodeSeen ? "kiosk.attendance.phoneCodeAtDevice" : "kiosk.attendance.notACard",
+          )}
+          tone="amber"
+        />
       ) : null}
     </div>
   );
@@ -343,10 +351,13 @@ export function ScanningView({
   camera,
   getReady,
   face,
+  phoneCodeSeen,
   onStartFace,
   onStartCamera,
 }: {
   screen: AttendanceScreen;
+  /** The camera saw a phone code (`UPG1.`): the strip says it is for phones (M4b §4.3). */
+  phoneCodeSeen: boolean;
   videoRef: RefObject<HTMLVideoElement | null>;
   notices: KioskNotice[];
   lowLight: boolean;
@@ -363,6 +374,7 @@ export function ScanningView({
   return (
     <div className="flex flex-col items-center gap-6 sm:flex-row sm:items-start sm:gap-8">
       <CameraPanel
+        phoneCodeSeen={phoneCodeSeen}
         screen={screen}
         videoRef={videoRef}
         mirrored={camera.facing === "user"}

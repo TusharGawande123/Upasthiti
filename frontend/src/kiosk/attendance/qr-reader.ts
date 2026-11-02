@@ -5,6 +5,8 @@
 // from our own site, never from a public CDN, and only on /kiosk (S-28).
 
 export const CARD_PREFIX = "UPS1.";
+/** The phone code of the gate (M4b): a card reader that sees it says so and sends nothing. */
+export const PHONE_CODE_PREFIX = "UPG1.";
 /** After a result, the same card is ignored this long, so a card still held up is not read twice. */
 export const SAME_CARD_IGNORE_MS = 5_000;
 

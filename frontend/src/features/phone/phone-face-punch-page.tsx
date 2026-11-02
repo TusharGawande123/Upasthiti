@@ -8,20 +8,20 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { ApiError } from "@/lib/api-client";
-import { readPhoneLocation, useCamera } from "./camera-hooks";
-import { FaceCameraView } from "./face-camera-view";
 import {
   PHONE_APP_VERSION,
   type PhoneLocation,
   type PhonePunchAnswer,
   phoneApi,
 } from "./phone-api";
+import { readPhoneLocation, useCamera } from "./phone-camera-hooks";
+import { FaceCameraView } from "./phone-face-camera-view";
+import { CameraProblem, CodedProblem } from "./phone-problem-views";
 import { codeOfFailure } from "./phone-problems";
+import { PunchResult } from "./phone-punch-result";
 import { PhoneButton, PhoneCard } from "./phone-ui";
-import { CameraProblem, CodedProblem } from "./problem-views";
-import { PunchResult } from "./punch-result";
-import { useFaceRun } from "./use-face-run";
-import { PHONE_ME_KEY, usePhoneMe } from "./use-phone";
+import { useFaceRun } from "./phone-use-face-run";
+import { PHONE_ME_KEY, usePhoneMe } from "./phone-use-phone";
 
 type Stage = "locating" | "camera" | "done";
 

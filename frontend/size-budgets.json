@@ -35,8 +35,13 @@
     "maxGzipBytes": 4286700
   },
   {
+    "name": "Phone pages (loaded only on /phone)",
+    "pattern": "^phone-.*.js$",
+    "maxGzipBytes": 28600
+  },
+  {
     "name": "Styles",
     "pattern": "^index-.*.css$",
-    "maxGzipBytes": 14500
+    "maxGzipBytes": 16000
   }
 ]

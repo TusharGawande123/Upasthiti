@@ -9,10 +9,10 @@ import { Link, useNavigate } from "react-router";
 import { describeError } from "@/features/auth/error-message";
 import { ApiError } from "@/lib/api-client";
 import { formatDate } from "@/lib/format";
-import { createPasskey, PasskeyCancelled, passkeysSupported } from "./passkey-support";
 import { phoneApi } from "./phone-api";
+import { createPasskey, PasskeyCancelled, passkeysSupported } from "./phone-passkey-support";
 import { Notice, PhoneButton, PhoneCard, PhoneTitle } from "./phone-ui";
-import { PHONE_ME_KEY, usePhoneMe, useSignOut } from "./use-phone";
+import { PHONE_ME_KEY, usePhoneMe, useSignOut } from "./phone-use-phone";
 
 const LIMIT = 3;
 

@@ -13,7 +13,7 @@ import {
   RotateCw,
 } from "lucide-react";
 import { ApiError } from "@/lib/api-client";
-import { PhoneLocationError } from "./camera-hooks";
+import { PhoneLocationError } from "./phone-camera-hooks";
 
 export type ProblemLook = {
   code: string;

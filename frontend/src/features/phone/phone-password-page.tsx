@@ -12,7 +12,7 @@ import { describeError } from "@/features/auth/error-message";
 import { ApiError } from "@/lib/api-client";
 import { phoneApi } from "./phone-api";
 import { Notice, PhoneButton, PhoneCard, PhoneTitle, StepPills } from "./phone-ui";
-import { useAfterSignIn } from "./use-phone";
+import { useAfterSignIn } from "./phone-use-phone";
 
 type ProofState = { proofToken: string; firstName: string; employeeCode: string };
 

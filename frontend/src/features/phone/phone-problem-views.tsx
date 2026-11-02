@@ -2,7 +2,7 @@
 // the phone) and a camera problem. Words come from `phone.punch.<CODE>.*` and `phone.camera.*`.
 import { CameraOff, VideoOff } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { CameraStatus } from "./camera-hooks";
+import type { CameraStatus } from "./phone-camera-hooks";
 import { lookFor } from "./phone-problems";
 import { PhoneButton, ProblemCard } from "./phone-ui";
 

@@ -10,19 +10,19 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router";
 import { takeSnapshot } from "@/kiosk/attendance/snapshot";
-import { readPhoneLocation, useCamera, useQrScan } from "./camera-hooks";
-import { useRequestLevelRedirect } from "./face-punch-page";
 import {
   PHONE_APP_VERSION,
   type PhoneLocation,
   type PhonePunchAnswer,
   phoneApi,
 } from "./phone-api";
+import { readPhoneLocation, useCamera, useQrScan } from "./phone-camera-hooks";
+import { useRequestLevelRedirect } from "./phone-face-punch-page";
+import { CameraProblem, CodedProblem } from "./phone-problem-views";
 import { codeOfFailure } from "./phone-problems";
+import { PunchResult } from "./phone-punch-result";
 import { PhoneButton, PhoneCard } from "./phone-ui";
-import { CameraProblem, CodedProblem } from "./problem-views";
-import { PunchResult } from "./punch-result";
-import { PHONE_ME_KEY, usePhoneMe } from "./use-phone";
+import { PHONE_ME_KEY, usePhoneMe } from "./phone-use-phone";
 
 export const GATE_CODE_PREFIX = "UPG1.";
 

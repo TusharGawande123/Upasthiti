@@ -11,7 +11,7 @@ import { describeError } from "@/features/auth/error-message";
 import { ApiError } from "@/lib/api-client";
 import { phoneApi } from "./phone-api";
 import { Notice, PhoneButton, PhoneCard, PhoneTitle } from "./phone-ui";
-import { PHONE_ME_KEY, useKnownPhoneMe, useSignOut } from "./use-phone";
+import { PHONE_ME_KEY, useKnownPhoneMe, useSignOut } from "./phone-use-phone";
 
 const NOTICE_KEY = ["phone", "notice"] as const;
 

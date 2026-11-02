@@ -6,8 +6,8 @@ import { useTranslation } from "react-i18next";
 import { formatTime } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import type { PhonePunchAnswer } from "./phone-api";
+import { CodedProblem } from "./phone-problem-views";
 import { PhoneButton, PhoneCard } from "./phone-ui";
-import { CodedProblem } from "./problem-views";
 
 export function PunchResult({
   answer,

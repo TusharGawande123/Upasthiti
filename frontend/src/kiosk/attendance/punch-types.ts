@@ -85,6 +85,8 @@ export type KioskScreenSettings = {
   location?: KioskLocationSettings;
   /** M4: what the gate needs to save punches while offline (absent on an older server). */
   offline?: KioskOfflineSettings;
+  /** M4b: the phone code panel (absent on an older server). `enabled` is only the setting. */
+  phone_code?: { enabled: boolean; refresh_seconds: number; show_seconds: number };
 };
 
 /** GET /kiosk/me: the heartbeat answer. */

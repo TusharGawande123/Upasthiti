@@ -5,13 +5,13 @@ import { useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
-import { useCamera } from "./camera-hooks";
-import { FaceCameraView } from "./face-camera-view";
 import { type ProofAnswer, phoneApi } from "./phone-api";
+import { useCamera } from "./phone-camera-hooks";
+import { FaceCameraView } from "./phone-face-camera-view";
+import { CameraProblem, CodedProblem } from "./phone-problem-views";
 import { codeOfFailure } from "./phone-problems";
 import { PhoneButton, PhoneCard, PhoneTitle } from "./phone-ui";
-import { CameraProblem, CodedProblem } from "./problem-views";
-import { useFaceRun } from "./use-face-run";
+import { useFaceRun } from "./phone-use-face-run";
 
 export function SetupFaceProof({
   onProven,
