@@ -400,3 +400,33 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
       employee page with its Phone attendance card and Attendance tab at 360 px and 768 px (all other M5 and M4b pages were already listed).
     - **Reports page:** `ReportCard` is split into `useReportDownload`, `ReportFilters` and `ReportMessage`; `LIMITS` moved to the top. No change in
       behaviour.
+
+## The lead's answers to four of the "to confirm" lines (2026-11-02, in chat, after PR #41 was merged)
+75. **Selfie without a face on a phone gate-code punch (lines 73 and 74):** the punch is still accepted; the Super Admin gets the bell
+    notification and the count in the daily digest. Not flagged, not refused. Confirmed as built.
+76. **Phone accuracy and distance (lines 59, 70, 73):** only the Super Admin sees them. The Corporate Head and the Plant Head see the method and the
+    result. Confirmed as built.
+77. **Early OUT on the phone (line 45):** a phone OUT before the shift end asks first, like the gate does ("You are leaving before the shift
+    ends. Leave now?"). This is NOT built yet: it needs the early-out mark on phone punches and one confirm screen on /phone. To be planned as a
+    small follow-up on its own branch.
+78. **Location refusal texts at the gate and on the phone (line 74):** stay specific ("You are not at the plant" and the like). No neutral line.
+
+The other "to confirm with Tushar" lines of this file and the seven points of `docs/compliance/m5-m4b-open-points.md` are still open.
+
+## More answers of the lead (2026-11-02, in chat)
+79. **Grace at the shift end (line 8, changes decision 0034 line 10 and spec §7 rule 9):** the lead keeps "grace only at the start before the
+    shift end" (no grace BEFORE the end), and adds a grace AFTER the shift end: a person may punch OUT up to shift end + grace and it is on
+    time. Both graces, "after start" and "after end", are per shift and the Super Admin changes them in the shift settings (default 30 minutes
+    each). The lead's answer to "what changes in the minutes": **nothing**. Overtime stays as in decision 0034 line 12 (from the shift end, only
+    from the 2-hour minimum); a late OUT within the end grace is on time and the status stays as it was. NOT built yet: it needs a second
+    grace field on the shift and its rule versions (a migration), the shift form and helper text, the poster line and the tests; to be
+    planned as a follow-up on its own branch.
+80. **Absence streak (line 15):** weekly offs and holidays are skipped and do not break a streak. Confirmed as built.
+81. **Phone texts (lines 30 to 33):** "Scan the QR code", "Move outside, where the sky is open.", "Please open this page in Chrome or Edge on your
+    phone." and the gate panel heading "Phone code" are confirmed. The specs are updated with them.
+82. **Passkeys and a password reset (line 38):** a new password after a face or card proof does NOT remove passkeys. Confirmed as built.
+83. **All other "to confirm with Tushar" lines of this file (2026-11-02, in chat):** the lead said "theek hai" to the remaining lines as built
+    (whole-minute cut, early-OUT warning, offline early OUT, poster layout and icon, kept consent sign-in rows, `GET` and `POST` for the gate
+    code, a code naming no device, many-rejections alert for gate devices only, bulk-confirm test, outside-work reason, phone result texts and
+    Back button, style and menu budgets, CSP). The only exceptions are lines 77 and 79 (to be built) and the seven points of
+    `docs/compliance/m5-m4b-open-points.md`, which need the client, HR and legal.
