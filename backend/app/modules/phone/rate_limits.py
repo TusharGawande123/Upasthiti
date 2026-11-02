@@ -25,8 +25,11 @@ phone_sign_in_limiter = RateLimiter(max_attempts=_sign_in_limit, window_seconds=
 proof_ip_limiter = RateLimiter(max_attempts=10, window_seconds=TEN_MINUTES)
 # Face proofs per typed employee code: 5 an hour.
 face_proof_code_limiter = RateLimiter(max_attempts=5, window_seconds=ONE_HOUR)
-# Failed proofs from everyone together: 60 in 10 minutes.
+# Failed FACE proofs (they used the face worker) from everyone together: 60 in 10 minutes.
 failed_proof_limiter = RateLimiter(max_attempts=60, window_seconds=TEN_MINUTES)
+# Card proofs that name a genuinely signed card but are refused: 10 in 10 minutes per card serial
+# (a junk text is not counted anywhere but the per-IP limit).
+card_serial_failure_limiter = RateLimiter(max_attempts=10, window_seconds=TEN_MINUTES)
 # "Set your password" per IP: 10 in 10 minutes.
 password_set_limiter = RateLimiter(max_attempts=10, window_seconds=TEN_MINUTES)
 # Passkey adds per sign-in: 5 an hour.
@@ -44,6 +47,7 @@ ALL_PHONE_LIMITERS = (
     proof_ip_limiter,
     face_proof_code_limiter,
     failed_proof_limiter,
+    card_serial_failure_limiter,
     password_set_limiter,
     passkey_add_limiter,
     phone_challenge_limiter,

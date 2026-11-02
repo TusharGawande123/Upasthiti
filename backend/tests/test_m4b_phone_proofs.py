@@ -502,3 +502,48 @@ def test_audit_rows_never_hold_passwords_tokens_or_scores(
     )
     assert GOOD_PASSWORD not in text and token not in text
     assert "score" not in text and (phone.cookies.get("ups_phone") or "-") not in text
+
+
+# --- Limits that one person cannot use to lock everyone out (review fix A1) -----------------------
+
+
+def test_junk_card_proofs_do_not_block_face_proofs(
+    people: People, phone: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.phone import proof_service
+    from app.modules.phone.rate_limits import failed_proof_limiter
+
+    monkeypatch.setattr(proof_service, "MIN_ANSWER_SECONDS", 0)
+    monkeypatch.setattr(failed_proof_limiter, "_max_attempts", 2)
+    for _ in range(5):
+        junk = card_proof(phone, "not a card")
+        assert error_code(junk) == "PROOF_FAILED"
+    fine = phone.post(f"{PHONE}/proof/face/challenge", json={"employee_code": "F-201"})
+    assert fine.status_code == 200
+
+
+def test_a_flood_of_failed_face_proofs_still_blocks_everyone(
+    people: People, phone: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.phone import proof_service
+    from app.modules.phone.rate_limits import failed_proof_limiter
+
+    monkeypatch.setattr(proof_service, "MIN_ANSWER_SECONDS", 0)
+    monkeypatch.setattr(failed_proof_limiter, "_max_attempts", 2)
+    for number in range(2):
+        assert face_proof(phone, f"NOBODY-{number}", person=1).status_code == 401
+    blocked = card_proof(phone, people.card_text)
+    assert blocked.status_code == 429
+
+
+def test_a_signed_card_that_keeps_being_refused_is_limited_per_card(
+    boss: TestClient, people: People, phone: TestClient, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    from app.modules.phone import proof_service
+    from app.modules.phone.rate_limits import card_serial_failure_limiter
+
+    monkeypatch.setattr(proof_service, "MIN_ANSWER_SECONDS", 0)
+    monkeypatch.setattr(card_serial_failure_limiter, "_max_attempts", 2)
+    switch_phone(boss, people.qr_id, on=False)
+    answers = [card_proof(phone, people.card_text) for _ in range(3)]
+    assert [a.status_code for a in answers] == [401, 401, 429]

@@ -50,6 +50,7 @@ from app.modules.phone.models import PhoneProof, ProofKind, SessionRevokeKind, S
 from app.modules.phone.passwords import check_employee_password
 from app.modules.phone.rate_limits import (
     EVERYONE,
+    card_serial_failure_limiter,
     face_proof_code_limiter,
     failed_proof_limiter,
     password_set_limiter,
@@ -67,7 +68,7 @@ from app.modules.punches.face_service import (
 from app.modules.punches.offline_face_service import EMPTY_GALLERY
 from app.modules.punches.schemas import CaptureRules
 from app.modules.qr_cards.models import CardKind, QrCredential
-from app.modules.qr_cards.payload import parse_payload, signature_is_valid
+from app.modules.qr_cards.payload import ParsedPayload, parse_payload, signature_is_valid
 from app.modules.settings.service import get_float_setting, get_int_setting
 
 PROOF_TOKEN_LIFE = timedelta(minutes=5)
@@ -188,7 +189,8 @@ def prove_face(
         and cosine(embedding, template) >= get_float_setting(session, "face_match_threshold")
     )
     if not matched or candidate is None:
-        _fail(session, proof, ip, started)
+        # This failure used the face worker, so it counts towards the company-wide limit.
+        _fail(session, proof, ip, started, count_for_everyone=True)
     return _pass(session, proof, candidate, now, started)
 
 
@@ -254,19 +256,24 @@ def prove_card(session: Session, request: CardProofRequest, *, ip: str) -> Passe
         ip=_ip_or_none(ip),
     )
     session.add(proof)
-    employee = _card_owner(session, request.qr_payload, now)
+    parsed = parse_payload(request.qr_payload)
+    if parsed is None or not signature_is_valid(get_settings(), parsed):
+        # Not a real card: cheap to send, so it must not use up anyone else's allowance.
+        _fail(session, proof, ip, started)
+    if card_serial_failure_limiter.blocked(parsed.serial):
+        raise ApiError("TOO_MANY_REQUESTS", "Too many checks for this card. Try again later.", 429)
+    employee = _card_owner(session, parsed, now)
     if employee is None:
+        # A genuinely signed card that is refused (revoked, expired, phone off...): limit per card.
+        card_serial_failure_limiter.record(parsed.serial)
         _fail(session, proof, ip, started)
     _check_place(session, employee, request, now)
     return _pass(session, proof, employee, now, started)
 
 
-def _card_owner(session: Session, qr_payload: str, now: datetime) -> Employee | None:
+def _card_owner(session: Session, parsed: ParsedPayload, now: datetime) -> Employee | None:
     """The owner of a real, working card who may punch by phone, or None. Unlike a phone punch,
     the card must be valid here: it is the only proof of identity a QR worker has (rule 5)."""
-    parsed = parse_payload(qr_payload)
-    if parsed is None or not signature_is_valid(get_settings(), parsed):
-        return None
     card = session.scalar(select(QrCredential).where(QrCredential.card_serial == parsed.serial))
     if card is None or card.key_id != parsed.key_id or card.employee_id is None:
         return None
@@ -328,11 +335,21 @@ def _pass(
     return PassedProof(token, expires_at, employee)
 
 
-def _fail(session: Session, proof: PhoneProof, ip: str, started: float) -> NoReturn:
+def _fail(
+    session: Session,
+    proof: PhoneProof,
+    ip: str,
+    started: float,
+    *,
+    count_for_everyone: bool = False,
+) -> NoReturn:
     """One answer for every "not you" case. The audit keeps the kind and the typed code only,
-    never a picture or a score (rule 5). Always raises."""
+    never a picture or a score (rule 5). Always raises. Only a failure that used the face
+    worker counts towards the company-wide limit: a junk card text is cheap and the IP can be
+    faked, so counting it would let one person lock everyone out."""
     proof.result = "failed"
-    failed_proof_limiter.record(EVERYONE)
+    if count_for_everyone:
+        failed_proof_limiter.record(EVERYONE)
     record_audit(
         session,
         actor=Actor("employee", None, ip),
