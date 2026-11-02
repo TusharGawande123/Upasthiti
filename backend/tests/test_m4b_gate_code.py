@@ -524,3 +524,55 @@ def test_the_code_text_is_the_only_new_secret_and_needs_no_new_setting_in_the_en
     device_id = uuid.uuid4()
     assert build_gate_code(device_id, SEVEN) == build_gate_code(device_id, SEVEN)
     assert json.dumps(sorted(get_settings().model_dump().keys())).count("gate") == 0
+
+
+# --- Review fixes: a selfie without a face, and a code that names no device ---------------------
+
+
+def test_a_phone_selfie_without_a_face_tells_the_super_admin_and_is_in_the_digest(
+    boss: TestClient,
+    db_session: Session,
+    gate: TestClient,
+    g1: Device,
+    worker_phone: TestClient,
+) -> None:
+    from app.modules.notifications.models import Notification
+    from app.modules.phone.selfie_alert import note_selfie_without_face
+
+    with frozen_at(SEVEN) as clock:
+        code = ask_code(gate, g1).json()["code_text"]
+        clock.shift(timedelta(seconds=10))
+        accepted = send_code(worker_phone, code)
+        assert accepted.json()["decision"] == "accepted"  # the decision never changes
+        snapshot = db_session.scalars(select(PunchSnapshot)).one()
+        snapshot.face_found = False
+        note_selfie_without_face(db_session, snapshot, SEVEN)
+        db_session.commit()
+
+        notice = db_session.scalars(
+            select(Notification).where(Notification.kind == "phone_selfie_no_face")
+        ).one()
+        assert notice.params["count"] == 1 and notice.plant_id is not None
+        assert "Q-301" not in str(notice.params) and "Ramesh" not in str(notice.params)
+        listed = boss.get("/api/v1/notifications").json()["items"]
+        assert [item["kind"] for item in listed] == ["phone_selfie_no_face"]
+        digest = boss.get("/api/v1/reviews/digest", params={"date": MONDAY.isoformat()}).json()
+        assert sum(plant["phone_selfie_no_face"] for plant in digest["plants"]) == 1
+
+
+def test_a_code_naming_an_unknown_device_leaves_an_audit_row_with_a_hash_only(
+    db_session: Session, worker_phone: TestClient, people: People
+) -> None:
+    import hashlib
+
+    with frozen_at(SEVEN):
+        unknown = build_gate_code(uuid.uuid4(), SEVEN)
+        assert send_code(worker_phone, unknown).json()["reason_code"] == "GATE_CODE_INVALID"
+
+    rows = db_session.scalars(
+        select(AuditLog).where(AuditLog.action == "phone_punch.gate_code_unknown_device")
+    ).all()
+    assert len(rows) == 1
+    assert str(rows[0].entity_id) == people.qr_id
+    assert rows[0].after == {"text_sha256": hashlib.sha256(unknown.encode()).hexdigest()}
+    assert unknown not in str(rows[0].after)

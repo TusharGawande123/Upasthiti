@@ -14,9 +14,11 @@ from contextlib import AbstractContextManager
 from sqlalchemy.orm import Session
 
 from app.core.db import get_session_factory
+from app.core.time import utc_now
 from app.face.engine import FaceEngine
 from app.face.images import ImageInvalidError, decode_jpeg
 from app.face.models import FaceModels
+from app.modules.phone.selfie_alert import note_selfie_without_face
 from app.modules.punches.models import PunchSnapshot
 
 logger = logging.getLogger(__name__)
@@ -48,6 +50,10 @@ def check_face_in_photo(
             snapshot = session.get(PunchSnapshot, snapshot_id)
             if snapshot is not None:
                 snapshot.face_found = found
+                if not found:
+                    # A phone gate-code selfie without a face tells the Super Admin (the
+                    # decision itself never changes); other photos return at once.
+                    note_selfie_without_face(session, snapshot, utc_now())
                 session.commit()
     except Exception:  # a background extra must never disturb the gate
         logger.exception("Face-in-photo check could not be saved")

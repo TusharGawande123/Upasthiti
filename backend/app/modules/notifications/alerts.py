@@ -250,7 +250,8 @@ def _review_digest(session: Session, day: date, now: datetime) -> None:
     flagged = sum(item.flagged for item in digest.plants)
     rejected = sum(item.rejected_with_employee for item in digest.plants)
     to_check = sum(item.to_check for item in digest.plants)
-    if flagged or rejected or to_check:
+    no_face = sum(item.phone_selfie_no_face for item in digest.plants)
+    if flagged or rejected or to_check or no_face:
         create_notification(
             session,
             kind="review_digest",
@@ -261,6 +262,7 @@ def _review_digest(session: Session, day: date, now: datetime) -> None:
                 "count": to_check,
                 "flagged": flagged,
                 "rejected": rejected,
+                "no_face": no_face,
                 "date": day.isoformat(),
             },
             link="/admin/review",

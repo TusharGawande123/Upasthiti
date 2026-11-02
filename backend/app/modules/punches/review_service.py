@@ -30,6 +30,7 @@ from app.modules.kiosks.status_service import offline_minutes_in_shifts
 from app.modules.org.geofence import distance_between_m, geofence_centre
 from app.modules.org.geofence_service import current_geofence
 from app.modules.org.models import Geofence, Plant
+from app.modules.phone.selfie_alert import count_without_face
 from app.modules.punches import presenter
 from app.modules.punches.counting import (
     counted_between,
@@ -380,6 +381,7 @@ def review_digest(session: Session, day: date, now: datetime) -> ReviewDigest:
         func.coalesce(_first_code, "") != COOLDOWN,
     )
     count_by_plant("to_check", _to_check_condition())
+    no_face = count_without_face(session, day)
 
     plants = list(
         session.scalars(select(Plant).where(Plant.is_active.is_(True)).order_by(Plant.code))
@@ -402,6 +404,7 @@ def review_digest(session: Session, day: date, now: datetime) -> ReviewDigest:
                 rejected_with_employee=numbers.get("rejected_with_employee", 0),
                 to_check=numbers.get("to_check", 0),
                 device_offline_minutes_in_shifts=offline,
+                phone_selfie_no_face=no_face.get(plant.id, 0),
             )
         )
     return ReviewDigest(date=day, plants=rows)

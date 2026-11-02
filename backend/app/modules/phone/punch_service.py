@@ -16,6 +16,7 @@ Frames and embeddings are never stored (spec §7 rule 10, step 7).
 
 import base64
 import binascii
+import hashlib
 import ipaddress
 import logging
 import secrets
@@ -51,6 +52,7 @@ from app.core.time import to_ist, utc_now
 from app.face.engine import FaceEngine
 from app.face.models import FaceModels
 from app.modules.attendance.service import mark_punch_stale
+from app.modules.audit.service import record_audit
 from app.modules.auth.rate_limit import RateLimiter
 from app.modules.employees.models import Employee, PunchMethod
 from app.modules.face.engine_provider import face_key, ready_model_id, run_face_job
@@ -366,7 +368,7 @@ def record_gate_code_punch(
     parsed = parse_gate_code(request.gate_code)
     device = session.get(KioskDevice, parsed.device_id) if parsed is not None else None
     if device is None:
-        return _code_names_no_device(now)
+        return _code_names_no_device(session, caller, request.gate_code, now)
 
     # The person is known from the sign-in, so every decided row names them (spec §7 rule 11).
     session.execute(select(Employee.id).where(Employee.id == employee.id).with_for_update())
@@ -409,10 +411,23 @@ def record_gate_code_punch(
     return phone_answer(punch)
 
 
-def _code_names_no_device(now: datetime) -> PhonePunchResponse:
-    """A text that names no known gate device cannot be stored: every gate-code row must name its
-    device (migration 0027 check). It is answered like a forged code, with nothing written."""
+def _code_names_no_device(
+    session: Session, caller: PhoneEmployee, gate_code: str, now: datetime
+) -> PhonePunchResponse:
+    """A text that names no known gate device cannot be stored as a punch: every gate-code row
+    must name its device (migration 0027 check). It is answered like a forged code. The only trace
+    is one audit row with the employee and a hash of the text (never the text itself)."""
     logger.warning("A phone gate code named no known device")
+    record_audit(
+        session,
+        actor=caller.actor,
+        action="phone_punch.gate_code_unknown_device",
+        entity_type="employee",
+        entity_id=caller.employee.id,
+        after={"text_sha256": hashlib.sha256(gate_code.encode("utf-8")).hexdigest()},
+        plant_id=caller.employee.plant_id,
+    )
+    session.commit()
     return PhonePunchResponse(
         punch_id=None,
         decision="rejected",

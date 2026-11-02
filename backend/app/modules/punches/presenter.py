@@ -287,10 +287,11 @@ def punch_detail(session: Session, punch: Punch, viewer: Viewer) -> PunchDetail:
         app_version=punch.app_version,
         device_time=punch.device_claimed_at,
         location=location,
-        location_accuracy_m=_number(punch.accuracy_m),
+        # Accuracy and distance to the fence also say where a person was: hidden with the position.
+        location_accuracy_m=None if position_hidden else _number(punch.accuracy_m),
         face=_face_detail(session, punch) if viewer.sees_face_scores else None,
         time_proof=punch.time_proof,  # type: ignore[arg-type]
-        geofence_distance_m=_number(punch.geofence_distance_m),
+        geofence_distance_m=None if position_hidden else _number(punch.geofence_distance_m),
         location_age_s=punch.location_age_s,
         related_punch_id=punch.related_punch_id,
         reviews=review_history(session, punch.id, viewer.sees_review_reasons),

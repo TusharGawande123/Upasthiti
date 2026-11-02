@@ -36,6 +36,7 @@ KINDS = (
     "absence_streak",
     "monthly_register",
     "phone_many_phones",  # M4b F-70: "Signed in on many phones"
+    "phone_selfie_no_face",  # M4b: a phone gate-code selfie with no face (Super Admin)
 )
 
 

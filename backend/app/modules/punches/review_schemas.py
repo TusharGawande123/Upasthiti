@@ -50,6 +50,7 @@ class DigestPlant(BaseModel):
     rejected_with_employee: int
     to_check: int
     device_offline_minutes_in_shifts: int
+    phone_selfie_no_face: int = 0  # phone gate-code selfies with no face seen (F-30)
 
 
 class ReviewDigest(BaseModel):

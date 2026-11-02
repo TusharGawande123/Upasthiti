@@ -26,6 +26,7 @@ EMAIL_TEXTS: dict[str, str] = {
     "notification.absence_streak": "A person at {plant} was absent several working days in a row.",
     "notification.monthly_register": "The attendance register of {month} for {plant} is ready.",
     "notification.correction_requested": "A correction is waiting for your decision.",
+    "notification.phone_selfie_no_face": "{count} phone selfies at {plant} show no face.",
     "notification.correction_decided": "Your correction request was decided.",
 }
 

@@ -210,8 +210,10 @@ def test_the_position_of_a_phone_punch_is_for_the_super_admin_only(world: dict) 
 
     assert seen_by_boss["location"]["lat"] == pytest.approx(19.87)
     assert seen_by_corporate["location"] is None and seen_by_head["location"] is None
-    # How exact the reading was is not a position: everybody may see it.
-    assert seen_by_corporate["location_accuracy_m"] == pytest.approx(12)
+    # The accuracy and the distance to the fence say where the person was: hidden with the position.
+    for hidden in (seen_by_corporate, seen_by_head):
+        assert hidden["location_accuracy_m"] is None and hidden["geofence_distance_m"] is None
+    assert seen_by_boss["location_accuracy_m"] == pytest.approx(12)
     # Gate punches keep the M4 rule (the gate device stands at the plant anyway).
     assert gate_for_corporate["location"]["lat"] == pytest.approx(19.87)
 
