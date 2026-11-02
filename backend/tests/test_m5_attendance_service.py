@@ -161,6 +161,20 @@ def test_the_nightly_close_creates_a_row_for_every_active_employee(
     assert day_row(db_session, employee_id, PINNED_DAY).status in {"absent", "open"}
 
 
+def test_ac_26_after_a_three_day_sleep_the_catch_up_creates_every_missed_day(
+    setup: tuple, db_session: Session
+) -> None:
+    """AC-26: the server slept from 29/10 22:00 to 01/11 09:00; 29/10, 30/10 and 31/10 all exist."""
+    _boss, _plant, _kiosk, employee_id = setup
+    wake_up = ist(date(2026, 11, 1), 9, 0)
+    with frozen_at(wake_up):
+        close_recent_days(db_session, wake_up)
+
+    for missed in (date(2026, 10, 29), date(2026, 10, 30), date(2026, 10, 31)):
+        row = day_row(db_session, employee_id, missed)
+        assert row.stale is False and row.status != "open", missed
+
+
 def test_a_new_calc_version_makes_every_row_old(setup: tuple, db_session: Session) -> None:
     """AC-25: changing ATTENDANCE_CALC_VERSION makes the catch-up job recompute old rows."""
     _boss, _plant, _kiosk, employee_id = setup

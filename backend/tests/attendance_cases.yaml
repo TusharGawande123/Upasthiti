@@ -112,6 +112,13 @@
   leave: true
   events: []
   expect: {status: weekly_off}
+- id: E18-monday
+  day: 2026-11-02
+  leave: true
+  events: []
+  expect: {status: leave}
+# E14b (OUT_TOO_SOON), E14's second half and N5 (window edges) are gate and window rules: they are
+# tested in test_m5_shift_closed.py and test_m5_day_window.py, not by compute_day().
 - id: E18-punches-on-leave
   day: 2026-11-02
   leave: true
