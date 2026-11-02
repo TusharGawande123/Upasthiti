@@ -131,7 +131,7 @@ def _confirm_face_or_code(
         related_punch_id=place.related_punch_id,
         ip=client.ip,
         app_version=body.app_version,
-        **_held_columns(hold),
+        **held_columns(hold),
     )
     if punch_early_out(
         session, punch, now, window_before_hours=limits.attendance_window_before_hours
@@ -151,8 +151,9 @@ def _confirm_face_or_code(
     return punch_answer(session, punch, kiosk.name, limits)
 
 
-def _held_columns(hold: dict[str, Any]) -> dict[str, Any]:
-    """The facts the first request proved, back from the token's text into column values."""
+def held_columns(hold: dict[str, Any]) -> dict[str, Any]:
+    """The facts the first request proved, back from the token's text into column values
+    (also used by the phone punch, decision 0036 line 88)."""
     columns: dict[str, Any] = {
         "match_mode": hold.get("match_mode"),
         "challenge": hold.get("challenge"),

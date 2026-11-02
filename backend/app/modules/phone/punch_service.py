@@ -24,6 +24,7 @@ import uuid
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from decimal import Decimal
+from typing import Any
 
 import numpy as np
 from sqlalchemy import delete, select
@@ -68,6 +69,7 @@ from app.modules.phone.notice import require_notice_accepted
 from app.modules.phone.rate_limits import phone_challenge_limiter, phone_punch_limiter
 from app.modules.phone.schemas import (
     PhoneChallengeResponse,
+    PhoneEarlyOutConfirmRequest,
     PhoneFacePunchRequest,
     PhoneGateCodePunchRequest,
     PhonePunchDetails,
@@ -75,6 +77,15 @@ from app.modules.phone.schemas import (
 )
 from app.modules.phone.views import face_ready
 from app.modules.punches.answers import FACE_RETRY_CODES
+from app.modules.punches.early_out import (
+    EARLY_OUT_CONFIRMED,
+    EarlyOutInfo,
+    early_out_prompt,
+    face_hold,
+    punch_early_out,
+    read_token,
+)
+from app.modules.punches.early_out_service import held_columns
 from app.modules.punches.face_service import (
     CHALLENGE_KEEP,
     NO_PHOTO_CODES,
@@ -227,6 +238,15 @@ def record_face_punch(
     )
 
     punch = _face_punch_row(caller, request, context, decision, place, now, model_id)
+    early_out = punch_early_out(
+        session, punch, now, window_before_hours=limits.attendance_window_before_hours
+    )
+    if early_out is not None:
+        # Nothing is stored; the commit keeps the challenge used. Agree sends the token back.
+        session.commit()
+        return _needs_confirmation(
+            caller, request.client_punch_id, now, early_out, face_hold(punch)
+        )
     first_code = decision.reason_codes[0] if decision.outcome is Outcome.REJECT else None
     snapshot = face_snapshot(
         session,
@@ -391,7 +411,12 @@ def record_gate_code_punch(
     request: PhoneGateCodePunchRequest,
     storage: Storage | None = None,
     after_photo: PhotoCheck | None = None,
+    *,
+    early_out_confirmed: bool = False,
+    scanned_at: datetime | None = None,
 ) -> PhonePunchResponse:
+    """`early_out_confirmed` and `scanned_at` are set only by the confirm step (Agree at the
+    early-OUT alert): the rules run again in full, with the code judged as of its first scan."""
     employee = caller.employee
     phone_session_id = caller.phone_session.id
     require_notice_accepted(session, employee.id)
@@ -414,6 +439,7 @@ def record_gate_code_punch(
     place.employee = employee
     place.gate_code_text = request.gate_code
     place.gate_device = device
+    place.gate_code_checked_at = scanned_at
     place.snapshot_bytes = _decode_photo(request.photo_jpeg)
     decision = run_rules(place, GATE_CODE_RULES)
 
@@ -422,6 +448,19 @@ def record_gate_code_punch(
         # selfie for the review (AC-33); a photo that cannot be read simply stays out.
         check_snapshot(place)
     punch = _gate_code_row(caller, request, device, decision, place, now)
+    early_out = punch_early_out(
+        session, punch, now, window_before_hours=limits.attendance_window_before_hours
+    )
+    if early_out is not None and not early_out_confirmed:
+        session.rollback()  # nothing is stored: the phone shows the alert, Agree comes back
+        hold = {
+            "method": PunchRowMethod.GATE_CODE.value,
+            "gate_code": request.gate_code,
+            "scanned_at": now.isoformat(),
+        }
+        return _needs_confirmation(caller, request.client_punch_id, now, early_out, hold)
+    if early_out is not None:
+        punch.early_out_mark = EARLY_OUT_CONFIRMED
     snapshot = store_snapshot(
         session, punch, place, decision, now, storage, reason=SnapshotReason.PHONE_GATE_CODE
     )
@@ -493,6 +532,128 @@ def _gate_code_row(
         ip=_ip_or_none(caller.ip),
         app_version=request.app_version,
     )
+
+
+# --- The early-OUT alert (decision 0036 lines 77 and 88) -----------------------------------------
+
+
+def _needs_confirmation(
+    caller: PhoneEmployee,
+    client_punch_id: uuid.UUID,
+    now: datetime,
+    info: EarlyOutInfo,
+    hold: dict[str, Any],
+) -> PhonePunchResponse:
+    """An OUT before the shift end is not stored yet: the phone asks "Leave now?". The token is
+    for this phone sign-in and this punch id only, like the gate's token is for one device."""
+    prompt = early_out_prompt(caller.phone_session.id, now, info, hold, client_punch_id)
+    return PhonePunchResponse(
+        punch_id=None,
+        decision="needs_confirmation",
+        reason_code=None,
+        direction="out",
+        punch_time=now,
+        outside_plant=False,
+        details=PhonePunchDetails(),
+        early_out=prompt,
+    )
+
+
+def confirm_early_out(
+    session: Session,
+    caller: PhoneEmployee,
+    body: PhoneEarlyOutConfirmRequest,
+    storage: Storage | None = None,
+    after_photo: PhotoCheck | None = None,
+) -> PhonePunchResponse:
+    """Agree: the server checks the token, then decides the punch again at this moment (a person
+    who punched meanwhile, a place that changed, a revoked device are judged as they are now).
+    A retry of the same Agree gets the stored answer."""
+    employee = caller.employee
+    require_notice_accepted(session, employee.id)
+    stored = find_phone_punch(session, caller.phone_session.id, body.client_punch_id)
+    if stored is not None:
+        return phone_answer(stored)
+
+    now = utc_now()
+    hold = read_token(body.token, caller.phone_session.id, body.client_punch_id, now)
+    if hold is None:
+        raise ApiError(
+            "EARLY_OUT_TOKEN_INVALID", "The confirmation is too old. Please punch again.", 409
+        )
+    if hold.get("method") == PunchRowMethod.GATE_CODE.value:
+        request = PhoneGateCodePunchRequest(
+            client_punch_id=body.client_punch_id,
+            gate_code=str(hold["gate_code"]),
+            photo_jpeg=body.photo_jpeg,
+            location=body.location,
+            app_version=body.app_version,
+        )
+        return record_gate_code_punch(
+            session,
+            caller,
+            request,
+            storage,
+            after_photo,
+            early_out_confirmed=True,
+            scanned_at=datetime.fromisoformat(str(hold["scanned_at"])),
+        )
+    return _confirm_face(session, caller, body, hold, now)
+
+
+def _confirm_face(
+    session: Session,
+    caller: PhoneEmployee,
+    body: PhoneEarlyOutConfirmRequest,
+    hold: dict[str, Any],
+    now: datetime,
+) -> PhonePunchResponse:
+    """Agree after a face punch: the face already matched (the token holds the scores). The place
+    rules and the IN/OUT and flag rules run again; the row is made from the held facts."""
+    employee = caller.employee
+    _require_method(employee, PunchMethod.FACE)
+    if hold.get("employee_id") != str(employee.id):
+        raise ApiError("EARLY_OUT_TOKEN_INVALID", "Please punch again.", 409)
+    _require_rate(phone_punch_limiter, caller)
+
+    limits = load_limits(session)
+    place = _place_context(session, caller, now, limits, body.location)
+    place_decision = run_rules(place, PHONE_LOCATION_RULES)
+    if place_decision.outcome is Outcome.REJECT:
+        decision = place_decision
+    else:
+        place.employee = employee
+        decision = combine(place_decision, lock_and_decide_in_out(session, place))
+
+    counts = decision.outcome is Outcome.ALLOW
+    punch = Punch(
+        id=uuid.uuid4(),
+        client_punch_id=body.client_punch_id,
+        channel=PunchChannel.PHONE.value,
+        phone_session_id=caller.phone_session.id,
+        kiosk_id=None,
+        plant_id=place.plant_id,
+        employee_id=employee.id,
+        method=PunchRowMethod.FACE.value,
+        direction=decision.direction.value if counts and decision.direction else None,
+        decision=decision.decision_value,
+        reason_codes=decision.reason_codes,
+        server_received_at=now,
+        **_location_columns(body.location),
+        geofence_id=place.geofence_id,
+        geofence_distance_m=metres(place.geofence_distance_m),
+        location_plant_id=place.location_plant_id,
+        related_punch_id=place.related_punch_id,
+        ip=_ip_or_none(caller.ip),
+        app_version=body.app_version,
+        **held_columns(hold),
+    )
+    if punch_early_out(
+        session, punch, now, window_before_hours=limits.attendance_window_before_hours
+    ):
+        punch.early_out_mark = EARLY_OUT_CONFIRMED
+    saved = _save_punch_once(session, caller, body.client_punch_id, punch, None, None)
+    return phone_answer(saved)
 
 
 # --- Shared ---------------------------------------------------------------------------------------

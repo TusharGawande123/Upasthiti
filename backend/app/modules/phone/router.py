@@ -46,6 +46,7 @@ from app.modules.phone.schemas import (
     PasskeyOptionsResponse,
     PasskeyRegisterRequest,
     PhoneChallengeResponse,
+    PhoneEarlyOutConfirmRequest,
     PhoneFacePunchRequest,
     PhoneGateCodePunchRequest,
     PhonePunchResponse,
@@ -252,6 +253,23 @@ def punch_gate_code(
     return punch_service.record_gate_code_punch(
         session, caller, body, after_photo=check_photo_later
     )
+
+
+@router.post("/punch/early-out/confirm", response_model=PhonePunchResponse)
+def punch_early_out_confirm(
+    body: PhoneEarlyOutConfirmRequest,
+    background: BackgroundTasks,
+    caller: PhoneEmployee = Depends(require_phone_employee),
+    session: Session = Depends(get_session),
+    engine: FaceEngine = Depends(get_face_engine),
+    task_sessions: SessionMaker = Depends(get_task_sessions),
+) -> PhonePunchResponse:
+    """Agree at the early-OUT alert (decision 0036 lines 77 and 88): the OUT is stored now."""
+
+    def check_photo_later(snapshot_id: uuid.UUID, jpeg: bytes) -> None:
+        background.add_task(check_face_in_photo, snapshot_id, jpeg, engine, task_sessions)
+
+    return punch_service.confirm_early_out(session, caller, body, after_photo=check_photo_later)
 
 
 @router.get("/punches/today", response_model=TodayPunchesResponse)

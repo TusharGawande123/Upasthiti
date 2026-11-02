@@ -8,7 +8,7 @@ from typing import Any, Literal
 from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.modules.kiosks.schemas import LocationReport
-from app.modules.punches.schemas import CaptureRules, FaceFrameIn
+from app.modules.punches.schemas import CaptureRules, EarlyOutPrompt, FaceFrameIn
 
 ChallengeName = Literal["turn_left", "turn_right", "left_then_right", "right_then_left"]
 
@@ -230,21 +230,35 @@ class PhoneGateCodePunchRequest(BaseModel):
     app_version: str | None = Field(default=None, max_length=40)
 
 
+class PhoneEarlyOutConfirmRequest(BaseModel):
+    """Agree at the early-OUT alert (decision 0036 line 88). A gate-code punch sends its selfie
+    again (it was never stored); a face punch needs no picture. The location is read again."""
+
+    client_punch_id: uuid.UUID  # the one of the punch that was asked about
+    token: str = Field(min_length=20, max_length=2000)
+    photo_jpeg: str | None = Field(default=None, max_length=100_000)
+    location: LocationReport | None = None
+    app_version: str | None = Field(default=None, max_length=40)
+
+
 class PhonePunchDetails(BaseModel):
     retry_allowed: bool | None = None  # a face problem where trying again can help
 
 
 class PhonePunchResponse(BaseModel):
     """The phone's answer. A flagged punch answers "accepted"; only `outside_plant` tells the
-    person it was saved as an outside-plant punch (no other flag is shown, spec §5.3)."""
+    person it was saved as an outside-plant punch (no other flag is shown, spec §5.3).
+    "needs_confirmation": an OUT before the shift end; nothing is stored, `early_out` holds the
+    alert's facts and the token that Agree sends to the confirm endpoint."""
 
     punch_id: uuid.UUID | None  # none when a gate code names no known device (nothing is stored)
-    decision: Literal["accepted", "rejected"]
+    decision: Literal["accepted", "rejected", "needs_confirmation"]
     reason_code: str | None
     direction: Literal["in", "out"] | None
     punch_time: datetime
     outside_plant: bool
     details: PhonePunchDetails
+    early_out: EarlyOutPrompt | None = None  # only with decision "needs_confirmation"
 
 
 class TodayPunch(BaseModel):

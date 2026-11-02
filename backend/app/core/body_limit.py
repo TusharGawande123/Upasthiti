@@ -34,6 +34,7 @@ _IMPORT_PATH_SUFFIX = "/employees/import"
 # Everything else a phone sends (sign-in, notice, card proof, passkeys) is a few short fields.
 PHONE_FACE_PATHS = ("/api/v1/phone/punch/face", "/api/v1/phone/proof/face")
 PHONE_GATE_CODE_PATH = "/api/v1/phone/punch/gate-code"
+PHONE_EARLY_OUT_PATH = "/api/v1/phone/punch/early-out/confirm"
 PHONE_BODY_LIMIT = 16 * 1024
 _PHONE_PATHS = "/api/v1/phone/"
 
@@ -47,7 +48,8 @@ def body_limit_for(path: str) -> int:
         return SYNC_BODY_LIMIT
     if path in PHONE_FACE_PATHS:
         return FACE_PUNCH_BODY_LIMIT
-    if path == PHONE_GATE_CODE_PATH:
+    if path in (PHONE_GATE_CODE_PATH, PHONE_EARLY_OUT_PATH):
+        # Agree after a gate-code punch sends the selfie again.
         return KIOSK_BODY_LIMIT
     if path.startswith(_PHONE_PATHS):
         return PHONE_BODY_LIMIT
