@@ -369,3 +369,34 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     - **Renames and refactors, no behaviour change:** `face_service.lock_and_decide_in_out` (was `after_identity`), `attendance_service.DayLoader`,
       public `role_path`, `describe_day`, `row_from_request` of the corrections service, `users/names.py` `user_names`.
     - **Open points that need the client, HR or legal advice** (not code): docs/compliance/m5-m4b-open-points.md.
+74. **Review fixes, frontend (2026-11-02, after /review-milestone; the lead said "fix everything").**
+    - **Selfie alert:** the kinds `phone_selfie_no_face` and `phone_many_phones` (it was missing from the Super Admin's email list) have a name, an icon,
+      a text and a link in the bell and on the Notifications page. The daily digest card shows "Phone selfies without a face N" for a plant when
+      the number is above 0. Nothing is shown for the heads (the server sends these to the Super Admin only).
+    - **Phone positions for the heads:** the punch detail already hid empty accuracy and distance; with both `null` it shows no row at all (nothing
+      like "null"). The line "The exact position is only for the Super Admin" stays where the distance row was; for a head it is now shown
+      only if the server sends a distance, so it can disappear (**to confirm with Tushar**: should the line always show for a phone punch?).
+    - **Audit viewer actions:** not changed. The audit page shows the raw action name (`punch.location_view`) for every action and has no label
+      list, so the new actions follow the same rule (the reviewer's finding assumed labels that do not exist).
+    - **Errors 4 and 5:** the corrections page and the punch approvals already show `errors.REPORT_RANGE_TOO_LONG` through `describeError`, and
+      the card proof of the phone shows `phone.punch.TOO_MANY_REQUESTS` ("PLEASE WAIT"); a test covers the second. Its message is now "This was NOT
+      saved." (it said "Your punch", wrong for a card proof).
+    - **Plain gate and phone words:** `SERVER_NO_ANSWER` is "No answer in time. Scan your card again." (the old "If it was saved, you will see
+      it" is gone); the gate "server is starting" is "Please wait. This can take up to a minute."; the gate `CHALLENGE_INVALID` message is "The check
+      could not be finished."; `PUBLIC_KEY_INVALID`, `DEVICE_SIGNATURE_INVALID`, `DATABASE_UNAVAILABLE`, `ITEM_SIGNATURE_INVALID` say what to do, not
+      how it failed. `errors.GATE_CODE_INVALID`, `GATE_CODE_EXPIRED`, `NOT_A_GATE_CODE` were added (the phone screens use their own `phone.punch.*`).
+    - **Location refusal texts are NOT changed:** no spec forbids naming the location problem. M2 FR-20 hides the detailed reason of a refusal
+      (for example the revoke reason), and M4b §9 says "camera and location hints" are allowed (decisions 0013, 0022, 0025, 0035 say nothing against it).
+      Gate and phone keep "You are not at the plant." and the like (**to confirm with Tushar**: if the client wants one neutral sentence for
+      every location refusal, it is five text keys).
+    - **Checks:** `i18n:check` already compared every server `ApiError` code with `errors.<CODE>` (`check-error-codes.mjs`, the review looked only at
+      `check-translations.mjs`). New: `check-translations.mjs` checks that every group under `kiosk.punch`, `phone.punch` and `kiosk.problem` has
+      its title, message and next line (or steps). The gate and phone codes cannot be listed from the backend (they are rejection reasons
+      built in code), so completeness of the groups is the check.
+    - **Layout:** the period boxes of the punctuality page and the time and month boxes of the corrections, employee and leave screens grow with
+      their label (`min-w`, no fixed width); the day drawer title and subtitle have a `title` tooltip. The gate "Phone code" sentence already wraps
+      centred in the full-screen view of a phone, so it is not shortened.
+    - **Tests added:** AC-52 (a unit test and a Playwright check), AC-38, AC-48 (no storage written), `responsive.spec.ts` now also measures the
+      employee page with its Phone attendance card and Attendance tab at 360 px and 768 px (all other M5 and M4b pages were already listed).
+    - **Reports page:** `ReportCard` is split into `useReportDownload`, `ReportFilters` and `ReportMessage`; `LIMITS` moved to the top. No change in
+      behaviour.

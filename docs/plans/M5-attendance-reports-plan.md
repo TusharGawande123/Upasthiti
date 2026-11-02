@@ -510,3 +510,10 @@ a real phone at 360 px, report downloads opened in Excel.
   solve are in docs/compliance/m5-m4b-open-points.md. Tests: AC-55 delete guard (`test_m5_no_delete_guard.py`), AC-26 three-day catch-up,
   golden case E18 Monday. Code quality: phone punch split into judge and save steps, corrections helpers, `DayLoader`, `check_date_range`,
   `reports/data.py` cleanup, a map of the phone package. Decision 0036 line 73. Frontend needs: see the report of this step.
+- 2026-11-02 **Review fixes (frontend)** (Sonnet, after /review-milestone; the lead said "fix everything"). Bell and Notifications page and the
+  digest card know `phone_selfie_no_face` (and `phone_many_phones`); plain gate words (`SERVER_NO_ANSWER`, server starting, `CHALLENGE_INVALID`,
+  four admin-technical errors); `errors.GATE_CODE_*` and `NOT_A_GATE_CODE`; `check-translations.mjs` checks the gate and phone text groups
+  (the error-code check already existed in `check-error-codes.mjs`); layout fixes (`min-w` boxes, tooltips on the day drawer); reports page split
+  into `useReportDownload`, `ReportFilters`, `ReportMessage`. Skipped with a reason: audit action labels (the audit page shows raw action names
+  for all actions), neutral location refusal texts (no spec asks for them). Tests: AC-52 (unit + Playwright), AC-38, AC-48, card proof 429,
+  employee page at 360 px in `responsive.spec.ts`. Decision 0036 line 74 (**to confirm: the position line for heads, location texts**).
