@@ -41,7 +41,7 @@ function useLocationChip(me: PhoneMe | undefined): { state: ChipState; accuracyM
   useEffect(() => {
     if (limit === undefined) return;
     let cancelled = false;
-    measureLocation({ maxWaitMs: 12_000 })
+    measureLocation({ maxWaitMs: 12_000, goodEnoughM: limit })
       .then((reading) => {
         if (cancelled) return;
         if (reading.accuracy_m > limit) {

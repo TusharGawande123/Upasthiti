@@ -1,7 +1,7 @@
 // "Check my face" (spec M4b §4.5): type the employee code, then the front camera runs the same
 // guidance and head turn as the gate's face punch. The server answers with a proof token for
 // every well-formed code, so nothing here tells whether the code exists.
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
@@ -47,6 +47,14 @@ export function SetupFaceProof({
       setProblem(codeOfFailure(error));
     },
   });
+
+  // The check starts by itself as soon as the camera shows a picture (like the punch).
+  const startRun = run.start;
+  useEffect(() => {
+    if (started && camera.status === "ready" && problem === null && run.screen.name === "idle") {
+      startRun();
+    }
+  }, [started, camera.status, problem, run.screen.name, startRun]);
 
   const reset = () => {
     run.cancel();
@@ -122,9 +130,9 @@ export function SetupFaceProof({
     <div className="space-y-3">
       <FaceCameraView screen={run.screen} videoRef={camera.videoRef} />
       {run.screen.name === "idle" ? (
-        <PhoneButton disabled={camera.status !== "ready"} onClick={run.start}>
-          {camera.status === "ready" ? t("phone.setup.begin") : t("phone.camera.opening")}
-        </PhoneButton>
+        <p role="status" className="text-center text-lg text-muted-foreground">
+          {t("phone.camera.opening")}
+        </p>
       ) : null}
       <PhoneButton variant="outline" onClick={reset}>
         {t("phone.cancel")}
