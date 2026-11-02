@@ -17,7 +17,8 @@ def check_gate_code(context: PunchContext) -> RuleResult:
     parsed = parse_gate_code(context.gate_code_text or "")
     if parsed is None or not mac_is_valid(parsed):
         return RuleResult.rejected("GATE_CODE_INVALID")
-    if is_too_early_or_late(parsed, context.now, context.limits.gate_code_seconds):
+    scanned_at = context.gate_code_checked_at or context.now
+    if is_too_early_or_late(parsed, scanned_at, context.limits.gate_code_seconds):
         return RuleResult.rejected("GATE_CODE_EXPIRED")
     device = context.gate_device
     if (

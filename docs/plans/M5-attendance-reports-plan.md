@@ -525,3 +525,10 @@ a real phone at 360 px, report downloads opened in Excel.
   rows `grace-after-end-*`). Tests: backend focused runs passed (compute day 75 incl. 6 new rows, shift rules, poster, kiosk status, attendance API,
   migrations 0019 and 0030); frontend 974 passed (coverage 89.6 / 84.7 / 85.7 / 91.0). Full backend suite and pre-commit: see the report of this step.
   Open: lead to confirm the smaller poster size for four or more shifts (decision 0036 line 86); not pushed, no PR yet.
+- 2026-11-02 **Early OUT on the phone** (follow-up on branch `feat/phone-early-out-confirm`, stacked on `feat/grace-after-shift-end`; decision 0036
+  lines 77 and 88 to 90). Done: a phone face punch or gate-code punch that would be an accepted OUT before the shift end answers
+  `needs_confirmation` (nothing stored); `POST /phone/punch/early-out/confirm` (Agree) re-runs the rules and stores the OUT with
+  `EARLY_OUT_CONFIRMED`; the gate's `early_out.py` logic and token are reused (token bound to the phone sign-in); the gate code is judged
+  as of its first scan; phone screen `phone-early-out-step.tsx` with the gate's texts; M4b spec (rule 13, §5.3, AC-60). Tests: backend
+  `test_m4b_phone_early_out.py` (13), Vitest 5 + 4 new, Playwright phone spec (the question at 360 and 768 px). Full suites and pre-commit: see the
+  report of this step. Open: none; not pushed, no PR yet.

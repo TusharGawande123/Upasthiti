@@ -191,16 +191,17 @@ def face_hold(punch: Punch) -> dict[str, Any]:
     return held
 
 
-def prompt_for(
-    kiosk: KioskDevice,
+def early_out_prompt(
+    owner_id: uuid.UUID,
     now: datetime,
     info: EarlyOutInfo,
     hold: dict[str, Any],
     client_punch_id: uuid.UUID,
-) -> KioskPunchResponse:
-    """The "needs_confirmation" answer: nothing is stored, the gate shows the alert."""
-    prompt = EarlyOutPrompt(
-        token=make_token(kiosk.id, client_punch_id, now, hold),
+) -> EarlyOutPrompt:
+    """The alert's facts and the signed token. `owner_id` is the gate device or, for a phone
+    punch (decision 0036 line 88), the phone sign-in: the token is good for that owner only."""
+    return EarlyOutPrompt(
+        token=make_token(owner_id, client_punch_id, now, hold),
         client_punch_id=client_punch_id,
         expires_at=now + timedelta(seconds=TOKEN_SECONDS),
         tier=info.tier,  # type: ignore[arg-type]
@@ -209,4 +210,15 @@ def prompt_for(
         full_remaining_min=info.full_remaining_min,
         shift_end=info.shift_end,
     )
+
+
+def prompt_for(
+    kiosk: KioskDevice,
+    now: datetime,
+    info: EarlyOutInfo,
+    hold: dict[str, Any],
+    client_punch_id: uuid.UUID,
+) -> KioskPunchResponse:
+    """The "needs_confirmation" answer: nothing is stored, the gate shows the alert."""
+    prompt = early_out_prompt(kiosk.id, now, info, hold, client_punch_id)
     return early_out_answer(kiosk.name, now, prompt)

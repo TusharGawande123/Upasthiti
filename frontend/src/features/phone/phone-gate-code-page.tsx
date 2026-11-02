@@ -17,6 +17,7 @@ import {
   phoneApi,
 } from "./phone-api";
 import { readPhoneLocation, useCamera, useQrScan } from "./phone-camera-hooks";
+import { PhoneEarlyOutStep } from "./phone-early-out-step";
 import { useRequestLevelRedirect } from "./phone-face-punch-page";
 import { CameraProblem, CodedProblem } from "./phone-problem-views";
 import { codeOfFailure } from "./phone-problems";
@@ -41,6 +42,7 @@ export function PhoneGateCodePage() {
   const [secondsLeft, setSecondsLeft] = useState(0);
   const location = useRef<PhoneLocation | null>(null);
   const gateCode = useRef("");
+  const photoText = useRef<string | undefined>(undefined);
   const punchId = useRef(crypto.randomUUID());
   const sending = useRef(false);
   const cameraOn =
@@ -60,6 +62,7 @@ export function PhoneGateCodePage() {
     setAnswer(null);
     setWrongCode(false);
     setStage("locating");
+    photoText.current = undefined;
     punchId.current = crypto.randomUUID();
     sending.current = false;
     try {
@@ -92,6 +95,7 @@ export function PhoneGateCodePage() {
     setStage("checking");
     try {
       const photo = await takeSnapshot(video);
+      photoText.current = photo; // kept in memory only, in case Agree at the early-OUT alert needs it
       const result = await phoneApi.gateCodePunch({
         client_punch_id: punchId.current,
         gate_code: gateCode.current,
@@ -119,6 +123,23 @@ export function PhoneGateCodePage() {
 
   const back = () => navigate("/phone", { replace: true });
 
+  if (answer?.decision === "needs_confirmation" && answer.early_out) {
+    return (
+      <PhoneEarlyOutStep
+        prompt={answer.early_out}
+        photo={photoText.current}
+        onAnswer={(confirmed) => {
+          setAnswer(confirmed);
+          void queryClient.invalidateQueries({ queryKey: PHONE_ME_KEY });
+        }}
+        onFail={(error) => {
+          setAnswer(null);
+          fail(error);
+        }}
+        onCancel={back}
+      />
+    );
+  }
   if (answer) {
     return (
       <PunchResult

@@ -131,6 +131,9 @@ class PunchContext:
     outside_work_allowed: bool = False  # the Super Admin's switch, judged on the punch's IST date
     gate_code_text: str | None = None  # a gate-code punch: the scanned text (untrusted)
     gate_device: KioskDevice | None = None  # the gate device that text names (looked up first)
+    # Agree at the early-OUT alert: the code was fresh when it was first scanned; the person
+    # needs a few seconds to read the alert, so freshness is judged at that moment (line 88).
+    gate_code_checked_at: datetime | None = None
     # What the rules find out, in order.
     snapshot: CheckedSnapshot | None = None
     card: QrCredential | None = None

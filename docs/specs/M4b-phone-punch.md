@@ -348,6 +348,7 @@ answer **200** also when rejected (M2 rule); request-level errors write no punch
 | POST | /api/v1/phone/punch/challenge | employee | – | `200 { challenge_nonce, challenge, expires_at, server_time, capture }` | `PHONE_NOT_SIGNED_IN`, `PHONE_NOTICE_REQUIRED` (428), `EMPLOYEE_NOT_FACE` (403), `PHONE_FACE_NOT_READY` (409), `FACE_SERVICE_UNAVAILABLE`, `TOO_MANY_REQUESTS` |
 | POST | /api/v1/phone/punch/face | employee | `{ client_punch_id (uuid), challenge_nonce, frames (2–4, as M3), location: { lat, lon, accuracy_m, age_s }, app_version? }` | `200 { punch_id, decision: "accepted"\|"rejected", reason_code, direction, punch_time, outside_plant: bool, details: { retry_allowed? } }` (a flagged punch answers "accepted"; `outside_plant` is true only for `OUTSIDE_PLANT`) | request-level: `PHONE_NOT_SIGNED_IN`, `PHONE_NOTICE_REQUIRED`, `EMPLOYEE_NOT_FACE`, `PHONE_FACE_NOT_READY`, `VALIDATION_FAILED`, `PAYLOAD_TOO_LARGE` (> 384 KB), `TOO_MANY_REQUESTS`, `FACE_SERVICE_UNAVAILABLE`, `FACE_SERVICE_BUSY` |
 | POST | /api/v1/phone/punch/gate-code | employee | `{ client_punch_id, gate_code, photo_jpeg (base64, as M2 snapshot limits), location, app_version? }` | same as face | request-level: `PHONE_NOT_SIGNED_IN`, `PHONE_NOTICE_REQUIRED`, `EMPLOYEE_NOT_QR` (403), `VALIDATION_FAILED`, `PAYLOAD_TOO_LARGE` (> 64 KB), `TOO_MANY_REQUESTS` |
+| POST | /api/v1/phone/punch/early-out/confirm | employee | `{ client_punch_id (the one of the asked punch), token, photo_jpeg? (a gate-code punch sends its selfie again), location, app_version? }` | same as face; the face and gate-code punch answers gain `decision: "needs_confirmation"` and `early_out: { token, client_punch_id, expires_at, tier, half_remaining_min, half_at, full_remaining_min, shift_end }` (decision 0036 line 88) | request-level as above, `EARLY_OUT_TOKEN_INVALID` (409) |
 
 Decision codes in `reason_code` (stored on the row): see §7 rule 24.
 Idempotency: a retry with the same `client_punch_id` from the same session returns the stored answer.
@@ -638,6 +639,11 @@ replacing card scans with phone scans does not add storage. `phone_proofs` is em
     per shift; `SHIFT_ALREADY_CLOSED`), and `punches/counting.py` (no change: it does not look at the
     channel). The last counted punch counts across channels: IN at the gate and OUT by phone (or the other
     way) is normal. The punch time is always the server receive time (no client time is used).
+    **Early OUT (lead, 2026-11-02; decision 0036 lines 77 and 88; AC-60):** a phone OUT that the rules
+    would accept before the shift end asks first, like the gate: nothing is stored, the answer is
+    `needs_confirmation` with `early_out` (tier, minutes left, times, token), and Agree stores the OUT
+    with `early_out_mark` `EARLY_OUT_CONFIRMED` after the rules run again. The server code is the gate's
+    (`early_out_info`); the token is bound to the phone sign-in. Cancel sends nothing.
 
 14. **Flag rules across channels.** `impossible_travel` and `two_devices` compare with the person's punches
     at **another device**: a different gate device or a phone punch (a phone face punch has no gate device;
@@ -1175,6 +1181,17 @@ on **Monday 02/11/2026** unless said otherwise.
 - **AC-59 (S-49)** In the 512 MB container, 8 parallel password sign-ins plus 4 phone face punches keep
   the backend process under 450 MB (fails above), and the semaphore of rule 9 lets at most 2 argon2 checks
   run at once.
+- **AC-60 (early OUT, decision 0036 lines 77 and 88)** Given F-201 (face) IN at 08:00 on a 07:00-19:00 shift
+  with a 4 h half day, when F-201 punches OUT by face at 10:10, then the answer is
+  `decision: "needs_confirmation"`, `direction: "out"`, `punch_id: null`, `early_out.tier: "before_half"`
+  (half complete in 110 min, shift ends in 530 min) and no row is stored; Agree
+  (`POST /phone/punch/early-out/confirm` with the token, the same `client_punch_id` and a new location)
+  stores one accepted OUT with `early_out_mark` `EARLY_OUT_CONFIRMED` and no reason code, and the same Agree
+  sent again returns the same answer and no second row; Cancel sends nothing, so the OUT at 19:05 is accepted
+  without a mark; at 15:25 the tier is `before_end`; an IN and an OUT at or after the shift end never ask. For
+  Q-301 (gate code) the same holds, the selfie is sent again with Agree, and the code is judged as of its first
+  scan. A token of another punch id, of another phone sign-in or older than 90 s is `EARLY_OUT_TOKEN_INVALID`
+  (409); an Agree from outside the fence is refused (`OUTSIDE_GEOFENCE`) and no OUT is stored.
 
 ## 11. Test plan
 All time-dependent tests pass `now` in or freeze the clock with time-machine (S-40, approved in M5) at the

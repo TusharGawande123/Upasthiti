@@ -4500,6 +4500,9 @@
     "tryAgain": "Try again",
     "backToSignIn": "Back to sign in",
     "checking": "Checking…",
+    "earlyOut": {
+      "question": "You are leaving before the shift ends. Leave now?"
+    },
     "in": "IN",
     "out": "OUT",
     "menu": {

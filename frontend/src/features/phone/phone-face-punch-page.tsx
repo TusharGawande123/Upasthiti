@@ -15,6 +15,7 @@ import {
   phoneApi,
 } from "./phone-api";
 import { readPhoneLocation, useCamera } from "./phone-camera-hooks";
+import { PhoneEarlyOutStep } from "./phone-early-out-step";
 import { FaceCameraView } from "./phone-face-camera-view";
 import { CameraProblem, CodedProblem } from "./phone-problem-views";
 import { codeOfFailure } from "./phone-problems";
@@ -112,6 +113,22 @@ export function PhoneFacePunchPage() {
 
   const back = () => navigate("/phone", { replace: true });
 
+  if (answer?.decision === "needs_confirmation" && answer.early_out) {
+    return (
+      <PhoneEarlyOutStep
+        prompt={answer.early_out}
+        onAnswer={(confirmed) => {
+          setAnswer(confirmed);
+          void queryClient.invalidateQueries({ queryKey: PHONE_ME_KEY });
+        }}
+        onFail={(error) => {
+          setAnswer(null);
+          fail(error);
+        }}
+        onCancel={back}
+      />
+    );
+  }
   if (answer) {
     return (
       <PunchResult
