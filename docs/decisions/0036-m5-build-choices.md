@@ -412,3 +412,16 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
 78. **Location refusal texts at the gate and on the phone (line 74):** stay specific ("You are not at the plant" and the like). No neutral line.
 
 The other "to confirm with Tushar" lines of this file and the seven points of `docs/compliance/m5-m4b-open-points.md` are still open.
+
+## More answers of the lead (2026-11-02, in chat)
+79. **Grace at the shift end (line 8, changes decision 0034 line 10 and spec §7 rule 9):** the lead keeps "grace only at the start before the
+    shift end" (no grace BEFORE the end), and adds a grace AFTER the shift end: a person may punch OUT up to shift end + grace and it is on
+    time. Both graces, "after start" and "after end", are per shift and the Super Admin changes them in the shift settings (default 30 minutes
+    each). The lead's answer to "what changes in the minutes": **nothing**. Overtime stays as in decision 0034 line 12 (from the shift end, only
+    from the 2-hour minimum); a late OUT within the end grace is on time and the status stays as it was. NOT built yet: it needs a second
+    grace field on the shift and its rule versions (a migration), the shift form and helper text, the poster line and the tests; to be
+    planned as a follow-up on its own branch.
+80. **Absence streak (line 15):** weekly offs and holidays are skipped and do not break a streak. Confirmed as built.
+81. **Phone texts (lines 30 to 33):** "Scan the QR code", "Move outside, where the sky is open.", "Please open this page in Chrome or Edge on your
+    phone." and the gate panel heading "Phone code" are confirmed. The specs are updated with them.
+82. **Passkeys and a password reset (line 38):** a new password after a face or card proof does NOT remove passkeys. Confirmed as built.
