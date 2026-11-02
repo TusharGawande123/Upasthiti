@@ -249,7 +249,7 @@ export function LeavePage() {
               type="month"
               aria-label={t("leave.filter.month")}
               value={month}
-              className="tnum sm:w-44"
+              className="tnum sm:w-auto sm:min-w-44"
               onChange={(event) => setMonth(event.target.value)}
             />
           </div>

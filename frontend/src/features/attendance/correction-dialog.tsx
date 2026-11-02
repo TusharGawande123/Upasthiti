@@ -416,7 +416,7 @@ function TimeFields(props: {
         <Input
           type="time"
           aria-label={`${props.label} (time)`}
-          className="w-32"
+          className="w-auto min-w-36"
           value={props.clock}
           onChange={(event) => props.onClock(event.target.value)}
         />

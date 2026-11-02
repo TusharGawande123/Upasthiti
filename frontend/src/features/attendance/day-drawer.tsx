@@ -209,6 +209,9 @@ export function DayDrawer({ employeeId, date }: { employeeId: string; date: stri
   const [correcting, setCorrecting] = useState(false);
   const person = employee.data?.employee;
   const data = detail.data;
+  const subtitle = [person?.employee_code, formatDay(date), data?.day.plant?.code]
+    .filter(Boolean)
+    .join(" · ");
   const kinds = data?.allowed_correction_kinds ?? [];
   const canAct = data && kinds.length > 0 && (data.can_correct || data.can_request);
   const isLastDay = date >= todayIst();
@@ -224,13 +227,14 @@ export function DayDrawer({ employeeId, date }: { employeeId: string; date: stri
           >
             <header className="flex items-center gap-2 border-b bg-card p-4">
               <div className="min-w-0 flex-1">
-                <DialogPrimitive.Title className="truncate text-lg font-bold">
+                <DialogPrimitive.Title
+                  className="truncate text-lg font-bold"
+                  title={person?.full_name ?? undefined}
+                >
                   {person?.full_name ?? t("attendance.day.title")}
                 </DialogPrimitive.Title>
-                <p className="truncate text-[13px] text-muted-foreground">
-                  {[person?.employee_code, formatDay(date), data?.day.plant?.code]
-                    .filter(Boolean)
-                    .join(" · ")}
+                <p className="truncate text-[13px] text-muted-foreground" title={subtitle}>
+                  {subtitle}
                 </p>
               </div>
               <Button

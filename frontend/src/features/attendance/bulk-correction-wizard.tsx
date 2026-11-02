@@ -327,7 +327,7 @@ export function BulkCorrectionWizard({ isSuperAdmin, onClose }: Props) {
                       <Input
                         id="bulk-out"
                         type="time"
-                        className="w-32"
+                        className="w-auto min-w-36"
                         value={outClock}
                         onChange={(event) => setOutClock(event.target.value)}
                       />

@@ -408,7 +408,7 @@ export function PunctualityPage() {
 
       <Card className="space-y-4 p-4">
         <div className="flex flex-wrap items-end gap-3">
-          <div className="w-40">
+          <div className="min-w-40">
             <Field id="punctuality-from" label={t("reports.field.from")}>
               <Input
                 id="punctuality-from"
@@ -420,7 +420,7 @@ export function PunctualityPage() {
               />
             </Field>
           </div>
-          <div className="w-40">
+          <div className="min-w-40">
             <Field id="punctuality-to" label={t("reports.field.to")}>
               <Input
                 id="punctuality-to"

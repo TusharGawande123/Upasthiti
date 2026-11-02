@@ -145,7 +145,7 @@ export function EmployeeAttendanceTab({ employee, isSuperAdmin }: Props) {
               </Button>
               <Input
                 type="month"
-                className="w-44"
+                className="w-auto min-w-44"
                 value={month}
                 max={thisMonth}
                 aria-label={t("attendance.register.month")}
