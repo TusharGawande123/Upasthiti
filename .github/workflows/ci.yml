@@ -66,6 +66,17 @@ jobs:
           # The tests create this database themselves and wipe it on every run.
           TEST_DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti_test
         run: uv run pytest --cov-report=markdown-append:"$GITHUB_STEP_SUMMARY"
+      # S-40: the time-sensitive tests run again with the clock started just before and just after
+      # midnight in India, so a test that quietly depends on "today" fails here, not in the night.
+      - name: Time-sensitive tests with the clock at 23:59:30 and 00:00:30 IST
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti_test
+        run: |
+          FILES="tests/test_m5_attendance_api.py tests/test_m5_attendance_service.py tests/test_m5_alerts.py tests/test_m5_dashboard.py tests/test_m5_shift_closed.py tests/test_m5_early_out.py tests/test_m5_early_out_paths.py tests/test_m5_gate_lines.py tests/test_m5_notifications.py tests/test_m5_stale_hooks.py tests/test_m5_compute_day.py tests/test_m5_corrections.py tests/test_m5_leave_holidays.py tests/test_m4b_gate_code.py"
+          for START in 2026-11-04T23:59:30 2026-11-05T00:00:30; do
+            echo "Clock starts at $START IST"
+            TEST_CLOCK_START_IST=$START uv run pytest -q --no-cov $FILES
+          done
       - name: Database migrations run on a real Postgres
         env:
           DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti

@@ -5,6 +5,7 @@ import hashlib
 import os
 from collections.abc import Callable, Iterator
 from contextlib import nullcontext
+from datetime import datetime
 
 import pytest
 from fastapi import FastAPI
@@ -85,6 +86,25 @@ def fresh_settings() -> Iterator[None]:
     clear_cached_settings()
     yield
     clear_cached_settings()
+
+
+@pytest.fixture(autouse=True)
+def clock_started_near_midnight() -> Iterator[None]:
+    """S-40: with TEST_CLOCK_START_IST set (e.g. 2026-11-04T23:59:30), the clock of every test
+    starts at that Indian time and keeps ticking, so a test that quietly depends on "today"
+    breaks the way it would just after midnight. CI runs a few test files this way twice.
+    Normal runs leave the variable unset and nothing changes."""
+    start_text = os.environ.get("TEST_CLOCK_START_IST")
+    if not start_text:
+        yield
+        return
+    import time_machine
+
+    from app.core.time import IST
+
+    start = datetime.fromisoformat(start_text).replace(tzinfo=IST)
+    with time_machine.travel(start, tick=True):
+        yield
 
 
 @pytest.fixture
