@@ -32,14 +32,19 @@ section at the bottom is the detailed log) and `docs/decisions/0036-m5-build-cho
   filter, `OUTSIDE_PLANT` reason and bulk confirm (F-76), employees `phone` filter, audit employee actors, "Cards ending soon"
   phone line, admin types and texts. Decisions 0036 lines 55 to 62. Details and "What P4 must know" are in the plan Status section.
 
+- **M4b P4 (2026-11-02):** the frontend, the CI and the e2e of the phone punch: `/phone/*` pages, the gate phone code panel, the admin
+  "Phone attendance" card and phone lists, Vercel CSP, size budgets, Playwright `phone` project, S-49 memory check in the `docker` job.
+  Decisions 0036 lines 63 to 72. Frontend 964 tests passed (coverage 89.6 / 84.5 / 85.7 / 91.0), e2e headed: phone 4, responsive 5, four
+  older specs 16 passed. Details in the plan Status section.
+
 ## Stopped here
-- After P3 the whole backend of M4b is done. Start P4 (frontend) from the plan Status section.
+- M4b is built (backend and frontend). Left for M4b: the real-phone check, the first CI run of the phone memory step, the full backend suite.
 
 ## Left to do (in this order)
-1. **M4b P4**
-   (frontend `/phone/*` pages, admin Phone attendance card, Vercel CSP and Permissions-Policy, size budget,
-   S-46 Playwright mobile project, S-49 memory check in the CI `docker` job). Spec: `docs/specs/M4b-phone-punch.md`
-   (sections 4 to 11, acceptance criteria AC-1 to AC-59).
+1. **M4b leftovers:** run the full backend suite and the full e2e suite once (not run after P4); look at the phone pages on a real phone
+   (Chrome on Android: camera, location, passkey, add to home screen); read the first run of the CI `docker` phone step; check the response
+   headers of `/phone` on the real Vercel address (AC-58); optional: map position of an outside punch in the punch log detail, the employee
+   page card in `responsive.spec.ts`. Spec: `docs/specs/M4b-phone-punch.md`.
 2. **M5 leftovers:** CI job for the midnight-IST run (S-40); F-65 register email (optional, SMTP only); optional
    backend extras (more filters on `/attendance/daily` for the dashboard tiles, leave list plant column,
    holidays edit, "saved by" in the rule history); re-render two gate P1 and P2 mock-up images
