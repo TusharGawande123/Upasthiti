@@ -3,6 +3,7 @@
 Run: python docs/design-refs/m4b/gate-p3/reduce-png.py
 Needs Pillow. Safe to run twice (a PNG that is already a palette image is skipped).
 """
+
 from pathlib import Path
 
 from PIL import Image
@@ -14,7 +15,9 @@ for png in sorted(folder.glob("*.png")):
     before = png.stat().st_size
     image = Image.open(png)
     if image.mode != "P":
-        reduced = image.convert("RGB").quantize(colors=48, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE)
+        reduced = image.convert("RGB").quantize(
+            colors=48, method=Image.Quantize.MEDIANCUT, dither=Image.Dither.NONE
+        )
         reduced.save(png, optimize=True)
     after = png.stat().st_size
     saved += before - after
