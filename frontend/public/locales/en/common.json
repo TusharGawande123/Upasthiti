@@ -798,7 +798,8 @@
     "LIVENESS_FAILED": "Please turn your head as the arrow shows, then look straight. Please try again.",
     "CHALLENGE_EXPIRED": "Too slow. Please try again.",
     "CHALLENGE_INVALID": "This check was already used. Please try again.",
-    "FRAMES_INVALID": "The camera pictures could not be read. Please try again."
+    "FRAMES_INVALID": "The camera pictures could not be read. Please try again.",
+    "NOT_BULK_CONFIRMABLE": "This punch needs a single review. It was left as it is."
   },
   "nav": {
     "label": "Main menu",
@@ -1100,6 +1101,10 @@
       "gate_lines": {
         "title": "Attendance device screen: extra lines",
         "description": "Short lines under a punch result on the attendance device."
+      },
+      "phone": {
+        "title": "Phone attendance",
+        "description": "Employees who sign in on their own phone to punch: sessions, lockout and the changing gate code."
       }
     },
     "items": {
@@ -1358,6 +1363,46 @@
       "kiosk_show_month_line": {
         "label": "\"My month\" line at the gate",
         "help": "After a punch the gate shows the person's present days this month. No name. Off by default."
+      },
+      "phone_session_idle_days": {
+        "label": "Phone sign-in idle days",
+        "help": "A phone is signed out when it is not used for this many days."
+      },
+      "phone_session_max_days": {
+        "label": "Phone sign-in longest life",
+        "help": "A phone is signed out after this many days at most, even if it is used every day."
+      },
+      "phone_max_sessions": {
+        "label": "Phones at a time",
+        "help": "How many phones one employee may be signed in on at once. 1 means a new sign-in signs the older phone out."
+      },
+      "phone_login_max_failures": {
+        "label": "Wrong passwords before lock",
+        "help": "After this many wrong passwords the employee is locked for a while."
+      },
+      "phone_login_lock_minutes": {
+        "label": "Lock time",
+        "help": "How long an employee is locked after too many wrong passwords."
+      },
+      "phone_location_max_age_seconds": {
+        "label": "Phone location age",
+        "help": "A phone punch is refused when the location reading is older than this."
+      },
+      "phone_many_phones_alert_count": {
+        "label": "Many-phones alert",
+        "help": "The bell warns the Super Admin when one employee signs in on this many different phones within 30 days."
+      },
+      "phone_gate_code_seconds": {
+        "label": "Gate code life",
+        "help": "How long a changing phone code on the attendance device screen can be scanned. It must stay shorter than the punch cool-down."
+      },
+      "kiosk_show_phone_code": {
+        "label": "Show phone code",
+        "help": "The attendance device screen shows a changing code that temporary workers scan with their phone."
+      },
+      "kiosk_phone_code_show_seconds": {
+        "label": "Phone code on screen time",
+        "help": "On a small screen the phone code button shows the code for this long."
       }
     },
     "units": {
@@ -1478,7 +1523,8 @@
     "actors": {
       "user": "User",
       "kiosk": "Attendance device",
-      "system": "System"
+      "system": "System",
+      "employee": "Employee"
     }
   },
   "sessions": {
@@ -2645,6 +2691,10 @@
     "OUTSIDE_PLANT_help": "The employee punched with their own phone outside every plant fence, and outside work is allowed for them. The punch counts at once. Check the place on the map and the reason for the visit."
   },
   "punches": {
+    "channel": {
+      "phone": "Phone",
+      "device": "Attendance device"
+    },
     "title": "Punch log",
     "description": "Every punch at the gate attendance devices, by card or by face, accepted or rejected. Times in IST.",
     "descriptionOwnPlant": "Every punch at your plant's gate, by card or by face, accepted or rejected. Times in IST.",

@@ -54,6 +54,7 @@ const PAGE_SIZE = 50;
 const TABS: ReviewTab[] = ["to_check", "rejected", "reviewed"];
 // Codes the "Code" filter offers: the M4 flags first, then the usual rejections.
 const FLAG_CODES = [
+  "OUTSIDE_PLANT",
   "LOCATION_AT_EDGE",
   "LOCATION_STALE",
   "IMPOSSIBLE_TRAVEL",
@@ -520,7 +521,9 @@ function ReviewRow({
         )}
       </div>
       <div className="min-w-0 text-sm">
-        <span className="block font-semibold">{punch.kiosk.name}</span>
+        <span className="block font-semibold">
+          {punch.kiosk?.name ?? t("punches.channel.phone")}
+        </span>
         <span className="code block text-xs text-muted-foreground">{punch.plant.code}</span>
         <span className="mt-1 inline-block">
           <MethodBadge method={punch.method} />

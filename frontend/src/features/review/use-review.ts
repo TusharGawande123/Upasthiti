@@ -42,6 +42,9 @@ export type ReviewListItem = {
   punch: ReviewPunch;
   latest_review: PunchReview | null;
   approvable: boolean;
+  // M4b F-76: a clean outside-work phone punch, and why outside work was allowed.
+  bulk_confirmable?: boolean;
+  outside_reason?: string | null;
 };
 
 export type ReviewSummary = {

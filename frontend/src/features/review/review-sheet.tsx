@@ -191,7 +191,8 @@ function PunchSummary({ context }: { context: ReviewContext }) {
           </span>
         </Row>
         <Row label={t("review.sheet.device")}>
-          {punch.kiosk.name} · <span className="code">{punch.plant.code}</span>
+          {punch.kiosk?.name ?? t("punches.channel.phone")} ·{" "}
+          <span className="code">{punch.plant.code}</span>
         </Row>
       </dl>
     </Section>
@@ -248,7 +249,7 @@ function RelatedCard({
       <p className="tnum mt-1 text-[22px] font-bold">
         {formatTimeWithSeconds(punch.punch_time ?? punch.server_received_at)}
       </p>
-      <p>{punch.kiosk.name}</p>
+      <p>{punch.kiosk?.name ?? t("punches.channel.phone")}</p>
       <p className="code text-xs text-muted-foreground">{punch.plant.code}</p>
       <p className="mt-1 flex flex-wrap gap-1">
         <MethodBadge method={punch.method} />
@@ -541,7 +542,7 @@ export function ReviewSheet({
               </DialogTitle>
               <DialogDescription id="review-sheet-when">
                 {punch
-                  ? `${when(punch.punch_time ?? punch.server_received_at)} · ${punch.kiosk.name} · ${punch.plant.code ?? ""}`
+                  ? `${when(punch.punch_time ?? punch.server_received_at)} · ${punch.kiosk?.name ?? t("punches.channel.phone")} · ${punch.plant.code ?? ""}`
                   : ""}
               </DialogDescription>
               {position ? (

@@ -221,7 +221,7 @@ export function PunchDetailSheet({
             </DialogTitle>
             <DialogDescription id="punch-detail-when">
               {punch
-                ? `${formatDate(punch.server_received_at)} ${formatTimeWithSeconds(punch.server_received_at)} · ${punch.kiosk.name} · ${punch.plant.code ?? ""}`
+                ? `${formatDate(punch.server_received_at)} ${formatTimeWithSeconds(punch.server_received_at)} · ${punch.kiosk?.name ?? t("punches.channel.phone")} · ${punch.plant.code ?? ""}`
                 : t("punches.detail.loading")}
             </DialogDescription>
           </header>
@@ -324,7 +324,8 @@ export function PunchDetailSheet({
                       </Row>
                     ) : null}
                     <Row label={t("punches.columns.kiosk")}>
-                      {punch.kiosk.name} · <span className="code">{punch.plant.code}</span>
+                      {punch.kiosk?.name ?? t("punches.channel.phone")} ·{" "}
+                      <span className="code">{punch.plant.code}</span>
                     </Row>
                   </dl>
                 </section>

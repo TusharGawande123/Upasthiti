@@ -720,7 +720,9 @@ function PunchRow({
         <ResultCell punch={punch} onOpenPunch={onOpenDetail} />
       </TableCell>
       <TableCell>
-        <span className="block font-semibold">{punch.kiosk.name}</span>
+        <span className="block font-semibold">
+          {punch.kiosk?.name ?? t("punches.channel.phone")}
+        </span>
         <span className="code text-xs text-muted-foreground">{punch.plant.code}</span>
       </TableCell>
       <TableCell>
