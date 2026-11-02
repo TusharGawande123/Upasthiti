@@ -400,3 +400,15 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
       employee page with its Phone attendance card and Attendance tab at 360 px and 768 px (all other M5 and M4b pages were already listed).
     - **Reports page:** `ReportCard` is split into `useReportDownload`, `ReportFilters` and `ReportMessage`; `LIMITS` moved to the top. No change in
       behaviour.
+
+## The lead's answers to four of the "to confirm" lines (2026-11-02, in chat, after PR #41 was merged)
+75. **Selfie without a face on a phone gate-code punch (lines 73 and 74):** the punch is still accepted; the Super Admin gets the bell
+    notification and the count in the daily digest. Not flagged, not refused. Confirmed as built.
+76. **Phone accuracy and distance (lines 59, 70, 73):** only the Super Admin sees them. The Corporate Head and the Plant Head see the method and the
+    result. Confirmed as built.
+77. **Early OUT on the phone (line 45):** a phone OUT before the shift end asks first, like the gate does ("You are leaving before the shift
+    ends. Leave now?"). This is NOT built yet: it needs the early-out mark on phone punches and one confirm screen on /phone. To be planned as a
+    small follow-up on its own branch.
+78. **Location refusal texts at the gate and on the phone (line 74):** stay specific ("You are not at the plant" and the like). No neutral line.
+
+The other "to confirm with Tushar" lines of this file and the seven points of `docs/compliance/m5-m4b-open-points.md` are still open.
