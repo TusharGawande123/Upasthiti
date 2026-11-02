@@ -230,7 +230,7 @@ def _timeline(
     day: date,
     row: AttendanceDay,
     window: Any,
-    loader: service._Loader,
+    loader: service.DayLoader,
 ) -> list[dict[str, Any]]:
     items: list[tuple[datetime, dict[str, Any]]] = []
     if window is not None:
@@ -293,7 +293,7 @@ def _punch_and_review_items(
     employee: Employee,
     row: AttendanceDay,
     window: Any,
-    loader: service._Loader,
+    loader: service.DayLoader,
 ) -> list[tuple[datetime, dict[str, Any]]]:
     carry_limit = window.end + timedelta(hours=loader.settings["open_in_max_hours"])
     punches = list(

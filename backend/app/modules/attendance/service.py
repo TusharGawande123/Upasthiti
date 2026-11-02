@@ -144,7 +144,7 @@ def recompute_days(session: Session, keys: Iterable[DayKey], now: datetime) -> i
     if not by_employee:
         return 0
     all_days = [day for days in by_employee.values() for day in days]
-    loader = _Loader.load(session, list(by_employee), min(all_days), max(all_days), now)
+    loader = DayLoader.load(session, list(by_employee), min(all_days), max(all_days), now)
     stored = 0
     for employee_id, days in by_employee.items():
         for day in sorted(days):
@@ -262,7 +262,7 @@ class _Correction:
     decided_at: datetime
 
 
-class _Loader:
+class DayLoader:
     """The inputs of many days of many employees, read in a few queries."""
 
     def __init__(self) -> None:
@@ -282,7 +282,7 @@ class _Loader:
         date_from: date,
         date_to: date,
         now: datetime,
-    ) -> _Loader:
+    ) -> DayLoader:
         loader = cls()
         loader.now = now
         for key in (
@@ -325,7 +325,7 @@ class _Loader:
             )
             event = DayEvent(
                 time=item.punch_time,
-                direction=item.direction,  # type: ignore[arg-type]
+                direction=item.direction,  # type: ignore[arg-type]  # column is str; a check constraint allows only in or out
                 unchecked_flag=unchecked,
             )
             self.events[item.employee_id].append(event)
@@ -419,7 +419,7 @@ class _Loader:
             return DayInputs(
                 day=day,
                 employed=False,
-                employee_type=facts.employee_type if facts else "permanent",  # type: ignore[arg-type]
+                employee_type=facts.employee_type if facts else "permanent",  # type: ignore[arg-type]  # column is str; check allows permanent or temporary
                 day_kind=day_kind,
                 rules=None,
                 window_start=self.now,
@@ -449,7 +449,7 @@ class _Loader:
         return DayInputs(
             day=day,
             employed=True,
-            employee_type=facts.employee_type,  # type: ignore[arg-type]
+            employee_type=facts.employee_type,  # type: ignore[arg-type]  # same as above
             day_kind=day_kind,
             rules=window.shift.rules,
             window_start=window.start,
@@ -457,7 +457,7 @@ class _Loader:
             events=tuple(events),
             leave=LeaveInfo(leave.id, leave.is_paid) if leave else None,
             holiday=holiday,
-            status_override=overrides[-1] if overrides else None,  # type: ignore[arg-type]
+            status_override=overrides[-1] if overrides else None,  # type: ignore[arg-type]  # str column, checked values
             corrected=bool(corrections),
             open_in_max_hours=self.settings["open_in_max_hours"],
             cooldown_minutes=self.settings["punch_cooldown_minutes"],
@@ -473,7 +473,7 @@ def _store(
     employee_id: uuid.UUID,
     day: date,
     result: DayResult,
-    loader: _Loader,
+    loader: DayLoader,
     now: datetime,
 ) -> None:
     calendar = loader.calendar
@@ -538,12 +538,14 @@ def mark_punch_stale(
 # --- For one day: validation and preview of a correction ----------------------------------------
 
 
-def load_one_day(session: Session, employee_id: uuid.UUID, day: date, now: datetime) -> _Loader:
+def load_one_day(session: Session, employee_id: uuid.UUID, day: date, now: datetime) -> DayLoader:
     """The inputs of one employee's day (and the days around it), for a correction check."""
-    return _Loader.load(session, [employee_id], day, day, now)
+    return DayLoader.load(session, [employee_id], day, day, now)
 
 
-def add_hypothetical_correction(loader: _Loader, correction: Regularisation, now: datetime) -> None:
+def add_hypothetical_correction(
+    loader: DayLoader, correction: Regularisation, now: datetime
+) -> None:
     """Treat a not yet approved correction as approved, in memory only (the correction preview)."""
     key = (correction.employee_id, correction.attendance_date)
     loader.corrections[key].append(_Correction(correction, now))

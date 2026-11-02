@@ -12,14 +12,17 @@ The checks run when a correction is asked for and again when it is approved.
 import uuid
 from collections.abc import Iterable
 from datetime import date, datetime, time, timedelta
+from typing import Literal
 
 from sqlalchemy import Select, exists, func, select
 from sqlalchemy.orm import Session, aliased
 
+from app.core.date_range import check_date_range
 from app.core.errors import ApiError
 from app.core.pagination import PageParams, fetch_page
 from app.core.time import IST, to_ist, utc_now
 from app.modules.attendance import service as attendance_service
+from app.modules.attendance.compute import DayEvent
 from app.modules.attendance.schemas import (
     Day,
     DayHoliday,
@@ -54,7 +57,7 @@ from app.modules.regularisations.schemas import (
     Warning,
 )
 from app.modules.settings.service import get_int_setting
-from app.modules.users.models import User
+from app.modules.users.names import user_names
 
 MAX_RANGE_DAYS = 92
 
@@ -72,6 +75,55 @@ def _is_reversed(reversal: type[Regularisation]):
     return exists().where(reversal.reverses_id == Regularisation.id)
 
 
+def _in_scope(statement: Select, current_user: CurrentUser) -> Select:
+    """Join each correction with its employee and (when decided) its decision, and keep only the
+    corrections of the user's plants."""
+    statement = statement.join(Employee, Employee.id == Regularisation.employee_id).outerjoin(
+        RegularisationDecision, RegularisationDecision.regularisation_id == Regularisation.id
+    )
+    allowed = plant_filter(current_user, Capability.VIEW_ATTENDANCE)
+    if allowed is not None:
+        statement = statement.where(Employee.plant_id.in_(allowed))
+    return statement
+
+
+def _apply_filters(
+    statement: Select,
+    current_user: CurrentUser,
+    *,
+    mine: bool,
+    plant_id: uuid.UUID | None,
+    employee_id: uuid.UUID | None,
+    date_from: date | None,
+    date_to: date | None,
+) -> Select:
+    if plant_id:
+        statement = statement.where(Employee.plant_id == plant_id)
+    if employee_id:
+        statement = statement.where(Regularisation.employee_id == employee_id)
+    if mine:
+        statement = statement.where(Regularisation.requested_by == current_user.id)
+    if date_from:
+        statement = statement.where(Regularisation.attendance_date >= date_from)
+    if date_to:
+        statement = statement.where(Regularisation.attendance_date <= date_to)
+    return statement
+
+
+def _apply_state(statement: Select, state: str | None) -> Select:
+    reversal, _ = _reversal()
+    decided = RegularisationDecision.action
+    if state == "pending":
+        return statement.where(RegularisationDecision.id.is_(None))
+    if state == "approved":
+        return statement.where(decided == "approved", ~_is_reversed(reversal))
+    if state == "reversed":
+        return statement.where(_is_reversed(reversal))
+    if state in ("rejected", "withdrawn"):
+        return statement.where(decided == state)
+    return statement
+
+
 def list_corrections(
     session: Session,
     current_user: CurrentUser,
@@ -85,60 +137,42 @@ def list_corrections(
     date_to: date | None,
 ) -> tuple[list[Regularisation], int]:
     """Newest first, inside the user's plant scope."""
-    if date_from and date_to and (date_to - date_from).days + 1 > MAX_RANGE_DAYS:
-        raise ApiError("VALIDATION_FAILED", "Choose at most 92 days.", 422, {"field": "date_to"})
-    reversal, _ = _reversal()
-    statement: Select[Regularisation] = (
-        select(Regularisation)
-        .join(Employee, Employee.id == Regularisation.employee_id)
-        .outerjoin(
-            RegularisationDecision, RegularisationDecision.regularisation_id == Regularisation.id
-        )
-        .order_by(Regularisation.requested_at.desc())
+    if date_from and date_to:
+        check_date_range(date_from, date_to, MAX_RANGE_DAYS)
+    statement = _in_scope(select(Regularisation), current_user).order_by(
+        Regularisation.requested_at.desc()
     )
-    allowed = plant_filter(current_user, Capability.VIEW_ATTENDANCE)
-    if allowed is not None:
-        statement = statement.where(Employee.plant_id.in_(allowed))
-    if plant_id:
-        statement = statement.where(Employee.plant_id == plant_id)
-    if employee_id:
-        statement = statement.where(Regularisation.employee_id == employee_id)
-    if mine:
-        statement = statement.where(Regularisation.requested_by == current_user.id)
-    if date_from:
-        statement = statement.where(Regularisation.attendance_date >= date_from)
-    if date_to:
-        statement = statement.where(Regularisation.attendance_date <= date_to)
-    decided = RegularisationDecision.action
-    if state == "pending":
-        statement = statement.where(RegularisationDecision.id.is_(None))
-    elif state == "approved":
-        statement = statement.where(decided == "approved", ~_is_reversed(reversal))
-    elif state == "reversed":
-        statement = statement.where(_is_reversed(reversal))
-    elif state in ("rejected", "withdrawn"):
-        statement = statement.where(decided == state)
-    return fetch_page(session, statement, params)
+    statement = _apply_filters(
+        statement,
+        current_user,
+        mine=mine,
+        plant_id=plant_id,
+        employee_id=employee_id,
+        date_from=date_from,
+        date_to=date_to,
+    )
+    return fetch_page(session, _apply_state(statement, state), params)
 
 
 def summary(session: Session, current_user: CurrentUser) -> SummaryResponse:
     """The numbers of the sidebar badge."""
-    allowed = plant_filter(current_user, Capability.VIEW_ATTENDANCE)
-    pending = (
-        select(func.count())
-        .select_from(Regularisation)
-        .join(Employee, Employee.id == Regularisation.employee_id)
-        .outerjoin(
-            RegularisationDecision, RegularisationDecision.regularisation_id == Regularisation.id
-        )
-        .where(RegularisationDecision.id.is_(None))
+    pending = _in_scope(select(func.count()).select_from(Regularisation), current_user).where(
+        RegularisationDecision.id.is_(None)
     )
-    if allowed is not None:
-        pending = pending.where(Employee.plant_id.in_(allowed))
     mine = pending.where(Regularisation.requested_by == current_user.id)
     return SummaryResponse(
         pending=session.scalar(pending) or 0, mine_pending=session.scalar(mine) or 0
     )
+
+
+def _state_of(
+    decision: RegularisationDecision | None, is_reversed: bool
+) -> Literal["pending", "approved", "rejected", "withdrawn", "reversed"]:
+    if decision is None:
+        return "pending"
+    if decision.action == "approved":
+        return "reversed" if is_reversed else "approved"
+    return "withdrawn" if decision.action == "withdrawn" else "rejected"
 
 
 def present(session: Session, corrections: Iterable[Regularisation]) -> list[CorrectionResponse]:
@@ -162,7 +196,7 @@ def present(session: Session, corrections: Iterable[Regularisation]) -> list[Cor
         )
     }
     user_ids = {row.requested_by for row in rows} | {d.decided_by for d in decisions.values()}
-    names = dict(session.execute(select(User.id, User.name).where(User.id.in_(user_ids))).all())
+    names = user_names(session, user_ids)
 
     def person(user_id: uuid.UUID) -> Person:
         return Person(id=user_id, name=names.get(user_id, ""))
@@ -171,12 +205,7 @@ def present(session: Session, corrections: Iterable[Regularisation]) -> list[Cor
     for row in rows:
         decision = decisions.get(row.id)
         employee = employees[row.employee_id]
-        if decision is None:
-            state = "pending"
-        elif decision.action == "approved":
-            state = "reversed" if row.id in reversed_ids else "approved"
-        else:
-            state = decision.action
+        state = _state_of(decision, row.id in reversed_ids)
         answers.append(
             CorrectionResponse(
                 id=row.id,
@@ -196,7 +225,7 @@ def present(session: Session, corrections: Iterable[Regularisation]) -> list[Cor
                 requested_at=row.requested_at,
                 is_direct=row.is_direct,
                 batch_id=row.batch_id,
-                state=state,  # type: ignore[arg-type]
+                state=state,
                 decision=CorrectionDecision(
                     action=decision.action,
                     reason=decision.reason,
@@ -224,8 +253,7 @@ def list_punch_approvals(
     The Corporate Head and Plant Head see them without the reason: review reasons are for the
     Super Admin only. They are listed with corrections because both change a day.
     """
-    if date_to < date_from or (date_to - date_from).days + 1 > MAX_RANGE_DAYS:
-        raise ApiError("VALIDATION_FAILED", "Choose at most 92 days.", 422, {"field": "date_to"})
+    check_date_range(date_from, date_to, MAX_RANGE_DAYS)
     start = datetime.combine(date_from, time.min, tzinfo=IST)
     end = datetime.combine(date_to + timedelta(days=1), time.min, tzinfo=IST)
     newer = aliased(PunchReview, name="newer_review")
@@ -252,17 +280,12 @@ def list_punch_approvals(
         employee.id: employee
         for employee in session.scalars(select(Employee).where(Employee.id.in_(employee_ids)))
     }
-    names = dict(
-        session.execute(
-            select(User.id, User.name).where(
-                User.id.in_({review.reviewed_by for review, _ in pairs})
-            )
-        ).all()
-    )
+    names = user_names(session, {review.reviewed_by for review, _ in pairs})
     shows_reasons = current_user.access(Capability.REVIEW_PUNCHES) is Access.ALL
     items = []
     for review, punch in pairs:
-        who = employees.get(review.employee_id or punch.employee_id)  # type: ignore[arg-type]
+        person_id = review.employee_id or punch.employee_id
+        who = employees.get(person_id) if person_id else None
         items.append(
             PunchApprovalItem(
                 punch_id=punch.id,
@@ -319,7 +342,7 @@ def check_correction(
     *,
     is_requester: bool,
     on_approval: bool = False,
-) -> attendance_service._Loader:
+) -> attendance_service.DayLoader:
     """Every check of spec §7 rule 12. Returns the loaded day (the preview reuses it)."""
     day = body.attendance_date
     today = to_ist(now).date()
@@ -341,7 +364,8 @@ def check_correction(
             )
         if loader.result_for(employee.id, day).status == "open":
             raise _fail("ATTENDANCE_DAY_NOT_ACTIVE", "The day is not finished yet.")
-    _check_times(loader, employee, body, window.start, window.end, now)
+    events = loader.raw_events(employee.id, window)
+    _check_times(loader, events, body, window.start, window.end, now)
     if kind == CorrectionKind.IGNORE_PUNCH.value:
         in_window = {
             loader.punch_ids[id(event)]
@@ -356,18 +380,14 @@ def check_correction(
 
 
 def _check_times(
-    loader: attendance_service._Loader,
-    employee: Employee,
+    loader: attendance_service.DayLoader,
+    events: list[DayEvent],
     body: CreateCorrectionRequest | Regularisation,
     window_start: datetime,
     window_end: datetime,
     now: datetime,
 ) -> None:
     moments = [(body.in_time, "in"), (body.out_time, "out")]
-    events = loader.raw_events(
-        employee.id,
-        loader.calendar.window(employee.id, body.attendance_date),  # type: ignore[arg-type]
-    )
     open_in = events[-1] if events and events[-1].direction == "in" else None
     cooldown = timedelta(minutes=loader.settings["punch_cooldown_minutes"])
     for moment, direction in moments:
@@ -423,7 +443,7 @@ def _check_not_duplicate(
 # --- Creating and deciding ----------------------------------------------------------------------
 
 
-def _role_path(current_user: CurrentUser) -> str:
+def role_path(current_user: CurrentUser) -> str:
     """ "direct" for the Super Admin, "request" for the heads; anyone else is refused."""
     if current_user.access(Capability.DECIDE_CORRECTIONS) is Access.ALL:
         return "direct"
@@ -432,7 +452,9 @@ def _role_path(current_user: CurrentUser) -> str:
     raise ApiError("FORBIDDEN", "You are not allowed to do this.", 403)
 
 
-def _row_from(body: CreateCorrectionRequest, user_id: uuid.UUID, now: datetime, *, direct: bool):
+def row_from_request(
+    body: CreateCorrectionRequest, user_id: uuid.UUID, now: datetime, *, direct: bool
+):
     return Regularisation(
         employee_id=body.employee_id,
         attendance_date=body.attendance_date,
@@ -471,7 +493,7 @@ def _mark_stale(session: Session, employee_id: uuid.UUID, day: date) -> None:
 def create_correction(
     session: Session, current_user: CurrentUser, body: CreateCorrectionRequest
 ) -> Regularisation:
-    path = _role_path(current_user)
+    path = role_path(current_user)
     now = utc_now()
     employee = _employee_for(session, current_user, body.employee_id, body.attendance_date)
     check_correction(session, employee, body, now, is_requester=path == "request")
@@ -492,7 +514,7 @@ def store_correction(
 ) -> Regularisation:
     """Store one checked correction (and its approval when direct) without committing, so a bulk
     correction can store many in one transaction. The caller has run `check_correction`."""
-    row = _row_from(body, current_user.id, now, direct=path == "direct")
+    row = row_from_request(body, current_user.id, now, direct=path == "direct")
     row.batch_id = batch_id
     session.add(row)
     session.flush()
@@ -539,6 +561,32 @@ def _decide(
     return decision
 
 
+def _employee_of(session: Session, row: Regularisation) -> Employee | None:
+    return session.get(Employee, row.employee_id)
+
+
+def _audit_decision(
+    session: Session,
+    current_user: CurrentUser,
+    row: Regularisation,
+    employee: Employee | None,
+    verb: str,
+    after: dict[str, object],
+    reason: str | None = None,
+) -> None:
+    """The audit entry of one correction step (`attendance_correction.<verb>`)."""
+    record_audit(
+        session,
+        actor=current_user.actor,
+        action=f"attendance_correction.{verb}",
+        entity_type="attendance_correction",
+        entity_id=row.id,
+        after=after,
+        reason=reason,
+        plant_id=employee.plant_id if employee else None,
+    )
+
+
 def _pending_row(session: Session, correction_id: uuid.UUID) -> Regularisation:
     """A pending correction, locked, so two decisions at the same moment cannot both pass."""
     row = session.get(Regularisation, correction_id, with_for_update=True)
@@ -557,7 +605,7 @@ def approve(
 ) -> Regularisation:
     row = _pending_row(session, correction_id)
     now = utc_now()
-    employee = session.get(Employee, row.employee_id)
+    employee = _employee_of(session, row)
     if employee is None:
         raise ApiError("NOT_FOUND", "Not found.", 404)
     try:
@@ -573,15 +621,14 @@ def approve(
     _decide(session, row, DecisionAction.APPROVED, current_user, now, note=note)
     _notify_decided(session, row, "approved", None, employee, now)
     _mark_stale(session, row.employee_id, row.attendance_date)
-    record_audit(
+    _audit_decision(
         session,
-        actor=current_user.actor,
-        action="attendance_correction.approve",
-        entity_type="attendance_correction",
-        entity_id=row.id,
-        after={"decision": "approved", **_snapshot(row)},
-        reason=note,
-        plant_id=employee.plant_id,
+        current_user,
+        row,
+        employee,
+        "approve",
+        {"decision": "approved", **_snapshot(row)},
+        note,
     )
     session.commit()
     return row
@@ -591,20 +638,19 @@ def reject(
     session: Session, current_user: CurrentUser, correction_id: uuid.UUID, reason: str
 ) -> Regularisation:
     row = _pending_row(session, correction_id)
-    employee = session.get(Employee, row.employee_id)
+    employee = _employee_of(session, row)
     now = utc_now()
     _decide(session, row, DecisionAction.REJECTED, current_user, now, reason=reason)
     if employee is not None:
         _notify_decided(session, row, "rejected", reason, employee, now)
-    record_audit(
+    _audit_decision(
         session,
-        actor=current_user.actor,
-        action="attendance_correction.reject",
-        entity_type="attendance_correction",
-        entity_id=row.id,
-        after={"decision": "rejected", **_snapshot(row)},
-        reason=reason,
-        plant_id=employee.plant_id if employee else None,
+        current_user,
+        row,
+        employee,
+        "reject",
+        {"decision": "rejected", **_snapshot(row)},
+        reason,
     )
     session.commit()
     return row
@@ -616,16 +662,15 @@ def withdraw(
     row = _pending_row(session, correction_id)
     if row.requested_by != current_user.id:
         raise ApiError("FORBIDDEN", "Only the person who asked can withdraw it.", 403)
-    employee = session.get(Employee, row.employee_id)
+    employee = _employee_of(session, row)
     _decide(session, row, DecisionAction.WITHDRAWN, current_user, utc_now())
-    record_audit(
+    _audit_decision(
         session,
-        actor=current_user.actor,
-        action="attendance_correction.withdraw",
-        entity_type="attendance_correction",
-        entity_id=row.id,
-        after={"decision": "withdrawn", **_snapshot(row)},
-        plant_id=employee.plant_id if employee else None,
+        current_user,
+        row,
+        employee,
+        "withdraw",
+        {"decision": "withdrawn", **_snapshot(row)},
     )
     session.commit()
     return row
@@ -665,16 +710,14 @@ def reverse(
     session.flush()
     _decide(session, row, DecisionAction.APPROVED, current_user, now)
     _mark_stale(session, target.employee_id, target.attendance_date)
-    employee = session.get(Employee, target.employee_id)
-    record_audit(
+    _audit_decision(
         session,
-        actor=current_user.actor,
-        action="attendance_correction.reverse",
-        entity_type="attendance_correction",
-        entity_id=row.id,
-        after={"reverses_id": target.id, "attendance_date": target.attendance_date},
-        reason=row.reason,
-        plant_id=employee.plant_id if employee else None,
+        current_user,
+        row,
+        _employee_of(session, target),
+        "reverse",
+        {"reverses_id": target.id, "attendance_date": target.attendance_date},
+        row.reason,
     )
     session.commit()
     return row
@@ -734,21 +777,21 @@ def preview(
     session: Session, current_user: CurrentUser, body: CreateCorrectionRequest
 ) -> PreviewResponse:
     """The day before and after the correction, nothing stored (spec §5.2)."""
-    path = _role_path(current_user)
+    path = role_path(current_user)
     now = utc_now()
     employee = _employee_for(session, current_user, body.employee_id, body.attendance_date)
     loader = check_correction(session, employee, body, now, is_requester=path == "request")
-    before = _describe(session, loader, employee, body.attendance_date)
+    before = describe_day(session, loader, employee, body.attendance_date)
     attendance_service.add_hypothetical_correction(
-        loader, _row_from(body, current_user.id, now, direct=path == "direct"), now
+        loader, row_from_request(body, current_user.id, now, direct=path == "direct"), now
     )
-    after = _describe(session, loader, employee, body.attendance_date)
+    after = describe_day(session, loader, employee, body.attendance_date)
     warnings = [Warning(code=code) for code in after.exceptions if code == "POSSIBLE_DOUBLE_ENTRY"]
     return PreviewResponse(before=before, after=after, warnings=warnings)
 
 
-def _describe(
-    session: Session, loader: attendance_service._Loader, employee: Employee, day: date
+def describe_day(
+    session: Session, loader: attendance_service.DayLoader, employee: Employee, day: date
 ) -> Day:
     inputs = loader.inputs_for(employee.id, day)
     window = loader.calendar.window(employee.id, day)
@@ -765,11 +808,11 @@ def _describe(
         plant=DayPlant(id=plant_id, code=plant_code),
         shift=DayShift(id=window.shift.shift_id, name=shift_name or "") if window else None,
         employee_type=employee.type,
-        leave=DayLeave(id=inputs.leave.leave_id, is_paid=inputs.leave.is_paid)  # type: ignore[arg-type]
+        leave=DayLeave(id=inputs.leave.leave_id, is_paid=inputs.leave.is_paid)
         if inputs.leave
         else None,
         holiday=DayHoliday(
-            id=inputs.holiday.holiday_id,  # type: ignore[arg-type]
+            id=inputs.holiday.holiday_id,
             name=inputs.holiday.name,
             is_paid=inputs.holiday.is_paid,
         )

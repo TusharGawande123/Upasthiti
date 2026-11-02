@@ -5,6 +5,7 @@ from dataclasses import replace
 from datetime import date, datetime, time, timedelta
 from pathlib import Path
 from typing import Any
+from uuid import UUID
 
 import pytest
 import yaml
@@ -22,6 +23,8 @@ from app.modules.attendance.compute import (
 )
 from app.modules.org.shift_rules_service import ShiftRules
 
+LEAVE_ID = UUID(int=1)  # fake ids: compute_day() only passes them through
+HOLIDAY_ID = UUID(int=2)
 CASES = yaml.safe_load((Path(__file__).parent / "attendance_cases.yaml").read_text("utf-8"))
 SHIFTS = {
     "office": ShiftRules(time(9), time(17), 30, 240, 120),
@@ -70,8 +73,8 @@ def inputs_for(case: dict[str, Any]) -> DayInputs:
         window_start=start,
         window_end=end,
         events=tuple(parse_event(text, day) for text in case["events"]),
-        leave=LeaveInfo("leave-1", is_paid=True) if case.get("leave") else None,
-        holiday=HolidayInfo("holiday-1", "Foundation day", True) if case.get("holiday") else None,
+        leave=LeaveInfo(LEAVE_ID, is_paid=True) if case.get("leave") else None,
+        holiday=HolidayInfo(HOLIDAY_ID, "Foundation day", True) if case.get("holiday") else None,
         status_override=case.get("status_override"),
         corrected=case.get("corrected", False),
         short_window=case.get("short_window", False),

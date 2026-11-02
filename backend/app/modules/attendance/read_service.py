@@ -15,6 +15,7 @@ from datetime import date, timedelta
 from sqlalchemy import Select, func, or_, select
 from sqlalchemy.orm import Session
 
+from app.core.date_range import check_date_range
 from app.core.errors import ApiError
 from app.core.pagination import PageParams
 from app.core.time import to_ist, utc_now
@@ -77,10 +78,7 @@ def check_day_not_future(day: date) -> None:
 
 
 def check_range(date_from: date, date_to: date) -> None:
-    if date_to < date_from:
-        raise ApiError("VALIDATION_FAILED", "The end is before the start.", 422)
-    if (date_to - date_from).days + 1 > MAX_RANGE_DAYS:
-        raise ApiError("REPORT_RANGE_TOO_LONG", "Choose at most 92 days.", 422)
+    check_date_range(date_from, date_to, MAX_RANGE_DAYS)
 
 
 def _employees_in(

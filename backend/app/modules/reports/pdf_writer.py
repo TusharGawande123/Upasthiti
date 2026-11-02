@@ -3,6 +3,7 @@ company, title, plant, period, generated at and by on every page, and "Page x of
 At most 3,000 rows (`REPORT_TOO_LARGE`; Excel has no such limit). The column widths of the sheet
 are scaled to fit the page; a long text is cut with an ellipsis rather than overflowing."""
 
+from datetime import date
 from pathlib import Path
 
 from fpdf import FPDF
@@ -93,8 +94,8 @@ def _cell_text(column: Column, value: object) -> str:
         return ""
     if column.kind == MINUTES and isinstance(value, int):
         return hhmm(value)
-    if column.kind == DATE and hasattr(value, "strftime"):
-        return value.strftime("%d/%m/%Y")  # type: ignore[union-attr]
+    if column.kind == DATE and isinstance(value, date):
+        return value.strftime("%d/%m/%Y")
     return str(value)
 
 

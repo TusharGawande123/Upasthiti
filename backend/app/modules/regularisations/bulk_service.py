@@ -118,7 +118,7 @@ def _employees(session: Session, current_user: CurrentUser, body: BulkRequest) -
 
 def preview(session: Session, current_user: CurrentUser, body: BulkRequest) -> BulkPreviewResponse:
     """Exactly what saving would do, per person; nothing is stored."""
-    path = service._role_path(current_user)
+    path = service.role_path(current_user)
     now = utc_now()
     items = []
     for employee in _employees(session, current_user, body):
@@ -135,18 +135,20 @@ def preview(session: Session, current_user: CurrentUser, body: BulkRequest) -> B
                 BulkPreviewItem(employee=person, before=None, after=None, skip_code=error.code)
             )
             continue
-        before = service._describe(session, loader, employee, body.attendance_date)
+        before = service.describe_day(session, loader, employee, body.attendance_date)
         service.attendance_service.add_hypothetical_correction(
-            loader, service._row_from(single, current_user.id, now, direct=path == "direct"), now
+            loader,
+            service.row_from_request(single, current_user.id, now, direct=path == "direct"),
+            now,
         )
-        after = service._describe(session, loader, employee, body.attendance_date)
+        after = service.describe_day(session, loader, employee, body.attendance_date)
         items.append(BulkPreviewItem(employee=person, before=before, after=after, skip_code=None))
     skipped = sum(1 for item in items if item.skip_code)
     return BulkPreviewResponse(items=items, will_create=len(items) - skipped, will_skip=skipped)
 
 
 def create(session: Session, current_user: CurrentUser, body: BulkRequest) -> BulkCreated:
-    path = service._role_path(current_user)
+    path = service.role_path(current_user)
     now = utc_now()
     batch_id = uuid.uuid4()
     created = 0

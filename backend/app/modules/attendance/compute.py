@@ -19,6 +19,7 @@ Minutes: every punch time is cut down to its whole minute before a duration is m
 inside grace is decided to the second (IN 09:30:00 is on time, 09:30:01 is late). Decision 0036.
 """
 
+import uuid
 from dataclasses import dataclass, field
 from datetime import date, datetime, timedelta
 from typing import Literal
@@ -47,13 +48,13 @@ class DayEvent:
 
 @dataclass(frozen=True)
 class LeaveInfo:
-    leave_id: object
+    leave_id: uuid.UUID
     is_paid: bool
 
 
 @dataclass(frozen=True)
 class HolidayInfo:
-    holiday_id: object
+    holiday_id: uuid.UUID
     name: str
     is_paid: bool
 
