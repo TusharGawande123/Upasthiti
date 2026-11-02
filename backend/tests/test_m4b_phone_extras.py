@@ -263,7 +263,17 @@ def test_cleanup_deletes_old_proofs_and_old_ended_sign_ins_but_keeps_the_notice_
 
     counts = run_phone_cleanup(db_session, now)
 
-    assert counts == {"phone_proofs_deleted": 1, "phone_sessions_deleted": 1}
+    assert counts == {
+        "phone_proofs_deleted": 1,
+        "phone_sessions_deleted": 1,
+        "phone_sessions_scrubbed": 1,
+    }
+    # The kept sign-in (the notice trail) lost its IP, browser and agent; the recent one did not.
+    db_session.expire_all()
+    assert kept_session.ip is None and kept_session.user_agent is None
+    assert kept_session.browser == "" and kept_session.system == ""
+    assert recent.browser == "Chrome"
+    assert run_phone_cleanup(db_session, now)["phone_sessions_scrubbed"] == 0  # safe to repeat
     remaining = set(db_session.scalars(select(PhoneSession.id)))
     assert old_plain.id not in remaining
     assert {kept_session.id, recent.id} <= remaining

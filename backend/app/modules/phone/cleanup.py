@@ -5,13 +5,15 @@
 - Ended or run-out phone sign-ins older than 90 days: sign-in data, not attendance or audit
   records. A sign-in that a notice acceptance points to is KEPT: the acceptances are append-only
   and are the DPDP proof of what the employee agreed to (decision 0036 line 28). A sign-in that a
-  punch points to is kept too: punches are never changed.
+  punch points to is kept too: punches are never changed. A kept row loses its IP, browser,
+  system and user agent (personal data), so only the dates and the employee stay.
+  (`punches.ip` of a phone punch stays: the append-only trigger of `punches` refuses any change.)
 Logs only counts, never what was deleted.
 """
 
 from datetime import datetime, timedelta
 
-from sqlalchemy import and_, delete, exists, or_, select
+from sqlalchemy import and_, delete, exists, or_, select, update
 from sqlalchemy.orm import Session
 
 from app.modules.phone.models import PhoneNoticeAcceptance, PhoneProof, PhoneSession
@@ -24,11 +26,12 @@ SESSION_KEEP = timedelta(days=90)
 def run_phone_cleanup(session: Session, now: datetime) -> dict[str, int]:
     proofs = session.execute(delete(PhoneProof).where(PhoneProof.issued_at < now - PROOF_KEEP))
     cutoff = now - SESSION_KEEP
+    ended_long_ago = or_(
+        PhoneSession.revoked_at < cutoff,
+        and_(PhoneSession.revoked_at.is_(None), PhoneSession.expires_at < cutoff),
+    )
     old_sessions = select(PhoneSession.id).where(
-        or_(
-            PhoneSession.revoked_at < cutoff,
-            and_(PhoneSession.revoked_at.is_(None), PhoneSession.expires_at < cutoff),
-        ),
+        ended_long_ago,
         ~exists().where(PhoneNoticeAcceptance.session_id == PhoneSession.id),
         ~exists().where(Punch.phone_session_id == PhoneSession.id),
     )
@@ -40,8 +43,22 @@ def run_phone_cleanup(session: Session, now: datetime) -> dict[str, int]:
             delete(PunchChallenge).where(PunchChallenge.phone_session_id.in_(removable))
         )
         session.execute(delete(PhoneSession).where(PhoneSession.id.in_(removable)))
+    scrubbed = session.execute(
+        update(PhoneSession)
+        .where(
+            ended_long_ago,
+            or_(
+                PhoneSession.ip.is_not(None),
+                PhoneSession.user_agent.is_not(None),
+                PhoneSession.browser != "",
+                PhoneSession.system != "",
+            ),
+        )
+        .values(ip=None, user_agent=None, browser="", system="")
+    )
     session.commit()
     return {
         "phone_proofs_deleted": proofs.rowcount,  # type: ignore[attr-defined]
         "phone_sessions_deleted": len(removable),
+        "phone_sessions_scrubbed": scrubbed.rowcount,  # type: ignore[attr-defined]
     }
