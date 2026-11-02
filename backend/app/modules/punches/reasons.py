@@ -37,6 +37,9 @@ REASON_TEXTS: dict[str, str] = {
     "GEOFENCE_NOT_SET": "Plant has no fence",
     "OFFLINE_CHALLENGE_INVALID": "Offline face check not valid",
     "OFFLINE_EVIDENCE_UNREADABLE": "Saved punch could not be opened",
+    # M4b phone punches: the changing code of the gate screen
+    "GATE_CODE_INVALID": "Phone code not valid",
+    "GATE_CODE_EXPIRED": "Phone code had already changed",
     # M4 flags: the punch counts, the Super Admin checks it later
     "LOCATION_AT_EDGE": "At the edge of the fence",
     "LOCATION_STALE": "Last known location reused (offline)",
@@ -45,6 +48,8 @@ REASON_TEXTS: dict[str, str] = {
     "OFFLINE_TIME_UNPROVEN": "Time not proven (offline)",
     "OFFLINE_TOO_OLD": "Saved offline for too long",
     "SYNC_ORDER_CONFLICT": "Arrived after a later punch",
+    # M4b flag: a phone punch inside no plant fence (outside work)
+    "OUTSIDE_PLANT": "Outside the plant (outside work)",
 }
 
 

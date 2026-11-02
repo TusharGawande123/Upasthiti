@@ -2623,6 +2623,8 @@
     "GEOFENCE_NOT_SET": "Plant has no fence",
     "OFFLINE_CHALLENGE_INVALID": "Offline face check not valid",
     "OFFLINE_EVIDENCE_UNREADABLE": "Saved punch could not be opened",
+    "GATE_CODE_INVALID": "Phone code not valid",
+    "GATE_CODE_EXPIRED": "Phone code had already changed",
     "LOCATION_AT_EDGE": "At the edge of the fence",
     "LOCATION_AT_EDGE_help": "The device was outside the drawn fence but inside the allowed margin. Usually GPS jitter; check the map.",
     "LOCATION_STALE": "Last known location reused (offline)",
@@ -2638,7 +2640,9 @@
     "SYNC_ORDER_CONFLICT": "Arrived after a later punch",
     "SYNC_ORDER_CONFLICT_help": "This offline punch arrived after a later punch of the same person was already counted, so IN and OUT may not alternate.",
     "OFFLINE_CHALLENGE_INVALID_help": "The saved face punch did not carry a valid head-turn instruction, so it was not checked further.",
-    "OFFLINE_EVIDENCE_UNREADABLE_help": "The saved punch could not be opened (damaged, or locked with an old key). Ask the person when they came."
+    "OFFLINE_EVIDENCE_UNREADABLE_help": "The saved punch could not be opened (damaged, or locked with an old key). Ask the person when they came.",
+    "OUTSIDE_PLANT": "Outside the plant (outside work)",
+    "OUTSIDE_PLANT_help": "The employee punched with their own phone outside every plant fence, and outside work is allowed for them. The punch counts at once. Check the place on the map and the reason for the visit."
   },
   "punches": {
     "title": "Punch log",
