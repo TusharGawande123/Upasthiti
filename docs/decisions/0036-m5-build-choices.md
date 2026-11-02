@@ -347,3 +347,25 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     only checked in `responsive.spec.ts`.
 72. **Bug found by the e2e run (P4):** after a sign-in the top bar did not show the name and the Menu button, because the sign-in cleared the data with
     `removeQueries` while the bar watched the old query. The pages now reset the queries (`forgetPhoneData`) and a unit test covers it.
+73. **Review fixes, backend (2026-11-02, after /review-milestone; the lead said "fix everything").**
+    - **Proof limits:** only a failed FACE proof (it used the face worker) counts towards the 60-in-10-minutes company-wide limit. A card text
+      that is not a real card (bad shape or signature) counts only against the per-IP limit. A genuinely signed card that is refused
+      (revoked, expired, phone off) counts per card serial: 10 in 10 minutes, then `TOO_MANY_REQUESTS`.
+    - **Selfie without a face (to confirm with Tushar):** a phone gate-code punch is still accepted on a readable JPEG, as before. When F-30
+      later finds no face on that selfie, the Super Admin gets the bell notice `phone_selfie_no_face` (one per plant and day, a count
+      and the plant code only, no name or code; migration 0029 adds the kind) and the daily review digest has `phone_selfie_no_face` per
+      plant. The decision of the punch never changes. Should such a punch be refused or flagged instead? Asked of Tushar.
+    - **Phone positions:** for a phone punch the other roles now also get `location_accuracy_m: null` and `geofence_distance_m: null`
+      (they say where the person was); this changes line 59 (to confirm with Tushar). The Super Admin opening a phone punch position
+      (punch detail or review panel) writes the audit entry `punch.location_view`, like `snapshot.view`.
+    - **A code naming no device** leaves the audit entry `phone_punch.gate_code_unknown_device` (employee and sha256 of the text, never the text).
+    - **Timing and shape:** a locked account runs the dummy password check before answering `PHONE_ACCOUNT_LOCKED`; a code with no
+      passkey (or no such code) gets one made-up credential id (HMAC of the code) in the passkey options.
+    - **90-day clean-up (line 43):** a kept sign-in row (the notice trail or a punch points at it) loses ip, browser, system and user agent
+      (browser and system become empty text: the columns are required). `punches.ip` of a phone punch stays: the append-only trigger of
+      `punches` refuses any change (open point 2 of docs/compliance/m5-m4b-open-points.md).
+    - **One range check:** `check_date_range(from, to, max)` answers `REPORT_RANGE_TOO_LONG` for "Choose at most N days." (before: `VALIDATION_FAILED` for
+      corrections and the punch approvals) and `VALIDATION_FAILED` for an end before the start (the corrections list used to answer an empty list).
+    - **Renames and refactors, no behaviour change:** `face_service.lock_and_decide_in_out` (was `after_identity`), `attendance_service.DayLoader`,
+      public `role_path`, `describe_day`, `row_from_request` of the corrections service, `users/names.py` `user_names`.
+    - **Open points that need the client, HR or legal advice** (not code): docs/compliance/m5-m4b-open-points.md.

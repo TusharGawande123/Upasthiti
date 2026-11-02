@@ -503,3 +503,10 @@ a real phone at 360 px, report downloads opened in Excel.
   employee page and the new admin card at 360 px are not in `responsive.spec.ts` (they need an employee id); the Marathi and Hindi texts; real-phone
   check (Chrome on Android: camera, location, passkey, add to home screen). Mock-up open questions 1 to 5 of gate P2 and 1 to 7 of gate P1 were
   answered the conservative way (decisions 63 to 65, 70).
+- 2026-11-02 **Review fixes (backend)** (Sonnet, after /review-milestone; the lead said "fix everything"). Security: failed card proofs of junk
+  texts no longer lock the company (per-card limit instead), a gate-code selfie without a face notifies the Super Admin and is in the digest
+  (migration 0029, kind `phone_selfie_no_face`), phone accuracy and distance hidden from the heads, `punch.location_view` audit, audit for a
+  code naming no device, equal timing and passkey shape. Compliance: 90-day clean-up scrubs kept sign-ins; the open points that code cannot
+  solve are in docs/compliance/m5-m4b-open-points.md. Tests: AC-55 delete guard (`test_m5_no_delete_guard.py`), AC-26 three-day catch-up,
+  golden case E18 Monday. Code quality: phone punch split into judge and save steps, corrections helpers, `DayLoader`, `check_date_range`,
+  `reports/data.py` cleanup, a map of the phone package. Decision 0036 line 73. Frontend needs: see the report of this step.
