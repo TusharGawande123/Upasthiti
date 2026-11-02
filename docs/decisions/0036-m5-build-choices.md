@@ -300,3 +300,50 @@ Date: 2026-10-31 · Decided by: Anuradha (build delegated by the lead, Tushar Ga
     `phone_punch_enabled` and `/qr-cards/expiring-count` carries `phone_on_count`.
 62. **Settings labels (P3):** the ten `phone` and phone-code settings have `settings.items.<key>` labels and a
     `settings.groups.phone` title in `common.json`; the settings page does not show the group until P4 adds the card.
+63. **Phone area in the frontend (P4):** `/phone/*` is one lazy area (`frontend/src/features/phone/`, every file starts with `phone-`
+    so the size budget can name them). It has its own layout and is not in the admin menu. The passkey page is at `/phone/passkey`
+    (the mock-up proposal). `/phone` alone opens the home page. The face check of the password step and the face punch use the gate's
+    tested pieces (`kiosk/attendance/camera.ts`, `face-sequence.ts`, `face-capture.ts`, `qr-reader.ts`) and start by themselves as soon
+    as the camera shows a picture, so the person does not tap "Begin" (the mock-up had no extra button).
+64. **Phone result and problem texts (P4, to confirm with Tushar):** `phone.punch.<CODE>.title|message|next` are written for every code of
+    the P3 list, reusing the gate wording; refusals end "Please visit the plant office.", camera, location and timing hints end "Please
+    try again.". New wording that no spec line gives: `GATE_CODE_INVALID` "This phone code is not valid.", `GATE_CODE_EXPIRED` "The phone code
+    has changed. Please scan the code again.", `EMPLOYEE_NOT_FACE` "Punching with the phone code is not for you.", `EMPLOYEE_NOT_QR` "Punching
+    with your face is not set for you.", `GEOFENCE_NOT_SET` "This plant is not set up for phone punching yet.", `COOLDOWN_ACTIVE` and
+    `OUT_TOO_SOON` without a time (the phone answer carries no last punch), `FACE_QUALITY_LOW` "The picture is too dark or blurry. Please try
+    again." (the gate says "switch on the gate light"), `WRONG_PLANT` uses the face text "You are registered at another plant." for the phone
+    (mock-up open question 1), `PHONE_FACE_NOT_READY` uses the section 9 text "...not set up for attendance..." everywhere (open question 2),
+    the sign-in link and the lock text keep both sentences of the spec ("First time or forgot your password?").
+65. **Accepted result has a Back button and no timer (P4, to confirm with Tushar):** mock-up open question 4. The phone result stays until the
+    person taps "Back". "Outside work ended" shows the same refusal as outside work off (open question 5); no extra sentence.
+66. **Gate phone code panel (P4):** the panel is one small component on the idle gate screen (`phone-code-panel.tsx`, `use-gate-code.ts`). It
+    uses `POST /kiosk/gate-code` (decision 47), asks again at `refresh_in_seconds` (at least 3 s), shows "Phone code not available now" after 15 s
+    without a fresh code and when the shown code has expired, and draws the server's SVG through an `<img src="data:image/svg+xml">` (an image
+    never runs scripts). The card reader says `kiosk.attendance.phoneCodeAtDevice` for a `UPG1.` text and sends nothing. The gate chunk is 61.1 kB
+    gzip of the 63.5 kB budget: no raise was needed.
+67. **Size budgets (P4):** new entry "Phone pages (loaded only on /phone)" for the files named `phone-*.js`: measured 24.9 kB, limit 27.9 kB (measured plus
+    10 percent). The "Styles" budget goes from 14500 to 16000 bytes (measured 14.2 kB): the phone screens add Tailwind classes to the one shared
+    style file (to confirm with Tushar, same kind of decision as lines 20 and 21).
+68. **Vercel headers for /phone (P4, S-47):** two rules (`/phone`, `/phone/:path*`) after the catch-all rule, with the CSP of the spec (script-src
+    `'self' 'wasm-unsafe-eval'`, `connect-src 'self'`, `img-src 'self' data: blob:`, `media-src 'self' blob:`, `worker-src 'self' blob:`), `font-src
+    'self' data:`, `manifest-src 'self'`, `object-src 'none'`, and `style-src 'self' 'unsafe-inline'` (the oval and the timer bar use inline style
+    values; the plan said "only if needed"). `Permissions-Policy` has camera, geolocation and both passkey permissions; `Referrer-Policy: no-referrer`.
+    A Vitest test reads `vercel.json` and checks the order and the values. The dev server sends no such headers, so the Playwright run cannot count
+    CSP violations (AC-58 second half stays for a check on the real Vercel address after deploy; to confirm with Tushar).
+69. **Home screen (F-74):** `public/phone.webmanifest` (scope `/phone`, start `/phone`, two icons) is linked only while a phone page is open, and the
+    home page shows "Add to home screen" only when Chrome offers it (`beforeinstallprompt`). There is no service worker for the phone area (the gate
+    keeps the only one, scope `/attendance`).
+70. **Admin side (P4):** the "Phone attendance" card sits in the Details tab of the employee page, under the QR card panel. Every change asks for a
+    reason (3 to 300 characters). A left employee shows the card with disabled switches and no buttons (mock-up open point 3). The "Phone" filter of
+    "Needs review" is a select ("Any channel" / "Phone"), not a segmented control; the bulk check boxes exist only on the "To check" tab with the Phone
+    filter, 100 at most; a failed row is listed in words under the bar after the call. Punch log: new filters "Channel" and "Outside plant", the
+    method "Phone code", the column "Channel" instead of "Attendance device". The map position of an outside punch in the punch log detail is NOT
+    built (the Needs-review sheet already has the map); the detail shows the distance and, for other roles, the "position is only for the Super Admin"
+    line (to confirm with Tushar).
+71. **S-49 memory check (P4):** `face_memory_check.py phone` signs in 8 phones and sends 4 phone face punches at the same moment against the 512 MB
+    container (the throw-away database now also holds 8 extra phone employees and a phone password for every face employee). A sign-in may answer 429
+    (the semaphore of rule 9); any 5xx or other answer fails. The CI step runs before the existing peak-memory step, which now covers both. The
+    Playwright phone project is Pixel 7 (Chromium); an iPhone project is not possible with the virtual authenticator (WebKit), so the iPhone 13 size is
+    only checked in `responsive.spec.ts`.
+72. **Bug found by the e2e run (P4):** after a sign-in the top bar did not show the name and the Menu button, because the sign-in cleared the data with
+    `removeQueries` while the bar watched the old query. The pages now reset the queries (`forgetPhoneData`) and a unit test covers it.

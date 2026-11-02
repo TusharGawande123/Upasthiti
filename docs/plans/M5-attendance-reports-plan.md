@@ -475,3 +475,31 @@ a real phone at 360 px, report downloads opened in Excel.
   (7) Still frontend only: the dashboard line "On outside work: N" (`on_outside_work` in the live numbers) and the whole `/phone/*`
   area. `npm run typecheck` shows 3 errors about the missing `recharts` package in `node_modules` on this laptop (run
   `npm install`); none come from P3.
+- 2026-11-02 **M4b P4 done (frontend, CI and e2e of the phone punch)** (Sonnet). Built from the approved mock-ups gate-p1, gate-p2, gate-p3.
+  **Phone area** `frontend/src/features/phone/` (all files `phone-*`, lazy, not in the admin menu): layout with top bar and menu sheet
+  (sign out, stop phone punching with a confirm, passkeys with Remove, privacy notice), sign in (code + password, passkey), prove it is you
+  (face with code, or ID card with location first), set password with the rule checklist, notice (hash of the shown text is sent back), home
+  (greeting, today's punch, outside-work badge, location chip, one big button, links), face punch, gate-code punch (location, rear camera,
+  selfie with `photo_ready_seconds`), results with `phone.punch.<CODE>.*` texts for every code of the P3 list, My attendance (F-73), passkey
+  page and sign in (F-80), `details.ended` of `PHONE_NOT_SIGNED_IN` (new_login / expired / other) shown on the sign-in page, manifest and
+  "Add to home screen" (F-74). **Gate:** phone code panel (card on 768 px and wider, button below), `UPG1.` message in the card reader.
+  **Admin:** `features/phone-admin/` (the "Phone attendance" card with switches, outside work with until date, account, phones, passkeys, sign
+  out all, require new password, read-only for other roles without IPs), `phone` group in `GROUP_ORDER`, punch log (channel filter and column,
+  Phone code, outside-plant tag, "At plant X (own plant Y)", phone browser, accuracy), Needs review (Phone filter, check boxes, bulk bar,
+  `POST /reviews/bulk-confirm` with the result strip), employees list (Phone filter and tag), Cards ending soon (line and `phone_on_count`),
+  dashboard "On outside work: N". **Vercel** CSP and Permissions-Policy for `/phone` (after the catch-all rule), size budget for the phone
+  files, Styles budget 14500 to 16000. **S-46** Playwright project `phone` (Pixel 7, painted camera, virtual authenticator): set a password by
+  face, notice, face punch IN, passkey add and sign in, 360 and 768 px. **S-49** `face_memory_check.py phone` + the CI `docker` step.
+  Decisions 0036 lines 63 to 72 (**to confirm: 64 texts, 65 Back button, 67 Styles budget, 68 CSP and AC-58 on the real address, 70 no map in the punch log detail**).
+  Tests: frontend 964 passed (coverage Statements 89.6, Branches 84.5, Functions 85.7, Lines 91.0; floor 84), new files
+  `phone-pages.test.tsx` (16), `phone-more.test.tsx` (10), `phone-flows.test.tsx` (15), `phone-admin.test.tsx` (13), `phone-code.test.tsx` (7),
+  `dashboard-phone.test.tsx` (6, includes the vercel.json order and values); `npm run lint`, `typecheck`, `i18n:check`, `build`, `size` ok
+  (gate 61.1 of 63.5 kB, phone pages 24.9 of 27.9 kB). One old test (`employee-pages.test`, transfer date 2026-11-01) was date-dependent and now uses
+  2027-01-15. Backend: only `tests/test_face_memory_check.py` was run (12 passed, 3 new tests of the phone check with a fake local server); the
+  full backend suite was NOT run. E2E headed on the lead's laptop: phone project 4 passed; `responsive.spec.ts` 5 passed; kiosk-punch, admin-punches,
+  admin-review, people 16 passed. The full e2e suite was not run again after P4 (the two known face-punch flaky tests of 2026-11-01 are still open).
+- Open after P4: AC-58 second half (zero CSP violations) needs the real Vercel address (the dev server has no headers); the CI `docker` phone step has
+  not run in GitHub yet (first run decides, the memory peak limit is the same 450 MB); the map position of an outside punch in the punch log detail;
+  employee page and the new admin card at 360 px are not in `responsive.spec.ts` (they need an employee id); the Marathi and Hindi texts; real-phone
+  check (Chrome on Android: camera, location, passkey, add to home screen). Mock-up open questions 1 to 5 of gate P2 and 1 to 7 of gate P1 were
+  answered the conservative way (decisions 63 to 65, 70).

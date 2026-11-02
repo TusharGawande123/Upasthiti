@@ -61,7 +61,7 @@ P2 45 (early-OUT on the phone), 47 (GET and POST for the phone code), 48 (a code
 answered without a row), 51 (many-rejections counts channel `kiosk` only) (8 and 9
 also with the client), the poster privacy text at 11 pt, the absence-streak reading, the Styles and menu size
 budgets (lines 20 and 21), poster layout (line 19), notice-acceptance clean-up (line 28), the phone texts
-(lines 30 to 34, especially the DPDP notice wording, which is only a layout draft), and from P3 55 (bulk "clean" test), 58 (outside-work reason source), 59 (phone position only for the Super Admin).
+(lines 30 to 34, especially the DPDP notice wording, which is only a layout draft), and from P3 55 (bulk "clean" test), 58 (outside-work reason source), 59 (phone position only for the Super Admin), and from P4 64 (phone result texts), 65 (Back button, no timer), 67 (Styles budget), 68 (CSP and AC-58), 70 (no map in the punch log detail).
 
 ## How to run things
 Backend (from `backend/`): `uv run pytest -q -p no:cacheprovider` (about 20 minutes), `uv run ruff check . && uv run
