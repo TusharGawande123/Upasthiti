@@ -13,7 +13,7 @@ from app.core.pagination import Page, PageParams, fetch_page, page_params
 from app.core.time import today_ist, utc_now
 from app.modules.auth.dependencies import CurrentUser, require
 from app.modules.auth.permissions import Capability
-from app.modules.punches import review_service
+from app.modules.punches import admin_service, review_service
 from app.modules.punches.review_schemas import (
     BulkConfirmRequest,
     BulkConfirmResponse,
@@ -103,10 +103,11 @@ def reviews_digest(
 @router.get("/punches/{punch_id}/review-context", response_model=ReviewContext)
 def punch_review_context(
     punch_id: uuid.UUID,
-    _: CurrentUser = Depends(reviewer),
+    current_user: CurrentUser = Depends(reviewer),
     session: Session = Depends(get_session),
 ) -> ReviewContext:
     punch = review_service.get_punch_or_404(session, punch_id)
+    admin_service.record_position_view(session, current_user.actor, punch)  # Super Admin only
     return review_service.review_context(session, punch)
 
 

@@ -80,6 +80,26 @@ def read_snapshot(
     return jpeg
 
 
+def record_position_view(session: Session, actor: Actor, punch: Punch) -> None:
+    """The Super Admin opened the exact position of a phone punch (where a person was outside
+    work). Like a photo view, it is audited: "who looked at my location" has an answer. Commits."""
+    if punch.channel != "phone" or punch.lat is None:
+        return
+    record_audit(
+        session,
+        actor=actor,
+        action="punch.location_view",
+        entity_type="punch",
+        entity_id=punch.id,
+        after={
+            "punch_id": str(punch.id),
+            "employee_id": str(punch.employee_id) if punch.employee_id else None,
+        },
+        plant_id=punch.plant_id,
+    )
+    session.commit()
+
+
 # --- Excel export -------------------------------------------------------------------------------
 
 # People read this file, so the gate device is an "attendance device" here (decision 0013).

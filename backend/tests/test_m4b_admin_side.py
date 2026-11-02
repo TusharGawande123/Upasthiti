@@ -218,6 +218,28 @@ def test_the_position_of_a_phone_punch_is_for_the_super_admin_only(world: dict) 
     assert gate_for_corporate["location"]["lat"] == pytest.approx(19.87)
 
 
+def test_opening_the_position_of_a_phone_punch_is_audited_for_the_super_admin(
+    world: dict, db_session: Session
+) -> None:
+    from app.modules.audit.models import AuditLog
+
+    phone = outside_punch(world, "F-201", 10)
+    gate = gate_punch(world, "F-202", 9)
+    world["corporate"].get(f"/api/v1/punches/{phone.id}")
+    world["boss"].get(f"/api/v1/punches/{gate.id}")
+    assert (
+        db_session.scalars(select(AuditLog).where(AuditLog.action == "punch.location_view")).all()
+        == []
+    )
+
+    world["boss"].get(f"/api/v1/punches/{phone.id}")
+    world["boss"].get(f"/api/v1/punches/{phone.id}/review-context")
+    rows = db_session.scalars(
+        select(AuditLog).where(AuditLog.action == "punch.location_view")
+    ).all()
+    assert len(rows) == 2 and all(row.entity_id == phone.id for row in rows)
+
+
 def test_the_plant_head_of_the_visited_plant_does_not_see_the_visit_in_the_log(
     world: dict,
 ) -> None:

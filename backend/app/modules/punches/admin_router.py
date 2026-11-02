@@ -181,6 +181,8 @@ def get_punch(
 ) -> PunchDetail:
     who = _viewer(current_user, Capability.VIEW_PUNCHES)
     punch = queries.get_punch_in_scope(session, punch_id, who.only_plant_ids)
+    if who.sees_phone_positions:
+        admin_service.record_position_view(session, current_user.actor, punch)
     return presenter.punch_detail(session, punch, who)
 
 

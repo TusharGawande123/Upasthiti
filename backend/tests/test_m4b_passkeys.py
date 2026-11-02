@@ -263,6 +263,20 @@ def test_ac_56_require_new_password_and_phone_off_remove_every_passkey(
     assert kinds == ["new_password", "phone_off"]
 
 
+def test_marking_the_employee_as_left_removes_every_passkey(
+    boss: TestClient, db_session: Session, people: People, phone: TestClient
+) -> None:
+    sign_in(phone)
+    add_passkey(phone, SoftPasskey())
+    left = boss.post(
+        f"/api/v1/employees/{people.face_id}/mark-left",
+        json={"left_on": MONDAY.isoformat(), "reason": "Contract ended"},
+    )
+    assert left.status_code == 200, left.text
+    (row,) = passkeys_of(db_session, people.face_id)
+    assert row.remove_kind == "left" and row.removed_at is not None
+
+
 def test_the_employee_and_the_super_admin_remove_one_passkey(
     boss: TestClient, db_session: Session, people: People, phone: TestClient
 ) -> None:
