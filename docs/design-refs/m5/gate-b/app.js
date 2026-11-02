@@ -380,9 +380,9 @@ const MAP = {
   "wizard-done": () => ["Corrections", "sa", correctionsPage("pending"), wizard(true)],
 };
 document.addEventListener("DOMContentLoaded", () => {
-  // A Map answers only for the screens listed above, whatever the address bar says.
-  const screens = new Map(Object.entries(MAP));
-  const [active, role, page, overlay] = (screens.get(SCREEN) ?? screens.get("list"))();
+  // Only a name from the list above is ever called, whatever the address bar says.
+  const screenName = Object.keys(MAP).find((name) => name === SCREEN) ?? "list";
+  const [active, role, page, overlay] = MAP[screenName]();
   const u = USERS[role];
   $("sidebar").innerHTML = sidebar(active);
   $("topbar").innerHTML = topbar(u);
