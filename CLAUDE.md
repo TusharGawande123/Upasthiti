@@ -28,7 +28,8 @@
     live headcount, reports, corrections, salary estimate (built last).
   - The server re-checks every punch (anti-proxy engine). Never trust the client.
 - Roles (client's choice): exactly Super Admin, Corporate Head, Plant Head (+ KIOSK
-  device identity); NO HR or supervisor users; employees never log in. Matrix: M1 spec
+  device identity); NO HR or supervisor users; employees sign in ONLY for phone punching
+  (employee code + password on /phone, M4b, decision 0035). Matrix: M1 spec
   §7 rule 1 (decision 0005). Super Admin does everything (only this role marks people
   as left and handles QR cards); Corporate Head's employee changes wait for Super Admin
   approval (approvals inbox); Plant Head reads own plant and manages its kiosks.
@@ -113,6 +114,10 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   onnxruntime (MIT), opencv-python-headless (Apache-2.0), numpy (BSD).
 - Added in M4 (all free): vite-plugin-pwa 2.0.0 (MIT, with Workbox: the gate page loads offline;
   service worker scope /attendance only). No new backend package (cryptography has ECDH, HKDF, AES-GCM).
+- Added in M5 and M4b (all free): time-machine (MIT, tests only: freezes the clock, S-40), hypothesis
+  (MPL-2.0, tests only: property tests), webauthn / py_webauthn 3.0.1 (BSD-3-Clause: optional passkey
+  sign-in for the phone), Recharts 3.10 (MIT: charts), @tanstack/react-table (MIT, first used in M5),
+  smtplib from the standard library (optional alert email: off unless the SMTP_* variables are set).
 - Tooling: uv, Ruff, pyright, pytest · Biome, Vitest, Playwright ·
   pre-commit, Dependabot, GitHub Actions.
 - M0 choices that differ from the first plan (docs/decisions/0003-dev-tooling.md):
@@ -155,12 +160,23 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   role, which ignores RLS. A trigger function needs `SET search_path = ''`. Tests fail when
   one is missing (decision 0007).
 - Every screen must fit a 360 px phone and a 768 px tablet without the page scrolling sideways
-  (a table may scroll inside its own card), and every page must be reachable from the phone
-  menu. `e2e/tests/responsive.spec.ts` checks it: add new pages to its list.
+  (a table may scroll inside its own card), and every ADMIN page must be reachable from the phone
+  menu (the /phone employee pages have their own small menu). `e2e/tests/responsive.spec.ts`
+  checks it: add new pages to its list (also the /phone pages).
 - Texts people read say "attendance device", never "kiosk" (section 1). Rejection texts ask
   politely: "Please visit the plant office."
 - The only tool that may delete attendance rows is `app.scripts.remove_demo_plant` (decision 0015):
   demo plants only (code starts with DEMO), shows first, needs --confirm, never touches the audit log.
+  It also removes the M5 `attendance_days` and M4b phone rows of that plant. Two one-time exceptions,
+  approved by the lead and not a habit: `remove_test_employees` (decision 0032) and `clear_geofence`
+  (decision 0033). App code never deletes attendance, punch, review, correction, audit or employee
+  rows; a test guards it.
+- Attendance rules (decision 0034): one IN and one OUT per shift, worked = first counted IN to last
+  counted OUT; `punches/counting.py` is the only place that says which punches count; grace 30 min at
+  both ends; permanent staff are Present / Half-day / Short hours / Absent / Incomplete; overtime starts
+  at the shift end and counts only from the shift's minimum (default 2 hours); corrections are
+  append-only and decided by the Super Admin; a punch after the counted OUT is refused with
+  `SHIFT_ALREADY_CLOSED`. Tests pin their dates and times.
 - NEVER start building a milestone before its spec and plan are approved.
 - NEVER build the legally risky future-scope items (section 1): automatic
   PF/ESIC/PT/TDS calculation, statutory reports, challans, Form 16, tax filing.
@@ -237,9 +253,18 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
       (confirm / not accepted / approve), daily digest (spec docs/specs/M4-anti-proxy-offline.md,
       decisions 0025 to 0028). Still open: real-device check (gate phone and PC, one hour offline) and
       the open points of decision 0028.
-- [ ] M4b Optional phone punching (admin-controlled per employee) + temp workers'
-      phone scan of the gate QR
-- [ ] M5 Attendance processing, dashboards, reports
+- [x] M4b Optional phone punching (admin-controlled per employee) + temp workers'
+      phone scan of the gate QR (built with M5 on milestone/M5-attendance-reports, one PR). Employees
+      sign in on /phone with employee code + password (first password after a face or ID-card proof,
+      passkeys optional); face employees punch by face on the phone, temporary workers scan the gate's
+      changing code (UPG1, 30 s); outside work is a per-employee switch; one phone signed in at a time
+      (spec docs/specs/M4b-phone-punch.md, decision 0035, build choices 0036).
+- [x] M5 Attendance processing, dashboards, reports: shift rule history, holidays and leave, stored
+      `attendance_days`, corrections (+ bulk), shift swaps, live dashboard (30 s refresh), muster,
+      punctuality, 7 reports (Excel and PDF), alerts (bell; email only with SMTP), gate lines
+      (spec docs/specs/M5-attendance-reports.md, decisions 0034 and 0036). Still open: the M4
+      real-device check, the retention period (to confirm with the client; nothing is deleted) and
+      docs/compliance/m5-m4b-open-points.md.
 - [ ] M6 Testing, security review, documentation, final free-tier deployment
       (client's own server only if the free tiers are not enough)
 - [ ] M7 Payable salary estimate + Excel export (after the client's salary slip
@@ -286,7 +311,9 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - Backend (from backend/):
   - `uv sync`: install dependencies.
   - `uv run fastapi dev app/main.py`: run the API locally (docs at /api/docs).
-  - `uv run pytest`: run the tests (coverage floor 82% since M4, raised each milestone). Add
+  - `uv run pytest`: run the tests (coverage floor 84% since M5, raised each milestone). With
+    `TEST_CLOCK_START_IST=2026-11-04T23:59:30` set, every test's clock starts at that Indian time
+    (CI runs the time-sensitive files at 23:59:30 and 00:00:30). Add
     `-m face_models` for the tests that use the real face models.
   - `uv run ruff check . && uv run ruff format .`: lint and format.
   - `uv run pyright`: type check.
@@ -312,10 +339,14 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   - `uv run python -m app.scripts.face_accuracy --faces <folder> [--spoof <folder>]`: false
     accept / false reject report and threshold curve; data folders must be outside the repo (M3).
   - `uv run python -m app.scripts.face_memory_check`: 20 signed face punches through the real
-    models; fails above 450 MB (also the CI `docker` job).
+    models; fails above 450 MB (also the CI `docker` job); the `phone` mode adds 8 parallel phone
+    sign-ins and 4 phone face punches (M4b).
+  - `uv run python -m app.scripts.remove_test_employees --plant-code K134 --employee-codes 101 102`
+    and `uv run python -m app.scripts.clear_geofence --plant-code K134`: one-time tools of decisions
+    0032 and 0033 (they show first; `--confirm` applies).
 - Frontend (from frontend/):
   - `npm install`, then `npm run dev` (Vite; proxies /api to the local backend).
-  - `npm test` (Vitest + coverage, floor 82 since M4), `npm run lint` / `npm run lint:fix` (Biome),
+  - `npm test` (Vitest + coverage, floor 84 since M5), `npm run lint` / `npm run lint:fix` (Biome),
     `npm run typecheck`, `npm run build`.
   - `npm run i18n:check`: every text key used in code exists in
     `public/locales/en/common.json`, and every server error code has an `errors.<CODE>` text.
@@ -401,6 +432,14 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   From M4, required in production: `OFFLINE_EVIDENCE_KEY` (lose it and the punches still waiting on gate
   devices cannot be read; keep it in the password manager); optional `OFFLINE_EVIDENCE_KEY_ID`
   (a letter, default A).
+  From M5, all optional: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`,
+  `SMTP_SECURITY` (`starttls`, `ssl` or `none`). Leave them unset on the free tiers: email is then
+  silently off and the bell in the admin website is the only channel. M4b needs no new variable (the
+  gate-code key is derived from `APP_SECRET_KEY`).
+- Phone punching (M4b): cookie `ups_phone` (HttpOnly, SameSite=Strict, path `/api/v1/phone`), separate
+  from the admin session; passwords 8+ characters; the Super Admin switches phone punching and "Outside
+  work allowed" per employee (default off); settings group "phone"; `/phone` has its own strict CSP and
+  Permissions-Policy in `frontend/vercel.json` (the `/phone` rule must stay after the catch-all rule).
 - Face settings (Super Admin, groups "face" and "privacy"): match threshold, margin, ask-for-
   code floor, code threshold (never below the floor), anti-spoof threshold, head-turn steps
   (1 or 2), retry and code-entry times, re-enrol hints, `company_address` and `privacy_contact`
