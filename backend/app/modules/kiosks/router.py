@@ -35,6 +35,7 @@ from app.modules.kiosks.heartbeat_service import HeartbeatRequest, record_heartb
 from app.modules.kiosks.models import KioskDevice
 from app.modules.kiosks.schemas import (
     CreateKioskRequest,
+    GateCodeResponse,
     HealthDay,
     HealthLatest,
     HealthResponse,
@@ -45,6 +46,7 @@ from app.modules.kiosks.schemas import (
     KioskMeResponse,
     KioskNoticeItem,
     KioskOfflineSettings,
+    KioskPhoneCodeSettings,
     KioskReportRequest,
     KioskResponse,
     KioskScreenLines,
@@ -63,6 +65,7 @@ from app.modules.kiosks.time_anchor import anchor_for_request
 from app.modules.notices.queries import visible_notices
 from app.modules.org.geofence_service import current_geofence
 from app.modules.org.plants_service import get_plant
+from app.modules.phone import gate_code_service
 from app.modules.punches.sync_schemas import MAX_SYNC_ITEMS
 from app.modules.settings.service import get_int_setting, get_setting
 from app.modules.users.models import Role
@@ -328,6 +331,23 @@ def kiosk_heartbeat(
     return _me_answer(request, kiosk, session, engine)
 
 
+@router.api_route("/kiosk/gate-code", methods=["GET", "POST"], response_model=GateCodeResponse)
+def kiosk_gate_code(
+    kiosk: KioskDevice = Depends(require_kiosk), session: Session = Depends(get_session)
+) -> GateCodeResponse:
+    """The changing phone code of the gate screen (M4b spec §5.4, rule 15). The server signs it:
+    only a paired device can ask, at most 6 times a minute. The spec table says POST; GET is also
+    accepted because the request changes nothing and the signature covers the method either way."""
+    answer = gate_code_service.issue_for_gate(session, kiosk, utc_now())
+    return GateCodeResponse(
+        code_text=answer.code_text,
+        svg=answer.svg,
+        issued_at=answer.issued_at,
+        expires_at=answer.expires_at,
+        refresh_in_seconds=answer.refresh_in_seconds,
+    )
+
+
 def _me_answer(
     request: Request, kiosk: KioskDevice, session: Session, engine: FaceEngine
 ) -> KioskMeResponse:
@@ -389,6 +409,11 @@ def _screen_settings(
             show_inside_count=get_setting(session, "kiosk_show_inside_count") == "on",
             late_hint=get_setting(session, "kiosk_late_hint") == "on",
             show_month_line=get_setting(session, "kiosk_show_month_line") == "on",
+        ),
+        phone_code=KioskPhoneCodeSettings(
+            enabled=get_setting(session, "kiosk_show_phone_code") == "on",
+            refresh_seconds=max(5, get_int_setting(session, "phone_gate_code_seconds") - 10),
+            show_seconds=get_int_setting(session, "kiosk_phone_code_show_seconds"),
         ),
     )
 

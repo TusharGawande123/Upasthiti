@@ -32,6 +32,13 @@ password_set_limiter = RateLimiter(max_attempts=10, window_seconds=TEN_MINUTES)
 # Passkey adds per sign-in: 5 an hour.
 passkey_add_limiter = RateLimiter(max_attempts=5, window_seconds=ONE_HOUR)
 
+# Phone punches (spec §7 rule 8), counted per phone sign-in (the key is the session id):
+# 10 challenges and 10 punches a minute.
+phone_challenge_limiter = RateLimiter(max_attempts=10, window_seconds=60)
+phone_punch_limiter = RateLimiter(max_attempts=10, window_seconds=60)
+# The gate screen asks for a new phone code every 20 s; 6 a minute per gate device is plenty.
+gate_code_issue_limiter = RateLimiter(max_attempts=6, window_seconds=60)
+
 ALL_PHONE_LIMITERS = (
     phone_sign_in_limiter,
     proof_ip_limiter,
@@ -39,6 +46,9 @@ ALL_PHONE_LIMITERS = (
     failed_proof_limiter,
     password_set_limiter,
     passkey_add_limiter,
+    phone_challenge_limiter,
+    phone_punch_limiter,
+    gate_code_issue_limiter,
 )
 
 
@@ -46,3 +56,7 @@ def reset_phone_limits() -> None:
     """Tests start every case with empty counters."""
     for limiter in ALL_PHONE_LIMITERS:
         limiter.reset()
+    # Imported here: the gate-code service itself imports this module.
+    from app.modules.phone.gate_code_service import reset_eligibility_cache
+
+    reset_eligibility_cache()
