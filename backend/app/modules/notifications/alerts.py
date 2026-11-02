@@ -23,7 +23,7 @@ from app.modules.attendance.compute import shift_moments
 from app.modules.attendance.day_window import AttendanceCalendar
 from app.modules.attendance.models import AttendanceDay
 from app.modules.attendance.read_service import DEMO_PREFIX
-from app.modules.dashboard.service import people_inside
+from app.modules.dashboard.service import people_inside, standing_plant_id
 from app.modules.kiosks.models import KioskDevice, KioskStatus
 from app.modules.kiosks.status_service import status_summary
 from app.modules.notifications.models import Notification
@@ -33,7 +33,7 @@ from app.modules.notifications.service import (
     update_open_notification,
 )
 from app.modules.org.models import Plant
-from app.modules.punches.models import Punch, PunchDecision
+from app.modules.punches.models import Punch, PunchChannel, PunchDecision
 from app.modules.punches.review_service import review_digest
 from app.modules.settings.service import get_int_setting
 
@@ -123,7 +123,9 @@ def _still_inside(session: Session, plants: list[Plant], now: datetime) -> None:
                 continue
             _, shift_end = shift_moments(window.day, window.shift.rules)
             if now >= shift_end + after:
-                key = (item.punch.plant_id, window.day, window.shift.shift_id)
+                # The alert goes to the plant where the person stands (M4b rule 22).
+                standing = standing_plant_id(item.punch) or item.punch.plant_id
+                key = (standing, window.day, window.shift.shift_id)
                 by_group[key].append(employee_id)
     codes = {plant.id: plant.code for plant in plants}
     live_keys = set()
@@ -169,6 +171,9 @@ def _many_rejections(session: Session, plant_ids: list[uuid.UUID], now: datetime
         .where(
             Punch.plant_id.in_(plant_ids),
             Punch.kiosk_id.is_not(None),
+            # Phone punches never count for the gate's alert: a worker with a slow phone
+            # (an expired code) says nothing about the device (M4b P2, decision 0036).
+            Punch.channel == PunchChannel.KIOSK.value,
             Punch.decision == PunchDecision.REJECTED.value,
             func.coalesce(first_code, "") != COOLDOWN,
             Punch.punch_time >= now - timedelta(minutes=minutes),

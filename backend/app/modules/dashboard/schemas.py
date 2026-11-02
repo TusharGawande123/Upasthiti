@@ -34,6 +34,7 @@ class Undecided(BaseModel):
 class PlantNumbers(BaseModel):
     inside_now: int = 0
     inside_temporary: int = 0
+    on_outside_work: int = 0  # M4b: latest IN tagged OUTSIDE_PLANT
     expected: int = 0
     arrived: int = 0
     late: int = 0
@@ -62,6 +63,8 @@ class MusterPerson(BaseModel):
     employee: dict[str, object]
     in_time: datetime
     kiosk: dict[str, object] | None
+    # M4b: the home plant {code, name} of a visitor standing at another plant; else None.
+    home_plant: dict[str, str] | None = None
 
 
 class MusterPlant(BaseModel):

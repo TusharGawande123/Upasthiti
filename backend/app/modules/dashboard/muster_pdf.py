@@ -75,7 +75,7 @@ def build_muster_pdf(muster: MusterResponse, generated_by: str) -> bytes:
                 (
                     "",
                     str(employee["code"]),
-                    str(employee["name"]),
+                    _name_with_home_plant(str(employee["name"]), person.home_plant),
                     str(employee["type"]).capitalize(),
                     str(employee["department"] or ""),
                     str(employee["contractor"] or ""),
@@ -87,6 +87,11 @@ def build_muster_pdf(muster: MusterResponse, generated_by: str) -> bytes:
             pdf.cell(0, 6, "Nobody is inside right now.", new_x="LMARGIN", new_y="NEXT")
         pdf.ln(4)
     return bytes(pdf.output())
+
+
+def _name_with_home_plant(name: str, home_plant: dict[str, str] | None) -> str:
+    """A visitor from another plant shows the home plant code beside the name."""
+    return f"{name} ({home_plant['code']})" if home_plant else name
 
 
 def _header_row(pdf: FPDF) -> None:

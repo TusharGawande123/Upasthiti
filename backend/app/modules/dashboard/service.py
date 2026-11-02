@@ -44,8 +44,11 @@ from app.modules.employees.models import Employee, EmployeeStatus
 from app.modules.kiosks.models import KioskDevice
 from app.modules.org.models import Department, EmployeeCategory, Plant, Shift, ShiftRuleVersion
 from app.modules.punches.counting import CountedForEmployee, counted_for_employees
+from app.modules.punches.models import Punch, PunchChannel
 from app.modules.regularisations.models import Regularisation, RegularisationDecision
 from app.modules.settings.service import get_int_setting
+
+OUTSIDE_PLANT = "OUTSIDE_PLANT"  # the flag of a phone punch inside no plant fence (M4b)
 
 
 def _dash_plant(plant: Plant) -> DashPlant:
@@ -57,26 +60,75 @@ def _dash_plant(plant: Plant) -> DashPlant:
 # --- Inside now ---------------------------------------------------------------------------------
 
 
+def standing_plant_id(punch: Punch) -> uuid.UUID | None:
+    """The plant where an IN puts the person, or None when it puts them at no plant (M4b spec §7
+    rule 22): the plant whose fence the position matched (`location_plant_id`: a phone punch inside
+    a fence), else the punch's own plant (gate punches and rows older than M4b). An IN tagged
+    OUTSIDE_PLANT is inside no plant: the person is on outside work."""
+    if OUTSIDE_PLANT in punch.reason_codes:
+        return None
+    return punch.location_plant_id or punch.plant_id
+
+
 def people_inside(
     session: Session, plant_ids: list[uuid.UUID], now: datetime
 ) -> dict[uuid.UUID, CountedForEmployee]:
     """Employee id -> the IN that keeps them inside: their latest counted punch within the last
-    `open_in_max_hours` is an IN, they have not left, and they belong to one of these plants
-    (spec §7 rule 17)."""
-    employees = {
-        employee_id: plant_id
-        for employee_id, plant_id in session.execute(
-            select(Employee.id, Employee.plant_id).where(
+    `open_in_max_hours` is an IN, they have not left, and that IN is at one of these plants
+    (spec §7 rule 17, amended by M4b rule 22: where they stand, not their home plant)."""
+    return inside_and_outside(session, plant_ids, now)[0]
+
+
+def inside_and_outside(
+    session: Session, plant_ids: list[uuid.UUID], now: datetime
+) -> tuple[dict[uuid.UUID, CountedForEmployee], dict[uuid.UUID, CountedForEmployee]]:
+    """(inside, on outside work). `inside`: people standing at one of these plants, whatever their
+    home plant (a visitor with outside work is counted where they stand). `on outside work`:
+    people of these home plants whose latest IN is tagged OUTSIDE_PLANT (the dashboard line "On
+    outside work: N"). Both come from the same bulk query."""
+    since = now - timedelta(hours=get_int_setting(session, "open_in_max_hours"))
+    home = set(
+        session.scalars(
+            select(Employee.id).where(
                 Employee.plant_id.in_(plant_ids), Employee.status == EmployeeStatus.ACTIVE.value
             )
         )
-    }
-    since = now - timedelta(hours=get_int_setting(session, "open_in_max_hours"))
+    )
+    candidates = home | _visitors(session, plant_ids, since, now)
     latest: dict[uuid.UUID, CountedForEmployee] = {}
     # Sorted by employee and time, so the last one seen per employee is the latest.
-    for item in counted_for_employees(session, list(employees), since, now):
+    for item in counted_for_employees(session, list(candidates), since, now):
         latest[item.employee_id] = item
-    return {employee_id: item for employee_id, item in latest.items() if item.direction == "in"}
+    open_ins = {eid: item for eid, item in latest.items() if item.direction == "in"}
+    inside = {
+        eid: item for eid, item in open_ins.items() if standing_plant_id(item.punch) in plant_ids
+    }
+    outside = {
+        eid: item
+        for eid, item in open_ins.items()
+        if eid in home and standing_plant_id(item.punch) is None
+    }
+    return inside, outside
+
+
+def _visitors(
+    session: Session, plant_ids: list[uuid.UUID], since: datetime, now: datetime
+) -> set[uuid.UUID]:
+    """Active employees of other plants who punched by phone inside one of these plants lately."""
+    found = session.scalars(
+        select(Punch.employee_id)
+        .join(Employee, Employee.id == Punch.employee_id)
+        .where(
+            Punch.channel == PunchChannel.PHONE.value,
+            Punch.location_plant_id.in_(plant_ids),
+            Punch.location_plant_id != Punch.plant_id,
+            Punch.punch_time >= since,
+            Punch.punch_time <= now,
+            Employee.status == EmployeeStatus.ACTIVE.value,
+        )
+        .distinct()
+    )
+    return {employee_id for employee_id in found if employee_id is not None}
 
 
 # --- Live numbers -------------------------------------------------------------------------------
@@ -98,15 +150,25 @@ def live(
         plant.id: plant
         for plant in session.scalars(select(Plant).where(Plant.id.in_(plants)).order_by(Plant.code))
     }
-    inside = people_inside(session, plants, now)
+    inside, outside = inside_and_outside(session, plants, now)
     types = _people_facts(session, inside)
+    outside_by_plant = _count_by_home_plant(session, outside)
     sees_flags = current_user.access(Capability.REVIEW_PUNCHES) is Access.ALL
     month_start = today.replace(day=1)
     result = []
     for plant in plant_rows.values():
         result.append(
             _plant_live(
-                session, plant, today, yesterday, month_start, now, inside, types, sees_flags
+                session,
+                plant,
+                today,
+                yesterday,
+                month_start,
+                now,
+                inside,
+                types,
+                sees_flags,
+                outside_by_plant.get(plant.id, 0),
             )
         )
     return LiveResponse(
@@ -117,15 +179,25 @@ def live(
 def _people_facts(
     session: Session, inside: dict[uuid.UUID, CountedForEmployee]
 ) -> dict[uuid.UUID, tuple[str, uuid.UUID | None, uuid.UUID]]:
-    """Employee id -> (type, contractor id, plant id) for the people inside."""
+    """Employee id -> (type, contractor id, the plant where they stand) for the people inside."""
     return {
-        row[0]: (row[1], row[2], row[3])
+        row[0]: (row[1], row[2], standing_plant_id(inside[row[0]].punch) or row[3])
         for row in session.execute(
             select(Employee.id, Employee.type, Employee.contractor_id, Employee.plant_id).where(
                 Employee.id.in_(list(inside))
             )
         )
     }
+
+
+def _count_by_home_plant(
+    session: Session, people: dict[uuid.UUID, CountedForEmployee]
+) -> dict[uuid.UUID, int]:
+    """How many of these people belong to each plant (the "On outside work" numbers)."""
+    counts: dict[uuid.UUID, int] = defaultdict(int)
+    for plant_id in session.scalars(select(Employee.plant_id).where(Employee.id.in_(list(people)))):
+        counts[plant_id] += 1
+    return counts
 
 
 def _plant_live(
@@ -138,11 +210,16 @@ def _plant_live(
     inside: dict[uuid.UUID, CountedForEmployee],
     facts: dict[uuid.UUID, tuple[str, uuid.UUID | None, uuid.UUID]],
     sees_flags: bool,
+    on_outside_work: int,
 ) -> PlantLive:
     started = plant.attendance_start_date is not None and plant.attendance_start_date <= today
     here = [employee_id for employee_id, fact in facts.items() if fact[2] == plant.id]
     temporary = [employee_id for employee_id in here if facts[employee_id][0] == "temporary"]
-    numbers = PlantNumbers(inside_now=len(here), inside_temporary=len(temporary))
+    numbers = PlantNumbers(
+        inside_now=len(here),
+        inside_temporary=len(temporary),
+        on_outside_work=on_outside_work,
+    )
     shifts: list[ShiftLine] = []
     if started:
         shifts = _day_numbers(session, plant, today, now, numbers)
@@ -313,6 +390,7 @@ def _totals(plants: list[PlantLive]) -> PlantNumbers:
         for field in (
             "inside_now",
             "inside_temporary",
+            "on_outside_work",
             "expected",
             "arrived",
             "late",
@@ -353,13 +431,18 @@ def muster(
     kiosks = dict(
         session.execute(
             select(KioskDevice.id, KioskDevice.name).where(
-                KioskDevice.id.in_({item.punch.kiosk_id for item in inside.values()})
+                KioskDevice.id.in_(
+                    {item.punch.kiosk_id for item in inside.values() if item.punch.kiosk_id}
+                )
             )
         ).all()
     )
+    plant_names = {plant.id: (plant.code, plant.name) for plant in session.scalars(select(Plant))}
     by_plant: dict[uuid.UUID, list[tuple[str, str, MusterPerson]]] = defaultdict(list)
     for employee_id, item in inside.items():
         employee = employees[employee_id]
+        standing = standing_plant_id(item.punch) or employee.plant_id
+        home = plant_names.get(employee.plant_id)
         department = departments.get(employee.department_id) if employee.department_id else None
         person = MusterPerson(
             employee={
@@ -377,10 +460,13 @@ def muster(
             kiosk={"id": item.punch.kiosk_id, "name": kiosks.get(item.punch.kiosk_id, "")}
             if item.punch.kiosk_id
             else None,
+            # A visitor on outside work is listed where they stand, with the home plant
+            # beside the name (safety needs it, spec M4b §7 rule 22).
+            home_plant={"code": home[0], "name": home[1]}
+            if home and standing != employee.plant_id
+            else None,
         )
-        by_plant[employee.plant_id].append(
-            ((department or "~").lower(), employee.full_name.lower(), person)
-        )
+        by_plant[standing].append(((department or "~").lower(), employee.full_name.lower(), person))
     plant_rows = session.scalars(select(Plant).where(Plant.id.in_(plants)).order_by(Plant.code))
     return MusterResponse(
         generated_at=now,
