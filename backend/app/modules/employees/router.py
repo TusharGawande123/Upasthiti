@@ -82,6 +82,7 @@ def list_employees(
     face_state: str | None = Query(
         default=None, pattern="^(enrolled|not_enrolled|reenrol_suggested|old_model)$"
     ),
+    phone: str | None = Query(default=None, pattern="^(on|off)$"),
     params: PageParams = Depends(page_params),
     current_user: CurrentUser = Depends(viewer),
     session: Session = Depends(get_session),
@@ -96,6 +97,7 @@ def list_employees(
         contractor_id=contractor_id,
         search=q,
         face_state=face_state,
+        phone=phone,
     )
     employees, total = queries.list_employees(
         session, params, filters, only_plant_ids=_scope(current_user)

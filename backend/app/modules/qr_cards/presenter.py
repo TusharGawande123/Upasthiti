@@ -10,6 +10,7 @@ from app.modules.contractors.models import Contractor
 from app.modules.employees.models import Employee
 from app.modules.kiosks.schemas import PlantSummary
 from app.modules.org.models import EmployeeCategory, Plant
+from app.modules.phone.models import PhoneAccess
 from app.modules.qr_cards.models import CardKind, QrCredential
 from app.modules.qr_cards.schemas import CardListItem, CardResponse, EmployeeBrief, NamedItem
 from app.modules.qr_cards.states import card_state
@@ -74,10 +75,19 @@ def list_items(
     cards = [card for _, card in rows if card is not None]
     by_card_id = {response.id: response for response in card_responses(session, cards)}
     briefs = employee_briefs(session, [employee for employee, _ in rows])
+    phone_on = set(
+        session.scalars(
+            select(PhoneAccess.employee_id).where(
+                PhoneAccess.employee_id.in_([employee.id for employee, _ in rows]),
+                PhoneAccess.phone_punch_enabled.is_(True),
+            )
+        )
+    )
     return [
         CardListItem(
             employee=briefs[employee.id],
             card=by_card_id[card.id] if card is not None else None,
+            phone_punch_enabled=employee.id in phone_on,
         )
         for employee, card in rows
     ]

@@ -14,6 +14,7 @@ from app.modules.audit.models import AuditLog
 from app.modules.employees.models import Employee, EmployeePlantHistory, ShiftAssignment
 from app.modules.face.engine_provider import running_model_id
 from app.modules.face.state import face_state_condition, reenrol_suggested_ids
+from app.modules.phone.models import PhoneAccess
 from app.modules.qr_cards.models import CardKind, QrCredential
 from app.modules.users.models import User
 
@@ -36,6 +37,7 @@ class EmployeeFilters:
     contractor_id: uuid.UUID | None = None
     search: str | None = None
     face_state: str | None = None  # M3 (F-40): enrolled, not_enrolled, old_model, ...
+    phone: str | None = None  # M4b: "on" or "off" (is phone punching switched on?)
 
 
 def list_employees(
@@ -56,6 +58,12 @@ def list_employees(
     ):
         if value is not None:
             statement = statement.where(column == value)
+    if filters.phone:
+        phone_on = select(PhoneAccess.employee_id).where(PhoneAccess.phone_punch_enabled.is_(True))
+        # No phone_access row means OFF (the row is made the first time a switch is used).
+        statement = statement.where(
+            Employee.id.in_(phone_on) if filters.phone == "on" else Employee.id.not_in(phone_on)
+        )
     if filters.shift_id is not None:
         statement = statement.where(
             Employee.id.in_(

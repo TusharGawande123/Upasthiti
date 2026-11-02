@@ -39,7 +39,7 @@ SECRET_FIELDS = frozenset(
 class Actor:
     """Who did something: a logged-in user, a kiosk device, or the system (jobs)."""
 
-    actor_type: str  # "user" | "kiosk" | "system"
+    actor_type: str  # "user" | "kiosk" | "system" | "employee"
     actor_id: uuid.UUID | None
     ip: str | None = None
 

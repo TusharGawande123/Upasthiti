@@ -24,7 +24,7 @@ class AuditLog(IdMixin, Base):
     at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), server_default=func.now(), index=True
     )
-    actor_type: Mapped[str] = mapped_column(String(10))  # user | kiosk | system
+    actor_type: Mapped[str] = mapped_column(String(10))  # user | kiosk | system | employee
     actor_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, index=True)
     action: Mapped[str] = mapped_column(String(60))  # e.g. "employee.create"
     entity_type: Mapped[str] = mapped_column(String(40))

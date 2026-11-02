@@ -55,6 +55,9 @@ class EmployeeBrief(BaseModel):
 class CardListItem(BaseModel):
     employee: EmployeeBrief
     card: CardResponse | None
+    # M4b: phone punching is on for this employee. It keeps working when the card ends, so the
+    # "Cards ending soon" list shows it as a reminder (spec M4b §8.3).
+    phone_punch_enabled: bool = False
 
 
 class EmployeeCardsResponse(BaseModel):
@@ -64,6 +67,7 @@ class EmployeeCardsResponse(BaseModel):
 class ExpiringCountResponse(BaseModel):
     count: int
     days: int
+    phone_on_count: int = 0  # M4b: how many of those employees have phone punching on
 
 
 class IssueCardRequest(BaseModel):

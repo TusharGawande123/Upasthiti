@@ -35,6 +35,8 @@ class EmployeeResponse(BaseModel):
     has_pending_change: bool
     # M3: enrolled / not_enrolled / old_model (face employees), withdrawn / not_face_method (QR).
     face_state: str = "not_face_method"
+    # M4b: the Super Admin has switched phone punching on for this employee.
+    phone_punch_enabled: bool = False
 
 
 class ShiftHistoryItem(BaseModel):
