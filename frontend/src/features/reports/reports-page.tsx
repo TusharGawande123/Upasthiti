@@ -59,6 +59,14 @@ const KIND_ICONS: Record<ReportKind, ComponentType<{ className?: string }>> = {
   corrections: FilePenLine,
 };
 
+// The three limits shown above the cards. They mirror what the server enforces (one report at a
+// time, 20 in 10 minutes, PDF row cap); the texts are reports.limit.<key>.*.
+const LIMITS = [
+  { key: "oneAtATime", icon: Layers },
+  { key: "rate", icon: Gauge },
+  { key: "pdfRows", icon: FileDown },
+] as const;
+
 function addDays(isoDate: string, days: number): string {
   const moment = new Date(`${isoDate}T00:00:00Z`);
   moment.setUTCDate(moment.getUTCDate() + days);
@@ -99,61 +107,22 @@ type CardProps = {
   onBusy: (busy: boolean) => void;
 };
 
-function ReportCard({
-  config,
-  plantLocked,
-  lockedPlantId,
-  includeDemo,
-  anyBusy,
-  onBusy,
-}: CardProps) {
+/** Asks the server for one file; keeps the "building" format and the message under the buttons. */
+function useReportDownload(
+  config: ReportConfig,
+  choice: ReportChoice,
+  onBusy: (busy: boolean) => void,
+) {
   const { t } = useTranslation();
-  const plants = usePlants({ is_active: true });
-  const contractors = useContractors();
-  const today = todayIst();
-  const months = recentMonths(today);
-  const [choice, setChoice] = useState<ReportChoice>({
-    day: addDays(today, -1),
-    month: months[0]?.value ?? "",
-    dateFrom: `${today.slice(0, 8)}01`,
-    dateTo: today,
-    plantId: "",
-    contractorId: "",
-    includeDemo: false,
-  });
   const [message, setMessage] = useState<CardMessage>(null);
   const [building, setBuilding] = useState<ReportFormat | null>(null);
-  const Icon = KIND_ICONS[config.kind];
-  const id = `report-${config.kind}`;
-  // The plant of a Plant Head and the demo switch come from the page, not from this card.
-  const effective: ReportChoice = {
-    ...choice,
-    includeDemo,
-    plantId: plantLocked ? lockedPlantId : choice.plantId,
-  };
-
-  const days = daysBetween(choice.dateFrom, choice.dateTo);
-  const rangeTooLong = config.period === "range" && days > MAX_RANGE_DAYS;
-  const rangeBackwards = config.period === "range" && days < 1;
-  const noPeriod =
-    (config.period === "day" && !choice.day) ||
-    (config.period === "range" && (!choice.dateFrom || !choice.dateTo));
-  const fieldError = rangeTooLong
-    ? t("reports.error.range", { days })
-    : rangeBackwards
-      ? t("reports.error.order")
-      : undefined;
-  const cannotAsk = Boolean(fieldError) || noPeriod || anyBusy;
-
-  const set = (changes: Partial<ReportChoice>) =>
-    setChoice((current) => ({ ...current, ...changes }));
 
   const ask = async (format: ReportFormat) => {
     setMessage(null);
     setBuilding(format);
     onBusy(true);
     try {
-      const { fileName } = await downloadReport(config, format, effective);
+      const { fileName } = await downloadReport(config, format, choice);
       setMessage({ tone: "done", text: t("reports.done", { file: fileName }) });
       toast.success(t("reports.toast"));
     } catch (failure) {
@@ -171,8 +140,200 @@ function ReportCard({
     }
   };
 
+  return { message, building, ask };
+}
+
+/** The result line under the buttons: "file ready" or the reason the file was refused. */
+function ReportMessage({ message }: { message: NonNullable<CardMessage> }) {
+  return (
+    <p role={message.tone === "error" ? "alert" : "status"} className={messageClasses(message)}>
+      {message.tone === "done" ? (
+        <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
+      ) : (
+        <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
+      )}
+      <span className="break-words">{message.text}</span>
+    </p>
+  );
+}
+
+type FiltersProps = {
+  config: ReportConfig;
+  id: string;
+  choice: ReportChoice;
+  onChange: (changes: Partial<ReportChoice>) => void;
+  today: string;
+  months: { value: string; label: string }[];
+  fieldError: string | undefined;
+  plantLocked: boolean;
+  lockedPlantId: string;
+};
+
+/** The period, plant and contractor fields of one card. */
+function ReportFilters({
+  config,
+  id,
+  choice,
+  onChange,
+  today,
+  months,
+  fieldError,
+  plantLocked,
+  lockedPlantId,
+}: FiltersProps) {
+  const { t } = useTranslation();
+  const plants = usePlants({ is_active: true });
+  const contractors = useContractors();
   const plantOptions = plants.data?.items ?? [];
   const ownPlant = plantOptions.find((plant) => plant.id === lockedPlantId);
+
+  return (
+    <>
+      {config.period === "day" ? (
+        <Field id={`${id}-day`} label={t("reports.field.day")}>
+          <Input
+            id={`${id}-day`}
+            type="date"
+            value={choice.day}
+            max={today}
+            onChange={(event) => onChange({ day: event.target.value })}
+          />
+        </Field>
+      ) : null}
+      {config.period === "month" ? (
+        <Field id={`${id}-month`} label={t("reports.field.month")}>
+          <Select
+            id={`${id}-month`}
+            value={choice.month}
+            onChange={(event) => onChange({ month: event.target.value })}
+          >
+            {months.map((month) => (
+              <option key={month.value} value={month.value}>
+                {month.label}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      ) : null}
+      {config.period === "range" ? (
+        <div>
+          <div className="grid grid-cols-2 gap-3">
+            <Field id={`${id}-from`} label={t("reports.field.from")}>
+              <Input
+                id={`${id}-from`}
+                type="date"
+                value={choice.dateFrom}
+                max={today}
+                aria-invalid={Boolean(fieldError)}
+                onChange={(event) => onChange({ dateFrom: event.target.value })}
+              />
+            </Field>
+            <Field id={`${id}-to`} label={t("reports.field.to")}>
+              <Input
+                id={`${id}-to`}
+                type="date"
+                value={choice.dateTo}
+                max={today}
+                aria-invalid={Boolean(fieldError)}
+                onChange={(event) => onChange({ dateTo: event.target.value })}
+              />
+            </Field>
+          </div>
+          {fieldError ? (
+            <p role="alert" className="mt-1 text-[13px] font-medium text-destructive">
+              {fieldError}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      <Field id={`${id}-plant`} label={t("reports.field.plant")}>
+        {plantLocked ? (
+          <span className="flex h-11 items-center gap-2 rounded-md border bg-muted px-3 text-sm font-semibold">
+            <Lock className="size-4" aria-hidden />
+            {ownPlant ? `${ownPlant.code} · ${ownPlant.name}` : t("reports.yourPlant")}
+          </span>
+        ) : (
+          <Select
+            id={`${id}-plant`}
+            value={choice.plantId}
+            onChange={(event) => onChange({ plantId: event.target.value })}
+          >
+            <option value="">{t("plantFilter.all")}</option>
+            {plantOptions.map((plant) => (
+              <option key={plant.id} value={plant.id}>
+                {plant.code} · {plant.name}
+              </option>
+            ))}
+          </Select>
+        )}
+      </Field>
+
+      {config.hasContractor ? (
+        <Field id={`${id}-contractor`} label={t("reports.field.contractor")}>
+          <Select
+            id={`${id}-contractor`}
+            value={choice.contractorId}
+            onChange={(event) => onChange({ contractorId: event.target.value })}
+          >
+            <option value="">{t("reports.allContractors")}</option>
+            {(contractors.data ?? []).map((contractor) => (
+              <option key={contractor.id} value={contractor.id}>
+                {contractor.name}
+              </option>
+            ))}
+          </Select>
+        </Field>
+      ) : null}
+    </>
+  );
+}
+
+function ReportCard({
+  config,
+  plantLocked,
+  lockedPlantId,
+  includeDemo,
+  anyBusy,
+  onBusy,
+}: CardProps) {
+  const { t } = useTranslation();
+  const today = todayIst();
+  const months = recentMonths(today);
+  const [choice, setChoice] = useState<ReportChoice>({
+    day: addDays(today, -1),
+    month: months[0]?.value ?? "",
+    dateFrom: `${today.slice(0, 8)}01`,
+    dateTo: today,
+    plantId: "",
+    contractorId: "",
+    includeDemo: false,
+  });
+  const Icon = KIND_ICONS[config.kind];
+  const id = `report-${config.kind}`;
+  // The plant of a Plant Head and the demo switch come from the page, not from this card.
+  const effective: ReportChoice = {
+    ...choice,
+    includeDemo,
+    plantId: plantLocked ? lockedPlantId : choice.plantId,
+  };
+  const { message, building, ask } = useReportDownload(config, effective, onBusy);
+
+  const days = daysBetween(choice.dateFrom, choice.dateTo);
+  const rangeTooLong = config.period === "range" && days > MAX_RANGE_DAYS;
+  const rangeBackwards = config.period === "range" && days < 1;
+  const noPeriod =
+    (config.period === "day" && !choice.day) ||
+    (config.period === "range" && (!choice.dateFrom || !choice.dateTo));
+  const fieldError = rangeTooLong
+    ? t("reports.error.range", { days })
+    : rangeBackwards
+      ? t("reports.error.order")
+      : undefined;
+  const cannotAsk = Boolean(fieldError) || noPeriod || anyBusy;
+
+  const set = (changes: Partial<ReportChoice>) =>
+    setChoice((current) => ({ ...current, ...changes }));
 
   return (
     <Card className="flex flex-col" aria-labelledby={`${id}-title`}>
@@ -189,118 +350,21 @@ function ReportCard({
           </div>
         </div>
 
-        {config.period === "day" ? (
-          <Field id={`${id}-day`} label={t("reports.field.day")}>
-            <Input
-              id={`${id}-day`}
-              type="date"
-              value={choice.day}
-              max={today}
-              onChange={(event) => set({ day: event.target.value })}
-            />
-          </Field>
-        ) : null}
-        {config.period === "month" ? (
-          <Field id={`${id}-month`} label={t("reports.field.month")}>
-            <Select
-              id={`${id}-month`}
-              value={choice.month}
-              onChange={(event) => set({ month: event.target.value })}
-            >
-              {months.map((month) => (
-                <option key={month.value} value={month.value}>
-                  {month.label}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        ) : null}
-        {config.period === "range" ? (
-          <div>
-            <div className="grid grid-cols-2 gap-3">
-              <Field id={`${id}-from`} label={t("reports.field.from")}>
-                <Input
-                  id={`${id}-from`}
-                  type="date"
-                  value={choice.dateFrom}
-                  max={today}
-                  aria-invalid={Boolean(fieldError)}
-                  onChange={(event) => set({ dateFrom: event.target.value })}
-                />
-              </Field>
-              <Field id={`${id}-to`} label={t("reports.field.to")}>
-                <Input
-                  id={`${id}-to`}
-                  type="date"
-                  value={choice.dateTo}
-                  max={today}
-                  aria-invalid={Boolean(fieldError)}
-                  onChange={(event) => set({ dateTo: event.target.value })}
-                />
-              </Field>
-            </div>
-            {fieldError ? (
-              <p role="alert" className="mt-1 text-[13px] font-medium text-destructive">
-                {fieldError}
-              </p>
-            ) : null}
-          </div>
-        ) : null}
-
-        <Field id={`${id}-plant`} label={t("reports.field.plant")}>
-          {plantLocked ? (
-            <span className="flex h-11 items-center gap-2 rounded-md border bg-muted px-3 text-sm font-semibold">
-              <Lock className="size-4" aria-hidden />
-              {ownPlant ? `${ownPlant.code} · ${ownPlant.name}` : t("reports.yourPlant")}
-            </span>
-          ) : (
-            <Select
-              id={`${id}-plant`}
-              value={choice.plantId}
-              onChange={(event) => set({ plantId: event.target.value })}
-            >
-              <option value="">{t("plantFilter.all")}</option>
-              {plantOptions.map((plant) => (
-                <option key={plant.id} value={plant.id}>
-                  {plant.code} · {plant.name}
-                </option>
-              ))}
-            </Select>
-          )}
-        </Field>
-
-        {config.hasContractor ? (
-          <Field id={`${id}-contractor`} label={t("reports.field.contractor")}>
-            <Select
-              id={`${id}-contractor`}
-              value={choice.contractorId}
-              onChange={(event) => set({ contractorId: event.target.value })}
-            >
-              <option value="">{t("reports.allContractors")}</option>
-              {(contractors.data ?? []).map((contractor) => (
-                <option key={contractor.id} value={contractor.id}>
-                  {contractor.name}
-                </option>
-              ))}
-            </Select>
-          </Field>
-        ) : null}
+        <ReportFilters
+          config={config}
+          id={id}
+          choice={choice}
+          onChange={set}
+          today={today}
+          months={months}
+          fieldError={fieldError}
+          plantLocked={plantLocked}
+          lockedPlantId={lockedPlantId}
+        />
       </div>
 
       <div className="space-y-3 border-t bg-muted/30 p-4 sm:px-5">
-        {message ? (
-          <p
-            role={message.tone === "error" ? "alert" : "status"}
-            className={messageClasses(message)}
-          >
-            {message.tone === "done" ? (
-              <ShieldCheck className="mt-0.5 size-4 shrink-0" aria-hidden />
-            ) : (
-              <TriangleAlert className="mt-0.5 size-4 shrink-0" aria-hidden />
-            )}
-            <span className="break-words">{message.text}</span>
-          </p>
-        ) : null}
+        {message ? <ReportMessage message={message} /> : null}
         {building ? (
           <p role="status" className="flex items-start gap-2 text-[13px] text-muted-foreground">
             <Loader2 className="mt-0.5 size-4 shrink-0 animate-spin" aria-hidden />
@@ -345,12 +409,6 @@ function ReportCard({
     </Card>
   );
 }
-
-const LIMITS = [
-  { key: "oneAtATime", icon: Layers },
-  { key: "rate", icon: Gauge },
-  { key: "pdfRows", icon: FileDown },
-] as const;
 
 export function ReportsPage() {
   const { t } = useTranslation();
