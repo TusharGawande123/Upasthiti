@@ -518,3 +518,10 @@ a real phone at 360 px, report downloads opened in Excel.
   for all actions), neutral location refusal texts (no spec asks for them). Tests: AC-52 (unit + Playwright), AC-38, AC-48, card proof 429,
   employee page at 360 px in `responsive.spec.ts`. Decision 0036 line 74 (**to confirm: the position line for heads, location texts**).
 - 2026-11-02 root cause of the flaky face-punch e2e tests (open point of 2026-11-01): in e2e/tests/helpers.ts the regex /\bLEFT\b/ had been saved with two backspace characters, so the fake head never turned left and the punch failed about two runs in three. Fixed; kiosk-face-punch and admin-face pass 14 of 14 headed. Biome warnings (unused suppression, innerText with a WHY comment, text-date min/max) fixed so the pre-commit hook passes on all files.
+- 2026-11-02 **Grace after the shift end** (follow-up on branch `feat/grace-after-shift-end`, decision 0036 lines 79 and 84 to 87). Done: migration 0030
+  (`grace_after_end_min` on `shifts` and `shift_rule_versions`, backfill 30, audit row per shift), schemas, shift service and rule versions, poster
+  ("OUT allowed until", smaller one-line form for four or more shifts), day explanation (`outInGrace`), shift form field, helper line, rule history,
+  shifts list, day drawer and daily register head; spec rule 9 and the old 16:30 examples corrected. The calculation ignores the new field (golden
+  rows `grace-after-end-*`). Tests: backend focused runs passed (compute day 75 incl. 6 new rows, shift rules, poster, kiosk status, attendance API,
+  migrations 0019 and 0030); frontend 974 passed (coverage 89.6 / 84.7 / 85.7 / 91.0). Full backend suite and pre-commit: see the report of this step.
+  Open: lead to confirm the smaller poster size for four or more shifts (decision 0036 line 86); not pushed, no PR yet.

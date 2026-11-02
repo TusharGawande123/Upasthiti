@@ -176,6 +176,7 @@ describe("plant detail", () => {
             end_time: "19:00:00",
             crosses_midnight: false,
             grace_min: 30,
+            grace_after_end_min: 30,
             half_day_min: 240,
             overtime_min_minutes: 120,
             is_active: true,

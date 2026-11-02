@@ -463,6 +463,7 @@ def create_shift(
             start_time=body.start_time,
             end_time=body.end_time,
             grace_min=body.grace_min,
+            grace_after_end_min=body.grace_after_end_min,
             half_day_min=body.half_day_min,
             overtime_min_minutes=body.overtime_min_minutes,
         ),

@@ -212,7 +212,8 @@ class PosterShift:
     name: str
     start: time
     end: time
-    grace_min: int
+    grace_min: int  # after the start
+    grace_after_end_min: int = 30  # after the end
 
 
 MAX_POSTER_SHIFTS = 6
@@ -220,8 +221,21 @@ SHIFT_SIZE = 14.0
 SHIFT_LINE, SHIFT_LINE_COMPACT = 6.5, 5.3  # compact: more than three shifts
 
 
+# The grace after the end ("OUT allowed until"): with up to three shifts it sits on a small second
+# line under the times. With more shifts there is no height left on the page, so all of it goes on
+# one line in a smaller size (a test checks both fit).
+OUT_SIZE = 11.0
+OUT_LINE = 3.8
+SHIFT_SIZE_COMPACT = 10.0
+NAME_WIDTH, NAME_WIDTH_COMPACT = 34.0, 28.0
+
+
 def _shift_line_height(shift_count: int) -> float:
     return SHIFT_LINE if shift_count <= 3 else SHIFT_LINE_COMPACT
+
+
+def _out_on_own_line(shift_count: int) -> bool:
+    return shift_count <= 3
 
 
 SHIFT_RULES = (
@@ -240,13 +254,20 @@ def _on_time_until(shift: PosterShift) -> time:
     return (started + timedelta(minutes=shift.grace_min)).time()
 
 
+def _out_until(shift: PosterShift) -> time:
+    """The shift end plus the grace after the end (decision 0036 line 79); shown only."""
+    ended = datetime.combine(date.today(), shift.end)
+    return (ended + timedelta(minutes=shift.grace_after_end_min)).time()
+
+
 def shifts_box_height(pdf: FPDF, shift_count: int) -> float:
     """Header, one line per shown shift (and the "and N more" line) and the two rule lines."""
     lines = min(shift_count, MAX_POSTER_SHIFTS)  # the "and N more" line takes the sixth place
     rules = sum(
         _text_height(pdf, CONTENT_WIDTH_MM - 10, SHIFT_SIZE, 6, rule, True) for rule in SHIFT_RULES
     )
-    return 11 + 2 + lines * _shift_line_height(shift_count) + 3 + rules + 1
+    out_lines = shift_count * OUT_LINE if _out_on_own_line(shift_count) else 0
+    return 11 + 2 + lines * _shift_line_height(shift_count) + out_lines + 3 + rules + 1
 
 
 def _shifts_box(pdf: FPDF, y: float, shifts: list[PosterShift], made_on: date) -> float:
@@ -268,14 +289,17 @@ def _shifts_box(pdf: FPDF, y: float, shifts: list[PosterShift], made_on: date) -
     pdf.cell(80, 7, f"Shift times as on {made_on:%d/%m/%Y}", align="R")
 
     row_y = y + 13
-    name_width = 34.0
+    own_line = _out_on_own_line(len(shifts))
+    name_width = NAME_WIDTH if own_line else NAME_WIDTH_COMPACT
     # With more than six shifts, five are listed and the sixth line says how many are left out:
     # the page has room for six lines, never seven (decision 0036 line 19).
     shown = shifts if len(shifts) <= MAX_POSTER_SHIFTS else shifts[: MAX_POSTER_SHIFTS - 1]
     line = _shift_line_height(len(shifts))
     for shift in shown:
-        _shift_line(pdf, row_y, shift, name_width, line)
+        _shift_line(pdf, row_y, shift, name_width, line, with_out=not own_line)
         row_y += line
+        if own_line:
+            row_y = _out_until_line(pdf, row_y, shift, name_width)
     if len(shifts) > MAX_POSTER_SHIFTS:
         more = len(shifts) - len(shown)
         plural = "shift" if more == 1 else "shifts"
@@ -301,10 +325,14 @@ def _shifts_box(pdf: FPDF, y: float, shifts: list[PosterShift], made_on: date) -
     return y + height
 
 
-def _shift_line(pdf: FPDF, y: float, shift: PosterShift, name_width: float, line: float) -> None:
-    """ "Office  09:00-17:00: on time until 09:30, leave from 17:00." with the key times bold."""
+def _shift_line(
+    pdf: FPDF, y: float, shift: PosterShift, name_width: float, line: float, with_out: bool
+) -> None:
+    """ "Office  09:00-17:00: on time until 09:30, leave from 17:00." with the key times bold.
+    `with_out` adds "OUT allowed until 17:30." on the same line (smaller size, many shifts)."""
+    size = SHIFT_SIZE_COMPACT if with_out else SHIFT_SIZE
     pdf.set_text_color(*INK)
-    pdf.set_font(FONT_NAME, "B", SHIFT_SIZE)
+    pdf.set_font(FONT_NAME, "B", size)
     name = shift.name
     while name and pdf.get_string_width(name) > name_width - 2:
         name = name[:-1]
@@ -317,12 +345,35 @@ def _shift_line(pdf: FPDF, y: float, shift: PosterShift, name_width: float, line
         (True, _clock(shift.end)),
         (False, "."),
     )
+    if with_out:
+        pieces += (
+            (False, " OUT allowed until "),
+            (True, _clock(_out_until(shift))),
+            (False, "."),
+        )
     for bold, text in pieces:
-        pdf.set_font(FONT_NAME, "B" if bold else "", SHIFT_SIZE)
+        pdf.set_font(FONT_NAME, "B" if bold else "", size)
         pdf.cell(pdf.get_string_width(text) + 0.2, line, text)
+    if with_out:
+        _row_rule(pdf, y + line)
+
+
+def _row_rule(pdf: FPDF, y: float) -> None:
     pdf.set_draw_color(205, 212, 224)
     pdf.set_line_width(0.2)
-    pdf.line(MARGIN_MM + 5, y + line, MARGIN_MM + CONTENT_WIDTH_MM - 5, y + line)
+    pdf.line(MARGIN_MM + 5, y, MARGIN_MM + CONTENT_WIDTH_MM - 5, y)
+
+
+def _out_until_line(pdf: FPDF, y: float, shift: PosterShift, indent: float) -> float:
+    """The small "OUT allowed until 17:30." line under the shift times; returns the y below it."""
+    line = OUT_LINE
+    pdf.set_xy(MARGIN_MM + 5 + indent, y)
+    pieces = ((False, "OUT allowed until "), (True, _clock(_out_until(shift))), (False, "."))
+    for bold, text in pieces:
+        pdf.set_font(FONT_NAME, "B" if bold else "", OUT_SIZE)
+        pdf.cell(pdf.get_string_width(text) + 0.2, line, text)
+    _row_rule(pdf, y + line)
+    return y + line
 
 
 PRIVACY_HEADING = "About your face and the photo"

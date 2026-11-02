@@ -217,6 +217,7 @@ def _shift_rules(session: Session, window: Any) -> dict[str, Any]:
         "crosses_midnight": rules.crosses_midnight,
         "shift_length_min": rules.length_min,
         "grace_min": rules.grace_min,
+        "grace_after_end_min": rules.grace_after_end_min,
         "half_day_min": rules.half_day_min,
         "overtime_min_minutes": rules.overtime_min_minutes,
         "effective_from": version.effective_from if version else None,

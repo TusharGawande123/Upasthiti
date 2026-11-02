@@ -259,9 +259,47 @@ def test_the_poster_lists_the_active_shifts_with_the_rules_of_today(
 
     assert "Your shift times" in text and "Shift times as on" in text
     assert "19:00–07:00: on time until 19:15, leave from 07:00." in text
+    assert "OUT allowed until 07:30." in text
     assert "Old shift" not in text
     assert "One IN and one OUT per shift." in text
     assert "Please visit the plant office if your shift is closed by mistake." in text
+
+
+def test_the_poster_shows_the_grace_after_the_end_of_each_shift(
+    boss: TestClient, k134: PlantIds
+) -> None:
+    """Decision 0036 line 79: "OUT allowed until" is the shift end plus the grace after the end."""
+    boss.post(
+        f"/api/v1/plants/{k134.id}/shifts",
+        json={
+            "name": "Late",
+            "start_time": "10:00",
+            "end_time": "18:00",
+            "grace_min": 10,
+            "grace_after_end_min": 45,
+        },
+    )
+
+    text = poster_text(boss.get(f"/api/v1/plants/{k134.id}/gate-poster.pdf"))
+
+    assert "10:00–18:00: on time until 10:10, leave from 18:00." in text
+    assert "OUT allowed until 18:45." in text
+
+
+def test_the_longest_shift_line_fits_the_poster_width() -> None:
+    """ "OUT allowed until" must fit: on its own line, or in the smaller one-line form."""
+    pdf = FPDF(format="A4", unit="mm")
+    pdf.add_font(poster_pdf.FONT_NAME, "", str(poster_pdf.FONT_FOLDER / "Inter-Regular.ttf"))
+    pdf.add_font(poster_pdf.FONT_NAME, "B", str(poster_pdf.FONT_FOLDER / "Inter-Bold.ttf"))
+    pdf.add_page()
+    pdf.set_font(poster_pdf.FONT_NAME, "B", poster_pdf.SHIFT_SIZE)
+    box_inner_width = poster_pdf.CONTENT_WIDTH_MM - 10
+    line = "00:00–00:00: on time until 00:00, leave from 00:00."
+    assert poster_pdf.NAME_WIDTH + pdf.get_string_width(line) < box_inner_width
+    # With more than three shifts the whole line, including the new part, is smaller.
+    full = f"{line} OUT allowed until 00:00."
+    pdf.set_font(poster_pdf.FONT_NAME, "B", poster_pdf.SHIFT_SIZE_COMPACT)
+    assert poster_pdf.NAME_WIDTH_COMPACT + pdf.get_string_width(full) < box_inner_width
 
 
 def test_more_than_six_shifts_say_and_n_more() -> None:

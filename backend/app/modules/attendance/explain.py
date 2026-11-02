@@ -46,7 +46,7 @@ def explain_day(day: Day, rules: ShiftRules | None) -> list[Sentence]:
     if day.first_in is None:
         return [_sentence("noPunch", status=day.status)]
 
-    sentences = [_in_sentence(day, day.first_in, rules), _out_sentence(day)]
+    sentences = [_in_sentence(day, day.first_in, rules), _out_sentence(day, rules)]
     sentences.extend(_status_sentences(day))
     sentences.extend(_overtime_sentences(day, rules))
     if day.extra_punch_count:
@@ -73,10 +73,23 @@ def _in_sentence(day: Day, first_in_moment: datetime, rules: ShiftRules | None) 
     return _sentence("onTime", time=first_in, until=on_time_until)
 
 
-def _out_sentence(day: Day) -> Sentence:
+def _out_sentence(day: Day, rules: ShiftRules | None) -> Sentence:
     if day.last_out is None:
         return _sentence("noOut")
+    if rules is not None and _is_out_in_end_grace(day, rules):
+        _, end = shift_moments(day.date, rules)
+        out_until = _clock(end + timedelta(minutes=rules.grace_after_end_min))
+        return _sentence("outInGrace", time=_clock(day.last_out), until=out_until)
     return _sentence("outAt", time=_clock(day.last_out))
+
+
+def _is_out_in_end_grace(day: Day, rules: ShiftRules) -> bool:
+    """An OUT after the shift end but within the grace after the end is on time (words only:
+    the minutes, overtime and status never use this grace, decision 0036 line 79)."""
+    if day.last_out is None or day.employee_type != "permanent" or day.day_kind != "working":
+        return False
+    _, end = shift_moments(day.date, rules)
+    return end < day.last_out <= end + timedelta(minutes=rules.grace_after_end_min)
 
 
 def _status_sentences(day: Day) -> list[Sentence]:

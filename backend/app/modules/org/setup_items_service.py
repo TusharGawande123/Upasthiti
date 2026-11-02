@@ -226,6 +226,7 @@ def _snapshot(item: SetupItem) -> dict[str, object]:
             "end_time": item.end_time,
             "crosses_midnight": item.crosses_midnight,
             "grace_min": item.grace_min,
+            "grace_after_end_min": item.grace_after_end_min,
             "half_day_min": item.half_day_min,
             "overtime_min_minutes": item.overtime_min_minutes,
         }

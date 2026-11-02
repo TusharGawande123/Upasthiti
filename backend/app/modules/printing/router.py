@@ -113,6 +113,12 @@ def _active_shifts(session: Session, plant_id: uuid.UUID) -> list[PosterShift]:
         .order_by(Shift.start_time, Shift.name)
     )
     return [
-        PosterShift(shift.name, shift.start_time, shift.end_time, shift.grace_min)
+        PosterShift(
+            shift.name,
+            shift.start_time,
+            shift.end_time,
+            shift.grace_min,
+            shift.grace_after_end_min,
+        )
         for shift in shifts
     ]

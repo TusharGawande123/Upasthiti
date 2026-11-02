@@ -84,7 +84,8 @@ these screens and files unless the Super Admin switches on "Show demo plants".
    reads first.
 3. **Shift rules** (lead decisions of 2026-10-30, as changed by the client call): a full day is the
    **full shift length**; there is **no full-day setting** and no `full_day_min` column. The Super Admin
-   sets per shift: `grace_min` (default **30**, at the start and at the end), `half_day_min` (default
+   sets per shift: `grace_min` (grace after the start, default **30**), `grace_after_end_min` (grace after the end, default
+   **30**, shown only: it changes no minutes, decision 0036 line 79), `half_day_min` (default
    240) and the new `overtime_min_minutes` (default **120**: overtime counts only from 2 hours). Overtime
    starts right at the shift end, so `ot_after_min` is **removed** (§7 rule 11). A day below the half-day
    limit gets the separate status **Short hours**, decided later by the Super Admin through a
@@ -267,7 +268,7 @@ gains **weekly off and attendance start date** (Details tab) and the shift form 
   exit, overtime, marks ("Corrected" pencil icon, "Correction pending" clock icon, "Flagged punch" flag
   icon, "Extra punches" note icon, exception count). On a phone each row becomes a card.
 - The table head shows the shift tolerance in plain words for the chosen shift: "On time until 09:30.
-  Leave from 16:30." (`attendance.tolerance`).
+  Leave from 17:00. OUT allowed until 17:30." (`attendance.tolerance`).
 - Click a row → day timeline drawer (§4.6).
 - Today's rows show **In progress** while the day is open (§7 rule 8): "Inside since 07:04" or "Not
   arrived yet".
@@ -297,7 +298,7 @@ gains **weekly off and attendance start date** (Details tab) and the shift form 
 
 ### 4.6 Day timeline drawer (one employee, one day)
 - Header: name, code, date, plant, shift used with its rules ("Office 09:00–17:00 (8 h = full day) ·
-  on time until 09:30, leave from 16:30 · half day 4 h · overtime from 17:00 when it is 2 h or more"),
+  on time until 09:30, leave from 17:00, OUT allowed until 17:30 · half day 4 h · overtime from 17:00 when it is 2 h or more"),
   the day window ("Punches from 05:00 on 29/10 to 05:00 on 30/10 count for this day").
 - **Result:** status chip, IN (first), OUT (last), worked, worked for status ("7 h 20 m of 8 h"), late,
   early exit, overtime, payable time, exceptions with plain text (`attendanceExceptions.<CODE>`).
@@ -360,14 +361,15 @@ gains **weekly off and attendance start date** (Details tab) and the shift form 
   date (Super Admin; once days exist it can only move later, §7 rule 3).
 
 ### 4.10 Shift form (plant page, Shifts tab) additions
-- Fields: start, end, **grace minutes** (default 30, at the start and at the end), **half-day hours**
+- Fields: start, end, **grace after the start** and **grace after the end** (minutes, 0 to 120, default 30
+  each), **half-day hours**
   (h + min), **smallest overtime that counts** (minutes, default 120), **"These rules apply from"**
   date (today or later; default today). The old field "overtime starts … minutes after the shift ends"
   is removed (overtime always starts at the shift end). No full-day field: the shift length is the full
   day (shown read-only: "Full day: 8 h").
 - Helper text that updates live, in plain words (example 09:00–17:00, grace 30, half day 4 h,
-  overtime minimum 2 h): "On time until 09:30. Leave from 16:30. Arrive by 09:30 and leave from 16:30
-  = full day (8 h). Later or earlier than that = the real hours count. Half-day from 4 h. Below 4 h =
+  overtime minimum 2 h): "On time until 09:30. Leave from 17:00; an OUT up to 17:30 is on time. Arrive by 09:30 and
+  stay until 17:00 = full day (8 h). Later or earlier than that = the real hours count. Half-day from 4 h. Below 4 h =
   Short hours (you decide the day with a correction). Overtime: from 17:00, only when you stay 2 h or
   more." (`shiftForm.tolerance`, `shiftForm.overtimeHint`)
 - History list: "Rules from 01/11/2026: … · Rules from 23/10/2026: …".
@@ -439,8 +441,10 @@ setting (§7 rule 16).
 ### 4.17 Gate poster (M2 F-34) update
 - The A4 poster of a plant gains a box "Your shift times", generated from the plant's **active
   shifts** and their current rules (never fixed text): one line per shift, e.g. "Office 09:00–17:00:
-  on time until 09:30, leave from 16:30." and "Night 19:00–07:00: on time until 19:30, leave from
-  06:30." (start + grace, end − grace).
+  on time until 09:30, leave from 17:00." and "Night 19:00–07:00: on time until 19:30, leave from
+  07:00." (start + grace after the start; leave from the shift end), each with "OUT allowed until 17:30."
+  (shift end + grace after the end; a small second line up to three shifts, the same line in a smaller
+  size with four or more, so the poster stays on one page).
 - A rule line: "One IN and one OUT per shift. After your OUT you cannot punch again in the same shift."
   and "Please visit the plant office if your shift is closed by mistake."
 - Words: "attendance device", never "kiosk"; text sizes as the M2/M4 poster (body at least 14 pt,
@@ -766,31 +770,39 @@ The storage meter idea (S-25) becomes more useful; see §12.
 
 9. **Worked time, grace, late, early exit and the status of permanent employees on a working day**
    (client call of 2026-10-30; lead decisions of the same day). Notation: *S* = shift start, *E* = shift
-   end (on D+1 for a shift that crosses midnight), *g* = the shift's `grace_min` (default **30**, the
-   same at the start and at the end), *L* = shift length = *E* − *S*, *H* = `half_day_min`.
+   end (on D+1 for a shift that crosses midnight), *g* = the shift's `grace_min` (grace after the start,
+   default **30**), *g_end* = `grace_after_end_min` (grace after the end, default **30**, decision 0036
+   line 79), *L* = shift length = *E* − *S*, *H* = `half_day_min`.
    Office 09:00–17:00 → L = 480 min; Night 19:00–07:00 → L = 720 min. **The shift length is the full
    day**; there is no full-day setting.
    - **Worked minutes** *W* (stored, shown everywhere, input for M7) = *last_out* − *first_in*, whole
      minutes cut down. Nothing is subtracted for breaks, and extra punches in between do not change it.
      Early arrival is part of *W* (see the status rule for what it does not do).
    - **Grace in plain words** (shown on admin screens, §4.3, §4.6, §4.10): "On time until *S*+*g*.
-     Leave from *E*−*g*." Example 09:00–17:00, g = 30: "On time until 09:30. Leave from 16:30."
+     Leave from *E*; an OUT up to *E*+*g_end* is on time." Example 09:00–17:00, g = 30, g_end = 30: "On time
+     until 09:30. Leave from 17:00; an OUT up to 17:30 is on time." There is no grace before the end.
    - **Late arrival:** *first_in* later than *S*+*g* (to the second) → **Late**; late minutes =
      *first_in* − *S* (the whole delay from the shift start, cut down). IN 09:30:00 is on time; IN
      09:30:01 is late 30. Beyond grace the delay is counted from *S*, not from *S*+*g*.
-   - **Early exit** (complete days only): *last_out* earlier than *E*−*g* (to the second) → **Early
-     exit**; minutes = *E* − *last_out*. OUT 16:30:00 is not early; OUT 16:29:59 is early 31 minutes.
+   - **Early exit** (complete days only): *last_out* earlier than *E* (to the second) → **Early exit**;
+     minutes = *E* − *last_out*. OUT 17:00:00 is not early; OUT 16:59:59 is early (decision 0036 line 8).
+   - **Grace after the end** (decision 0036 line 79): an OUT after *E* and up to *E*+*g_end* is on time. It
+     changes **no minute and no status**: worked, payable and overtime minutes and the status are those of any
+     OUT after *E* (overtime starts at *E* and counts from its minimum, rule 11). It is a stored, editable
+     setting that is shown (shift form, rule history, poster, API) and that the day explanation uses
+     ("OUT at 17:20: on time (OUT allowed until 17:30)").
    - **Worked for status** *WS* (used only to choose Present / Half-day / Short hours; accepted by the
      lead on 2026-10-30, who also used it as the model for temporary workers' payable minutes):
      1. Start point *A* = *S* when *first_in* ≤ *S*+*g* (an IN inside grace counts as the shift start;
         **arriving before *S* also counts from *S***, so early arrival neither helps nor hurts the
         status); otherwise *A* = *first_in* (the real minutes count).
-     2. End point *B* = *E* when *last_out* ≥ *E*−*g* (an OUT inside grace before the end counts as the
-        shift end; staying after *E* does not add to the status); otherwise *B* = *last_out*.
+     2. End point *B* = *E* when *last_out* ≥ *E* (staying after *E* does not add to the status);
+        otherwise *B* = *last_out* (no grace before the end).
      3. *WS* = *B* − *A*, whole minutes cut down, never below 0 and never above *L*.
      - Examples (09:00–17:00, g = 30): IN 09:25 / OUT 17:00 → *A* 09:00, *B* 17:00 → *WS* 480 (a full
        day, though *W* is 455); IN 09:40 / OUT 17:00 → *A* 09:40 → *WS* 440 (7 h 20 m of 8 h);
-       IN 09:00 / OUT 16:20 → *B* 16:20 → *WS* 440; IN 09:25 / OUT 16:35 → both inside grace → *WS* 480.
+       IN 09:00 / OUT 16:20 → *B* 16:20 → *WS* 440; IN 09:25 / OUT 16:35 → *A* 09:00, *B* 16:35 → *WS* 455
+       (Half-day); IN 09:00 / OUT 17:20 or 17:50 → *WS* 480 (Present) whatever *g_end* is.
    - **Status** of a complete day (rule 7):
      - *WS* = *L* → **Present** (full day);
      - *H* ≤ *WS* < *L* → **Half-day**;
@@ -802,7 +814,7 @@ The storage meter idea (S-25) becomes more useful; see §12.
        count); they are also reported as Late / Early exit.
    - **Absent** = no counting punch at all on a closed working day, no leave, not a holiday or weekly
      off (with leave → **Leave**, rule 12).
-   - Shift limits: `0 ≤ half_day_min < L` and `0 ≤ grace_min ≤ 120` (`SHIFT_DAY_LIMITS_INVALID`),
+   - Shift limits: `0 ≤ half_day_min < L` and `0 ≤ grace_min ≤ 120` and `0 ≤ grace_after_end_min ≤ 120` (`SHIFT_DAY_LIMITS_INVALID`),
      checked when a shift is saved and when its times change.
 
 10. **Temporary workers** (client call: one IN and one OUT per shift for them too).
@@ -1081,14 +1093,15 @@ The storage meter idea (S-25) becomes more useful; see §12.
     (crosses midnight, L = 720), grace 30, half day 240, smallest overtime 120; window 15:00 to 15:00.
     Plant weekly off Sunday. 30/10/2026 is a Friday; 31/10 Saturday; 01/11 Sunday; 02/11 Monday. *W* =
     worked (first IN to last OUT); *WS* = worked for status (rule 9). On time until 09:30; leave from
-    16:30.
+    17:00; an OUT up to 17:30 is on time (grace after the end 30, decision 0036 line 79).
 
     **Permanent employees, Office shift, Friday 30/10 unless stated**
     | # | Events | Result |
     |---|---|---|
     | E1 | IN 09:25, OUT 17:00 | IN inside grace counts as 09:00: *WS* 480 → **Present** (a full day); late 0; early exit 0; *W* 7 h 35 m (455); OT 0 |
     | E2 | IN 09:00, OUT 17:00 | *WS* 480 → **Present**; *W* 480 |
-    | E3 | IN 09:30:00, OUT 16:30:00 (both exactly on the grace edge) | *WS* 480 → **Present**; late 0; early exit 0; *W* 420 |
+    | E3 | IN 09:30:00, OUT 17:00 (IN exactly on the grace edge) | *WS* 480 → **Present**; late 0; early exit 0; *W* 450 |
+    | E3b | IN 09:00, OUT 17:20 and IN 09:00, OUT 17:50 | OUT inside / beyond the grace after the end: the same numbers either way (golden rows `grace-after-end-*`): *WS* 480 → **Present**; early exit 0; OT 0; *W* 500 / 530; payable 480; only the explanation says "on time" for 17:20 |
     | E4 | IN 09:40, OUT 17:00 | Beyond grace, real minutes count: *A* 09:40, *WS* 440 (**7 h 20 m of 8 h**) → **Half-day**; **late 40**; *W* 440; OT 0 |
     | E5 | IN 09:00, OUT 16:20 | *B* 16:20, *WS* 440 → **Half-day**; **early exit 40**; *W* 440 |
     | E6 | IN 08:40, OUT 17:00 (arrives early) | Counts from 09:00: *WS* 480 → **Present**; *W* 8 h 20 m (500); OT 0 (overtime only after 17:00) |
@@ -1417,7 +1430,7 @@ Dates are fixed (30/10/2026 is a Friday). "Office" and "Night" are the shifts of
 - **AC-6 (thresholds)** Given the 480-minute Office shift and half day 240, then worked for status 480 =
   Present, 479 = Half-day, 240 = Half-day, 239 = **Short hours**, and a working day with no counting
   punch = Absent; there is no `full_day_min` anywhere (column, API, setting or screen).
-- **AC-6b (grace, 30 minutes)** On the 09:00–17:00 shift: IN 09:30:00 / OUT 16:30:00 = Present, not late,
+- **AC-6b (grace, 30 minutes)** On the 09:00–17:00 shift: IN 09:30:00 / OUT 17:00 = Present, not late,
   not early; IN 09:25 / OUT 17:00 = Present; IN 09:30:01 = late 30 and Half-day (*WS* 479); OUT 16:29:59
   = early exit 31 and Half-day; IN 09:40 / OUT 17:00 = Half-day with *WS* 440 (7 h 20 m); IN 08:40 /
   OUT 17:00 = Present (early arrival counts from 09:00).
@@ -1449,7 +1462,8 @@ Dates are fixed (30/10/2026 is a Friday). "Office" and "Night" are the shifts of
   list says 2 working days; punches on 02/11 make it Present with `PUNCHES_ON_LEAVE`.
 - **AC-12b (shift form and migration defaults)** The shift form defaults are grace 30, half day 4 h,
   smallest overtime 120 and no "overtime starts after" field; saving half day equal to the shift length
-  or grace 121 gives `SHIFT_DAY_LIMITS_INVALID`; the form shows "On time until 09:30. Leave from 16:30.".
+  or grace 121 gives `SHIFT_DAY_LIMITS_INVALID`; the form shows "On time until 09:30." and "OUT from 17:00 up to 17:30 is on time."; grace after the end 121 or
+  -1 is refused and changing it adds a rule version without changing any minute (golden rows `grace-after-end-*`).
 - **AC-13 (counting)** Given a flagged IN, then the day uses it and `uses_unchecked_flag` is true; when
   the Super Admin marks it "not accepted", then the day is recomputed without it within one request.
 - **AC-14 (approved rejected punch, E21)** Given a rejected face punch that names nobody and an M4
@@ -1583,7 +1597,7 @@ Dates are fixed (30/10/2026 is a Friday). "Office" and "Night" are the shifts of
   F-2 (or with a raise of at most 2 kB recorded in a decision line).
 - **AC-54 (poster)** Given a plant with Office (09:00–17:00, grace 30) and Night (19:00–07:00, grace 30),
   the gate poster PDF (read back with pypdfium2) contains "Office 09:00–17:00: on time until 09:30, leave
-  from 16:30.", "Night 19:00–07:00: on time until 19:30, leave from 06:30." and "One IN and one OUT per
+  from 17:00." with "OUT allowed until 17:30.", "Night 19:00–07:00: on time until 19:30, leave from 07:00." and "One IN and one OUT per
   shift. After your OUT you cannot punch again in the same shift."; it says "attendance device", never
   "kiosk"; after changing the grace to 15 the next poster says "on time until 09:15".
 - **AC-55 (no deletion)** No M5 code path or job deletes rows of `attendance_days`, `regularisations`,

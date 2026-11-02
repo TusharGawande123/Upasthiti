@@ -277,6 +277,7 @@ def test_the_day_timeline_shows_punches_reviews_and_corrections(world: dict) -> 
     assert review_of(seen_by_corporate)["reason"] is None
     assert detail["can_correct"] is True and seen_by_corporate["can_request"] is True
     assert detail["shift_rules"]["grace_min"] == 30
+    assert detail["shift_rules"]["grace_after_end_min"] == 30
     assert "set_status" in detail["allowed_correction_kinds"]
 
 
@@ -400,6 +401,20 @@ def test_explain_this_day_for_a_late_day_and_for_overtime_below_the_minimum(worl
     assert near["onTime"]["time"] == "09:00"
     assert near["overtimeNotReached"]["duration"] == "1 h 50 m"
     assert near["overtimeNotReached"]["minimum"] == "2 h"
+
+
+def test_explain_this_day_calls_an_out_inside_the_end_grace_on_time(world: dict) -> None:
+    """Decision 0036 line 79: words only. The minutes are those of any OUT after the shift end."""
+    work_a_day(world, "P-1", FRIDAY, (9, 0), (17, 20))
+    work_a_day(world, "P-2", FRIDAY, (9, 0), (17, 50))
+
+    inside = {item["key"]: item["values"] for item in explanation_of(world, "P-1", FRIDAY)}
+    assert inside["outInGrace"] == {"time": "17:20", "until": "17:30"}
+    assert "outAt" not in inside and "earlyExit" not in inside
+    assert inside["workedForStatus"]["worked"] == "8 h"  # the status is unchanged
+
+    beyond = {item["key"]: item["values"] for item in explanation_of(world, "P-2", FRIDAY)}
+    assert beyond["outAt"]["time"] == "17:50" and "outInGrace" not in beyond
 
 
 def test_explain_this_day_for_a_temporary_worker_and_an_empty_day(world: dict) -> None:

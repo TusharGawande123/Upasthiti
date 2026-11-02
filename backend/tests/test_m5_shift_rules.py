@@ -60,6 +60,8 @@ def test_new_plant_shift_has_the_m5_defaults_and_a_first_rule_version(boss: Test
         versions = boss.get(f"/api/v1/shifts/{shift['id']}/rule-versions").json()
 
     assert shift["grace_min"] == 30
+    assert shift["grace_after_end_min"] == 30
+    assert versions[0]["grace_after_end_min"] == 30
     assert shift["overtime_min_minutes"] == 120
     assert shift["shift_length_min"] == 720
     assert shift["rules_from"] == PINNED_DAY.isoformat()
@@ -86,6 +88,8 @@ def test_an_old_client_sending_ot_after_min_is_ignored(boss: TestClient) -> None
     [
         ({"half_day_min": 480}, "SHIFT_DAY_LIMITS_INVALID"),  # not below the 8 h full day
         ({"grace_min": 121}, "VALIDATION_FAILED"),
+        ({"grace_after_end_min": 121}, "VALIDATION_FAILED"),
+        ({"grace_after_end_min": -1}, "VALIDATION_FAILED"),
         ({"overtime_min_minutes": 481}, "VALIDATION_FAILED"),
     ],
 )
@@ -156,6 +160,32 @@ def test_rules_changed_from_a_later_date_keep_today_and_apply_from_that_date(
     row = db_session.get(Shift, shift_id)
     assert row is not None and (row.end_time, row.grace_min) == (time(16), 15)
     assert apply_due_rule_versions(db_session, later) == 0
+
+
+def test_the_grace_after_the_end_is_saved_in_a_new_rule_version_and_audited(
+    boss: TestClient, db_session: Session
+) -> None:
+    with frozen_at(NOON):
+        plant = create_plant(boss)
+        shift = office_shift(boss, plant["id"], grace_after_end_min=20)
+        assert shift["grace_after_end_min"] == 20
+        changed = boss.patch(f"/api/v1/shifts/{shift['id']}", json={"grace_after_end_min": 45})
+        assert changed.status_code == 200, changed.text
+        versions = boss.get(f"/api/v1/shifts/{shift['id']}/rule-versions").json()
+
+    assert changed.json()["grace_after_end_min"] == 45
+    # The change added a version next to the one made at creation.
+    assert sorted(version["grace_after_end_min"] for version in versions) == [20, 45]
+    assert changed.json()["grace_min"] == 30  # the grace after the start did not move
+    added = db_session.scalars(
+        select(AuditLog).where(
+            AuditLog.action == "shift.rules_version_added",
+            AuditLog.entity_id == uuid.UUID(shift["id"]),
+        )
+    ).all()
+    assert any(row.after and row.after.get("grace_after_end_min") == 45 for row in added)
+    row = db_session.get(Shift, uuid.UUID(shift["id"]))
+    assert row is not None and row.grace_after_end_min == 45
 
 
 def test_two_saves_on_the_same_day_keep_both_and_the_latest_wins(

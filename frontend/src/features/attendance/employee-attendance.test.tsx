@@ -105,6 +105,7 @@ const SHIFT_RULES = {
   crosses_midnight: false,
   shift_length_min: 480,
   grace_min: 30,
+  grace_after_end_min: 30,
   half_day_min: 240,
   overtime_min_minutes: 120,
   effective_from: "2026-01-01",

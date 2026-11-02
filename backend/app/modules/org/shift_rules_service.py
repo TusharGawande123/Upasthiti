@@ -21,7 +21,14 @@ from app.modules.audit.service import Actor, record_audit
 from app.modules.org.models import Plant, PlantWeeklyOff, Shift, ShiftRuleVersion
 
 # The fields of a shift that are attendance rules; a change of one of them adds a version.
-RULE_FIELDS = ("start_time", "end_time", "grace_min", "half_day_min", "overtime_min_minutes")
+RULE_FIELDS = (
+    "start_time",
+    "end_time",
+    "grace_min",
+    "grace_after_end_min",
+    "half_day_min",
+    "overtime_min_minutes",
+)
 MAX_GRACE_MIN = 120
 DEFAULT_WEEKLY_OFF = 7  # Sunday (ISO weekday)
 
@@ -35,6 +42,8 @@ class ShiftRules:
     grace_min: int
     half_day_min: int
     overtime_min_minutes: int
+    # An OUT up to end + this is on time. Shown only: it never changes minutes or status.
+    grace_after_end_min: int = 30
 
     @property
     def crosses_midnight(self) -> bool:
@@ -55,7 +64,7 @@ def shift_length_minutes(start_time: time, end_time: time) -> int:
 
 
 def check_day_limits(rules: ShiftRules) -> None:
-    """Half day must be below the full day (the shift length), grace at most 2 hours.
+    """Half day must be below the full day (the shift length), both graces at most 2 hours.
 
     Checked in code because the shift length depends on both times (spec §7 rule 9).
     """
@@ -63,10 +72,13 @@ def check_day_limits(rules: ShiftRules) -> None:
         raise ApiError(
             "SHIFT_TIMES_INVALID", "Start and end cannot be the same.", 422, {"rule": "same"}
         )
-    if not 0 <= rules.grace_min <= MAX_GRACE_MIN or not 0 <= rules.half_day_min < rules.length_min:
+    graces_ok = (
+        0 <= rules.grace_min <= MAX_GRACE_MIN and 0 <= rules.grace_after_end_min <= MAX_GRACE_MIN
+    )
+    if not graces_ok or not 0 <= rules.half_day_min < rules.length_min:
         raise ApiError(
             "SHIFT_DAY_LIMITS_INVALID",
-            "Half day must be shorter than the shift, and grace at most 120 minutes.",
+            "Half day must be shorter than the shift, and each grace at most 120 minutes.",
             422,
             {"shift_length_min": rules.length_min},
         )
@@ -77,6 +89,7 @@ def rules_of_shift(shift: Shift) -> ShiftRules:
         start_time=shift.start_time,
         end_time=shift.end_time,
         grace_min=shift.grace_min,
+        grace_after_end_min=shift.grace_after_end_min,
         half_day_min=shift.half_day_min,
         overtime_min_minutes=shift.overtime_min_minutes,
     )
@@ -87,6 +100,7 @@ def rules_of_version(version: ShiftRuleVersion) -> ShiftRules:
         start_time=version.start_time,
         end_time=version.end_time,
         grace_min=version.grace_min,
+        grace_after_end_min=version.grace_after_end_min,
         half_day_min=version.half_day_min,
         overtime_min_minutes=version.overtime_min_minutes,
     )
@@ -110,6 +124,7 @@ def add_rule_version(
         end_time=rules.end_time,
         crosses_midnight=rules.crosses_midnight,
         grace_min=rules.grace_min,
+        grace_after_end_min=rules.grace_after_end_min,
         half_day_min=rules.half_day_min,
         overtime_min_minutes=rules.overtime_min_minutes,
         created_by=_user_id(actor),
@@ -182,6 +197,7 @@ def copy_rules_into_shift(shift: Shift, rules: ShiftRules) -> None:
     shift.end_time = rules.end_time
     shift.crosses_midnight = rules.crosses_midnight
     shift.grace_min = rules.grace_min
+    shift.grace_after_end_min = rules.grace_after_end_min
     shift.half_day_min = rules.half_day_min
     shift.overtime_min_minutes = rules.overtime_min_minutes
 

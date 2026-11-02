@@ -32,6 +32,7 @@ function shift(changes: Record<string, unknown> = {}) {
     crosses_midnight: true,
     shift_length_min: 720,
     grace_min: 15,
+    grace_after_end_min: 30,
     half_day_min: 360,
     overtime_min_minutes: 60,
     is_active: true,

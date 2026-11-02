@@ -106,6 +106,7 @@ class Shift(IdMixin, TimestampMixin, Base):
         Index("uq_shifts_plant_name", "plant_id", func.lower(text("name")), unique=True),
         CheckConstraint("grace_min >= 0 AND half_day_min >= 0", name="minutes_positive"),
         CheckConstraint("grace_min <= 120", name="grace_at_most_two_hours"),
+        CheckConstraint("grace_after_end_min BETWEEN 0 AND 120", name="grace_after_end_range"),
         CheckConstraint("overtime_min_minutes BETWEEN 0 AND 480", name="overtime_min_range"),
         CheckConstraint("start_time <> end_time", name="start_differs_from_end"),
     )
@@ -115,7 +116,8 @@ class Shift(IdMixin, TimestampMixin, Base):
     start_time: Mapped[time] = mapped_column(Time)
     end_time: Mapped[time] = mapped_column(Time)
     crosses_midnight: Mapped[bool]  # true when the shift ends on the next day
-    grace_min: Mapped[int]  # the same at the start and at the end
+    grace_min: Mapped[int]  # grace after the start: an IN up to start + grace is on time
+    grace_after_end_min: Mapped[int]  # an OUT up to end + grace is on time (no minutes change)
     half_day_min: Mapped[int]
     overtime_min_minutes: Mapped[int]
     is_active: Mapped[bool] = mapped_column(default=True)
@@ -132,6 +134,7 @@ class ShiftRuleVersion(IdMixin, Base):
     __tablename__ = "shift_rule_versions"
     __table_args__ = (
         CheckConstraint("grace_min BETWEEN 0 AND 120", name="grace_range"),
+        CheckConstraint("grace_after_end_min BETWEEN 0 AND 120", name="grace_after_end_range"),
         CheckConstraint("half_day_min >= 0", name="half_day_positive"),
         CheckConstraint("overtime_min_minutes BETWEEN 0 AND 480", name="overtime_min_range"),
         CheckConstraint("start_time <> end_time", name="start_differs_from_end"),
@@ -144,6 +147,7 @@ class ShiftRuleVersion(IdMixin, Base):
     end_time: Mapped[time] = mapped_column(Time)
     crosses_midnight: Mapped[bool]
     grace_min: Mapped[int]
+    grace_after_end_min: Mapped[int]
     half_day_min: Mapped[int]
     overtime_min_minutes: Mapped[int]
     created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))  # null = migration

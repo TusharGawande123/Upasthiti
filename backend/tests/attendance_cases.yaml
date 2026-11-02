@@ -29,6 +29,29 @@
 - id: out-after-the-end-is-normal
   events: [in 09:00, out 17:20]
   expect: {status: present, status_min: 480, early_exit_min: 0, overtime_min: 0, worked_min: 500}
+# Grace after the shift end (decision 0036 line 79) is shown only: the minutes and the status are the
+# same for an OUT at end+20 and end+50 whatever that grace is (0, 30 or 120 minutes).
+- id: grace-after-end-out-at-end-plus-20
+  events: [in 09:00, out 17:20]
+  expect: {status: present, status_min: 480, early_exit_min: 0, overtime_min: 0, worked_min: 500, payable_min: 480}
+- id: grace-after-end-out-at-end-plus-50
+  events: [in 09:00, out 17:50]
+  expect: {status: present, status_min: 480, early_exit_min: 0, overtime_min: 0, worked_min: 530, payable_min: 480}
+- id: grace-after-end-zero-out-at-end-plus-20
+  shift: office_end0
+  events: [in 09:00, out 17:20]
+  expect: {status: present, status_min: 480, early_exit_min: 0, overtime_min: 0, worked_min: 500, payable_min: 480}
+- id: grace-after-end-zero-out-at-end-plus-50
+  shift: office_end0
+  events: [in 09:00, out 17:50]
+  expect: {status: present, status_min: 480, early_exit_min: 0, overtime_min: 0, worked_min: 530, payable_min: 480}
+- id: grace-after-end-long-out-at-end-plus-50
+  shift: office_end120
+  events: [in 09:00, out 17:50]
+  expect: {status: present, status_min: 480, early_exit_min: 0, overtime_min: 0, worked_min: 530, payable_min: 480}
+- id: grace-after-end-out-before-end-is-still-early
+  events: [in 09:00, out 16:40]
+  expect: {status: half_day, status_min: 460, early_exit_min: 20}
 - id: E4
   events: [in 09:40, out 17:00]
   expect: {status: half_day, status_min: 440, late_min: 40, worked_min: 440, overtime_min: 0}
