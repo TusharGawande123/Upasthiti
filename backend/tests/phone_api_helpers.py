@@ -11,6 +11,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.time import utc_now
+from app.face.fake_engine import Problem
 from app.modules.auth.passwords import hash_password
 from app.modules.phone.models import PhoneAccount, PhoneSession
 from app.modules.qr_cards.payload import build_payload
@@ -52,6 +53,7 @@ class People:
     face_id: str  # F-201, person 1 of the fake face engine, enrolled with consent
     qr_id: str  # Q-301, temporary worker with a valid card
     card_text: str
+    card_id: str = ""
 
 
 def make_people(boss: TestClient, session: Session, plant: PlantIds) -> People:
@@ -63,7 +65,7 @@ def make_people(boss: TestClient, session: Session, plant: PlantIds) -> People:
     assert worker.status_code == 201, worker.text
     qr_id = worker.json()["id"]
     card = boss.post(f"/api/v1/employees/{qr_id}/qr-cards", json={}).json()["card"]
-    return People(face_id, qr_id, build_payload(get_settings(), card["serial"]))
+    return People(face_id, qr_id, build_payload(get_settings(), card["serial"]), card["id"])
 
 
 def switch_phone(boss: TestClient, employee_id: str, on: bool = True):
@@ -131,4 +133,73 @@ def sessions_of(session: Session, employee_id: str) -> list[PhoneSession]:
             .where(PhoneSession.employee_id == uuid.UUID(employee_id))
             .order_by(PhoneSession.created_at)
         )
+    )
+
+
+# --- M4b P2: a signed-in phone that may punch ---
+
+
+def accept_notice(client: TestClient) -> None:
+    """The employee taps "I agree" for the notice exactly as shown (spec §7 rule 20)."""
+    shown = client.get(f"{PHONE}/notice").json()
+    answer = client.post(
+        f"{PHONE}/notice/accept",
+        json={"version": shown["version"], "text_sha256": shown["text_sha256"]},
+    )
+    assert answer.status_code == 201, answer.text
+
+
+def signed_in_phone(
+    app: FastAPI,
+    session: Session,
+    employee_id: str,
+    code: str,
+    user_agent: str = ANDROID_CHROME,
+    notice: bool = True,
+) -> TestClient:
+    """A phone signed in with a password set straight in the database, notice accepted."""
+    give_password(session, employee_id)
+    client = phone_client(app, user_agent)
+    assert sign_in(client, code).status_code == 200
+    if notice:
+        accept_notice(client)
+    return client
+
+
+def metres_north(metres: float) -> dict:
+    """A good reading `metres` north of the test gate (the 200 m circle fence has its centre
+    there): 1 degree of latitude is about 111,195 m."""
+    return {**GATE_LOCATION, "lat": GATE_LOCATION["lat"] + metres / 111_195}
+
+
+def phone_face_punch(
+    client: TestClient,
+    person: int,
+    *,
+    location: dict | None = GATE_LOCATION,
+    client_punch_id: str | None = None,
+    problem: Problem = Problem.NONE,
+    turn_person: int | None = None,
+    nonce: str | None = None,
+):
+    """A whole phone face punch: asks for the head turn, paints the frames, sends them."""
+    given = None
+    if nonce is None:
+        given = client.post(f"{PHONE}/punch/challenge")
+        assert given.status_code == 200, given.text
+        given = given.json()
+    frames = [frame(person, problem=problem)]
+    if given is not None:
+        frames.append(frame(turn_person or person, yaw=turn_yaw(given["challenge"]), role="turn"))
+    else:
+        frames.append(frame(turn_person or person, yaw=25.0, role="turn"))
+    frames.append(frame(person, problem=problem))
+    return client.post(
+        f"{PHONE}/punch/face",
+        json={
+            "client_punch_id": client_punch_id or str(uuid.uuid4()),
+            "challenge_nonce": nonce or (given or {})["challenge_nonce"],
+            "frames": frames,
+            "location": location,
+        },
     )

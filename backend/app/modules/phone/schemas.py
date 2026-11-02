@@ -5,7 +5,7 @@ import uuid
 from datetime import date, datetime
 from typing import Any, Literal
 
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.modules.kiosks.schemas import LocationReport
 from app.modules.punches.schemas import CaptureRules, FaceFrameIn
@@ -191,6 +191,84 @@ class ProofResponse(BaseModel):
 class SetPasswordRequest(BaseModel):
     proof_token: str = Field(min_length=20, max_length=64)
     new_password: str = Field(min_length=1, max_length=200)  # the rules answer PASSWORD_TOO_WEAK
+
+
+# --- Punches (spec §5.3) --------------------------------------------------------------------------
+
+
+class PhoneChallengeResponse(BaseModel):
+    challenge_nonce: str
+    challenge: ChallengeName
+    expires_at: datetime
+    server_time: datetime
+    capture: CaptureRules
+
+
+class PhoneFacePunchRequest(BaseModel):
+    client_punch_id: uuid.UUID  # made by the phone for each try; a retry reuses it
+    challenge_nonce: str = Field(min_length=1, max_length=64)
+    frames: list[FaceFrameIn] = Field(min_length=2, max_length=4)
+    # A missing reading is a decided refusal (LOCATION_REQUIRED), not a broken request.
+    location: LocationReport | None = None
+    app_version: str | None = Field(default=None, max_length=40)
+
+    @model_validator(mode="after")
+    def check_frame_shape(self) -> PhoneFacePunchRequest:
+        roles = [frame.role for frame in self.frames]
+        if roles[0] != "frontal" or "turn" not in roles:
+            raise ValueError("frames: the first frontal and at least one turn")
+        return self
+
+
+class PhoneGateCodePunchRequest(BaseModel):
+    client_punch_id: uuid.UUID
+    gate_code: str = Field(min_length=1, max_length=100)
+    # The selfie as base64 text; its size and content are judged by the snapshot rule, which
+    # answers SNAPSHOT_MISSING / SNAPSHOT_INVALID (the body limit of 64 KB stops absurd sizes).
+    photo_jpeg: str | None = Field(default=None, max_length=100_000)
+    location: LocationReport | None = None
+    app_version: str | None = Field(default=None, max_length=40)
+
+
+class PhonePunchDetails(BaseModel):
+    retry_allowed: bool | None = None  # a face problem where trying again can help
+
+
+class PhonePunchResponse(BaseModel):
+    """The phone's answer. A flagged punch answers "accepted"; only `outside_plant` tells the
+    person it was saved as an outside-plant punch (no other flag is shown, spec §5.3)."""
+
+    punch_id: uuid.UUID | None  # none when a gate code names no known device (nothing is stored)
+    decision: Literal["accepted", "rejected"]
+    reason_code: str | None
+    direction: Literal["in", "out"] | None
+    punch_time: datetime
+    outside_plant: bool
+    details: PhonePunchDetails
+
+
+class TodayPunch(BaseModel):
+    time: datetime
+    direction: Literal["in", "out"]
+    channel: Literal["kiosk", "phone"]
+    decision_text_key: str
+
+
+class TodayPunchesResponse(BaseModel):
+    items: list[TodayPunch]
+
+
+class AttendanceDayView(BaseModel):
+    date: date
+    status: str
+    first_in: datetime | None
+    last_out: datetime | None
+    worked_min: int
+    channels: list[Literal["phone", "kiosk"]]
+
+
+class MyAttendanceResponse(BaseModel):
+    days: list[AttendanceDayView]
 
 
 # --- Passkeys (F-80) ------------------------------------------------------------------------------

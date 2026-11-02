@@ -1,17 +1,25 @@
-"""The phone pages' endpoints: sign-in, "me", notice, stop, proofs, password, passkeys
-(M4b spec §5.1, §5.1b, §5.2). Identity = the `ups_phone` cookie only; the admin cookie never
-works here. Punches (§5.3) come in slice P2."""
+"""The phone pages' endpoints: sign-in, "me", notice, stop, proofs, password, passkeys, punches and
+the employee's own attendance (M4b spec §5.1, §5.1b, §5.2, §5.3). Identity = the `ups_phone` cookie
+only; the admin cookie never works here."""
 
 import uuid
 
-from fastapi import APIRouter, Depends, Request, Response
+from fastapi import APIRouter, BackgroundTasks, Depends, Request, Response
 from sqlalchemy.orm import Session
 
 from app.core.client_ip import get_client_ip
 from app.core.db import get_session
+from app.core.time import utc_now
 from app.face.engine import FaceEngine
 from app.modules.face.engine_provider import get_face_engine
-from app.modules.phone import passkey_service, proof_service, sign_in_service, views
+from app.modules.phone import (
+    history,
+    passkey_service,
+    proof_service,
+    punch_service,
+    sign_in_service,
+    views,
+)
 from app.modules.phone.access_service import stop_by_employee
 from app.modules.phone.dependencies import (
     PhoneEmployee,
@@ -27,6 +35,7 @@ from app.modules.phone.schemas import (
     FaceProofRequest,
     LoginRequest,
     MeResponse,
+    MyAttendanceResponse,
     NoticeAcceptRequest,
     NoticeAcceptResponse,
     NoticeResponse,
@@ -36,13 +45,19 @@ from app.modules.phone.schemas import (
     PasskeyLoginRequest,
     PasskeyOptionsResponse,
     PasskeyRegisterRequest,
+    PhoneChallengeResponse,
+    PhoneFacePunchRequest,
+    PhoneGateCodePunchRequest,
+    PhonePunchResponse,
     ProofResponse,
     ProvenEmployee,
     SetPasswordRequest,
     SignInResponse,
     StopRequest,
+    TodayPunchesResponse,
 )
 from app.modules.phone.sign_in_service import SignedIn
+from app.modules.punches.photo_check import SessionMaker, check_face_in_photo, get_task_sessions
 
 router = APIRouter(prefix="/phone", tags=["phone"])
 
@@ -194,6 +209,66 @@ def set_password(
         user_agent=request.headers.get("user-agent"),
     )
     return _signed_in(session, response, result)
+
+
+# --- Punches (spec §5.3) --------------------------------------------------------------------------
+# The body limits (384 KB face punch, 64 KB gate-code punch, 16 KB the rest) are enforced earlier by
+# BodyLimitMiddleware (app/core/body_limit.py).
+
+
+@router.post("/punch/challenge", response_model=PhoneChallengeResponse)
+def punch_challenge(
+    caller: PhoneEmployee = Depends(require_phone_employee),
+    session: Session = Depends(get_session),
+    engine: FaceEngine = Depends(get_face_engine),
+) -> PhoneChallengeResponse:
+    """The head turn for one phone face punch. The server chooses it, for this sign-in only."""
+    return punch_service.issue_challenge(session, caller, engine)
+
+
+@router.post("/punch/face", response_model=PhonePunchResponse)
+def punch_face(
+    body: PhoneFacePunchRequest,
+    caller: PhoneEmployee = Depends(require_phone_employee),
+    session: Session = Depends(get_session),
+    engine: FaceEngine = Depends(get_face_engine),
+) -> PhonePunchResponse:
+    return punch_service.record_face_punch(session, caller, body, engine)
+
+
+@router.post("/punch/gate-code", response_model=PhonePunchResponse)
+def punch_gate_code(
+    body: PhoneGateCodePunchRequest,
+    background: BackgroundTasks,
+    caller: PhoneEmployee = Depends(require_phone_employee),
+    session: Session = Depends(get_session),
+    engine: FaceEngine = Depends(get_face_engine),
+    task_sessions: SessionMaker = Depends(get_task_sessions),
+) -> PhonePunchResponse:
+    def check_photo_later(snapshot_id: uuid.UUID, jpeg: bytes) -> None:
+        # F-30, after the answer is sent: never slows the phone or changes the decision.
+        background.add_task(check_face_in_photo, snapshot_id, jpeg, engine, task_sessions)
+
+    return punch_service.record_gate_code_punch(
+        session, caller, body, after_photo=check_photo_later
+    )
+
+
+@router.get("/punches/today", response_model=TodayPunchesResponse)
+def punches_today(
+    caller: PhoneEmployee = Depends(require_phone_employee),
+    session: Session = Depends(get_session),
+) -> TodayPunchesResponse:
+    return history.today_punches(session, caller.employee, utc_now())
+
+
+@router.get("/attendance", response_model=MyAttendanceResponse)
+def my_attendance(
+    caller: PhoneEmployee = Depends(require_phone_employee),
+    session: Session = Depends(get_session),
+) -> MyAttendanceResponse:
+    """F-73: the last 31 days of the signed-in employee. No id parameter, so nobody else's."""
+    return history.my_attendance(session, caller.employee, utc_now())
 
 
 # --- Passkeys (F-80) ------------------------------------------------------------------------------
