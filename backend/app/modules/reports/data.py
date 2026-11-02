@@ -9,7 +9,7 @@ one per plant; the writers (xlsx_writer, pdf_writer) only draw them.
 import uuid
 from calendar import monthrange
 from collections import defaultdict
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from typing import Any
 
 from sqlalchemy import select
@@ -21,13 +21,15 @@ from app.modules.attendance.read_service import fresh_days, leave_paid_map, tota
 from app.modules.attendance.schemas import register_code
 from app.modules.contractors.models import Contractor
 from app.modules.employees.models import Employee
+from app.modules.kiosks.models import KioskDevice
 from app.modules.org.models import Department, EmployeeCategory, Plant, Shift
 from app.modules.punches.counting import latest_reviews, review_state
-from app.modules.punches.models import Punch, PunchDecision
+from app.modules.punches.models import Punch, PunchDecision, PunchReview
 from app.modules.punches.reasons import reason_text
 from app.modules.regularisations import service as correction_service
 from app.modules.regularisations.models import Regularisation
 from app.modules.reports.model import DATE, INT, MINUTES, TEXT, Column, Sheet
+from app.modules.users.names import user_names
 
 STATUS_LABELS = {
     "present": "Present",
@@ -52,13 +54,20 @@ NOTE_CODES = {"EXTRA_PUNCHES", "POSSIBLE_DOUBLE_ENTRY"}
 
 
 def status_label(day: AttendanceDay) -> str:
+    """The words of a day's status in a file (a worked weekly off or holiday says so)."""
     if day.status == "present" and day.day_kind != "working":
         return "Worked on weekly off" if day.day_kind == "weekly_off" else "Worked on holiday"
     return STATUS_LABELS.get(day.status, day.status)
 
 
-def clock(moment) -> str:  # noqa: ANN001
+def clock(moment: datetime | None) -> str:
+    """The IST time of day as HH:MM, or empty when there is no time."""
     return f"{to_ist(moment):%H:%M}" if moment else ""
+
+
+def format_ist(moment: datetime) -> str:
+    """Date and time in IST as DD/MM/YYYY HH:MM (the Indian way)."""
+    return f"{to_ist(moment):%d/%m/%Y %H:%M}"
 
 
 class Context:
@@ -418,7 +427,6 @@ REVIEW_TEXTS = {"approved": "Approved", "not_accepted": "Not accepted", None: "N
 def rejected_punches(ctx: Context) -> list[Sheet]:
     """Refused punches with their reason text, device and method. No photos, no coordinates, no
     scores (spec §7 rule 18)."""
-    from app.modules.kiosks.models import KioskDevice
 
     columns = [
         Column("Time (IST)", TEXT, 17),
@@ -430,8 +438,7 @@ def rejected_punches(ctx: Context) -> list[Sheet]:
         Column("Name", TEXT, 24),
         Column("Review", TEXT, 14),
     ]
-    start = _day_start(ctx.date_from)
-    end = _day_start(ctx.date_to + timedelta(days=1))
+    start, end = _range_bounds(ctx)
     devices = dict(ctx.session.execute(select(KioskDevice.id, KioskDevice.name)).all())
     sheets = []
     for plant in ctx.plants:
@@ -462,7 +469,7 @@ def rejected_punches(ctx: Context) -> list[Sheet]:
             employee = names.get(person_id) if person_id else None
             rows.append(
                 [
-                    f"{to_ist(punch.punch_time):%d/%m/%Y %H:%M}",
+                    format_ist(punch.punch_time),
                     plant.code,
                     devices.get(punch.kiosk_id, "") if punch.kiosk_id else "",
                     punch.method.capitalize(),
@@ -476,10 +483,10 @@ def rejected_punches(ctx: Context) -> list[Sheet]:
     return sheets
 
 
-def _day_start(day: date):  # noqa: ANN202
-    from datetime import datetime
-
-    return datetime.combine(day, datetime.min.time(), tzinfo=IST)
+def _range_bounds(ctx: Context) -> tuple[datetime, datetime]:
+    """The report range as two IST moments: the start of the first day and the end of the last."""
+    start = datetime.combine(ctx.date_from, time.min, tzinfo=IST)
+    return start, start + timedelta(days=(ctx.date_to - ctx.date_from).days + 1)
 
 
 # --- 7. Corrections -----------------------------------------------------------------------------
@@ -488,9 +495,6 @@ def _day_start(day: date):  # noqa: ANN202
 def corrections(ctx: Context, *, sees_review_reasons: bool) -> list[Sheet]:
     """Correction requests and decisions, reversals, and the M4 punch approvals / not-accepted
     reviews. Review reasons only in the Super Admin's file."""
-    from app.modules.punches.models import PunchReview
-    from app.modules.users.models import User
-
     columns = [
         Column("Kind", TEXT, 16),
         Column("Code", TEXT, 10),
@@ -503,75 +507,95 @@ def corrections(ctx: Context, *, sees_review_reasons: bool) -> list[Sheet]:
         Column("Decided by", TEXT, 20),
         Column("Decided at", TEXT, 17),
     ]
-    users = dict(ctx.session.execute(select(User.id, User.name)).all())
+    users = user_names(ctx.session)
     sheets = []
     for plant in ctx.plants:
         employees = {
             e.id: e
             for e in ctx.session.scalars(select(Employee).where(Employee.plant_id == plant.id))
         }
-        rows: list[list[Any]] = []
-        found = list(
-            ctx.session.scalars(
-                select(Regularisation)
-                .where(
-                    Regularisation.employee_id.in_(list(employees)),
-                    Regularisation.attendance_date.between(ctx.date_from, ctx.date_to),
-                )
-                .order_by(Regularisation.attendance_date, Regularisation.requested_at)
-            )
-        )
-        for item in correction_service.present(ctx.session, found):
-            employee = employees[item.employee.id]
-            rows.append(
-                [
-                    "Correction",
-                    employee.employee_code,
-                    employee.full_name,
-                    item.attendance_date,
-                    _correction_text(item),
-                    item.reason,
-                    item.state.capitalize(),
-                    item.requested_by.name,
-                    item.decision.decided_by.name if item.decision else "",
-                    f"{to_ist(item.decision.decided_at):%d/%m/%Y %H:%M}" if item.decision else "",
-                ]
-            )
-        start, end = _day_start(ctx.date_from), _day_start(ctx.date_to + timedelta(days=1))
-        approvals = ctx.session.execute(
-            select(PunchReview, Punch)
-            .join(Punch, Punch.id == PunchReview.punch_id)
-            .where(
-                Punch.plant_id == plant.id,
-                PunchReview.action.in_(["approved", "not_accepted"]),
-                Punch.punch_time >= start,
-                Punch.punch_time < end,
-            )
-            .order_by(Punch.punch_time)
-        ).all()
-        for review, punch in approvals:
-            employee = employees.get(review.employee_id or punch.employee_id)  # type: ignore[arg-type]
-            rows.append(
-                [
-                    "Punch review",
-                    employee.employee_code if employee else "",
-                    employee.full_name if employee else "",
-                    to_ist(punch.punch_time).date(),
-                    f"Punch at {to_ist(punch.punch_time):%H:%M}: "
-                    + (
-                        "approved as " + (review.direction or "").upper()
-                        if review.action == "approved"
-                        else "not accepted"
-                    ),
-                    review.reason if sees_review_reasons and review.reason else "",
-                    "Approved" if review.action == "approved" else "Not accepted",
-                    "",
-                    users.get(review.reviewed_by, ""),
-                    f"{to_ist(review.reviewed_at):%d/%m/%Y %H:%M}",
-                ]
-            )
+        rows = _correction_rows(ctx, employees)
+        rows += _punch_review_rows(ctx, plant, employees, users, sees_review_reasons)
         sheets.append(Sheet(plant.code, columns, rows, heading=f"{plant.code} · {plant.name}"))
     return sheets
+
+
+def _correction_rows(ctx: Context, employees: dict[uuid.UUID, Employee]) -> list[list[Any]]:
+    """One row per correction of the plant's employees in the range."""
+    found = list(
+        ctx.session.scalars(
+            select(Regularisation)
+            .where(
+                Regularisation.employee_id.in_(list(employees)),
+                Regularisation.attendance_date.between(ctx.date_from, ctx.date_to),
+            )
+            .order_by(Regularisation.attendance_date, Regularisation.requested_at)
+        )
+    )
+    rows: list[list[Any]] = []
+    for item in correction_service.present(ctx.session, found):
+        employee = employees[item.employee.id]
+        rows.append(
+            [
+                "Correction",
+                employee.employee_code,
+                employee.full_name,
+                item.attendance_date,
+                _correction_text(item),
+                item.reason,
+                item.state.capitalize(),
+                item.requested_by.name,
+                item.decision.decided_by.name if item.decision else "",
+                format_ist(item.decision.decided_at) if item.decision else "",
+            ]
+        )
+    return rows
+
+
+def _punch_review_rows(
+    ctx: Context,
+    plant: Plant,
+    employees: dict[uuid.UUID, Employee],
+    users: dict[uuid.UUID, str],
+    sees_review_reasons: bool,
+) -> list[list[Any]]:
+    """One row per approved or not accepted punch of the plant in the range."""
+    start, end = _range_bounds(ctx)
+    approvals = ctx.session.execute(
+        select(PunchReview, Punch)
+        .join(Punch, Punch.id == PunchReview.punch_id)
+        .where(
+            Punch.plant_id == plant.id,
+            PunchReview.action.in_(["approved", "not_accepted"]),
+            Punch.punch_time >= start,
+            Punch.punch_time < end,
+        )
+        .order_by(Punch.punch_time)
+    ).all()
+    rows: list[list[Any]] = []
+    for review, punch in approvals:
+        person_id = review.employee_id or punch.employee_id
+        employee = employees.get(person_id) if person_id else None
+        what = (
+            "approved as " + (review.direction or "").upper()
+            if review.action == "approved"
+            else "not accepted"
+        )
+        rows.append(
+            [
+                "Punch review",
+                employee.employee_code if employee else "",
+                employee.full_name if employee else "",
+                to_ist(punch.punch_time).date(),
+                f"Punch at {to_ist(punch.punch_time):%H:%M}: {what}",
+                review.reason if sees_review_reasons and review.reason else "",
+                "Approved" if review.action == "approved" else "Not accepted",
+                "",
+                users.get(review.reviewed_by, ""),
+                format_ist(review.reviewed_at),
+            ]
+        )
+    return rows
 
 
 def _correction_text(item: Any) -> str:
