@@ -654,7 +654,7 @@ replacing card scans with phone scans does not add storage. `phone_proofs` is em
       because the phone punch needs the server.
     - **Text:** `UPG1.<device id, 26 base32 letters>.<issued at, 10 digits Unix seconds>.<MAC, 26 base32
       letters>`; all capitals, digits and dots (QR alphanumeric mode, version 4–5). MAC = HMAC-SHA256 over
-      `UPG1|device id|issued at` with a key derived from `APP_SECRET_KEY` (HKDF, label `gate-code-v1`,
+      `UPG1|device id|issued at` with a key derived from `APP_SECRET_KEY` (HMAC-SHA256, label `gate-code-v1`,
       the same pattern as the M4 time anchor), cut to 128 bits. No plant, no names in the text.
       **No new environment variable.**
     - **Life:** valid from `issued_at` to `issued_at + phone_gate_code_seconds` (default **30 s**) plus a
@@ -1252,7 +1252,7 @@ with a small own base64url helper.
 | Package | Version | Licence | Reason |
 |---|---|---|---|
 | **webauthn** (py_webauthn, Duo Labs; backend) | latest 2.x, pinned in the plan | **BSD-3-Clause** | F-80: makes WebAuthn options and verifies registration and sign-in answers (signature, challenge, origin, RP id, counter). Pure Python; its own dependencies are `cbor2` (MIT), `asn1crypto` (MIT) and `cryptography` (already installed); the plan lists the exact dependency set of the pinned version and its licences before it is added (`uv add`), and a pyOpenSSL dependency, if the pinned version still has one, is Apache-2.0. **Memory:** a few MB of imports, no model, no background thread; a verification is one ECDSA/RSA check (well under 10 ms); measured inside the S-49 memory test (AC-59). **Cost:** free; no outside service, no attestation service, no metadata download (attestation "none") |
-| argon2-cffi, cryptography, segno (backend) | already installed | MIT, Apache-2.0/BSD, BSD-3-Clause | Passwords, HMAC/HKDF of gate codes, gate code SVG |
+| argon2-cffi, cryptography, segno (backend) | already installed | MIT, Apache-2.0/BSD, BSD-3-Clause | Passwords, HMAC of gate codes, gate code SVG |
 | barcode-detector, MediaPipe Face Landmarker (frontend) | already installed | MIT, Apache-2.0 | Reading the gate code and the ID card; face guidance on the phone |
 | time-machine (backend, tests) | approved in M5 | MIT | Pinned times |
 | Playwright fake camera, CDP virtual authenticator (e2e) | already installed (Playwright, Apache-2.0) | Apache-2.0 | S-46 and the F-80 tests |
