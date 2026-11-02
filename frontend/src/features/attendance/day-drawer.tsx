@@ -71,6 +71,7 @@ function RulesBox({ detail }: { detail: DayDetail }) {
         {t("attendance.day.toleranceLine", {
           onTime: addMinutesToClock(rules.start_time, rules.grace_min),
           leave: clockText(rules.end_time),
+          outUntil: addMinutesToClock(rules.end_time, rules.grace_after_end_min),
         })}
       </p>
       <p className="text-[13px]">

@@ -44,6 +44,7 @@ export type ShiftRules = {
   crosses_midnight: boolean;
   shift_length_min: number;
   grace_min: number;
+  grace_after_end_min: number;
   half_day_min: number;
   overtime_min_minutes: number;
   effective_from: string | null;

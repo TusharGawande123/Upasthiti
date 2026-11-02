@@ -1,6 +1,7 @@
 // The live helper box of the shift form: a little timeline and five plain-word lines that say what
 // the typed times mean ("On time until 09:30 ..."). It reads only the typed values, so it updates
-// as the person types. Rules follow decision 0036 line 8: grace only at the start, none at the end.
+// as the person types. Rules follow decision 0036 lines 8 and 79: grace after the start, none before the end,
+// and a grace after the end that only says when an OUT is still on time (no minutes change).
 import { Clock, CornerUpRight, Hourglass, LogOut, Moon, Sparkles, Split } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { formatDuration } from "@/features/attendance/attendance-format";
@@ -11,6 +12,7 @@ export type HelperValues = {
   end: string; // "17:00"
   fullDayMin: number; // the shift length
   graceMin: number;
+  graceAfterEndMin: number;
   halfDayMin: number;
   overtimeMin: number;
 };
@@ -83,6 +85,7 @@ function Timeline({
 export function ShiftHelper({ values }: { values: HelperValues }) {
   const { t } = useTranslation();
   const onTime = fromMinutes(toMinutes(values.start) + values.graceMin);
+  const outUntil = fromMinutes(toMinutes(values.end) + values.graceAfterEndMin);
   const nextDay = toMinutes(values.end) < toMinutes(values.start);
   const half = formatDuration(values.halfDayMin);
   const overtime = formatDuration(values.overtimeMin);
@@ -111,6 +114,7 @@ export function ShiftHelper({ values }: { values: HelperValues }) {
           })}
         </Line>
         <Line icon={LogOut}>{t("shiftForm.earlyExit", { end: values.end })}</Line>
+        <Line icon={Clock}>{t("shiftForm.outGrace", { end: values.end, until: outUntil })}</Line>
         <Line icon={Split}>{t("shiftForm.halfDayLine", { half })}</Line>
         <Line icon={Hourglass}>
           {t("shiftForm.overtimeHint", { end: values.end, ot: overtime })}

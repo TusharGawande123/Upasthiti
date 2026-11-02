@@ -71,7 +71,8 @@ export type Shift = {
   end_time: string;
   crosses_midnight: boolean;
   shift_length_min: number; // the full day (M5)
-  grace_min: number; // the same at the start and the end
+  grace_min: number; // grace after the start: an IN up to start + grace is on time
+  grace_after_end_min: number; // an OUT up to end + grace is on time; changes no minutes
   half_day_min: number;
   overtime_min_minutes: number; // overtime counts from the shift end, only from this many minutes
   is_active: boolean;
@@ -86,6 +87,7 @@ export type ShiftRules = {
   crosses_midnight: boolean;
   shift_length_min: number;
   grace_min: number;
+  grace_after_end_min: number;
   half_day_min: number;
   overtime_min_minutes: number;
   created_at: string;
@@ -96,6 +98,7 @@ export type ShiftInput = {
   start_time: string;
   end_time: string;
   grace_min: number;
+  grace_after_end_min: number;
   half_day_min: number;
   overtime_min_minutes: number;
   rules_effective_from?: string; // edit only: today (default) or a later date

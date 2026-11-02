@@ -153,6 +153,7 @@ function ToleranceLine({ plantId, shiftId }: { plantId: string; shiftId: string 
         end: clockText(shift.end_time),
         onTime: addMinutesToClock(shift.start_time, shift.grace_min),
         leave: clockText(shift.end_time),
+        outUntil: addMinutesToClock(shift.end_time, shift.grace_after_end_min),
       })}
     </p>
   );

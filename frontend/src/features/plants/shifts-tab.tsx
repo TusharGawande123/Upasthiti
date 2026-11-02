@@ -55,6 +55,7 @@ function ShiftRow({
             {t("shiftForm.list.fullDay", { duration: formatDuration(shift.shift_length_min) })}
           </span>
           <span>{t("shiftForm.list.grace", { count: shift.grace_min })}</span>
+          <span>{t("shiftForm.list.graceAfterEnd", { count: shift.grace_after_end_min })}</span>
           <span>
             {t("shiftForm.list.halfDay", { duration: formatDuration(shift.half_day_min) })}
           </span>

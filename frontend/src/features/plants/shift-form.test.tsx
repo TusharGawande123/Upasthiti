@@ -34,6 +34,7 @@ const OFFICE = {
   crosses_midnight: false,
   shift_length_min: 480,
   grace_min: 30,
+  grace_after_end_min: 30,
   half_day_min: 240,
   overtime_min_minutes: 120,
   is_active: true,
@@ -49,6 +50,7 @@ function version(from: string, saved: string, grace: number) {
     crosses_midnight: false,
     shift_length_min: 480,
     grace_min: grace,
+    grace_after_end_min: 30,
     half_day_min: 240,
     overtime_min_minutes: 120,
     created_at: `${saved}T05:00:00Z`,
@@ -87,7 +89,8 @@ describe("the shift list", () => {
 
     expect(await screen.findByText("09:00 – 17:00")).toBeInTheDocument();
     expect(screen.getByText("Full day 8 h")).toBeInTheDocument();
-    expect(screen.getByText("Grace 30 min")).toBeInTheDocument();
+    expect(screen.getByText("Grace after start 30 min")).toBeInTheDocument();
+    expect(screen.getByText("Grace after end 30 min")).toBeInTheDocument();
     expect(screen.getByText("Half-day 4 h")).toBeInTheDocument();
     expect(screen.getByText("Overtime from 2 h")).toBeInTheDocument();
     expect(screen.getByText("Rules shown are the ones in force today")).toBeInTheDocument();
@@ -155,7 +158,12 @@ describe("the form", () => {
     ).toBeInTheDocument();
     expect(
       dialog.getByText(
-        "Leaving before 17:00 is an early exit. The real hours count; there is no grace at the end.",
+        "Leaving before 17:00 is an early exit. The real hours count; there is no grace before the end.",
+      ),
+    ).toBeInTheDocument();
+    expect(
+      dialog.getByText(
+        "OUT from 17:00 up to 17:30 is on time. Hours, overtime and status do not change.",
       ),
     ).toBeInTheDocument();
     expect(
@@ -169,6 +177,54 @@ describe("the form", () => {
     expect(
       await dialog.findByText("On time until 09:15. Arriving up to 09:15 counts from 09:00."),
     ).toBeInTheDocument();
+  });
+
+  it("starts a new shift with a grace of 30 minutes at both ends", async () => {
+    mockApi(answers());
+    const user = userEvent.setup();
+
+    renderRoute("/admin/plants/p-1");
+    await user.click(await screen.findByRole("tab", { name: "Shifts" }));
+    await user.click(await screen.findByRole("button", { name: "Add shift" }));
+    const dialog = within(await screen.findByRole("dialog"));
+
+    expect(dialog.getByLabelText("Grace after the start")).toHaveValue(30);
+    expect(dialog.getByLabelText("Grace after the end")).toHaveValue(30);
+  });
+
+  it("updates the OUT line of the helper when the grace after the end changes", async () => {
+    mockApi(answers());
+    const user = userEvent.setup();
+
+    renderRoute("/admin/plants/p-1");
+    const dialog = await openEdit(user);
+    fireEvent.change(dialog.getByLabelText("Grace after the end"), { target: { value: "45" } });
+
+    expect(
+      await dialog.findByText(
+        "OUT from 17:00 up to 17:45 is on time. Hours, overtime and status do not change.",
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it("refuses a grace after the end above 120 minutes or below 0", async () => {
+    mockApi(answers());
+    const user = userEvent.setup();
+
+    renderRoute("/admin/plants/p-1");
+    const dialog = await openEdit(user);
+    fireEvent.change(dialog.getByLabelText("Grace after the end"), { target: { value: "121" } });
+
+    expect(dialog.getByText("Grace can be 0 to 120 minutes.")).toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: "Save rules" })).toBeDisabled();
+    expect(dialog.queryByText("What these times mean")).not.toBeInTheDocument();
+
+    fireEvent.change(dialog.getByLabelText("Grace after the end"), { target: { value: "-1" } });
+    expect(dialog.getByText("Grace can be 0 to 120 minutes.")).toBeInTheDocument();
+    expect(dialog.getByRole("button", { name: "Save rules" })).toBeDisabled();
+
+    fireEvent.change(dialog.getByLabelText("Grace after the end"), { target: { value: "0" } });
+    expect(dialog.getByRole("button", { name: "Save rules" })).toBeEnabled();
   });
 
   it("refuses a grace above 120 minutes", async () => {
@@ -252,6 +308,9 @@ describe("the form", () => {
     const dialog = await openEdit(user);
 
     expect(await dialog.findByText("From 23/10/2026")).toBeInTheDocument();
+    expect(
+      dialog.getAllByText(/Grace 30 min after the start, 30 min after the end/),
+    ).not.toHaveLength(0);
     expect(dialog.getByText("From 11/10/2026")).toBeInTheDocument();
     expect(dialog.getByText("In force")).toBeInTheDocument();
     expect(dialog.getByText("Earlier")).toBeInTheDocument();
@@ -269,7 +328,10 @@ describe("the form", () => {
     await user.click(dialog.getByRole("button", { name: "Save rules" }));
 
     await waitFor(() => expect(calls.some((call) => call.method === "PATCH")).toBe(true));
-    expect(calls.find((call) => call.method === "PATCH")?.body).toMatchObject({ grace_min: 20 });
+    expect(calls.find((call) => call.method === "PATCH")?.body).toMatchObject({
+      grace_min: 20,
+      grace_after_end_min: 30,
+    });
     await waitFor(() =>
       expect(toast.success).toHaveBeenCalledWith(
         "Shift times changed. Print the gate poster again.",

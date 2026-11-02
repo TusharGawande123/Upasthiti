@@ -1,5 +1,5 @@
-// The shift form (spec M5 §4.10, design gate C screen 4): name, times, grace after the start,
-// half-day hours, smallest overtime and the date the rules apply from. The full day is the shift
+// The shift form (spec M5 §4.10, design gate C screen 4): name, times, grace after the start, grace after
+// the end, half-day hours, smallest overtime and the date the rules apply from. The full day is the shift
 // length (shown, never typed). A live helper explains the typed times; an edited shift also shows
 // its rule history. A new rule starts on its date and never changes days already worked.
 import { Check, Lock } from "lucide-react";
@@ -68,6 +68,7 @@ function RuleHistory({ shiftId }: { shiftId: string }) {
             <span className="min-w-0 flex-1">
               {t("shiftForm.history.summary", {
                 grace: version.grace_min,
+                graceEnd: version.grace_after_end_min,
                 half: formatDuration(version.half_day_min),
                 ot: formatDuration(version.overtime_min_minutes),
               })}
@@ -104,6 +105,7 @@ export function ShiftFormDialog({ plantId, plantCode, plantLabel, shift, onClose
   const [start, setStart] = useState(shift ? shortTime(shift.start_time) : "");
   const [end, setEnd] = useState(shift ? shortTime(shift.end_time) : "");
   const [grace, setGrace] = useState(String(shift?.grace_min ?? 30));
+  const [graceAfterEnd, setGraceAfterEnd] = useState(String(shift?.grace_after_end_min ?? 30));
   const [halfHours, setHalfHours] = useState(String(Math.floor((shift?.half_day_min ?? 240) / 60)));
   const [halfMinutes, setHalfMinutes] = useState(String((shift?.half_day_min ?? 240) % 60));
   const [overtimeMin, setOvertimeMin] = useState(String(shift?.overtime_min_minutes ?? 120));
@@ -113,10 +115,13 @@ export function ShiftFormDialog({ plantId, plantCode, plantLabel, shift, onClose
   const sameTimes = timesGiven && start === end;
   const fullDayMin = timesGiven && !sameTimes ? shiftLengthMinutes(start, end) : 0;
   const graceMin = Number(grace);
+  const graceAfterEndMin = Number(graceAfterEnd);
   const halfDayMin = Number(halfHours) * 60 + Number(halfMinutes);
   const overtime = Number(overtimeMin);
 
   const graceWrong = grace === "" || !(graceMin >= 0 && graceMin <= MAX_GRACE);
+  const graceAfterEndWrong =
+    graceAfterEnd === "" || !(graceAfterEndMin >= 0 && graceAfterEndMin <= MAX_GRACE);
   const halfDayWrong = fullDayMin > 0 && !(halfDayMin >= 0 && halfDayMin < fullDayMin);
   const overtimeWrong = overtimeMin === "" || !(overtime >= 0 && overtime <= MAX_OVERTIME_MIN);
   const dateWrong = shift !== null && (rulesFrom === "" || rulesFrom < today);
@@ -124,6 +129,7 @@ export function ShiftFormDialog({ plantId, plantCode, plantLabel, shift, onClose
     name.trim() !== "" &&
     fullDayMin > 0 &&
     !graceWrong &&
+    !graceAfterEndWrong &&
     !halfDayWrong &&
     !overtimeWrong &&
     !dateWrong;
@@ -143,6 +149,7 @@ export function ShiftFormDialog({ plantId, plantCode, plantLabel, shift, onClose
           start_time: start,
           end_time: end,
           grace_min: graceMin,
+          grace_after_end_min: graceAfterEndMin,
           half_day_min: halfDayMin,
           overtime_min_minutes: overtime,
           ...(shift ? { rules_effective_from: rulesFrom } : {}),
@@ -256,6 +263,28 @@ export function ShiftFormDialog({ plantId, plantCode, plantLabel, shift, onClose
               </div>
             </Field>
             <Field
+              id="shift-grace-after-end"
+              label={t("shiftForm.graceAfterEnd")}
+              hint={t("shiftForm.graceAfterEndHint")}
+              error={graceAfterEndWrong ? t("shiftForm.error.grace") : undefined}
+            >
+              <div className="flex">
+                <Input
+                  id="shift-grace-after-end"
+                  type="number"
+                  min={0}
+                  max={MAX_GRACE}
+                  value={graceAfterEnd}
+                  aria-invalid={graceAfterEndWrong}
+                  className="tnum rounded-r-none"
+                  onChange={(event) => setGraceAfterEnd(event.target.value)}
+                />
+                <span className="grid place-items-center rounded-r-md border border-l-0 bg-muted px-3 text-sm text-muted-foreground">
+                  {t("shiftForm.minutes")}
+                </span>
+              </div>
+            </Field>
+            <Field
               id="shift-half-hours"
               label={t("shiftForm.halfDay")}
               hint={t("shiftForm.halfDayHint")}
@@ -338,9 +367,21 @@ export function ShiftFormDialog({ plantId, plantCode, plantLabel, shift, onClose
             <Alert tone="info">{t("shiftForm.futureNote", { date: formatDay(rulesFrom) })}</Alert>
           ) : null}
 
-          {fullDayMin > 0 && !graceWrong && !halfDayWrong && !overtimeWrong ? (
+          {fullDayMin > 0 &&
+          !graceWrong &&
+          !graceAfterEndWrong &&
+          !halfDayWrong &&
+          !overtimeWrong ? (
             <ShiftHelper
-              values={{ start, end, fullDayMin, graceMin, halfDayMin, overtimeMin: overtime }}
+              values={{
+                start,
+                end,
+                fullDayMin,
+                graceMin,
+                graceAfterEndMin,
+                halfDayMin,
+                overtimeMin: overtime,
+              }}
             />
           ) : fullDayMin === 0 ? (
             <p className="rounded-lg bg-primary-soft p-4 text-sm" aria-live="polite">
