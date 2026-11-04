@@ -33,6 +33,7 @@ from app.modules.employees.rules import (
     clean_code,
     field_error,
 )
+from app.modules.employees.type_history import start_type_history, sync_type_history
 from app.modules.face.gallery_cache import invalidate_plant_gallery
 from app.modules.face.models import TemplateDeleteKind
 from app.modules.face.template_service import (
@@ -146,6 +147,7 @@ def create_employee(session: Session, context: AuditContext, values: EmployeeVal
             created_by=context.actor.actor_id,
         )
     )
+    start_type_history(session, employee, context.actor.actor_id)
     session.flush()
     _mark_attendance_stale(session, employee, values.joined_on)
     _audit(session, context, employee, "employee.create", before=None)
@@ -184,6 +186,14 @@ def update_employee(
         setattr(employee, field_name, getattr(new_values, field_name))
     if new_values.shift_id != current.shift_id:
         _move_to_shift(session, employee, new_values.shift_id, shift_from or today_ist())
+    # A type, contractor or rate edit goes into the type history, so old months keep their type.
+    sync_type_history(
+        session,
+        employee,
+        changed_from=today_ist(),
+        created_by=context.actor.actor_id,
+        reason=reason,
+    )
     session.flush()
     changed_from = [today_ist(), current.joined_on, new_values.joined_on]
     if new_values.shift_id != current.shift_id and shift_from:

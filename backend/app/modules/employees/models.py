@@ -79,6 +79,34 @@ class Employee(IdMixin, TimestampMixin, Base):
     left_reason: Mapped[str | None] = mapped_column(Text)
 
 
+class EmployeeTypeHistory(IdMixin, Base):
+    """Whether an employee was permanent or temporary, from when (M5c). Old months use it, so a
+    later conversion never changes them. The contractor and rates of the period are kept too."""
+
+    __tablename__ = "employee_type_history"
+    __table_args__ = (
+        CheckConstraint("type IN ('permanent', 'temporary')", name="type_known"),
+        Index("ix_employee_type_history_employee_from", "employee_id", "from_date"),
+        Index(
+            "uq_employee_type_history_one_open",
+            "employee_id",
+            unique=True,
+            postgresql_where=text("to_date IS NULL"),
+        ),
+    )
+
+    employee_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("employees.id"))
+    type: Mapped[str] = mapped_column(String(10))
+    from_date: Mapped[date] = mapped_column(Date)
+    to_date: Mapped[date | None] = mapped_column(Date)
+    contractor_id: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("contractors.id"))
+    hourly_rate: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    ot_rate_per_hour: Mapped[Decimal | None] = mapped_column(Numeric(12, 2))
+    reason: Mapped[str | None] = mapped_column(Text)
+    created_by: Mapped[uuid.UUID | None] = mapped_column(ForeignKey("users.id"))
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
 class ShiftAssignment(IdMixin, Base):
     """Which shift an employee works, from when. The open row (to_date empty) is current."""
 

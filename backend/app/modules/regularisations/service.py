@@ -358,7 +358,7 @@ def check_correction(
         raise _fail("ATTENDANCE_DAY_NOT_ACTIVE", "Attendance does not apply to this day.")
     kind = body.kind
     if kind == CorrectionKind.SET_STATUS.value:
-        if employee.type == "temporary":
+        if loader.calendar.type_on(employee.id, day) == "temporary":
             raise _fail(
                 "CORRECTION_KIND_NOT_FOR_TEMPORARY", "A status is not set for temporary workers."
             )
@@ -807,7 +807,7 @@ def describe_day(
         loader.result_for(employee.id, day),
         plant=DayPlant(id=plant_id, code=plant_code),
         shift=DayShift(id=window.shift.shift_id, name=shift_name or "") if window else None,
-        employee_type=employee.type,
+        employee_type=loader.calendar.type_on(employee.id, day),
         leave=DayLeave(id=inputs.leave.leave_id, is_paid=inputs.leave.is_paid)
         if inputs.leave
         else None,

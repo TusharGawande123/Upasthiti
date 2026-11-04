@@ -12,7 +12,7 @@ from collections import defaultdict
 from datetime import date, datetime, time, timedelta
 from typing import Any
 
-from sqlalchemy import select
+from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.time import IST, to_ist
@@ -20,7 +20,7 @@ from app.modules.attendance.models import AttendanceDay
 from app.modules.attendance.read_service import fresh_days, leave_paid_map, totals_of
 from app.modules.attendance.schemas import register_code
 from app.modules.contractors.models import Contractor
-from app.modules.employees.models import Employee
+from app.modules.employees.models import Employee, EmployeeTypeHistory
 from app.modules.kiosks.models import KioskDevice
 from app.modules.org.models import Department, EmployeeCategory, Plant, Shift
 from app.modules.punches.counting import latest_reviews, review_state
@@ -92,6 +92,18 @@ class Context:
         )
         self.contractors = dict(session.execute(select(Contractor.id, Contractor.name)).all())
         self.shifts = dict(session.execute(select(Shift.id, Shift.name)).all())
+        # The contractor of a worker on a date comes from the type history (M5c): a converted
+        # worker stays under the old contractor in the months before the conversion.
+        self._type_rows: dict[uuid.UUID, list[EmployeeTypeHistory]] = defaultdict(list)
+        for row in session.scalars(
+            select(EmployeeTypeHistory).where(
+                EmployeeTypeHistory.from_date <= date_to,
+                or_(
+                    EmployeeTypeHistory.to_date.is_(None), EmployeeTypeHistory.to_date >= date_from
+                ),
+            )
+        ):
+            self._type_rows[row.employee_id].append(row)
         fresh_days(session, [plant.id for plant in plants], date_from, date_to)
 
     def days(self, plant: Plant, **filters: Any) -> list[tuple[AttendanceDay, Employee]]:
@@ -112,8 +124,15 @@ class Context:
     def department(self, employee: Employee) -> str:
         return self.departments.get(employee.department_id, "") if employee.department_id else ""
 
-    def contractor(self, employee: Employee) -> str:
-        return self.contractors.get(employee.contractor_id, "") if employee.contractor_id else ""
+    def contractor_id_on(self, employee: Employee, day: date) -> uuid.UUID | None:
+        for row in self._type_rows.get(employee.id, []):
+            if row.from_date <= day and (row.to_date is None or day <= row.to_date):
+                return row.contractor_id
+        return employee.contractor_id
+
+    def contractor(self, employee: Employee, day: date) -> str:
+        contractor_id = self.contractor_id_on(employee, day)
+        return self.contractors.get(contractor_id, "") if contractor_id else ""
 
 
 # --- 1. Daily muster ----------------------------------------------------------------------------
@@ -149,10 +168,10 @@ def daily_muster(ctx: Context) -> list[Sheet]:
                 [
                     employee.employee_code,
                     employee.full_name,
-                    employee.type.capitalize(),
+                    day.employee_type.capitalize(),
                     ctx.department(employee),
                     ctx.categories.get(employee.category_id, ""),
-                    ctx.contractor(employee),
+                    ctx.contractor(employee, day.attendance_date),
                     ctx.shifts.get(day.shift_id, "") if day.shift_id else "",
                     status_label(day),
                     clock(day.first_in),
@@ -210,8 +229,9 @@ def register(ctx: Context) -> list[Sheet]:
                 code = register_code(row.status, row.day_kind, None, paid) if row else "–"
                 cells.append(code + ("*" if row and row.is_corrected else ""))
             totals = totals_of(days.values(), leave_paid)
+            latest_type = days[max(days)].employee_type if days else employee.type
             rows.append(
-                [employee.employee_code, employee.full_name, employee.type.capitalize(), *cells]
+                [employee.employee_code, employee.full_name, latest_type.capitalize(), *cells]
                 + [
                     totals.present,
                     totals.half_day,
@@ -261,9 +281,12 @@ def contractor_hours(ctx: Context) -> list[Sheet]:
     for plant in ctx.plants:
         groups: dict[str | None, dict[uuid.UUID, list]] = defaultdict(dict)
         for day, employee in ctx.days(plant, employee_type="temporary"):
-            if ctx.contractor_id and employee.contractor_id != ctx.contractor_id:
+            if (
+                ctx.contractor_id
+                and ctx.contractor_id_on(employee, day.attendance_date) != ctx.contractor_id
+            ):
                 continue
-            name = ctx.contractor(employee) or None
+            name = ctx.contractor(employee, day.attendance_date) or None
             entry = groups[name].setdefault(employee.id, [employee, {}])
             entry[1][day.attendance_date] = day
         rows: list[list[Any]] = []
@@ -322,7 +345,7 @@ def late_early_overtime(ctx: Context) -> list[Sheet]:
         rows: list[list[Any]] = []
         bold: set[int] = set()
         for day, employee in ctx.days(plant):
-            temporary = employee.type == "temporary"
+            temporary = day.employee_type == "temporary"
             late = 0 if temporary else day.late_min
             early = 0 if temporary else day.early_exit_min
             if not (late or early or day.overtime_min):

@@ -171,7 +171,7 @@ def day_of_employee(
     can_correct = current_user.access(Capability.DECIDE_CORRECTIONS) is Access.ALL
     can_request = current_user.access(Capability.REQUEST_CORRECTIONS) is not None
     kinds = ["add_punch", "add_in_out", "ignore_punch"]
-    if employee.type == "permanent":
+    if loader.calendar.type_on(employee.id, day) == "permanent":
         kinds.append("set_status")
     return {
         "day": shown,

@@ -419,7 +419,7 @@ class DayLoader:
             return DayInputs(
                 day=day,
                 employed=False,
-                employee_type=facts.employee_type if facts else "permanent",  # type: ignore[arg-type]  # column is str; check allows permanent or temporary
+                employee_type=calendar.type_on(employee_id, day),  # type: ignore[arg-type]  # column is str; check allows permanent or temporary
                 day_kind=day_kind,
                 rules=None,
                 window_start=self.now,
@@ -449,7 +449,7 @@ class DayLoader:
         return DayInputs(
             day=day,
             employed=True,
-            employee_type=facts.employee_type,  # type: ignore[arg-type]  # same as above
+            employee_type=calendar.type_on(employee_id, day),  # type: ignore[arg-type]  # same as above
             day_kind=day_kind,
             rules=window.shift.rules,
             window_start=window.start,
@@ -478,7 +478,6 @@ def _store(
 ) -> None:
     calendar = loader.calendar
     window = calendar.window(employee_id, day)
-    facts = calendar.employees.get(employee_id)
     plant_id = calendar.plant_on(employee_id, day) or session.scalar(
         select(Employee.plant_id).where(Employee.id == employee_id)
     )
@@ -487,7 +486,7 @@ def _store(
         "plant_id": plant_id,
         "shift_id": window.shift.shift_id if window else None,
         "shift_rule_version_id": window.shift.rule_version_id if window else None,
-        "employee_type": facts.employee_type if facts else "permanent",
+        "employee_type": calendar.type_on(employee_id, day),
         "day_kind": result.day_kind,
         "status": result.status,
         "leave_record_id": inputs.leave.leave_id if inputs.leave else None,

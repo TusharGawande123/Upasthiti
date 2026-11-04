@@ -24,7 +24,12 @@ from sqlalchemy.orm import Session
 
 from app.core.time import to_ist
 from app.modules.attendance.compute import DayKind, HolidayInfo, shift_moments
-from app.modules.employees.models import Employee, EmployeePlantHistory, ShiftAssignment
+from app.modules.employees.models import (
+    Employee,
+    EmployeePlantHistory,
+    EmployeeTypeHistory,
+    ShiftAssignment,
+)
 from app.modules.holidays.models import Holiday, HolidayPlant
 from app.modules.org.models import Plant, PlantWeeklyOff, ShiftRuleVersion
 from app.modules.org.shift_rules_service import ShiftRules, rules_of_version
@@ -76,6 +81,8 @@ class AttendanceCalendar:
         self.window_before = timedelta(hours=window_before_hours)
         self.employees: dict[uuid.UUID, EmployeeFacts] = {}
         self._plants: dict[uuid.UUID, list[_Dated[uuid.UUID]]] = defaultdict(list)
+        # permanent | temporary per period (M5c); a person without rows uses the type of today.
+        self._types: dict[uuid.UUID, list[_Dated[str]]] = defaultdict(list)
         self._shifts: dict[uuid.UUID, list[_Dated[uuid.UUID]]] = defaultdict(list)
         # A one-day shift swap (F-58) replaces the assignment for that date.
         self._swaps: dict[tuple[uuid.UUID, date], uuid.UUID] = {}
@@ -116,6 +123,14 @@ class AttendanceCalendar:
             calendar._plants[row.employee_id].append(
                 _Dated(row.from_date, row.to_date, row.plant_id)
             )
+        for row in session.scalars(
+            select(EmployeeTypeHistory).where(
+                EmployeeTypeHistory.employee_id.in_(employee_ids),
+                EmployeeTypeHistory.from_date <= last,
+                or_(EmployeeTypeHistory.to_date.is_(None), EmployeeTypeHistory.to_date >= first),
+            )
+        ):
+            calendar._types[row.employee_id].append(_Dated(row.from_date, row.to_date, row.type))
         for row in session.scalars(
             select(ShiftAssignment).where(
                 ShiftAssignment.employee_id.in_(employee_ids),
@@ -180,6 +195,15 @@ class AttendanceCalendar:
 
     def plant_on(self, employee_id: uuid.UUID, day: date) -> uuid.UUID | None:
         return _value_on(self._plants.get(employee_id, []), day)
+
+    def type_on(self, employee_id: uuid.UUID, day: date) -> str:
+        """permanent or temporary on `day` from the type history; the type of today when no row
+        covers the day (M5c). Old months never change because of a later conversion."""
+        found = _value_on(self._types.get(employee_id, []), day)
+        if found is not None:
+            return found
+        facts = self.employees.get(employee_id)
+        return facts.employee_type if facts else "permanent"
 
     def employed_on(self, employee_id: uuid.UUID, day: date) -> bool:
         """Joined, not left, and on or after the plant's attendance start date (rule 3)."""
