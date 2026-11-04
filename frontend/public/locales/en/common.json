@@ -816,7 +816,12 @@
     "PHONE_BROWSER_UNSUPPORTED": "Please open this page in Chrome or Edge on your phone.",
     "PASSKEY_CANCELLED": "The passkey was not used. You can try again or sign in with your password.",
     "PHONE_LOCATION_DENIED": "Turn on location for this website. Please try again.",
-    "PHONE_NETWORK_OFFLINE": "No internet. Please try again when you have internet."
+    "PHONE_NETWORK_OFFLINE": "No internet. Please try again when you have internet.",
+    "EMPLOYEE_ALREADY_PERMANENT": "This employee is already permanent.",
+    "CONVERSION_ALREADY_SCHEDULED": "A conversion is already planned for this employee.",
+    "CONVERSION_DATE_INVALID": "Choose a valid date for the conversion.",
+    "CONVERSION_NOT_SCHEDULED": "No conversion is planned for this employee.",
+    "ATTENDANCE_PREPARING": "The attendance of this period is still being calculated. Please try again in a few minutes."
   },
   "nav": {
     "label": "Main menu",
@@ -2042,7 +2047,8 @@
       "category": "Category",
       "anyCategory": "Any category",
       "contractor": "Contractor",
-      "anyContractor": "Any contractor"
+      "anyContractor": "Any contractor",
+      "converted": "Converted"
     },
     "columns": {
       "code": "Code",
@@ -2164,7 +2170,10 @@
       "employee.import": "Added by Excel import",
       "employee.mark_left": "Marked as left",
       "employee.reactivate": "Reactivated",
-      "approved": "approved by the Super Admin"
+      "approved": "approved by the Super Admin",
+      "employee.convert": "Converted to permanent",
+      "employee.convert_scheduled": "Conversion planned",
+      "employee.convert_cancelled": "Planned conversion cancelled"
     },
     "fields": {
       "full_name": "Name",
@@ -2216,6 +2225,34 @@
       "any": "Phone punching: any",
       "on": "Phone punching: on",
       "off": "Phone punching: off"
+    },
+    "conversion": {
+      "button": "Convert to permanent",
+      "askButton": "Ask for conversion",
+      "title": "Convert {{name}} to permanent",
+      "askTitle": "Ask to convert {{name}} to permanent",
+      "description": "The person stays the same: same ID and employee code. From the chosen day:",
+      "changeType": "The type becomes Permanent. Earlier days stay as Temporary.",
+      "changeContractor": "The contractor and the hourly rate stop.",
+      "changeCard": "The ID card is cancelled (the record stays).",
+      "changeFace": "The person punches by face. They cannot punch until the Super Admin has enrolled their face.",
+      "effectiveFrom": "Starts on",
+      "effectiveHint": "From the 1st of last month up to 60 days ahead. A later day is planned and happens on that day.",
+      "sentForApproval": "Sent to the Super Admin for approval.",
+      "planned": "The conversion is planned.",
+      "doneTitle": "Converted to permanent",
+      "doneText": "The ID card is cancelled. Enrol the face now, so the person can punch.",
+      "enrolNow": "Enrol face now",
+      "later": "Later",
+      "pending": "Face enrolment pending",
+      "pendingText": "This person became permanent and cannot punch until their face is enrolled.",
+      "convertedTag": "Converted",
+      "scheduledTitle": "Becomes permanent on {{date}}",
+      "cancelButton": "Cancel the planned conversion",
+      "cancelTitle": "Cancel the planned conversion",
+      "cancelText": "The person stays temporary and the ID card keeps working.",
+      "cancelled": "The planned conversion is cancelled.",
+      "historyTitle": "Type history"
     }
   },
   "contractors": {
@@ -2273,7 +2310,8 @@
       "employee.update": "Edit",
       "employee.transfer": "Transfer",
       "employee.bulk": "Bulk change",
-      "employee.import": "Import"
+      "employee.import": "Import",
+      "employee.convert": "Convert to permanent"
     },
     "columns": {
       "kind": "Kind",
@@ -4428,7 +4466,8 @@
       "absence_streak": "Long absence",
       "monthly_register": "Register ready",
       "phone_many_phones": "Many phones",
-      "phone_selfie_no_face": "Selfie without a face"
+      "phone_selfie_no_face": "Selfie without a face",
+      "conversion_face_pending": "Face enrolment pending"
     },
     "text": {
       "still_inside": "{{count}} people are still inside {{plant}}, {{minutes}} minutes after the shift ended.",
@@ -4442,7 +4481,8 @@
       "correction_decided_rejected": "Your correction for {{date}} was not approved. {{reason}}",
       "monthly_register": "The register of {{month}} is ready for {{plant}}.",
       "phone_many_phones": "An employee signed in on {{count}} phones in 30 days. Check the signed-in phones.",
-      "phone_selfie_no_face": "{{count}} phone selfies at {{plant}} on {{date}} show no face. Please check them in the punch log."
+      "phone_selfie_no_face": "{{count}} phone selfies at {{plant}} on {{date}} show no face. Please check them in the punch log.",
+      "conversion_face_pending": "A worker at {{plant}} became permanent on {{effective_from}}. Their face is not enrolled yet. They cannot punch until it is."
     },
     "link": {
       "list": "Open the list",
@@ -4454,7 +4494,8 @@
       "correction": "Open the correction",
       "register": "Open the register",
       "phone": "Open the phone card",
-      "punches": "Open the punch log"
+      "punches": "Open the punch log",
+      "employee": "Open the employee"
     },
     "filter": {
       "kind": "All kinds",

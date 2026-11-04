@@ -13,6 +13,7 @@ import {
   Layers,
   Pencil,
   Undo2,
+  UserCheck,
   UserPlus,
 } from "lucide-react";
 import { useState } from "react";
@@ -53,6 +54,7 @@ const KIND_ICONS: Record<RequestKind, typeof Pencil> = {
   "employee.transfer": ArrowRightLeft,
   "employee.bulk": Layers,
   "employee.import": FileSpreadsheet,
+  "employee.convert": UserCheck,
 };
 
 export function RequestStatusBadge({ status }: { status: RequestStatus }) {

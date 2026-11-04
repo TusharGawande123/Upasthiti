@@ -20,6 +20,7 @@ export const KINDS = [
   "monthly_register",
   "phone_many_phones",
   "phone_selfie_no_face",
+  "conversion_face_pending",
 ] as const;
 
 export type NotificationKind = (typeof KINDS)[number];
