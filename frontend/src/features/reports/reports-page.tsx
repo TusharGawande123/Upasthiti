@@ -19,6 +19,8 @@ import {
   Table2,
   Timer,
   TriangleAlert,
+  User,
+  UsersRound,
 } from "lucide-react";
 import { type ComponentType, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -35,12 +37,14 @@ import { useMe } from "@/features/auth/use-auth";
 import { useContractors } from "@/features/contractors/use-contractors";
 import { DemoSwitch } from "@/features/dashboard/dashboard-controls";
 import { useDemoSwitch } from "@/features/dashboard/use-dashboard";
+import { useEmployees } from "@/features/employees/use-employees";
 import { usePlants } from "@/features/plants/use-plants";
 import { ApiError } from "@/lib/api-client";
 import { todayIst } from "@/lib/format";
 import {
   daysBetween,
   downloadReport,
+  MAX_LONG_RANGE_DAYS,
   MAX_RANGE_DAYS,
   REPORTS,
   type ReportChoice,
@@ -57,6 +61,8 @@ const KIND_ICONS: Record<ReportKind, ComponentType<{ className?: string }>> = {
   exceptions: TriangleAlert,
   "rejected-punches": ShieldX,
   corrections: FilePenLine,
+  "register-range": UsersRound,
+  "employee-range": User,
 };
 
 // The three limits shown above the cards. They mirror what the server enforces (one report at a
@@ -122,7 +128,9 @@ function useReportDownload(
     setBuilding(format);
     onBusy(true);
     try {
-      const { fileName } = await downloadReport(config, format, choice);
+      const { fileName } = await downloadReport(config, format, choice, () =>
+        setMessage({ tone: "error", amber: true, text: t("reports.preparing") }),
+      );
       setMessage({ tone: "done", text: t("reports.done", { file: fileName }) });
       toast.success(t("reports.toast"));
     } catch (failure) {
@@ -215,7 +223,7 @@ function ReportFilters({
           </Select>
         </Field>
       ) : null}
-      {config.period === "range" ? (
+      {config.period === "range" || config.period === "longRange" ? (
         <div>
           <div className="grid grid-cols-2 gap-3">
             <Field id={`${id}-from`} label={t("reports.field.from")}>
@@ -247,6 +255,14 @@ function ReportFilters({
         </div>
       ) : null}
 
+      {config.needsEmployee ? (
+        <EmployeePicker
+          id={id}
+          employeeId={choice.employeeId}
+          onPick={(employeeId) => onChange({ employeeId })}
+        />
+      ) : null}
+
       <Field id={`${id}-plant`} label={t("reports.field.plant")}>
         {plantLocked ? (
           <span className="flex h-11 items-center gap-2 rounded-md border bg-muted px-3 text-sm font-semibold">
@@ -259,7 +275,7 @@ function ReportFilters({
             value={choice.plantId}
             onChange={(event) => onChange({ plantId: event.target.value })}
           >
-            <option value="">{t("plantFilter.all")}</option>
+            {config.needsPlant ? null : <option value="">{t("plantFilter.all")}</option>}
             {plantOptions.map((plant) => (
               <option key={plant.id} value={plant.id}>
                 {plant.code} · {plant.name}
@@ -289,6 +305,58 @@ function ReportFilters({
   );
 }
 
+/** Find one employee by code or name (M5c, the one-employee report). */
+function EmployeePicker({
+  id,
+  employeeId,
+  onPick,
+}: {
+  id: string;
+  employeeId: string;
+  onPick: (employeeId: string) => void;
+}) {
+  const { t } = useTranslation();
+  const [search, setSearch] = useState("");
+  const enough = search.trim().length >= 2;
+  const found = useEmployees({ q: search.trim(), status: "active", page: 1, page_size: 8 });
+  const options = enough ? (found.data?.items ?? []) : [];
+  return (
+    <div className="space-y-2">
+      <Field
+        id={`${id}-employee-search`}
+        label={t("reports.field.employee")}
+        hint={t("reports.employeeHint")}
+      >
+        <Input
+          id={`${id}-employee-search`}
+          type="search"
+          value={search}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            onPick("");
+          }}
+        />
+      </Field>
+      {enough ? (
+        <Select
+          aria-label={t("reports.field.employeePick")}
+          value={employeeId}
+          onChange={(event) => onPick(event.target.value)}
+        >
+          <option value="">
+            {options.length === 0 ? t("reports.noEmployee") : t("reports.pickEmployee")}
+          </option>
+          {options.map((employee) => (
+            <option key={employee.id} value={employee.id}>
+              {employee.employee_code} · {employee.full_name} · {employee.plant_code}
+            </option>
+          ))}
+        </Select>
+      ) : null}
+    </div>
+  );
+}
+
 function ReportCard({
   config,
   plantLocked,
@@ -307,6 +375,7 @@ function ReportCard({
     dateTo: today,
     plantId: "",
     contractorId: "",
+    employeeId: "",
     includeDemo: false,
   });
   const Icon = KIND_ICONS[config.kind];
@@ -320,17 +389,22 @@ function ReportCard({
   const { message, building, ask } = useReportDownload(config, effective, onBusy);
 
   const days = daysBetween(choice.dateFrom, choice.dateTo);
-  const rangeTooLong = config.period === "range" && days > MAX_RANGE_DAYS;
-  const rangeBackwards = config.period === "range" && days < 1;
+  const isRange = config.period === "range" || config.period === "longRange";
+  const maxDays = config.period === "longRange" ? MAX_LONG_RANGE_DAYS : MAX_RANGE_DAYS;
+  const rangeTooLong = isRange && days > maxDays;
+  const rangeBackwards = isRange && days < 1;
   const noPeriod =
-    (config.period === "day" && !choice.day) ||
-    (config.period === "range" && (!choice.dateFrom || !choice.dateTo));
+    (config.period === "day" && !choice.day) || (isRange && (!choice.dateFrom || !choice.dateTo));
+  const missingChoice =
+    (config.needsPlant && !effective.plantId) || (config.needsEmployee && !choice.employeeId);
   const fieldError = rangeTooLong
-    ? t("reports.error.range", { days })
+    ? config.period === "longRange"
+      ? t("reports.error.rangeLong", { days, max: maxDays })
+      : t("reports.error.range", { days })
     : rangeBackwards
       ? t("reports.error.order")
       : undefined;
-  const cannotAsk = Boolean(fieldError) || noPeriod || anyBusy;
+  const cannotAsk = Boolean(fieldError) || noPeriod || Boolean(missingChoice) || anyBusy;
 
   const set = (changes: Partial<ReportChoice>) =>
     setChoice((current) => ({ ...current, ...changes }));

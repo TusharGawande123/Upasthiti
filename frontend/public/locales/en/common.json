@@ -4363,6 +4363,16 @@
         "title": "Corrections",
         "body": "Correction requests and decisions, and punch approvals from the review screen.",
         "limit": "Up to 31 days. Reasons written in the review screen appear only in the Super Admin's file."
+      },
+      "register-range": {
+        "title": "Register for a period",
+        "body": "One plant, any period up to one year: a Summary sheet and one grid for each month.",
+        "limit": "One plant, up to 366 days. The PDF is landscape A4."
+      },
+      "employee-range": {
+        "title": "One employee for a period",
+        "body": "Every day of one person with IN, OUT, hours, status, late and early exit, and the totals. The PDF is a print-friendly sheet.",
+        "limit": "Up to 366 days."
       }
     },
     "field": {
@@ -4371,7 +4381,9 @@
       "from": "From",
       "to": "To",
       "plant": "Plant",
-      "contractor": "Contractor"
+      "contractor": "Contractor",
+      "employee": "Employee",
+      "employeePick": "Choose the employee"
     },
     "allContractors": "All contractors",
     "yourPlant": "Your plant",
@@ -4387,8 +4399,13 @@
       "range": "That is {{days}} days. This report covers up to 31 days.",
       "order": "The last day cannot be before the first day.",
       "rateLimit": "You have made 20 files in the last 10 minutes. Please wait a few minutes and try again.",
-      "load": "The reports page could not be loaded"
-    }
+      "load": "The reports page could not be loaded",
+      "rangeLong": "That is {{days}} days. This report covers up to {{max}} days."
+    },
+    "employeeHint": "Type at least 2 letters of the name or the code.",
+    "pickEmployee": "Choose the employee",
+    "noEmployee": "No employee found",
+    "preparing": "Getting the days ready. The file starts by itself when they are ready."
   },
   "insights": {
     "punctuality": {
