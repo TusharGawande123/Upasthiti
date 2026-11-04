@@ -16,7 +16,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.core.errors import ApiError
-from app.core.time import utc_now
+from app.core.time import today_ist, utc_now
 from app.face.fake_engine import Problem
 from app.modules.audit.models import AuditLog
 from app.modules.phone.models import PhoneAccount, PhoneNoticeAcceptance, PhoneProof
@@ -296,13 +296,14 @@ def test_a_card_of_a_worker_with_phone_punching_off_fails(
 def test_ac_13_a_proof_token_works_once_and_for_five_minutes(
     db_session: Session, people: People, phone: TestClient
 ) -> None:
-    with frozen_at(ist(date(2026, 11, 2), 10, 0, 0)) as clock:
+    day = today_ist()  # the card of the test starts today
+    with frozen_at(ist(day, 10, 0, 0)) as clock:
         first = card_proof(phone, people.card_text).json()["proof_token"]
         second = card_proof(phone, people.card_text).json()["proof_token"]
-        clock.move_to(ist(date(2026, 11, 2), 10, 5, 1))
+        clock.move_to(ist(day, 10, 5, 1))
         late = set_password(phone, first)
         assert late.status_code == 401 and error_code(late) == "PROOF_TOKEN_INVALID"
-        clock.move_to(ist(date(2026, 11, 2), 10, 4, 59))
+        clock.move_to(ist(day, 10, 4, 59))
         assert set_password(phone, second).status_code == 200
         reused = set_password(phone, second)
     assert error_code(reused) == "PROOF_TOKEN_INVALID"
