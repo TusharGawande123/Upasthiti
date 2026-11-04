@@ -397,8 +397,18 @@ def test_explain_this_day_for_a_late_day_and_for_overtime_below_the_minimum(worl
     assert late["workedForStatus"]["full"] == "8 h"
     assert "overtimeReached" not in late
 
+    # Overtime is for temporary workers only (M5c): a permanent day says nothing about it.
     near = {item["key"]: item["values"] for item in explanation_of(world, "P-2", FRIDAY)}
     assert near["onTime"]["time"] == "09:00"
+    assert not [key for key in near if "vertime" in key]
+
+
+def test_explain_this_day_for_overtime_below_the_minimum_of_a_temporary_worker(world: dict) -> None:
+    """The overtime sentences stay for temporary workers (AC-47, M5c)."""
+    work_a_day(world, "T-1", FRIDAY, (9, 0), (18, 50))
+
+    near = {item["key"]: item["values"] for item in explanation_of(world, "T-1", FRIDAY)}
+
     assert near["overtimeNotReached"]["duration"] == "1 h 50 m"
     assert near["overtimeNotReached"]["minimum"] == "2 h"
 
