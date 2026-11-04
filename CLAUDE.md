@@ -25,7 +25,7 @@
     employee asks. At the own plant the geofence is enforced; on official work
     outside, GPS is saved and the punch is tagged. Built in M4b (decision 0004).
   - Admin dashboard (same website): setup, employees, QR cards, face enrolment,
-    live headcount, reports, corrections, salary estimate (built last).
+    live headcount, reports, corrections, any-period attendance views and files.
   - The server re-checks every punch (anti-proxy engine). Never trust the client.
 - Roles (client's choice): exactly Super Admin, Corporate Head, Plant Head (+ KIOSK
   device identity); NO HR or supervisor users; employees sign in ONLY for phone punching
@@ -44,6 +44,7 @@
 - Scope = client-approved proposal v1.1 + the decisions in this file = the
   MINIMUM to deliver. It is a floor, not a ceiling: Claude Code is encouraged
   to add extra features that make the product better (see section 11).
+  The salary estimate (old M7) was CANCELLED by the client on 2026-11-04: do not build it.
   Future scope (NOT now): full payroll, automatic PF/ESIC/PT/TDS calculation,
   statutory reports, challans, Form 16, tax filing, payslips, employee document
   storage, compliance due-date reminders, regulatory-change alerts.
@@ -66,8 +67,8 @@
 - Modules: org setup (plants, geofences, kiosk devices, departments, shifts,
   employee categories, settings), employees + contractors, approvals (change
   requests), enrolment (face, QR), kiosk punch, anti-proxy engine, attendance
-  processing, dashboards, reports, audit, auth, phone punch (M4b), salary estimate
-  (last).
+  processing, dashboards, reports, audit, auth, phone punch (M4b), temporary-to-permanent
+  conversion and type history (M5c).
 
 ## 3. Coding Style
 - Readability first: code must be easy to read and understand for a student
@@ -181,8 +182,11 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
 - NEVER build the legally risky future-scope items (section 1): automatic
   PF/ESIC/PT/TDS calculation, statutory reports, challans, Form 16, tax filing.
   Other extra ideas are WELCOME: follow section 11 (Creative Freedom).
-- Money uses exact decimal arithmetic, never floating point. Salary screens
-  and exports are labelled "Estimate".
+- Money, if it is ever shown, uses exact decimal arithmetic, never floating point.
+- The type of an employee (permanent or temporary) changes ONLY through the conversion
+  (decision 0037); every past day, report and range view asks `employee_type_history`
+  (`AttendanceCalendar.type_on`), never the type of today. A converted person cannot punch
+  until the Super Admin has enrolled their face; the QR card is revoked, not deleted.
 - Keep the app portable: config via environment variables, no vendor-only
   features, so the app can move to another host (or the client's own server)
   if ever needed.
@@ -208,19 +212,11 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   gate's changing QR with their phone.
 - Attendance processing: check-in/out, late, early, overtime, hours worked.
 - Dashboard (live headcount per plant), reports (Excel/PDF), roles, audit log.
-- LAST: payable salary estimate:
-  - Monthly salary = Basic + DA + HRA + Travel + other allowances (fixed
-    structure per employee, saved by an admin, with effective-from date).
-  - Per-day salary = monthly salary / salary days (26, 30 or actual: setting).
-  - Payable days = present + paid leave + paid holidays/weekly offs (settings).
-  - Earned = per-day x payable days; overtime pay = OT hours x the employee's OT rate.
-  - Deductions (PF, ESIC, TDS, advances) are TYPED IN by the admin.
-  - Net payable = earned + overtime - deductions.
-  - Temporary workers: hours x hourly rate (+ overtime).
-  - Output: monthly salary sheet on screen + Excel export.
-  - Example: Rs 30,000 / 30 = Rs 1,000/day; 18 days = Rs 18,000; + 4 h OT x
-    Rs 150 = Rs 600; - Rs 2,000 deductions = Rs 16,600.
-  - Wait for the client's answers (proposal Q9, Q10) before building it.
+- Any-period attendance (M5c): all employees as an employee x day grid (up to 93 days on screen,
+  up to one year of one plant as Excel or PDF), one employee day by day (up to 366 days, Excel or
+  print-friendly PDF). Temporary to permanent conversion with an effective date (Super Admin
+  direct, Corporate Head via approval), type history, card revoked, "Face enrolment pending".
+- Salary estimate (old M7): CANCELLED by the client (2026-11-04). Not built.
 
 ## 7. Development Roadmap (milestones)
 - [x] M0 Setup: repo, plugins, MCP, subagents, tech stack + SRS approved, CI
@@ -265,10 +261,18 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
       (spec docs/specs/M5-attendance-reports.md, decisions 0034 and 0036). Still open: the M4
       real-device check, the retention period (to confirm with the client; nothing is deleted) and
       docs/compliance/m5-m4b-open-points.md.
+- [x] M5c Date range views and files, temporary to permanent conversion (built on
+      milestone/M5c-range-and-conversion after the client visit of 2026-11-03): register of any
+      period (screen up to 93 days, Excel/PDF up to a year of one plant, streamed in batches),
+      one employee day by day with a print sheet, `employee_type_history`, conversion with
+      approval and planned dates, urgent "Face enrolment pending" notice (spec
+      docs/specs/M5c-range-and-conversion.md, decision 0037). Dropped by the team: no overtime for
+      permanent staff, conversion preview and history report, mock-ups. Still open: HR/legal
+      confirmation that "no punch until the face is enrolled" is acceptable, and the daily reminder
+      F-86.
 - [ ] M6 Testing, security review, documentation, final free-tier deployment
       (client's own server only if the free tiers are not enough)
-- [ ] M7 Payable salary estimate + Excel export (after the client's salary slip
-      and the remaining Q9 answers)
+- [x] M7 Payable salary estimate: CANCELLED by the client (2026-11-04). Not built.
 - [ ] Future (not now): full payroll and statutory features
 
 ## 8. Workflow (Spec-Driven, milestone by milestone)
@@ -381,8 +385,8 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   (i18n-ready) from day one, but do not design around Devanagari.
 - All timestamps stored in UTC, shown in IST (Asia/Kolkata).
 - Face match threshold, kiosk GPS accuracy limit (50 m), geofence margin, pairing-code
-  life, session and lockout limits, punch cool-down, snapshot retention, salary-day
-  basis, paid-day and overtime rules are settings (Super Admin edits them).
+  life, session and lockout limits, punch cool-down, snapshot retention, paid-day and
+  overtime rules are settings (Super Admin edits them).
 - Hosting (decisions 0002, 0004): free tiers for development AND production
   (frontend on Vercel Hobby; backend on Render Free, 512 MB, sleeps after 15 min,
   keep-alive cron; Postgres + snapshot storage on Supabase Free, Mumbai). Move to
