@@ -99,8 +99,8 @@ function CalendarDay({
         FAMILY_COLOURS[family],
       )}
     >
-      <span className="text-[11px]">{dayNumber}</span>
-      <span className="font-mono text-sm font-bold">{day.code}</span>
+      <span className="text-[11px]">{dayNumber}</span>{" "}
+      <span className="font-mono text-sm font-bold">{day.code}</span>{" "}
       {day.first_in ? (
         <span className="tnum hidden text-[10px] sm:block">{timesOf(day)}</span>
       ) : null}
