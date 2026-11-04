@@ -13,7 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { describeError } from "@/features/auth/error-message";
 import { formatDate, formatTime, todayIst } from "@/lib/format";
 import { formatDuration } from "./attendance-format";
-import { daysInRange, presetRange, RANGE_PRESETS } from "./range-presets";
+import { RangePresetButtons } from "./range-preset-buttons";
+import { daysInRange, presetRange } from "./range-presets";
 import { totalColumns } from "./register-shared";
 import { StatusChip } from "./status-chip";
 import { downloadEmployeeRange, saveFile, useEmployeeRange } from "./use-attendance-admin";
@@ -100,23 +101,12 @@ export function EmployeeRangeCard({ employeeId }: { employeeId: string }) {
               onChange={(event) => setDateTo(event.target.value)}
             />
           </Field>
-          <fieldset className="flex flex-wrap gap-2">
-            <legend className="sr-only">{t("attendance.register.presets")}</legend>
-            {RANGE_PRESETS.map((preset) => (
-              <Button
-                key={preset}
-                variant="outline"
-                size="sm"
-                onClick={() => {
-                  const picked = presetRange(preset, todayIst());
-                  setDateFrom(picked.from);
-                  setDateTo(picked.to);
-                }}
-              >
-                {t(`attendance.register.preset.${preset}`)}
-              </Button>
-            ))}
-          </fieldset>
+          <RangePresetButtons
+            onPick={(from, to) => {
+              setDateFrom(from);
+              setDateTo(to);
+            }}
+          />
         </div>
         {!valid ? (
           <p className="text-sm text-destructive">
@@ -179,10 +169,10 @@ export function EmployeeRangeCard({ employeeId }: { employeeId: string }) {
                         {t("attendance.employee.range.date")}
                       </th>
                       <th scope="col" className="p-2">
-                        IN
+                        {t("attendance.employee.range.in")}
                       </th>
                       <th scope="col" className="p-2">
-                        OUT
+                        {t("attendance.employee.range.out")}
                       </th>
                       <th scope="col" className="p-2">
                         {t("attendance.employee.range.hours")}
@@ -231,13 +221,17 @@ export function EmployeeRangeCard({ employeeId }: { employeeId: string }) {
                           <StatusChip day={day} />
                           {day.is_corrected ? (
                             <span className="ml-1 text-xs text-muted-foreground">
-                              {t("attendance.register.correctedWord").replace(/^, /, "")}
+                              {t("attendance.employee.range.corrected")}
                             </span>
                           ) : null}
                         </td>
-                        <td className="tnum p-2">{day.late_min ? `${day.late_min} m` : "–"}</td>
                         <td className="tnum p-2">
-                          {day.early_exit_min ? `${day.early_exit_min} m` : "–"}
+                          {day.late_min ? t("common.minutesShort", { count: day.late_min }) : "–"}
+                        </td>
+                        <td className="tnum p-2">
+                          {day.early_exit_min
+                            ? t("common.minutesShort", { count: day.early_exit_min })
+                            : "–"}
                         </td>
                         {typeChanged ? (
                           <td className="p-2">{t(`attendance.type.${day.employee_type}`)}</td>

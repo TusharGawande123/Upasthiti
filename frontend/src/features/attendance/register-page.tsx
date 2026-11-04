@@ -28,7 +28,8 @@ import { usePlants } from "@/features/plants/use-plants";
 import { formatDate, formatNumber, todayIst } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { DayDrawerHost } from "./day-drawer-host";
-import { daysInRange, presetRange, RANGE_PRESETS } from "./range-presets";
+import { RangePresetButtons } from "./range-preset-buttons";
+import { daysInRange, presetRange } from "./range-presets";
 import { CodeLegend, DASH, totalColumns } from "./register-shared";
 import { FAMILY_COLOURS, familyOfCode } from "./status-chip";
 import {
@@ -424,24 +425,13 @@ export function RegisterPage() {
                   }}
                 />
               </Field>
-              <fieldset className="flex flex-wrap gap-2">
-                <legend className="sr-only">{t("attendance.register.presets")}</legend>
-                {RANGE_PRESETS.map((preset) => (
-                  <Button
-                    key={preset}
-                    variant="outline"
-                    size="sm"
-                    onClick={() => {
-                      const picked = presetRange(preset, todayIst());
-                      setDateFrom(picked.from);
-                      setDateTo(picked.to);
-                      setPage(1);
-                    }}
-                  >
-                    {t(`attendance.register.preset.${preset}`)}
-                  </Button>
-                ))}
-              </fieldset>
+              <RangePresetButtons
+                onPick={(from, to) => {
+                  setDateFrom(from);
+                  setDateTo(to);
+                  setPage(1);
+                }}
+              />
             </div>
             {!rangeValid ? (
               <p className="font-normal text-destructive">

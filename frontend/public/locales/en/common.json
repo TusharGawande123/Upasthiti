@@ -591,7 +591,8 @@
     "reason": "Reason",
     "reasonExplain": "Every change is saved in the audit log with the reason.",
     "save": "Save",
-    "breadcrumb": "Breadcrumb"
+    "breadcrumb": "Breadcrumb",
+    "minutesShort": "{{count}} min"
   },
   "roles": {
     "super_admin": "Super Admin",
@@ -2231,7 +2232,7 @@
       "askButton": "Ask for conversion",
       "title": "Convert {{name}} to permanent",
       "askTitle": "Ask to convert {{name}} to permanent",
-      "description": "The person stays the same: same ID and employee code. From the chosen day:",
+      "description": "The employee stays the same: same ID and employee code. From the chosen day:",
       "changeType": "The type becomes Permanent. Earlier days stay as Temporary.",
       "changeContractor": "The contractor and the hourly rate stop.",
       "changeCard": "The ID card is cancelled (the record stays).",
@@ -2252,7 +2253,8 @@
       "cancelTitle": "Cancel the planned conversion",
       "cancelText": "The person stays temporary and the ID card keeps working.",
       "cancelled": "The planned conversion is cancelled.",
-      "historyTitle": "Type history"
+      "historyTitle": "Type history",
+      "refusedNote": "If the person does not agree to a face scan, change their punch method back to QR card (Edit) and issue a new card."
     }
   },
   "contractors": {
@@ -3707,7 +3709,8 @@
       "rangeTooLongForScreen": "The screen shows at most {{days}} days. You can still download the file.",
       "rangeTooLong": "Choose at most {{days}} days.",
       "preparing": "Getting the days ready",
-      "preparingDays": "{{count}} days are still being calculated. This page updates by itself."
+      "preparingDays_one": "1 day is still being calculated. This page updates by itself.",
+      "preparingDays_other": "{{count}} days are still being calculated. This page updates by itself."
     },
     "code": {
       "P": "Present",
@@ -3793,7 +3796,10 @@
         "early": "Early exit",
         "type": "Type",
         "empty": "No attendance days in this period.",
-        "splitLine": "{{type}}: {{present}} present, {{hours}}"
+        "splitLine": "{{type}}: {{present}} present, {{hours}}",
+        "in": "IN",
+        "out": "OUT",
+        "corrected": "Corrected"
       }
     },
     "swap": {

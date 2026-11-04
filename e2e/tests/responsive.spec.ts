@@ -111,6 +111,53 @@ test("the admin pages fit a phone and a tablet, and the menu button reaches ever
   await expect(page.getByRole("navigation", { name: "Main menu" })).toBeVisible();
 });
 
+// M5c: the range register, the one-employee period list and the convert dialog (the reports page
+// with its two new cards is in ADMIN_PAGES above).
+test("the M5c screens fit 360 px, a phone and a tablet", async ({ page }) => {
+  test.setTimeout(180_000);
+  await logIn(page, SUPER_ADMIN_LOGIN);
+  await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
+  const api = adminApi(page);
+  const plant = await makePlant(api, "PH5");
+  const joined = new Date();
+  joined.setDate(joined.getDate() - 10);
+  const worker = await api.post<{ id: string }>("/employees", {
+    employee_code: "PH-501",
+    full_name: "Worker With A Fairly Long Name",
+    type: "temporary",
+    plant_id: plant.id,
+    category_id: plant.helperId,
+    shift_id: plant.shiftId,
+    hourly_rate: "85.00",
+    joined_on: joined.toISOString().slice(0, 10),
+  });
+
+  for (const [label, size] of [
+    ["small phone", SMALL_PHONE],
+    ["phone", PHONE],
+    ["tablet", TABLET],
+  ] as const) {
+    await page.setViewportSize(size);
+    await page.goto("/admin/attendance/register");
+    await settle(page);
+    await page.getByRole("button", { name: "Date range" }).click();
+    await page.getByRole("button", { name: "Last 30 days" }).click();
+    await expectNoSidewaysScroll(page, `${label} register range`);
+
+    await page.goto(`/admin/employees/${worker.id}?tab=attendance`);
+    await settle(page);
+    await expect(page.getByText("Day by day for a period")).toBeVisible();
+    await expectNoSidewaysScroll(page, `${label} employee period list`);
+
+    await page.goto(`/admin/employees/${worker.id}`);
+    await settle(page);
+    await page.getByRole("button", { name: "Convert to permanent" }).click();
+    await expect(page.getByRole("dialog")).toBeVisible();
+    await expectNoSidewaysScroll(page, `${label} convert dialog`);
+    await page.keyboard.press("Escape");
+  }
+});
+
 test("the kiosk pairing screen fits a phone held upright, even a small one", async ({
   browser,
 }) => {

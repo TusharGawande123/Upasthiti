@@ -276,6 +276,9 @@ export function ConvertDialog({
           <li>{t("employees.conversion.changeCard")}</li>
           <li>{t("employees.conversion.changeFace")}</li>
         </ul>
+        <p className="mt-2 text-[13px] text-muted-foreground">
+          {t("employees.conversion.refusedNote")}
+        </p>
         <form
           className="mt-4 space-y-4"
           onSubmit={(event) => {

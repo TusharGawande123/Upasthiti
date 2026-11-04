@@ -128,7 +128,7 @@ describe("one employee over a period", () => {
     expect(within(table).getByText("27/10/2026")).toBeInTheDocument();
     expect(within(table).getAllByText("Temporary").length).toBeGreaterThan(0);
     expect(within(table).getByText("Permanent")).toBeInTheDocument();
-    expect(within(table).getByText("20 m")).toBeInTheDocument();
+    expect(within(table).getByText("20 min")).toBeInTheDocument();
     expect(screen.getByText(/Temporary: 2 present/)).toBeInTheDocument();
     expect(lastQuery(calls, "/attendance/employee/e-1/range").get("date_to")).toBeTruthy();
   });
