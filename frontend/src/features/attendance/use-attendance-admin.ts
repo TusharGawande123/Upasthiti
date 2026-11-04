@@ -99,6 +99,34 @@ export type RegisterResponse = {
   total: number;
 };
 
+// M5c: the register of any range (up to 93 days) and how many days are still being calculated.
+export const RANGE_RETRY_MS = 5000;
+
+export type RangeDay = { date: string; weekday: number };
+
+export type RangeRegisterResponse = {
+  date_from: string;
+  date_to: string;
+  plant: { id: string; code: string; name: string };
+  days: RangeDay[];
+  items: RegisterRow[];
+  page: number;
+  page_size: number;
+  total: number;
+  preparing: { pending_days: number };
+};
+
+export type RangeRegisterFilters = {
+  date_from: string;
+  date_to: string;
+  plant_id: string;
+  type?: string;
+  q?: string;
+  include_demo?: boolean;
+  page: number;
+  page_size: number;
+};
+
 export type RegisterFilters = {
   month: string;
   plant_id: string;
@@ -193,6 +221,19 @@ export function useRegister(filters: RegisterFilters, enabled: boolean) {
 type Range = { from: string; to: string; plantId?: string; includeDemo?: boolean };
 
 /** Short-hours and Incomplete days that still wait for a decision, from `from` to `to`. */
+/** The range register. While days are still being calculated it asks again every 5 seconds. */
+export function useRegisterRange(filters: RangeRegisterFilters, enabled: boolean) {
+  return useQuery({
+    queryKey: [...ATTENDANCE_KEY, "register-range", filters],
+    queryFn: () =>
+      apiGet<RangeRegisterResponse>(`/attendance/register-range${queryString({ ...filters })}`),
+    enabled,
+    placeholderData: keepPreviousData,
+    refetchInterval: (query) =>
+      (query.state.data?.preparing.pending_days ?? 0) > 0 ? RANGE_RETRY_MS : false,
+  });
+}
+
 export function useUndecided(range: Range) {
   return useQuery({
     queryKey: [...ATTENDANCE_KEY, "undecided", range],
@@ -290,6 +331,26 @@ export function downloadRegister(
   return reportFile("register", file, {
     month: scope.month,
     plant_id: scope.plantId,
+    include_demo: scope.includeDemo || undefined,
+  });
+}
+
+/** The register of a period (up to one year, one plant) as a file. */
+export function downloadRegisterRange(
+  file: "xlsx" | "pdf",
+  scope: {
+    dateFrom: string;
+    dateTo: string;
+    plantId: string;
+    includeDemo?: boolean;
+    type?: string;
+  },
+): Promise<Blob> {
+  return reportFile("register-range", file, {
+    date_from: scope.dateFrom,
+    date_to: scope.dateTo,
+    plant_id: scope.plantId,
+    type: scope.type || undefined,
     include_demo: scope.includeDemo || undefined,
   });
 }

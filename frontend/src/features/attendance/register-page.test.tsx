@@ -246,3 +246,77 @@ describe("the monthly register", () => {
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
   });
 });
+
+describe("the register of a date range (M5c)", () => {
+  const RANGE_DAYS = [
+    { date: "2026-11-01", weekday: 7 },
+    { date: "2026-11-02", weekday: 1 },
+  ];
+  const rangeAnswer = (pending = 0) => ({
+    body: {
+      date_from: "2026-11-01",
+      date_to: "2026-11-02",
+      plant: { id: "p-1", code: "K134", name: "Sheet Shapers (K-134)" },
+      days: RANGE_DAYS,
+      items: [
+        {
+          ...row(1),
+          days: [
+            { date: "2026-11-01", code: "P", is_corrected: false, has_exceptions: false },
+            { date: "2026-11-02", code: "A", is_corrected: false, has_exceptions: false },
+          ],
+        },
+      ],
+      page: 1,
+      page_size: 100,
+      total: 1,
+      preparing: { pending_days: pending },
+    },
+  });
+
+  it("switches to a range, fills the dates from a ready-made period and asks the server", async () => {
+    const calls = mockApi(base({ "GET /attendance/register-range": rangeAnswer() }));
+    const user = userEvent.setup();
+
+    renderRoute("/admin/attendance/register");
+    await user.click(await screen.findByRole("button", { name: "Date range" }));
+    await user.click(screen.getByRole("button", { name: "Last month" }));
+
+    await waitFor(() => {
+      const query = lastQuery(calls, "/attendance/register-range");
+      expect(query.get("date_from")).toMatch(/^\d{4}-\d{2}-01$/);
+      expect(query.get("plant_id")).toBe("p-1");
+    });
+    const grid = (await screen.findAllByRole("table"))[0] as HTMLElement;
+    expect(within(grid).getByText("01/11")).toBeInTheDocument();
+    expect(within(grid).getByText("02/11")).toBeInTheDocument();
+  });
+
+  it("says the days are being prepared while the server is still calculating", async () => {
+    mockApi(base({ "GET /attendance/register-range": rangeAnswer(120) }));
+    const user = userEvent.setup();
+
+    renderRoute("/admin/attendance/register");
+    await user.click(await screen.findByRole("button", { name: "Date range" }));
+
+    expect(await screen.findByText("Getting the days ready")).toBeInTheDocument();
+    expect(screen.getByText(/120 days are still being calculated/)).toBeInTheDocument();
+  });
+
+  it("keeps a range longer than 93 days off the screen but still allows the file", async () => {
+    mockApi(base({ "GET /attendance/register-range": rangeAnswer() }));
+    const user = userEvent.setup();
+
+    renderRoute("/admin/attendance/register");
+    await user.click(await screen.findByRole("button", { name: "Date range" }));
+    const from = screen.getByLabelText("From");
+    await user.clear(from);
+    await user.type(from, "2026-01-01");
+    const to = screen.getByLabelText("To");
+    await user.clear(to);
+    await user.type(to, "2026-06-30");
+
+    expect(await screen.findByText(/shows at most 93 days/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Download Excel/ })).toBeEnabled();
+  });
+});

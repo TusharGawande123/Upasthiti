@@ -16,6 +16,7 @@ import { PlantFilterSelect, usePlantFilter } from "@/app/layouts/plant-filter";
 import { Alert } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Field } from "@/components/ui/field";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -24,21 +25,26 @@ import { useMe } from "@/features/auth/use-auth";
 import { DemoChip, DemoSwitch } from "@/features/dashboard/dashboard-controls";
 import { useDemoSwitch } from "@/features/dashboard/use-dashboard";
 import { usePlants } from "@/features/plants/use-plants";
-import { formatNumber, todayIst } from "@/lib/format";
+import { formatDate, formatNumber, todayIst } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { DayDrawerHost } from "./day-drawer-host";
+import { daysInRange, presetRange, RANGE_PRESETS } from "./range-presets";
 import { CodeLegend, DASH, totalColumns } from "./register-shared";
 import { FAMILY_COLOURS, familyOfCode } from "./status-chip";
 import {
   downloadRegister,
+  downloadRegisterRange,
   type RegisterCell,
   type RegisterRow,
   saveFile,
   useRegister,
+  useRegisterRange,
 } from "./use-attendance-admin";
 import { useDayDrawer } from "./use-day-drawer";
 
 const PAGE_SIZE = 100;
+const MAX_SCREEN_DAYS = 93; // the longest range the grid shows; the file may be a year
+const MAX_FILE_DAYS = 366;
 
 /** One day: its code on its colour; a black dot when the day was corrected. */
 function DayCell({
@@ -92,15 +98,15 @@ function DayCell({
 
 function RegisterGrid({
   rows,
-  daysInMonth,
+  dayLabels,
   openDay,
 }: {
   rows: RegisterRow[];
-  daysInMonth: number;
+  /** The head of each day column: 1..31 for a month, dd/mm for a range. */
+  dayLabels: string[];
   openDay: (employeeId: string, date: string) => void;
 }) {
   const { t } = useTranslation();
-  const dayNumbers = Array.from({ length: daysInMonth }, (_, index) => index + 1);
   const headings = rows[0] ? totalColumns(rows[0].totals, t) : [];
   return (
     <div className="hidden md:block">
@@ -111,13 +117,13 @@ function RegisterGrid({
               <th className="sticky top-0 left-0 z-30 min-w-52 border-b bg-muted p-2 text-left">
                 {t("attendance.col.employee")}
               </th>
-              {dayNumbers.map((day) => (
+              {dayLabels.map((label) => (
                 <th
-                  key={day}
+                  key={label}
                   scope="col"
                   className="tnum sticky top-0 z-20 min-w-10 border-b bg-muted px-1 py-2 text-center text-xs"
                 >
-                  {day}
+                  {label}
                 </th>
               ))}
               {headings.map((column) => (
@@ -250,7 +256,10 @@ export function RegisterPage() {
   const plants = usePlants({ is_active: true });
   const thisMonth = todayIst().slice(0, 7);
 
+  const [mode, setMode] = useState<"month" | "range">("month");
   const [month, setMonth] = useState(thisMonth);
+  const [dateFrom, setDateFrom] = useState(presetRange("last7", todayIst()).from);
+  const [dateTo, setDateTo] = useState(todayIst());
   const [pickedPlant, setPickedPlant] = useState("");
   const [type, setType] = useState("");
   const [search, setSearch] = useState("");
@@ -273,18 +282,55 @@ export function RegisterPage() {
     plantId !== "",
   );
 
-  const data = register.data;
+  const rangeDays = daysInRange(dateFrom, dateTo);
+  const rangeValid = dateFrom !== "" && dateTo !== "" && dateTo >= dateFrom;
+  const rangeScreenOk = rangeValid && rangeDays <= MAX_SCREEN_DAYS;
+  const rangeFileOk = rangeValid && rangeDays <= MAX_FILE_DAYS;
+  const rangeRegister = useRegisterRange(
+    {
+      date_from: dateFrom,
+      date_to: dateTo,
+      plant_id: plantId,
+      type: type || undefined,
+      q: search.trim() || undefined,
+      include_demo: showDemo || undefined,
+      page,
+      page_size: PAGE_SIZE,
+    },
+    mode === "range" && plantId !== "" && rangeScreenOk,
+  );
+
+  const inRange = mode === "range";
+  const active = inRange ? rangeRegister : register;
+  const data = inRange ? rangeRegister.data : register.data;
   const rows = data?.items ?? [];
   const lastPage = Math.max(1, Math.ceil((data?.total ?? 0) / PAGE_SIZE));
+  const pendingDays = inRange ? (rangeRegister.data?.preparing.pending_days ?? 0) : 0;
+  const dayLabels = inRange
+    ? (rangeRegister.data?.days ?? []).map((day) => `${day.date.slice(8)}/${day.date.slice(5, 7)}`)
+    : Array.from({ length: register.data?.days_in_month ?? 0 }, (_, index) => String(index + 1));
 
   const download = async (file: "xlsx" | "pdf") => {
     setFilePending(true);
     setFileError(null);
     try {
-      saveFile(
-        await downloadRegister(file, { month, plantId, includeDemo: showDemo }),
-        `register-${month}.${file}`,
-      );
+      if (inRange) {
+        saveFile(
+          await downloadRegisterRange(file, {
+            dateFrom,
+            dateTo,
+            plantId,
+            includeDemo: showDemo,
+            type,
+          }),
+          `register-${dateFrom}-${dateTo}.${file}`,
+        );
+      } else {
+        saveFile(
+          await downloadRegister(file, { month, plantId, includeDemo: showDemo }),
+          `register-${month}.${file}`,
+        );
+      }
     } catch (failure) {
       setFileError(failure);
     } finally {
@@ -304,7 +350,7 @@ export function RegisterPage() {
           {isSuperAdmin ? <DemoSwitch on={showDemo} onChange={setShowDemo} /> : null}
           <Button
             variant="outline"
-            disabled={filePending || plantId === ""}
+            disabled={filePending || plantId === "" || (inRange && !rangeFileOk)}
             onClick={() => download("xlsx")}
           >
             <FileSpreadsheet aria-hidden />
@@ -312,7 +358,7 @@ export function RegisterPage() {
           </Button>
           <Button
             variant="outline"
-            disabled={filePending || plantId === ""}
+            disabled={filePending || plantId === "" || (inRange && !rangeFileOk)}
             onClick={() => download("pdf")}
           >
             <FileDown aria-hidden />
@@ -329,21 +375,113 @@ export function RegisterPage() {
       ) : null}
 
       <Card className="grid grid-cols-1 gap-3 p-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="min-w-0 text-sm font-semibold">
-          <span className="mb-1 block text-muted-foreground">{t("attendance.register.month")}</span>
-          <Input
-            type="month"
-            value={month}
-            max={thisMonth}
-            aria-label={t("attendance.register.month")}
-            onChange={(event) => {
-              if (event.target.value) {
-                setMonth(event.target.value);
-                setPage(1);
-              }
-            }}
-          />
+        <div className="min-w-0 text-sm font-semibold sm:col-span-2 lg:col-span-4">
+          <fieldset className="inline-flex rounded-lg border p-0.5">
+            <legend className="sr-only">{t("attendance.register.modeLabel")}</legend>
+            {(["month", "range"] as const).map((name) => (
+              <button
+                key={name}
+                type="button"
+                aria-pressed={mode === name}
+                onClick={() => {
+                  setMode(name);
+                  setPage(1);
+                }}
+                className={cn(
+                  "h-9 cursor-pointer rounded-md px-4 text-sm font-semibold",
+                  mode === name ? "bg-primary text-primary-foreground" : "text-muted-foreground",
+                )}
+              >
+                {t(`attendance.register.mode.${name}`)}
+              </button>
+            ))}
+          </fieldset>
         </div>
+        {inRange ? (
+          <div className="min-w-0 space-y-2 text-sm font-semibold sm:col-span-2 lg:col-span-4">
+            <div className="flex flex-wrap items-end gap-3">
+              <Field id="range-from" label={t("attendance.register.from")}>
+                <Input
+                  id="range-from"
+                  type="date"
+                  value={dateFrom}
+                  max={todayIst()}
+                  onChange={(event) => {
+                    setDateFrom(event.target.value);
+                    setPage(1);
+                  }}
+                />
+              </Field>
+              <Field id="range-to" label={t("attendance.register.to")}>
+                <Input
+                  id="range-to"
+                  type="date"
+                  value={dateTo}
+                  max={todayIst()}
+                  onChange={(event) => {
+                    setDateTo(event.target.value);
+                    setPage(1);
+                  }}
+                />
+              </Field>
+              <fieldset className="flex flex-wrap gap-2">
+                <legend className="sr-only">{t("attendance.register.presets")}</legend>
+                {RANGE_PRESETS.map((preset) => (
+                  <Button
+                    key={preset}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      const picked = presetRange(preset, todayIst());
+                      setDateFrom(picked.from);
+                      setDateTo(picked.to);
+                      setPage(1);
+                    }}
+                  >
+                    {t(`attendance.register.preset.${preset}`)}
+                  </Button>
+                ))}
+              </fieldset>
+            </div>
+            {!rangeValid ? (
+              <p className="font-normal text-destructive">
+                {t("attendance.register.rangeBackwards")}
+              </p>
+            ) : !rangeScreenOk ? (
+              <p className="font-normal text-warning">
+                {rangeFileOk
+                  ? t("attendance.register.rangeTooLongForScreen", { days: MAX_SCREEN_DAYS })
+                  : t("attendance.register.rangeTooLong", { days: MAX_FILE_DAYS })}
+              </p>
+            ) : (
+              <p className="font-normal text-muted-foreground">
+                {t("attendance.register.rangeNote", {
+                  from: formatDate(dateFrom),
+                  to: formatDate(dateTo),
+                  days: rangeDays,
+                })}
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="min-w-0 text-sm font-semibold">
+            <span className="mb-1 block text-muted-foreground">
+              {t("attendance.register.month")}
+            </span>
+            <Input
+              type="month"
+              value={month}
+              max={thisMonth}
+              aria-label={t("attendance.register.month")}
+              onChange={(event) => {
+                if (event.target.value) {
+                  setMonth(event.target.value);
+                  setPage(1);
+                }
+              }}
+            />
+          </div>
+        )}
         <div className="min-w-0 text-sm font-semibold">
           <span className="mb-1 block text-muted-foreground">{t("attendance.filter.plant")}</span>
           {locked ? (
@@ -402,19 +540,27 @@ export function RegisterPage() {
       </Card>
 
       <Card className="overflow-hidden">
-        {register.isError && !data ? (
+        {pendingDays > 0 ? (
+          <div role="status" className="space-y-1 border-b bg-primary-soft/50 p-3 text-sm">
+            <p className="font-semibold">{t("attendance.register.preparing")}</p>
+            <p className="text-muted-foreground">
+              {t("attendance.register.preparingDays", { count: pendingDays })}
+            </p>
+          </div>
+        ) : null}
+        {active.isError && !data ? (
           <div className="flex flex-col items-start gap-3 p-6">
             <WifiOff className="size-8 text-muted-foreground" aria-hidden />
             <p className="text-lg font-bold">{t("attendance.error.title")}</p>
             <p className="text-muted-foreground">
-              {describeError(register.error, t)} {t("attendance.error.text")}
+              {describeError(active.error, t)} {t("attendance.error.text")}
             </p>
-            <Button variant="outline" onClick={() => register.refetch()}>
+            <Button variant="outline" onClick={() => active.refetch()}>
               {t("attendance.error.tryAgain")}
             </Button>
           </div>
         ) : null}
-        {register.isPending && plantId !== "" ? (
+        {active.isPending && plantId !== "" && (!inRange || rangeScreenOk) ? (
           <div className="space-y-2 p-4" aria-busy="true">
             {["a", "b", "c", "d", "e"].map((id) => (
               <Skeleton key={id} className="h-12" />
@@ -426,7 +572,7 @@ export function RegisterPage() {
         ) : null}
         {data && rows.length > 0 ? (
           <>
-            <RegisterGrid rows={rows} daysInMonth={data.days_in_month} openDay={openDay} />
+            <RegisterGrid rows={rows} dayLabels={dayLabels} openDay={openDay} />
             <RegisterCards rows={rows} openDay={openDay} />
             <div className="flex flex-wrap items-center justify-between gap-3 border-t p-3 text-sm text-muted-foreground">
               <span>

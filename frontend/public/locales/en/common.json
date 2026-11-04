@@ -3686,7 +3686,28 @@
       "none": "none",
       "cellLabel": "{{name}}, day {{day}}, {{code}}{{corrected}}",
       "correctedWord": ", corrected",
-      "empty": "No employees for this plant and month"
+      "empty": "No employees for this plant and month",
+      "modeLabel": "Show the register by",
+      "mode": {
+        "month": "Month",
+        "range": "Date range"
+      },
+      "from": "From",
+      "to": "To",
+      "presets": "Ready-made periods",
+      "preset": {
+        "last7": "Last 7 days",
+        "last30": "Last 30 days",
+        "thisMonth": "This month",
+        "lastMonth": "Last month",
+        "thisQuarter": "This quarter"
+      },
+      "rangeNote": "{{from}} to {{to}} ({{days}} days)",
+      "rangeBackwards": "The end is before the start.",
+      "rangeTooLongForScreen": "The screen shows at most {{days}} days. You can still download the file.",
+      "rangeTooLong": "Choose at most {{days}} days.",
+      "preparing": "Getting the days ready",
+      "preparingDays": "{{count}} days are still being calculated. This page updates by itself."
     },
     "code": {
       "P": "Present",
