@@ -128,6 +128,12 @@ def report_slot(current_user: CurrentUser) -> Iterator[None]:
         _building.add(current_user.id)
     try:
         yield
+    except ApiError as error:
+        # "Still being calculated" did no real work: it must not use up the 20 files, because the
+        # reports page asks again by itself (M5c).
+        if error.code == "ATTENDANCE_PREPARING":
+            report_file_limiter.refund(str(current_user.id))
+        raise
     finally:
         with _building_lock:
             _building.discard(current_user.id)
@@ -250,6 +256,7 @@ def audit_download(
     plant_code: str,
     period_text: str,
     rows: int,
+    extra: dict[str, str] | None = None,
 ) -> None:
     record_audit(
         session,
@@ -262,6 +269,7 @@ def audit_download(
             "plant": plant_code,
             "period": period_text,
             "rows": rows,
+            **(extra or {}),
         },
     )
     session.commit()

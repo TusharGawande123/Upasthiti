@@ -191,3 +191,102 @@ def test_the_batches_never_hold_more_than_a_hundred_people() -> None:
 
     assert sizes == [100, 100, 50]
     assert list(batches([])) == []
+
+
+def test_a_file_that_is_still_being_prepared_does_not_use_up_the_twenty_files(
+    world: dict, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """The reports page asks again by itself, so a 409 must not end in a 429 (review fix)."""
+    session = world["session"]
+    ids = list(world["people"].values())
+    attendance_service.ensure_fresh(session, ids, date(2026, 10, 26), MONDAY, NOW)
+    session.execute(
+        update(AttendanceDay).where(AttendanceDay.employee_id.in_(ids)).values(stale=True)
+    )
+    session.commit()
+    monkeypatch.setattr(attendance_service, "RANGE_RECOMPUTE_DAYS", 0)  # nothing ever gets ready
+
+    codes = {
+        register_file(world, "corporate", "xlsx", "2026-10-26", "2026-11-02").status_code
+        for _ in range(22)
+    }
+
+    assert codes == {409}
+
+
+def test_the_one_employee_audit_row_holds_the_employee_code(world: dict) -> None:
+    person_file(world, "boss", "P-1", "xlsx", "2026-10-26", "2026-11-02")
+
+    session = world["session"]
+    session.expire_all()
+    row = session.scalars(select(AuditLog).where(AuditLog.action == "report.download")).one()
+
+    assert row.after["employee_code"] == "P-1"
+    assert "Person" not in str(row.after)
+
+
+def test_the_total_row_has_no_count_under_the_early_exit_minutes(world: dict) -> None:
+    work_a_day(world, "P-1", date(2026, 10, 27), (9, 0), (15, 0))  # leaves early
+
+    excel = person_file(world, "boss", "P-1", "xlsx", "2026-10-26", "2026-11-02")
+
+    sheet = openpyxl.load_workbook(io.BytesIO(excel.content))["Attendance"]
+    rows = [[cell.value for cell in row] for row in sheet.iter_rows(min_row=10)]
+    total = rows[-1]
+    assert total[0] == "Total"
+    assert total[9] is None  # "Early exit (min)": minutes only, never a count
+    assert "Early exits" in str(total[7])
+
+
+def test_old_report_files_are_swept_and_fresh_ones_stay() -> None:
+    import os
+    import time
+
+    from app.modules.reports.streaming import sweep_old_files
+
+    folder = Path(tempfile.gettempdir())
+    old = folder / "upasthiti-report-sweep-old.xlsx"
+    fresh = folder / "upasthiti-report-sweep-fresh.xlsx"
+    old.write_bytes(b"x")
+    fresh.write_bytes(b"x")
+    long_ago = time.time() - 3600
+    os.utime(old, (long_ago, long_ago))
+    try:
+        removed = sweep_old_files(max_age_seconds=900)
+
+        assert removed >= 1
+        assert not old.exists()
+        assert fresh.exists()
+    finally:
+        fresh.unlink(missing_ok=True)
+        old.unlink(missing_ok=True)
+
+
+def test_when_all_places_are_taken_a_read_recomputes_nothing_and_says_what_is_left(
+    world: dict,
+) -> None:
+    """Review fix: only a few long reads recompute at once; the others answer with `pending`."""
+    session = world["session"]
+    ids = list(world["people"].values())
+    attendance_service.ensure_fresh(session, ids, date(2026, 10, 26), MONDAY, NOW)
+    session.execute(
+        update(AttendanceDay).where(AttendanceDay.employee_id.in_(ids)).values(stale=True)
+    )
+    session.commit()
+    places = attendance_service.RANGE_RECOMPUTE_PLACES
+    taken = 0
+    while places.acquire(blocking=False):
+        taken += 1
+    try:
+        waiting = attendance_service.ensure_fresh_within_budget(
+            session, ids, date(2026, 10, 26), MONDAY, NOW
+        )
+    finally:
+        for _ in range(taken):
+            places.release()
+
+    assert waiting == 24  # 3 people x 8 days: nothing was recomputed
+    done = attendance_service.ensure_fresh_within_budget(
+        session, ids, date(2026, 10, 26), MONDAY, NOW
+    )
+    assert done == 0

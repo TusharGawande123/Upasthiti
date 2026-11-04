@@ -41,9 +41,7 @@ def _replace(table: str, name: str, condition: str) -> None:
 
 def upgrade() -> None:
     _replace("change_requests", "ck_change_requests_kind_known", f"kind IN ({NEW_REQUEST_KINDS})")
-    _replace(
-        "notifications", "ck_notifications_kind_known", f"kind IN ({NEW_NOTIFICATION_KINDS})"
-    )
+    _replace("notifications", "ck_notifications_kind_known", f"kind IN ({NEW_NOTIFICATION_KINDS})")
     _replace(
         "qr_credentials",
         "ck_qr_credentials_revoke_kind_known",
@@ -57,9 +55,7 @@ def downgrade() -> None:
     # A card revoked by a conversion becomes "other" again so the old constraint holds.
     op.execute("UPDATE qr_credentials SET revoke_kind = 'other' WHERE revoke_kind = 'converted'")
     _replace("change_requests", "ck_change_requests_kind_known", f"kind IN ({OLD_REQUEST_KINDS})")
-    _replace(
-        "notifications", "ck_notifications_kind_known", f"kind IN ({OLD_NOTIFICATION_KINDS})"
-    )
+    _replace("notifications", "ck_notifications_kind_known", f"kind IN ({OLD_NOTIFICATION_KINDS})")
     _replace(
         "qr_credentials",
         "ck_qr_credentials_revoke_kind_known",

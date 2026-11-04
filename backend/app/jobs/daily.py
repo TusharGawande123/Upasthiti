@@ -41,6 +41,7 @@ from app.modules.org.shift_rules_service import apply_due_rule_versions
 from app.modules.phone.access_service import end_expired_outside_work
 from app.modules.phone.cleanup import run_phone_cleanup
 from app.modules.punches.retention import purge_expired_snapshots
+from app.modules.reports.streaming import sweep_old_files
 
 logger = logging.getLogger(__name__)
 
@@ -83,6 +84,7 @@ def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str
         "heartbeats_deleted": purge_old_heartbeats(session, utc_now()),
         "notifications_deleted": purge_old_notifications(session, utc_now()),
         "outside_work_ended": end_expired_outside_work(session, today_ist()),
+        "report_files_removed": sweep_old_files(),
         **run_phone_cleanup(session, utc_now()),
     }
 

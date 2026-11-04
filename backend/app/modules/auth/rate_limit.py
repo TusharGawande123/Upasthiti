@@ -43,6 +43,13 @@ class RateLimiter:
             self._attempts[key].append(now)
             return True
 
+    def refund(self, key: str) -> None:
+        """Take back the last counted attempt of `key` (a request that did no real work)."""
+        with self._lock:
+            attempts = self._attempts.get(key)
+            if attempts:
+                attempts.pop()
+
     def blocked(self, key: str) -> bool:
         """Is the limit already reached? Does not count anything."""
         with self._lock:

@@ -395,6 +395,7 @@ def convert_to_permanent(
 def cancel_scheduled_conversion(
     session: Session, context: AuditContext, employee: Employee, reason: str
 ) -> Employee:
+    """Cancel a planned conversion before its day: the temporary period stays open (audited)."""
     scheduled = scheduled_conversion(session, employee.id, today_ist())
     if scheduled is None:
         raise ApiError(
@@ -446,7 +447,8 @@ def apply_due_conversions(session: Session, today: date) -> int:
                 extra={"effective_from": cancelled_day},
             )
             continue
-        # A card is always revoked by a person: the one who planned the conversion.
+        # A card is revoked by a person, never by "the system": the one who planned the
+        # conversion (the audit row of the conversion itself still says `system`).
         planner = Actor(actor_type="user", actor_id=history_row.created_by)
         _apply_conversion(
             session,
@@ -478,7 +480,8 @@ def _apply_conversion(
     employee.punch_method = PunchMethod.FACE.value
     revoke_card_of_converted(session, card_actor or context.actor, employee)
     session.flush()
-    # A past date also recomputes the first day of its month, to be safe.
+    # A past date also recomputes the first day of its month: the month totals and the
+    # weekly-off counts of that month are built from all of its days.
     stale_from = effective_from if effective_from >= today_ist() else effective_from.replace(day=1)
     _mark_attendance_stale(session, employee, stale_from)
     _audit(
@@ -488,7 +491,7 @@ def _apply_conversion(
         "employee.convert",
         before=before,
         reason=reason,
-        extra={"effective_from": effective_from},
+        extra={"effective_from": effective_from, "face_enrolment_pending": True},
     )
     if context.dry_run:
         return

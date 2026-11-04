@@ -18,6 +18,7 @@ from typing import Any
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
+from xlsxwriter.worksheet import Worksheet
 
 from app.core.date_range import check_date_range
 from app.core.errors import ApiError
@@ -32,7 +33,7 @@ from app.modules.org.models import Plant
 from app.modules.reports import data, service
 from app.modules.reports.model import INT, TEXT, Column, Report, Sheet
 from app.modules.reports.pdf_writer import MAX_PDF_ROWS, build_pdf
-from app.modules.reports.streaming import TempWorkbook, batches
+from app.modules.reports.streaming import TempWorkbook, batches, delete_file
 from app.modules.reports.xlsx_writer import (
     HEADER_ROWS,
     build_xlsx,
@@ -43,6 +44,7 @@ from app.modules.reports.xlsx_writer import (
 )
 
 MAX_REPORT_RANGE_DAYS = 366
+MIN_SECONDS_LEFT = 0.1  # a batch still gets a moment when the time budget is used up
 WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
 SUMMARY_COLUMNS = [
     Column("Code", TEXT, 10),
@@ -151,7 +153,12 @@ def _register_file(
     else:
         path = _register_xlsx(session, report, plant, employee_ids, months, first, last)
         file = RangeFile(f"{name}.xlsx", service.XLSX_TYPE, path=path)
-    _audit(session, current_user, request, plant.code, period_text, len(employee_ids))
+    try:
+        _audit(session, current_user, request, plant.code, period_text, len(employee_ids))
+    except Exception:
+        if file.path is not None:
+            delete_file(file.path)
+        raise
     return file
 
 
@@ -174,7 +181,10 @@ def _check_days_ready(
     started = time.monotonic()
     pending = 0
     for batch in batches(employee_ids):
-        left = max(attendance_service.RANGE_RECOMPUTE_SECONDS - (time.monotonic() - started), 0.1)
+        left = max(
+            attendance_service.RANGE_RECOMPUTE_SECONDS - (time.monotonic() - started),
+            MIN_SECONDS_LEFT,
+        )
         pending += attendance_service.ensure_fresh_within_budget(
             session,
             batch,
@@ -184,6 +194,11 @@ def _check_days_ready(
             max_days=attendance_service.RANGE_RECOMPUTE_DAYS,
             max_seconds=left,
         )
+    raise_if_preparing(pending)
+
+
+def raise_if_preparing(pending: int) -> None:
+    """No file while days of the period are still being calculated (spec rule 9)."""
     if pending:
         raise ApiError(
             "ATTENDANCE_PREPARING",
@@ -392,7 +407,7 @@ def _register_xlsx(
         raise
 
 
-def _write_row(worksheet, row: int, values: list[Any]) -> None:  # noqa: ANN001
+def _write_row(worksheet: Worksheet, row: int, values: list[Any]) -> None:
     for column, value in enumerate(values):
         if isinstance(value, int) and not isinstance(value, bool):
             worksheet.write_number(row, column, value)
@@ -410,16 +425,10 @@ def _employee_file(
         raise ApiError("VALIDATION_FAILED", "Choose the employee.", 422, {"field": "employee_id"})
     employee = detail_service.employee_for_reading(session, current_user, request.employee_id)
     answer = detail_service.range_of_employee(session, current_user, employee, first, last)
-    pending = answer["preparing"]["pending_days"]
-    if pending:
-        raise ApiError(
-            "ATTENDANCE_PREPARING",
-            "The attendance of this period is still being calculated. "
-            "Please try again in a few minutes.",
-            409,
-            {"pending_days": pending},
-        )
-    plant = session.get(Plant, employee.plant_id)
+    raise_if_preparing(answer["preparing"]["pending_days"])
+    first_day = answer["days"][0] if answer["days"] else None
+    shown_plant_id = first_day.plant.id if first_day and first_day.plant else employee.plant_id
+    plant = session.get(Plant, shown_plant_id)
     period_text = f"{first:%d/%m/%Y} to {answer['date_to']:%d/%m/%Y}"
     report = _report_header(
         current_user, "employee-range", "Attendance of one employee", plant, period_text
@@ -439,6 +448,7 @@ def _employee_file(
         plant.code if plant else "",
         period_text,
         len(answer["days"]),
+        extra={"employee_code": employee.employee_code},
     )
     return file
 
@@ -483,6 +493,7 @@ def _employee_sheet(answer: dict[str, Any]) -> Sheet:
         f" · Absent {totals.absent} · Incomplete {totals.incomplete}"
         f" · Leave {totals.leave_paid + totals.leave_unpaid}"
         f" · Weekly off {totals.weekly_off} · Holiday {totals.holiday}"
+        f" · Early exits {totals.early_exit_count}"
     )
     rows.append(
         [
@@ -495,7 +506,7 @@ def _employee_sheet(answer: dict[str, Any]) -> Sheet:
             hhmm(totals.worked_min),
             summary,
             totals.late_min,
-            totals.early_exit_count,
+            "",
             hhmm(totals.overtime_min),
             "",
         ]
@@ -541,8 +552,10 @@ def _audit(
     plant_code: str,
     period_text: str,
     rows: int,
+    extra: dict[str, str] | None = None,
 ) -> None:
-    """The same audit row as every report: kind, format, plant, period, number of rows, no name."""
+    """The same audit row as every report: kind, format, plant, period, number of rows, no name
+    (a one-employee file also names the employee by code)."""
     as_report_request = service.Request(
         kind=request.kind,
         format=request.format,
@@ -554,4 +567,6 @@ def _audit(
         contractor_id=None,
         include_demo=request.include_demo,
     )
-    service.audit_download(session, current_user, as_report_request, plant_code, period_text, rows)
+    service.audit_download(
+        session, current_user, as_report_request, plant_code, period_text, rows, extra
+    )

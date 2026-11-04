@@ -9,8 +9,10 @@ from disk and removed. The same code needs no more memory on a bigger server.
 import contextlib
 import os
 import tempfile
+import time
 from collections.abc import Iterator, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 
 import xlsxwriter
 
@@ -52,6 +54,21 @@ class TempWorkbook:
 
     def discard(self) -> None:
         delete_file(self.path)
+
+
+def sweep_old_files(max_age_seconds: int = 900) -> int:
+    """Remove report files that were left in the temporary folder (a client that disconnected
+    while the file was sent). Only our own files, only older than `max_age_seconds`."""
+    removed = 0
+    limit = time.time() - max_age_seconds
+    for leftover in Path(tempfile.gettempdir()).glob("upasthiti-report-*.xlsx"):
+        try:
+            if leftover.stat().st_mtime < limit:
+                leftover.unlink()
+                removed += 1
+        except OSError:
+            continue  # gone already, or still in use: the next run tries again
+    return removed
 
 
 def delete_file(path: str) -> None:
