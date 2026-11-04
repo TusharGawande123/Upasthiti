@@ -56,7 +56,6 @@ def permanent_body(plant: PlantIds, code: str = "1043", name: str = "Ravi Patil"
         "plant_id": plant.id,
         "category_id": plant.staff_id,
         "shift_id": plant.shift_id,
-        "ot_rate_per_hour": "150.00",
         "joined_on": "2026-01-15",
     }
 

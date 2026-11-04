@@ -222,7 +222,11 @@ export function EmployeeAttendanceTab({ employee, isSuperAdmin }: Props) {
             <CardContent>
               {data.data ? (
                 <dl className="grid grid-cols-2 gap-2">
-                  {totalColumns(data.data.totals, t).map((column) => (
+                  {totalColumns(
+                    data.data.totals,
+                    t,
+                    data.data.days.some((day) => day.employee_type === "temporary"),
+                  ).map((column) => (
                     <div key={column.key} className="min-w-0 rounded-md border p-2.5">
                       <dt className="text-xs text-muted-foreground">{column.label}</dt>
                       <dd className="tnum text-lg font-bold">{column.value}</dd>

@@ -266,8 +266,8 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
       period (screen up to 93 days, Excel/PDF up to a year of one plant, streamed in batches),
       one employee day by day with a print sheet, `employee_type_history`, conversion with
       approval and planned dates, urgent "Face enrolment pending" notice (spec
-      docs/specs/M5c-range-and-conversion.md, decision 0037). Dropped by the team: no overtime for
-      permanent staff, conversion preview and history report, mock-ups. Still open: HR/legal
+      docs/specs/M5c-range-and-conversion.md, decision 0037), with the conversion preview, the conversion
+      history report and no overtime for permanent staff (migration 0033). Still open: HR/legal
       confirmation that "no punch until the face is enrolled" is acceptable, and the daily reminder
       F-86.
 - [ ] M6 Testing, security review, documentation, final free-tier deployment

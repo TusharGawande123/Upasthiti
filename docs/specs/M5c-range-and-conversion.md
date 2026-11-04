@@ -16,16 +16,12 @@ docs/decisions/accepted-extras.md, CLAUDE.md §1, §5, §6, §7, §10, §11.
 The lead (Tushar) and the team **decided** the three changes below. They are written as requirements and are not asked
 again. Questions and extras are answered in §12 and §14; only lines marked "Open" are still undecided.
 
-> **Dropped by the team on 2026-11-04 (after the plan was approved; the text below is kept for the record
-> but is NOT built in M5c):**
-> 1. **Change 3, no overtime for permanent employees** (scope item 4, US-9, section 4.6, section 7.3, rules 24 to 28,
->    AC-26 to AC-32, the `permanent_has_no_ot_rate` clean-up and check in migration 0032, `NOT_FOR_PERMANENT` for the
->    overtime rate, the import rule, calculation version 2, questions 1 and 2). Permanent employees keep today's
->    overtime. A conversion therefore does NOT clear the overtime rate (it still clears contractor and hourly rate).
-> 2. **F-91 conversion history report** (Excel).
-> 3. **F-88 conversion preview.**
-> 4. **Design-gate mock-up images** for M5c: the frontend is built straight from this spec. This is an exception to the
->    team rule "mock-up approved before frontend code", decided by the team for this milestone only.
+> **Changed by the team on 2026-11-04:** the three items that were dropped earlier on the same day were
+> brought back and are built in the same pull request (#45): **change 3 (no overtime for permanent
+> employees, with migration 0033 instead of the clean-up written in 0032)**, **F-88 conversion preview**
+> and **F-91 conversion history report**. Only the **design-gate mock-up images** stay dropped: the
+> frontend is built straight from this spec (an exception to the team rule "mock-up approved before
+> frontend code", for this milestone only; Tushar was told).
 
 ## 1. Problem and goal
 After the client visit of 2026-11-03 three things are needed:
@@ -121,7 +117,7 @@ Design gate: every changed or new screen gets a mock-up image approved before fr
 - Notification bell and Notifications page: new kind "Face enrolment pending" (urgent, red icon + word).
 - Approvals inbox: new request type "Convert to permanent" with employee, effective date, reason.
 
-### 4.6 Removed overtime (DROPPED 2026-11-04, not built)
+### 4.6 Removed overtime
 - Employee form: the "Overtime rate (Rs per hour)" box is shown only when Type = Temporary.
 - Daily list, register totals, day drawer, explain-this-day sentences, reports: no overtime for permanent rows.
 - Shift form: the "smallest overtime" field stays; its help text says "Used for temporary workers".
@@ -203,7 +199,7 @@ Migrations continue after `0030_grace_after_shift_end`. Every new table: in the 
   (type label and the late/early/overtime report), `detail_service` (employee month), `gate_lines.py` (today's type
   is fine: it is about now). List filters by type (employees, cards) keep using today's type.
 
-**0032_conversion_kinds_and_no_permanent_ot** (changed constraints and data)
+**0032_conversion_kinds** (and **0033_no_permanent_overtime_rate**: the clean-up and the check below) (changed constraints and data)
 - `change_requests.kind_known`: add `employee.convert`.
 - `notifications.kind_known`: add `conversion_face_pending`.
 - `qr_credentials` revoke kind check: add `converted` (new `RevokeKind.CONVERTED`).
@@ -305,7 +301,7 @@ Migrations continue after `0030_grace_after_shift_end`. Every new table: in the 
     after it, the Super Admin uses a normal correction and, if truly needed, a new decision.
 23. Shift, plant, category and department are unchanged. Transfers after conversion work as before.
 
-### 7.3 No overtime for permanent employees (DROPPED 2026-11-04, not built)
+### 7.3 No overtime for permanent employees
 24. The overtime rate field exists only for temporary workers: form, API, import, approvals, audit snapshot. A permanent
     employee with `ot_rate_per_hour` is `NOT_FOR_PERMANENT`.
 25. `compute_day` gives `overtime_min = 0` for a permanent employee on every day type (working, weekly off, holiday).
@@ -443,7 +439,7 @@ Migrations continue after `0030_grace_after_shift_end`. Every new table: in the 
 - **AC-25** Given a type history, then no row is ever deleted by app code, and a conversion always adds an audit entry with
   the reason.
 
-**No overtime for permanent (DROPPED 2026-11-04, not built)**
+**No overtime for permanent**
 - **AC-26** Given the employee form, when Type is Permanent, then there is no overtime rate box; the API answers 422
   `NOT_FOR_PERMANENT` for a rate; Type Temporary shows and accepts it.
 - **AC-27** Given a permanent employee who worked 3 hours after the shift end, when the day is computed, then `overtime_min` is
@@ -492,10 +488,10 @@ IDs continue after F-81 and S-49.
 | F-85 | **Conversion due reminder**: a bell notice to the Super Admin when a temporary worker passes N months (same setting as F-84), one per person | The client does not forget long-serving workers | M5c | S | Low (noise if N is small; off by default) | Not now (Later) |
 | F-86 | **Daily reminder while face enrolment is pending**: the 07:00 job re-sends one notice per day (digest line "N converted people still need a face") until enrolled | A single notice is easy to miss; the gap means lost attendance | M5c | S | Low | Not now (Later) |
 | F-87 | **"Convert and enrol" guided flow**: after Convert, the dialog offers "Enrol face now" and goes straight to the consent screen | Shortens the gap in which the person cannot punch | M5c | S | Low (still consent first) | Approved 2026-11-04 |
-| F-88 | **Conversion preview**: before confirming, show the days that will be recomputed and the card that will be revoked | Fewer mistakes with back-dated dates | M5c | S | Low | Dropped 2026-11-04 |
+| F-88 | **Conversion preview**: before confirming, show the days that will be recomputed and the card that will be revoked | Fewer mistakes with back-dated dates | M5c | S | Low | Approved 2026-11-04 |
 | F-89 | **Print-friendly one-employee sheet**: A4 page with name, code, period, totals and the list; useful for disputes | Disputes get settled on paper | M5c | S | Low | Approved 2026-11-04 |
 | F-90 | **Compare two periods** for one employee (this month vs last month: days present, late, hours) | Reviews and warnings with facts | M5c | M | Low | Not now (Later) |
-| F-91 | **Conversion history report** (who was converted, when, by whom, approved by) as Excel | Evidence for the client and audits | M5c | S | Low | Dropped 2026-11-04 |
+| F-91 | **Conversion history report** (who was converted, when, by whom, approved by) as Excel | Evidence for the client and audits | M5c | S | Low | Approved 2026-11-04 |
 | S-50 | **Server-side file streaming helper** (batch iterator + temp-file writer) reused by every report | Keeps memory flat, one place to fix; makes a later server move easy | M5c | M | Low | Approved 2026-11-04 |
 | S-51 | **Database index check for range reads** (`attendance_days(plant_id, attendance_date)` exists; test with `EXPLAIN` on 650 x 366 rows) | A year of one plant stays fast | M5c | S | Low | Not now (Later) |
 | S-52 | **Memory check of a one-year export** added to the existing 512 MB container check in CI | Proves the memory claim in AC-5 on every PR | M5c | S | Low | Not now (Later) |

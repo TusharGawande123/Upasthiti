@@ -19,6 +19,7 @@ from datetime import date
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.date_range import check_date_range
 from app.core.errors import ApiError
 from app.core.time import utc_now
 from app.modules.attendance.read_service import check_day_not_future, visible_plant_ids
@@ -45,9 +46,11 @@ KINDS = {
     "exceptions": ("Exceptions", False),
     "rejected-punches": ("Rejected punches", False),
     "corrections": ("Corrections", False),
+    "conversions": ("Conversions to permanent", True),
 }
 MONTH_KINDS = ("register", "contractor-hours")
 MAX_RANGE_DAYS = 31
+LONG_RANGE_KINDS = {"conversions": 366}  # a year of conversions in one file (M5c, F-91)
 ROLE_NAMES = {
     Role.SUPER_ADMIN.value: "Super Admin",
     Role.CORPORATE_HEAD.value: "Corporate Head",
@@ -95,10 +98,8 @@ def _period(request: Request) -> tuple[date, date, str]:
         return first, last, f"{first:%B %Y}"
     if request.date_from is None or request.date_to is None:
         raise ApiError("VALIDATION_FAILED", "Choose the dates.", 422, {"field": "date_from"})
-    if request.date_to < request.date_from:
-        raise ApiError("VALIDATION_FAILED", "The end is before the start.", 422)
-    if (request.date_to - request.date_from).days + 1 > MAX_RANGE_DAYS:
-        raise ApiError("REPORT_RANGE_TOO_LONG", "Choose at most 31 days.", 422)
+    longest = LONG_RANGE_KINDS.get(request.kind, MAX_RANGE_DAYS)
+    check_date_range(request.date_from, request.date_to, longest)
     check_day_not_future(request.date_from)
     return (
         request.date_from,
@@ -226,6 +227,7 @@ def _sheets(context: Context, current_user: CurrentUser, request: Request) -> li
         "late-early-overtime": data.late_early_overtime,
         "exceptions": data.exceptions,
         "rejected-punches": data.rejected_punches,
+        "conversions": data.conversions,
     }
     return builders[request.kind](context)
 

@@ -51,7 +51,7 @@ export function employee(overrides: Record<string, unknown> = {}) {
     contractor_name: null,
     punch_method: "face",
     hourly_rate: null,
-    ot_rate_per_hour: "220.00",
+    ot_rate_per_hour: null,
     status: "active",
     joined_on: "2024-04-02",
     left_on: null,

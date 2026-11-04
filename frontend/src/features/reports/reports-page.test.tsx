@@ -86,6 +86,12 @@ describe("report addresses", () => {
     );
   });
 
+  it("builds the address of the conversions report (F-91)", () => {
+    expect(reportAddress(config("conversions"), "xlsx", choice)).toBe(
+      "/reports/conversions.xlsx?date_from=2026-10-01&date_to=2026-10-31&plant_id=p-1",
+    );
+  });
+
   it("builds the addresses of the two range reports (M5c)", () => {
     expect(reportAddress(config("register-range"), "xlsx", choice)).toBe(
       "/reports/register-range.xlsx?date_from=2026-10-01&date_to=2026-10-31&plant_id=p-1",
@@ -112,7 +118,7 @@ describe("report addresses", () => {
 });
 
 describe("the reports page", () => {
-  it("shows the three limits and the nine reports", async () => {
+  it("shows the three limits and the ten reports", async () => {
     stubReports(SUPER_ADMIN);
 
     renderRoute("/admin/reports");
@@ -129,10 +135,11 @@ describe("the reports page", () => {
       "Corrections",
       "Register for a period",
       "One employee for a period",
+      "Conversions to permanent",
     ]) {
       expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     }
-    expect(screen.getAllByRole("button", { name: "Excel" })).toHaveLength(9);
+    expect(screen.getAllByRole("button", { name: "Excel" })).toHaveLength(10);
   });
 
   it("asks for the Excel file of a month and saves it under the server's name", async () => {

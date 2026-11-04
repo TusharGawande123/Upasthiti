@@ -290,3 +290,84 @@ def test_when_all_places_are_taken_a_read_recomputes_nothing_and_says_what_is_le
         session, ids, date(2026, 10, 26), MONDAY, NOW
     )
     assert done == 0
+
+
+# --- F-91: the conversion history report --------------------------------------------------------
+
+
+def conversions_file(world: dict, who: str, date_from: str, date_to: str, plant: bool = True):
+    params = {"date_from": date_from, "date_to": date_to}
+    if plant:
+        params["plant_id"] = world["plant"].id
+    return world[who].get("/api/v1/reports/conversions.xlsx", params=params)
+
+
+def convert_in_world(client, world: dict, code: str, day: str):  # noqa: ANN001, ANN201
+    return client.post(
+        f"/api/v1/employees/{world['people'][code]}/convert-to-permanent",
+        json={"effective_from": day, "reason": "Permanent offer"},
+    )
+
+
+def first_sheet(content: bytes):  # noqa: ANN201
+    return openpyxl.load_workbook(io.BytesIO(content)).worksheets[0]
+
+
+def test_the_conversion_report_lists_a_direct_conversion(world: dict) -> None:
+    assert convert_in_world(world["boss"], world, "T-1", "2026-10-29").status_code == 200
+
+    excel = conversions_file(world, "boss", "2026-10-01", "2026-11-02")
+
+    assert excel.status_code == 200, excel.text
+    assert "conversions-K134-" in excel.headers["content-disposition"]
+    rows = [
+        [cell.value for cell in row] for row in first_sheet(excel.content).iter_rows(min_row=10)
+    ]
+    assert [row[0] for row in rows] == ["T-1"]
+    assert rows[0][2] is not None  # the day it starts
+    assert rows[0][4] and not rows[0][5]  # done by the Super Admin, nobody asked
+    assert rows[0][6] == "Permanent offer"
+
+
+def test_the_conversion_report_names_who_asked_when_a_corporate_head_asked(world: dict) -> None:
+    asked = convert_in_world(world["corporate"], world, "T-1", "2026-10-29")
+    assert asked.status_code == 202, asked.text
+    request_id = asked.json()["change_request_id"]
+    approved = world["boss"].post(f"/api/v1/change-requests/{request_id}/approve", json={})
+    assert approved.status_code == 200, approved.text
+
+    excel = conversions_file(world, "boss", "2026-10-01", "2026-11-02")
+
+    rows = [
+        [cell.value for cell in row] for row in first_sheet(excel.content).iter_rows(min_row=10)
+    ]
+    assert [row[0] for row in rows] == ["T-1"]
+    assert rows[0][4] != rows[0][5] and rows[0][5]  # approved by one person, asked by another
+
+
+def test_the_conversion_report_only_covers_the_chosen_days_and_allows_a_year(
+    world: dict,
+) -> None:
+    assert convert_in_world(world["boss"], world, "T-1", "2026-10-29").status_code == 200
+
+    outside = conversions_file(world, "boss", "2026-10-01", "2026-10-28")
+    a_year = conversions_file(world, "boss", "2025-11-03", "2026-11-02", plant=False)
+    too_long = conversions_file(world, "boss", "2025-11-01", "2026-11-02", plant=False)
+
+    rows = [
+        [cell.value for cell in row] for row in first_sheet(outside.content).iter_rows(min_row=10)
+    ]
+    assert rows == []
+    assert a_year.status_code == 200, a_year.text
+    assert too_long.json()["error"]["code"] == "REPORT_RANGE_TOO_LONG"
+
+
+def test_a_plant_head_gets_only_the_conversions_of_the_own_plant(world: dict) -> None:
+    assert convert_in_world(world["boss"], world, "T-1", "2026-10-29").status_code == 200
+
+    own = conversions_file(world, "head", "2026-10-01", "2026-11-02")
+    stranger = conversions_file(world, "other_head", "2026-10-01", "2026-11-02")
+
+    own_rows = list(first_sheet(own.content).iter_rows(min_row=10))
+    assert [row[0].value for row in own_rows] == ["T-1"]
+    assert stranger.status_code == 404

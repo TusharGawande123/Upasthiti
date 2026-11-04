@@ -136,7 +136,11 @@ export function EmployeeRangeCard({ employeeId }: { employeeId: string }) {
         {data ? (
           <>
             <dl className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {totalColumns(data.totals, t).map((column) => (
+              {totalColumns(
+                data.totals,
+                t,
+                data.days.some((day) => day.employee_type === "temporary"),
+              ).map((column) => (
                 <div key={column.key} className="min-w-0 rounded-md border p-2.5">
                   <dt className="text-xs text-muted-foreground">{column.label}</dt>
                   <dd className="tnum text-lg font-bold">{column.value}</dd>

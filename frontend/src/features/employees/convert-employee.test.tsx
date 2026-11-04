@@ -39,6 +39,17 @@ const answers = (me: unknown, detail = DETAIL()) => ({
   "GET /employees/e-5": { body: detail },
   "GET /employees/e-5/timeline": { body: [] },
   "GET /employees/e-5/qr-cards": { body: { cards: [] } },
+  "GET /employees/e-5/convert-preview": {
+    body: {
+      effective_from: "2026-11-04",
+      planned: false,
+      days_recomputed: 4,
+      card_serial: "C000123",
+      contractor: "Shree Manpower",
+      clears_hourly_rate: true,
+      clears_overtime_rate: false,
+    },
+  },
 });
 
 beforeEach(() => localStorage.clear());
@@ -188,5 +199,52 @@ describe("after a conversion", () => {
         calls.find((call) => call.method === "DELETE" && call.path.includes("convert")),
       ).toBeTruthy(),
     );
+  });
+});
+
+describe("the preview before Convert (F-88)", () => {
+  it("says what the day will change before the Super Admin presses Convert", async () => {
+    mockApi({
+      ...answers(SUPER_ADMIN),
+      "POST /employees/e-5/convert-to-permanent": { body: employee({ id: "e-5" }) },
+    });
+    const user = userEvent.setup();
+
+    renderRoute("/admin/employees/e-5");
+    await user.click(await screen.findByRole("button", { name: "Convert to permanent" }));
+    const dialog = await screen.findByRole("dialog");
+
+    const preview = await within(dialog).findByRole("region", { name: "What this day changes" });
+    expect(within(preview).getByText("4 days are calculated again.")).toBeInTheDocument();
+    expect(within(preview).getByText("ID card C000123 is cancelled.")).toBeInTheDocument();
+    expect(within(preview).getByText("The contractor Shree Manpower stops.")).toBeInTheDocument();
+    expect(within(preview).getByText("The hourly rate stops.")).toBeInTheDocument();
+  });
+
+  it("shows the refusal of the server and keeps Convert off", async () => {
+    mockApi({
+      ...answers(SUPER_ADMIN),
+      "GET /employees/e-5/convert-preview": {
+        status: 422,
+        body: {
+          error: {
+            code: "CONVERSION_DATE_INVALID",
+            message: "Choose a valid date for the conversion.",
+            details: { field: "effective_from" },
+          },
+        },
+      },
+    });
+    const user = userEvent.setup();
+
+    renderRoute("/admin/employees/e-5");
+    await user.click(await screen.findByRole("button", { name: "Convert to permanent" }));
+    const dialog = await screen.findByRole("dialog");
+    await user.type(within(dialog).getByLabelText("Reason"), "Permanent offer");
+
+    expect(await within(dialog).findByRole("alert")).toHaveTextContent(
+      "Choose a valid date for the conversion.",
+    );
+    expect(within(dialog).getByRole("button", { name: "Convert to permanent" })).toBeDisabled();
   });
 });

@@ -14,6 +14,9 @@ the client): IN until S+g is on time; an OUT before E is an early exit, and ther
 before the shift end. The time after E up to E+30 min is just a normal OUT: nothing is counted
 there (overtime starts at E and counts only from m).
 
+Overtime is for temporary workers only (M5c, 2026-11-04): a permanent employee's overtime is
+always 0, and the paid time of a permanent day ends at the shift end. Version 2 of this calculation.
+
 Minutes: every punch time is cut down to its whole minute before a duration is measured, so
 "OUT 16:29:59" leaves 31 minutes early and "IN 09:30:01" is 30 minutes late. Whether a time is
 inside grace is decided to the second (IN 09:30:00 is on time, 09:30:01 is late). Decision 0036.
@@ -28,7 +31,7 @@ from app.core.time import IST
 from app.modules.org.shift_rules_service import ShiftRules
 
 # Bump when the rules below change: the catch-up job then recomputes every stored day.
-ATTENDANCE_CALC_VERSION = 1
+ATTENDANCE_CALC_VERSION = 2
 
 Direction = Literal["in", "out"]
 DayKind = Literal["working", "weekly_off", "holiday"]
@@ -211,7 +214,9 @@ def _measure_complete_day(
 ) -> None:
     start, end = shift_moments(inputs.day, rules)
     result.worked_min = _minutes_between(first_in, last_out)
-    result.overtime_min = _overtime(rules, end, first_in, last_out)
+    result.overtime_min = (
+        0 if inputs.employee_type == "permanent" else _overtime(rules, end, first_in, last_out)
+    )
     result.payable_min = _payable(start, end, first_in, last_out, result.overtime_min > 0)
 
     if inputs.day_kind != "working":

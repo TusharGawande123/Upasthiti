@@ -167,9 +167,9 @@ Chosen in chat by the team (Anuradha, for the lead) on 2026-11-04.
 
 - M5c · F-82 · Range presets (last 7 days, this month, last month) · Approved · 2026-11-04
 - M5c · F-87 · "Convert and enrol" guided flow · Approved · 2026-11-04
-- M5c · F-88 · Conversion preview · Dropped · 2026-11-04
+- M5c · F-88 · Conversion preview · Approved · 2026-11-04
 - M5c · F-89 · Print-friendly one-employee sheet · Approved · 2026-11-04
-- M5c · F-91 · Conversion history report · Dropped · 2026-11-04
+- M5c · F-91 · Conversion history report · Approved · 2026-11-04
 - M5c · S-50 · Streaming report helper (needed for the one-year export) · Approved · 2026-11-04
 - Later: F-83 CSV export, F-84 ready-to-convert list, F-85 conversion due reminder, F-86 daily enrolment reminder,
   F-90 compare two periods, S-51 range index check, S-52 one-year memory check in CI, S-53 recompute progress line

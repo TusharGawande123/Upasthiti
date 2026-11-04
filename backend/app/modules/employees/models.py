@@ -54,6 +54,10 @@ class Employee(IdMixin, TimestampMixin, Base):
         CheckConstraint(
             "type <> 'temporary' OR hourly_rate IS NOT NULL", name="temporary_has_hourly_rate"
         ),
+        # Overtime is for temporary workers only (M5c, migration 0033).
+        CheckConstraint(
+            "type <> 'permanent' OR ot_rate_per_hour IS NULL", name="permanent_has_no_ot_rate"
+        ),
         CheckConstraint(
             "(hourly_rate IS NULL OR hourly_rate >= 0) AND "
             "(ot_rate_per_hour IS NULL OR ot_rate_per_hour >= 0)",

@@ -193,3 +193,43 @@ describe("one employee over a period", () => {
     });
   });
 });
+
+describe("overtime is for temporary workers only (M5c)", () => {
+  it("shows no overtime figure in the totals of a permanent employee", async () => {
+    const permanentDays = [day("2026-10-27", { employee_type: "permanent" })];
+    mockApi(
+      base({
+        "GET /attendance/employee/e-1/range": rangeAnswer({
+          days: permanentDays,
+          totals_by_type: { permanent: TOTALS },
+          type_changes: [{ from_date: "2026-10-27", type: "permanent" }],
+        }),
+      }),
+    );
+
+    renderRoute("/admin/employees/e-1?tab=attendance");
+
+    await screen.findByText("Day by day for a period", {}, SLOW);
+    const cards = await screen.findAllByText("Overtime hours");
+    // The month totals above the heatmap and the period totals both show a dash, never a time.
+    for (const label of cards) {
+      expect(label.nextSibling).toHaveTextContent("–");
+    }
+  });
+
+  it("still shows the overtime of a temporary worker", async () => {
+    mockApi(
+      base({
+        "GET /attendance/employee/e-1/range": rangeAnswer({
+          totals: { ...TOTALS, overtime_min: 150 },
+        }),
+      }),
+    );
+
+    renderRoute("/admin/employees/e-1?tab=attendance");
+
+    await screen.findByText("Day by day for a period", {}, SLOW);
+    const labels = await screen.findAllByText("Overtime hours");
+    expect(labels.some((label) => label.nextSibling?.textContent === "2 h 30 m")).toBe(true);
+  });
+});

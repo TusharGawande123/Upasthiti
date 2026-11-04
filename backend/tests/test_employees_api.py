@@ -51,7 +51,7 @@ def test_super_admin_creates_a_permanent_employee(boss: TestClient, k134: PlantI
     assert employee["punch_method"] == "face"
     assert employee["shift_name"] == "General"
     assert employee["category_name"] == "Staff"
-    assert employee["ot_rate_per_hour"] == "150.00"
+    assert employee["ot_rate_per_hour"] is None  # overtime is for temporary workers only (M5c)
 
 
 @pytest.mark.parametrize(
@@ -106,7 +106,7 @@ def test_temporary_worker_with_rate_and_contractor(boss: TestClient, k134: Plant
 def test_overtime_rate_is_an_exact_decimal(
     boss: TestClient, k134: PlantIds, db_session: Session
 ) -> None:
-    employee = create(boss, permanent_body(k134) | {"ot_rate_per_hour": "150.10"})
+    employee = create(boss, temporary_body(k134) | {"ot_rate_per_hour": "150.10"})
 
     stored = db_session.get(Employee, employee["id"])
     assert stored is not None and stored.ot_rate_per_hour == Decimal("150.10")

@@ -20,6 +20,7 @@ import {
   Timer,
   TriangleAlert,
   User,
+  UserCheck,
   UsersRound,
 } from "lucide-react";
 import { type ComponentType, useState } from "react";
@@ -63,6 +64,7 @@ const KIND_ICONS: Record<ReportKind, ComponentType<{ className?: string }>> = {
   corrections: FilePenLine,
   "register-range": UsersRound,
   "employee-range": User,
+  conversions: UserCheck,
 };
 
 // The three limits shown above the cards. They mirror what the server enforces (one report at a

@@ -122,7 +122,8 @@ def _status_sentences(day: Day) -> list[Sentence]:
 
 
 def _overtime_sentences(day: Day, rules: ShiftRules | None) -> list[Sentence]:
-    if day.last_out is None or rules is None:
+    # Overtime is for temporary workers only (M5c): a permanent day says nothing about it.
+    if day.last_out is None or rules is None or day.employee_type == "permanent":
         return []
     if day.overtime_min > 0:
         return [

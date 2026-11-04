@@ -2254,7 +2254,16 @@
       "cancelText": "The person stays temporary and the ID card keeps working.",
       "cancelled": "The planned conversion is cancelled.",
       "historyTitle": "Type history",
-      "refusedNote": "If the person does not agree to a face scan, change their punch method back to QR card (Edit) and issue a new card."
+      "refusedNote": "If the person does not agree to a face scan, change their punch method back to QR card (Edit) and issue a new card.",
+      "previewTitle": "What this day changes",
+      "previewLoading": "Checking…",
+      "previewDays_one": "1 day is calculated again.",
+      "previewDays_other": "{{count}} days are calculated again.",
+      "previewPlanned": "It is planned: nothing changes today. On {{date}} the daily job does it.",
+      "previewCard": "ID card {{serial}} is cancelled.",
+      "previewContractor": "The contractor {{name}} stops.",
+      "previewHourly": "The hourly rate stops.",
+      "previewOvertime": "The overtime rate stops (permanent employees have none)."
     }
   },
   "contractors": {
@@ -4355,7 +4364,7 @@
       },
       "late-early-overtime": {
         "title": "Late, early and overtime",
-        "body": "Every day a permanent employee came late, left early or stayed for overtime, with totals per person.",
+        "body": "Every day a permanent employee came late or left early, and the overtime of temporary workers, with totals per person.",
         "limit": "Up to 31 days."
       },
       "exceptions": {
@@ -4381,6 +4390,11 @@
       "employee-range": {
         "title": "One employee for a period",
         "body": "Every day of one person with IN, OUT, hours, status, late and early exit, and the totals. The PDF is a print-friendly sheet.",
+        "limit": "Up to 366 days."
+      },
+      "conversions": {
+        "title": "Conversions to permanent",
+        "body": "Who became permanent, from which day, who did it and who asked. A year at most; all plants or one.",
         "limit": "Up to 366 days."
       }
     },

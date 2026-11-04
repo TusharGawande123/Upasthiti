@@ -14,10 +14,10 @@ decisions are marked "to confirm with Tushar".**
    (record kept); the person punches by face and **cannot punch until the Super Admin has enrolled their face**
    (the gap is filled by manual corrections). The effective date may be from the 1st of the previous month up to
    60 days ahead. Single conversion only (no bulk). No reverse conversion. Only the Super Admin is notified.
-3. **Dropped after the plan was approved** (2026-11-04): no overtime for permanent employees (slice B: permanent
-   employees keep today's overtime and the conversion does not clear the overtime rate), the conversion preview
-   (F-88), the conversion history report (F-91) and the design-gate mock-up images (**to confirm with Tushar: an
-   exception to the rule "mock-up approved before frontend code", for this milestone only; Tushar was told**).
+3. **Dropped, then brought back the same day** (2026-11-04): no overtime for permanent employees, the
+   conversion preview (F-88) and the conversion history report (F-91) are built in the same PR (#45). Only
+   the design-gate mock-up images stay dropped (**to confirm with Tushar: an exception to the rule "mock-up
+   approved before frontend code", for this milestone only; Tushar was told**).
 4. Hosting (own server instead of Render) is NOT part of M5c; the team decides it later.
 
 ## Build choices (one line each)

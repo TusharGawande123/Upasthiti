@@ -19,6 +19,7 @@ from app.core.time import today_ist
 from app.modules.approvals.models import ChangeRequest, RequestStatus
 from app.modules.attendance.service import mark_days_stale
 from app.modules.audit.service import SYSTEM_ACTOR, Actor, record_audit
+from app.modules.contractors.models import Contractor
 from app.modules.employees.models import (
     Employee,
     EmployeePlantHistory,
@@ -53,6 +54,7 @@ from app.modules.face.template_service import (
 from app.modules.notifications.service import create_notification
 from app.modules.org.models import Plant
 from app.modules.phone.access_service import end_phone_for_leaver
+from app.modules.qr_cards.queries import active_card_of
 from app.modules.qr_cards.service import revoke_card_of_converted, revoke_card_of_leaver
 
 MAX_LEFT_DAYS_AHEAD = 30
@@ -392,6 +394,32 @@ def convert_to_permanent(
     return employee
 
 
+def preview_conversion(
+    session: Session, employee: Employee, effective_from: date
+) -> dict[str, Any]:
+    """F-88: what a conversion from `effective_from` would do, without changing anything.
+    The same checks as the real conversion run first, so a refusal shows before Convert."""
+    check_can_convert(session, employee)
+    check_conversion_date(employee, effective_from)
+    today = today_ist()
+    card = active_card_of(session, employee.id)
+    contractor = (
+        session.scalar(select(Contractor.name).where(Contractor.id == employee.contractor_id))
+        if employee.contractor_id
+        else None
+    )
+    first_stale_day = effective_from if effective_from >= today else effective_from.replace(day=1)
+    return {
+        "effective_from": effective_from,
+        "planned": effective_from > today,
+        "days_recomputed": max(0, (today - first_stale_day).days + 1),
+        "card_serial": card.card_serial if card else None,
+        "contractor": contractor,
+        "clears_hourly_rate": employee.hourly_rate is not None,
+        "clears_overtime_rate": employee.ot_rate_per_hour is not None,
+    }
+
+
 def cancel_scheduled_conversion(
     session: Session, context: AuditContext, employee: Employee, reason: str
 ) -> Employee:
@@ -477,6 +505,7 @@ def _apply_conversion(
     employee.type = "permanent"
     employee.contractor_id = None
     employee.hourly_rate = None
+    employee.ot_rate_per_hour = None
     employee.punch_method = PunchMethod.FACE.value
     revoke_card_of_converted(session, card_actor or context.actor, employee)
     session.flush()

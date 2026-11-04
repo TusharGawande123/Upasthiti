@@ -318,3 +318,56 @@ def test_the_converted_filter_and_the_phone_and_plant_stay_the_same(
     after = listed[0]
     for field in ("plant_id", "shift_id", "category_id", "department_id", "joined_on"):
         assert after[field] == converted[field]
+
+
+# --- F-88: the preview before Convert ----------------------------------------------------------
+
+
+def preview(client: TestClient, employee_id: str, effective_from: str = TODAY):  # noqa: ANN201
+    return client.get(
+        f"{EMPLOYEES}/{employee_id}/convert-preview", params={"effective_from": effective_from}
+    )
+
+
+def test_the_preview_says_what_will_change_and_changes_nothing(
+    boss: TestClient, plant: PlantIds
+) -> None:
+    worker = new_worker(boss, plant)
+    card = boss.post(f"{EMPLOYEES}/{worker['id']}/qr-cards", json={}).json()["card"]
+
+    answer = preview(boss, worker["id"], "2026-10-20")
+
+    assert answer.status_code == 200, answer.text
+    body = answer.json()
+    assert body["card_serial"] == card["serial"]
+    assert body["clears_hourly_rate"] is True and body["planned"] is False
+    assert body["days_recomputed"] == 28  # 01/10 to 28/10: from the 1st of the month of the date
+    assert boss.get(f"{EMPLOYEES}/{worker['id']}").json()["employee"]["type"] == "temporary"
+
+
+def test_the_preview_of_a_planned_day_recomputes_nothing_yet(
+    boss: TestClient, plant: PlantIds
+) -> None:
+    worker = new_worker(boss, plant)
+
+    body = preview(boss, worker["id"], "2026-11-07").json()
+
+    assert body["planned"] is True and body["days_recomputed"] == 0
+
+
+def test_the_preview_refuses_for_the_same_reasons_as_the_conversion(
+    boss: TestClient, corporate: TestClient, plant_head: TestClient, plant: PlantIds
+) -> None:
+    done = new_worker(boss, plant, "T-1")
+    assert convert(boss, done["id"]).status_code == 200
+    other = new_worker(boss, plant, "T-2")
+
+    already = preview(boss, done["id"])
+    bad_day = preview(boss, other["id"], "2026-09-01")
+    for_head = preview(corporate, other["id"])  # a Corporate Head may look too
+    forbidden = preview(plant_head, other["id"])
+
+    assert error_code(already) == "EMPLOYEE_ALREADY_PERMANENT"
+    assert error_code(bad_day) == "CONVERSION_DATE_INVALID"
+    assert for_head.status_code == 200
+    assert forbidden.status_code == 403

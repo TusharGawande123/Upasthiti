@@ -158,7 +158,9 @@ function DayTable({ items, openDay }: RowsProps) {
                 <TableCell className="tnum">{hoursText(day, t)}</TableCell>
                 <TableCell className="tnum">{minutesOrDash(day.late_min)}</TableCell>
                 <TableCell className="tnum">{minutesOrDash(day.early_exit_min)}</TableCell>
-                <TableCell className="tnum">{minutesOrDash(day.overtime_min)}</TableCell>
+                <TableCell className="tnum">
+                  {day.employee_type === "temporary" ? minutesOrDash(day.overtime_min) : DASH}
+                </TableCell>
                 <TableCell>
                   <Marks day={day} />
                 </TableCell>
@@ -229,10 +231,12 @@ function DayCards({ items, openDay }: RowsProps) {
                 {t("attendance.col.earlyExit")}:{" "}
                 <b className="tnum">{minutesOrDash(day.early_exit_min)}</b>
               </span>
-              <span>
-                {t("attendance.col.overtime")}:{" "}
-                <b className="tnum">{minutesOrDash(day.overtime_min)}</b>
-              </span>
+              {day.employee_type === "temporary" ? (
+                <span>
+                  {t("attendance.col.overtime")}:{" "}
+                  <b className="tnum">{minutesOrDash(day.overtime_min)}</b>
+                </span>
+              ) : null}
             </div>
             <Marks day={day} />
             <Button

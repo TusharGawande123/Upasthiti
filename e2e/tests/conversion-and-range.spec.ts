@@ -68,6 +68,10 @@ test("the Super Admin converts a temporary worker and sees what follows", async 
   await page.getByRole("button", { name: "Convert to permanent" }).click();
   const dialog = page.getByRole("dialog");
   await expect(dialog.getByText(/cannot punch until the Super Admin/)).toBeVisible();
+  // F-88: the day says what it changes before Convert is pressed.
+  await expect(dialog.getByRole("region", { name: "What this day changes" })).toContainText(
+    "calculated again",
+  );
   await dialog.getByLabel("Reason").fill("Permanent offer from HR");
   await dialog.getByRole("button", { name: "Convert to permanent" }).click();
 

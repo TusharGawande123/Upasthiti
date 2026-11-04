@@ -385,7 +385,9 @@ export function EmployeesPage() {
                       {employee.contractor_name ?? "–"}
                     </TableCell>
                     <TableCell className="tnum text-right">
-                      {employee.ot_rate_per_hour ? (
+                      {employee.type === "permanent" ? (
+                        "–"
+                      ) : employee.ot_rate_per_hour ? (
                         `${formatRupees(employee.ot_rate_per_hour)}/h`
                       ) : (
                         <span className="text-warning">{t("employees.missing")}</span>

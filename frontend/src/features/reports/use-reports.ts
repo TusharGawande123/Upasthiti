@@ -12,7 +12,8 @@ export type ReportKind =
   | "rejected-punches"
   | "corrections"
   | "register-range"
-  | "employee-range";
+  | "employee-range"
+  | "conversions";
 
 // "longRange" is a period of up to a year (M5c); "range" is up to 31 days.
 export type PeriodKind = "day" | "month" | "range" | "longRange";
@@ -36,6 +37,7 @@ export const REPORTS: ReportConfig[] = [
   { kind: "corrections", period: "range", hasContractor: false },
   { kind: "register-range", period: "longRange", hasContractor: false, needsPlant: true },
   { kind: "employee-range", period: "longRange", hasContractor: false, needsEmployee: true },
+  { kind: "conversions", period: "longRange", hasContractor: false },
 ];
 
 export const MAX_RANGE_DAYS = 31;

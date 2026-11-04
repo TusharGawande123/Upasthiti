@@ -119,6 +119,18 @@ class ConvertRequest(BaseModel):
     reason: str = Field(min_length=3, max_length=300)
 
 
+class ConversionPreview(BaseModel):
+    """F-88: what the conversion would do (nothing has changed yet)."""
+
+    effective_from: date
+    planned: bool  # a later day: the daily job does it on that day
+    days_recomputed: int
+    card_serial: str | None
+    contractor: str | None
+    clears_hourly_rate: bool
+    clears_overtime_rate: bool
+
+
 class CancelConversionRequest(BaseModel):
     reason: str = Field(min_length=3, max_length=300)
 

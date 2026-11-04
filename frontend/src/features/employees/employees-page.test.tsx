@@ -41,7 +41,8 @@ describe("employees list", () => {
     const row = (await screen.findByText("Ramesh Kulkarni")).closest("tr") as HTMLElement;
     expect(within(row).getByText("1001")).toBeInTheDocument();
     expect(within(row).getByText("Permanent")).toBeInTheDocument();
-    expect(within(row).getByText("₹220.00/h")).toBeInTheDocument();
+    // Overtime is for temporary workers only (M5c): a permanent person has no overtime rate.
+    expect(within(row).queryByText(/\/h$/)).not.toBeInTheDocument();
     expect(within(row).getByText("Change waiting")).toBeInTheDocument();
     const ravi = screen.getByText("Ravi Patil").closest("tr") as HTMLElement;
     expect(within(ravi).getByText("Temporary")).toBeInTheDocument();

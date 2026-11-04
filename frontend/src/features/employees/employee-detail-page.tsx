@@ -288,13 +288,13 @@ export function EmployeeDetailPage() {
                         <Row label={t("employees.form.hourlyRate")}>
                           {employee.hourly_rate ? `${formatRupees(employee.hourly_rate)}/h` : "–"}
                         </Row>
+                        <Row label={t("employees.form.otRate")}>
+                          {employee.ot_rate_per_hour
+                            ? `${formatRupees(employee.ot_rate_per_hour)}/h`
+                            : "–"}
+                        </Row>
                       </>
                     ) : null}
-                    <Row label={t("employees.form.otRate")}>
-                      {employee.ot_rate_per_hour
-                        ? `${formatRupees(employee.ot_rate_per_hour)}/h`
-                        : "–"}
-                    </Row>
                   </dl>
                 </CardContent>
               </Card>

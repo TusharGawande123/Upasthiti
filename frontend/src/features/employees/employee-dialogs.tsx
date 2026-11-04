@@ -18,11 +18,12 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { describeError } from "@/features/auth/error-message";
 import { useNamedItems, usePlants, useShifts } from "@/features/plants/use-plants";
-import { todayIst } from "@/lib/format";
+import { formatDate, todayIst } from "@/lib/format";
 import {
   type Employee,
   isPendingApproval,
   useCancelConversion,
+  useConversionPreview,
   useConvertEmployee,
   useMarkLeft,
   useReactivate,
@@ -242,7 +243,9 @@ export function ConvertDialog({
   const [effectiveFrom, setEffectiveFrom] = useState(today());
   const [reason, setReason] = useState("");
   const [done, setDone] = useState<"converted" | "planned" | "asked" | null>(null);
-  const valid = effectiveFrom !== "" && reason.trim().length >= MIN_REASON;
+  // F-88: before pressing Convert, the server says what this day would change (and refuses early).
+  const preview = useConversionPreview(employee.id, effectiveFrom, effectiveFrom !== "");
+  const valid = effectiveFrom !== "" && reason.trim().length >= MIN_REASON && !preview.isError;
 
   if (done === "converted" && !forApproval) {
     return (
@@ -279,6 +282,49 @@ export function ConvertDialog({
         <p className="mt-2 text-[13px] text-muted-foreground">
           {t("employees.conversion.refusedNote")}
         </p>
+        <section
+          aria-label={t("employees.conversion.previewTitle")}
+          className="mt-3 rounded-md border bg-muted/40 p-3 text-sm"
+        >
+          <h3 className="font-bold">{t("employees.conversion.previewTitle")}</h3>
+          {preview.isPending ? (
+            <p className="text-muted-foreground">{t("employees.conversion.previewLoading")}</p>
+          ) : null}
+          {preview.isError ? (
+            <p role="alert" className="text-destructive">
+              {describeError(preview.error, t)}
+            </p>
+          ) : null}
+          {preview.data ? (
+            <ul className="mt-1 list-disc space-y-1 pl-5">
+              <li>
+                {preview.data.planned
+                  ? t("employees.conversion.previewPlanned", {
+                      date: formatDate(preview.data.effective_from),
+                    })
+                  : t("employees.conversion.previewDays", { count: preview.data.days_recomputed })}
+              </li>
+              {preview.data.card_serial ? (
+                <li>
+                  {t("employees.conversion.previewCard", { serial: preview.data.card_serial })}
+                </li>
+              ) : null}
+              {preview.data.contractor ? (
+                <li>
+                  {t("employees.conversion.previewContractor", {
+                    name: preview.data.contractor,
+                  })}
+                </li>
+              ) : null}
+              {preview.data.clears_hourly_rate ? (
+                <li>{t("employees.conversion.previewHourly")}</li>
+              ) : null}
+              {preview.data.clears_overtime_rate ? (
+                <li>{t("employees.conversion.previewOvertime")}</li>
+              ) : null}
+            </ul>
+          ) : null}
+        </section>
         <form
           className="mt-4 space-y-4"
           onSubmit={(event) => {

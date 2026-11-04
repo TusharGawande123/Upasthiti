@@ -167,7 +167,7 @@ function RegisterGrid({
                     />
                   </td>
                 ))}
-                {totalColumns(row.totals, t).map((column) => (
+                {totalColumns(row.totals, t, row.employee.type === "temporary").map((column) => (
                   <td key={column.key} className="tnum border-b p-2 text-center font-semibold">
                     {column.value}
                   </td>
@@ -237,7 +237,7 @@ function RegisterCards({
                   ))}
                 </div>
                 <dl className="grid grid-cols-2 gap-2 text-sm">
-                  {totalColumns(row.totals, t).map((column) => (
+                  {totalColumns(row.totals, t, row.employee.type === "temporary").map((column) => (
                     <div key={column.key} className="rounded-md bg-muted p-2">
                       <dt className="text-xs text-muted-foreground">{column.label}</dt>
                       <dd className="tnum font-bold">{column.value}</dd>

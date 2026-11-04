@@ -10,6 +10,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
+from app.modules.attendance.compute import ATTENDANCE_CALC_VERSION
 from app.modules.attendance.models import AttendanceDay
 from app.modules.attendance.service import (
     close_recent_days,
@@ -86,7 +87,7 @@ def test_a_read_creates_and_computes_the_days_of_a_range(setup: tuple, db_sessio
 
     tuesday = day_row(db_session, employee_id, date(2026, 10, 27))
     assert (tuesday.status, tuesday.status_min, tuesday.worked_min) == ("present", 480, 455)
-    assert tuesday.stale is False and tuesday.calc_version == 1
+    assert tuesday.stale is False and tuesday.calc_version == ATTENDANCE_CALC_VERSION
     assert day_row(db_session, employee_id, date(2026, 10, 26)).status == "absent"  # Monday
     today = day_row(db_session, employee_id, PINNED_DAY)
     assert (today.status) == "open"  # today, 12:00: nobody has punched
@@ -129,7 +130,11 @@ def test_the_carried_over_out_belongs_to_the_day_of_the_in(
 
     thursday = day_row(db_session, employee_id, THURSDAY)
     friday = day_row(db_session, employee_id, THURSDAY + timedelta(days=1))
-    assert (thursday.status, thursday.worked_min, thursday.overtime_min) == ("half_day", 1170, 750)
+    assert (thursday.status, thursday.worked_min, thursday.overtime_min) == (
+        "half_day",
+        1170,
+        0,
+    )  # overtime is for temporary workers only (M5c)
     assert friday.status == "absent"
     assert "OUT_WITHOUT_IN" not in friday.exceptions
 
@@ -190,4 +195,4 @@ def test_a_new_calc_version_makes_every_row_old(setup: tuple, db_session: Sessio
         recompute_stale(db_session, NOW)
 
     fixed = day_row(db_session, employee_id, date(2026, 10, 27))
-    assert (fixed.status, fixed.calc_version) == ("absent", 1)
+    assert (fixed.status, fixed.calc_version) == ("absent", ATTENDANCE_CALC_VERSION)

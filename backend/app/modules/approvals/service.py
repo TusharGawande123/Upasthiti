@@ -42,11 +42,17 @@ def apply_payload(
 ) -> dict[str, Any]:
     """Apply a stored change. Used both when trying it and when approving it."""
     if kind == RequestKind.CREATE.value:
-        employee = operations.create_employee(session, context, values_from_json(payload["values"]))
+        values = values_from_json(payload["values"])
+        if values.type == "permanent":
+            values = values.with_changes({"ot_rate_per_hour": None})  # old request (M5c rule 28)
+        employee = operations.create_employee(session, context, values)
         return {"employee_ids": [str(employee.id)]}
     if kind == RequestKind.UPDATE.value:
         details = from_json(payload["changes"])
         shift_from = details.pop("shift_from", None)
+        target = _employee(session, payload["employee_id"])
+        if details.get("type", target.type) == "permanent":
+            details.pop("ot_rate_per_hour", None)  # old request (M5c rule 28)
         operations.update_employee(
             session,
             context,

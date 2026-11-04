@@ -8,7 +8,7 @@ Next decision file: `docs/decisions/0037-m5c-build-choices.md` · Next migration
 After the client visit of 2026-11-03 three changes are needed (spec §1): any date range of attendance (all employees as a
 grid, one employee as a list, on screen and as Excel/PDF); a temporary to permanent conversion that keeps the employee id
 and, through a new type history, leaves past months unchanged; and no overtime for permanent employees. Approved extras:
-F-82, F-87, F-89, S-50 (F-88 and F-91 dropped 2026-11-04). Answers already fixed (spec §14): permanent stored overtime recomputed to 0; import row with
+F-82, F-87, F-89, S-50 (F-88 and F-91 dropped and brought back 2026-11-04). Answers already fixed (spec §14): permanent stored overtime recomputed to 0; import row with
 OT rate on a permanent employee is an error; back-date to the 1st of the previous month, 60 days ahead; single conversion only;
 gap before enrolment fixed by manual corrections; notify Super Admin only; phone sign-ins untouched; no reverse conversion.
 Hosting move is out of scope. No new dependency (XlsxWriter, fpdf2, openpyxl, pypdfium2 already used).
@@ -30,8 +30,7 @@ Texts say "attendance device", never "kiosk". Every new error code gets `errors.
 3. Tests: calendar with a conversion in mid-month, contractor-hours of a past month, backfill, Hypothesis "a conversion never changes days
    before its date", RLS test (existing check finds the table).
 
-**Slice B – DROPPED 2026-11-04** (no overtime for permanent employees: not built; steps 4 to 8 removed, numbers kept so the rest
-of the plan still reads the same). Permanent employees keep today's overtime. Migration 0032 holds only the kinds of slice C.
+**Slice B – no overtime for permanent employees** (back in, 2026-11-04, built after slices A to G; migration 0033).
 
 **Slice C – conversion backend.**
 9. Migration 0032: `change_requests.kind_known` + `employee.convert`, `notifications.kind_known` + `conversion_face_pending`,
@@ -45,7 +44,7 @@ of the plan still reads the same). Permanent employees keep today's overtime. Mi
 11. Router: `POST/DELETE /employees/{id}/convert-to-permanent`, role from the server (Super Admin direct, Corporate Head `employee.convert` change
     request through the existing approvals flow, Plant Head 403); approvals re-check runs the same rules; `EmployeeResponse` / detail add
     `type_history`, `converted_on`, `conversion_scheduled_for`, `face_enrolment_pending`; `GET /employees` gets `converted=true`.
-12. (F-91 conversion history report dropped 2026-11-04.)
+12. F-91 conversion history report (back in, 2026-11-04).
 13. Tests: AC-13 to AC-25 (role matrix, every error code, scheduled run twice, failed approval after the person left, gate refusals with the real
     card/face/phone paths, face enrolment makes punches work again). Compliance-auditor looks at the enrolment gap.
 
@@ -74,7 +73,7 @@ of the plan still reads the same). Permanent employees keep today's overtime. Mi
 23. Reports page: two range cards.
 24. Employee page: "Convert to permanent" / "Ask for conversion" dialog, "Enrol face now" step, banners, "Converted" tag, type history list,
     cancel scheduled; employees list badge and filter; approvals inbox kind `employee.convert`; notification kind.
-25. (Hiding overtime for permanent dropped 2026-11-04.)
+25. Hide overtime for permanent (back in, 2026-11-04).
 26. Vitest for every new component, Biome, typecheck, `npm run i18n:check`, bundle `npm run size`.
 
 **Slice G – close-out.**
@@ -130,3 +129,4 @@ A fresh session per slice; the Status section is the handoff.
   - Next: slice F (frontend), then slice G.
 - 2026-11-04 (Sonnet + medium): **slice F done and committed** (8dd8126, ae12911, 2f5c400, b6bf175): convert dialog + banner + type history + approvals + notification; register range mode with presets and the progress bar; one-employee range card with the print sheet; two range cards on the reports page with automatic retry. Built straight from the spec (no mock-ups, team decision). Frontend `npm test` passes (coverage branches 84.77%, floor 84), lint, typecheck, build and size budgets pass.
   - Next: slice G: add the new states to `e2e/tests/responsive.spec.ts` and write the e2e tests; the gate refusal tests of AC-21; run the full backend suite, the e2e run, `/review-milestone`; decisions file 0037; CLAUDE.md diff for the lead; PR.
+- 2026-11-04 (later): the team brought back Slice B, F-88 and F-91 and asked for them in PR #45. Order: docs, backend slice B (migration 0033), F-88 preview endpoint, F-91 report, frontend, tests, CI.

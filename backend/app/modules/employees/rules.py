@@ -89,8 +89,9 @@ def check_values(session: Session, values: EmployeeValues) -> EmployeeValues:
 
 
 def _check_type_rules(values: EmployeeValues) -> EmployeeValues:
-    """Temporary workers: hourly rate needed, contractor allowed, QR by default.
-    Permanent employees: no hourly rate or contractor, face by default (spec §7 rule 10)."""
+    """Temporary workers: hourly rate needed, contractor and overtime rate allowed, QR by default.
+    Permanent employees: no hourly rate, contractor or overtime rate, face by default (spec §7
+    rule 10; the overtime rate: M5c rule 24)."""
     if values.type == EmployeeType.TEMPORARY.value:
         if values.hourly_rate is None or values.hourly_rate <= 0:
             raise field_error(
@@ -104,6 +105,12 @@ def _check_type_rules(values: EmployeeValues) -> EmployeeValues:
         if values.contractor_id is not None:
             raise field_error(
                 "NOT_FOR_PERMANENT", "Permanent employees have no contractor.", "contractor"
+            )
+        if values.ot_rate_per_hour is not None:
+            raise field_error(
+                "NOT_FOR_PERMANENT",
+                "Permanent employees have no overtime rate.",
+                "ot_rate_per_hour",
             )
     else:
         raise field_error("VALIDATION_FAILED", "Type must be permanent or temporary.", "type")

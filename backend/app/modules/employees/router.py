@@ -7,6 +7,7 @@ browser.
 """
 
 import uuid
+from datetime import date
 from typing import Any
 
 from fastapi import APIRouter, Depends, File, Query, Response, UploadFile
@@ -32,6 +33,7 @@ from app.modules.employees.schemas import (
     BulkResponse,
     CancelConversionRequest,
     ChangeRequestCreated,
+    ConversionPreview,
     ConvertRequest,
     CreateEmployeeRequest,
     EmployeeDetailResponse,
@@ -295,6 +297,18 @@ def convert_to_permanent(
     )
     session.commit()
     return _one(session, employee)
+
+
+@router.get("/{employee_id}/convert-preview", response_model=ConversionPreview)
+def preview_conversion(
+    employee_id: uuid.UUID,
+    effective_from: date,
+    current_user: CurrentUser = Depends(changer),
+    session: Session = Depends(get_session),
+) -> Any:
+    """F-88: what the conversion from this day would do, and the reason it would be refused."""
+    employee = queries.get_employee(session, employee_id, only_plant_ids=_scope(current_user))
+    return operations.preview_conversion(session, employee, effective_from)
 
 
 @router.delete("/{employee_id}/convert-to-permanent", response_model=EmployeeResponse)

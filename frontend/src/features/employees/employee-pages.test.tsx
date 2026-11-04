@@ -173,7 +173,16 @@ describe("edit employee", () => {
       ...K134_LISTS,
       "GET /auth/me": { body: SUPER_ADMIN },
       "GET /employees/e-1": {
-        body: { employee: employee(), plant_history: [], shift_history: [] },
+        body: {
+          employee: employee({
+            type: "temporary",
+            punch_method: "qr",
+            hourly_rate: "85.00",
+            ot_rate_per_hour: "120.00",
+          }),
+          plant_history: [],
+          shift_history: [],
+        },
       },
       "PATCH /employees/e-1": { body: employee({ ot_rate_per_hour: "250.00" }) },
       "GET /employees/e-1/timeline": { body: [] },
@@ -378,5 +387,32 @@ describe("employee detail", () => {
       "href",
       "/admin/approvals",
     );
+  });
+});
+
+describe("overtime is for temporary workers only (M5c)", () => {
+  it("shows no overtime rate box for a permanent employee and sends none", async () => {
+    const calls = mockApi({
+      ...LAYOUT,
+      ...K134_LISTS,
+      "GET /auth/me": { body: SUPER_ADMIN },
+      "GET /employees/e-1": {
+        body: { employee: employee(), plant_history: [], shift_history: [] },
+      },
+      "PATCH /employees/e-1": { body: employee() },
+      "GET /employees/e-1/timeline": { body: [] },
+    });
+    const user = userEvent.setup();
+
+    renderRoute("/admin/employees/e-1/edit");
+    expect(await screen.findByLabelText("Code")).toBeDisabled();
+    expect(screen.queryByLabelText("Overtime rate")).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText(/Reason/), { target: { value: "New title" } });
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    await vi.waitFor(() => {
+      const sent = calls.find((call) => call.method === "PATCH")?.body as Record<string, unknown>;
+      expect(sent.ot_rate_per_hour ?? null).toBeNull();
+    });
   });
 });

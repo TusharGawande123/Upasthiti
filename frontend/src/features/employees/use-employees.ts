@@ -235,6 +235,29 @@ export function useReactivate(employeeId: string) {
   });
 }
 
+// F-88: what a conversion from a day would do (nothing has changed yet).
+export type ConversionPreview = {
+  effective_from: string;
+  planned: boolean;
+  days_recomputed: number;
+  card_serial: string | null;
+  contractor: string | null;
+  clears_hourly_rate: boolean;
+  clears_overtime_rate: boolean;
+};
+
+export function useConversionPreview(employeeId: string, effectiveFrom: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...EMPLOYEES_KEY, employeeId, "convert-preview", effectiveFrom],
+    queryFn: () =>
+      apiGet<ConversionPreview>(
+        `/employees/${employeeId}/convert-preview${queryString({ effective_from: effectiveFrom })}`,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
 /** Temporary to permanent (M5c). A Corporate Head's answer is a request waiting for approval. */
 export function useConvertEmployee(employeeId: string) {
   const refresh = useRefreshPeople();

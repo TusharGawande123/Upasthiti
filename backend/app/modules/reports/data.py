@@ -16,9 +16,11 @@ from sqlalchemy import or_, select
 from sqlalchemy.orm import Session
 
 from app.core.time import IST, to_ist
+from app.modules.approvals.models import ChangeRequest
 from app.modules.attendance.models import AttendanceDay
 from app.modules.attendance.read_service import fresh_days, leave_paid_map, totals_of
 from app.modules.attendance.schemas import register_code
+from app.modules.audit.models import AuditLog
 from app.modules.contractors.models import Contractor
 from app.modules.employees.models import Employee, EmployeeTypeHistory
 from app.modules.kiosks.models import KioskDevice
@@ -258,6 +260,65 @@ REGISTER_LEGEND = [
     "UL unpaid leave · WO weekly off · H holiday · WO-W / H-W worked on weekly off / holiday",
     "* corrected: see the corrections log · – not employed or not yet stored",
 ]
+
+
+# --- 8. Conversions to permanent (M5c, F-91) ------------------------------------------------------
+
+
+def conversions(ctx: Context) -> list[Sheet]:
+    """Who became permanent, from which day, who did it and who approved it (read from the audit
+    log, so a cancelled or refused conversion never shows). No money."""
+    columns = [
+        Column("Code", TEXT, 10),
+        Column("Name", TEXT, 24),
+        Column("Effective from", DATE, 14),
+        Column("Done on", TEXT, 17),
+        Column("Done by", TEXT, 22),
+        Column("Asked by", TEXT, 22),
+        Column("Reason", TEXT, 36),
+    ]
+    users = user_names(ctx.session)
+    sheets = []
+    for plant in ctx.plants:
+        found = ctx.session.execute(
+            select(AuditLog, Employee)
+            .join(Employee, Employee.id == AuditLog.entity_id)
+            .where(
+                AuditLog.action == "employee.convert",
+                AuditLog.plant_id == plant.id,
+                AuditLog.after["effective_from"].astext.between(
+                    ctx.date_from.isoformat(), ctx.date_to.isoformat()
+                ),
+            )
+            .order_by(AuditLog.after["effective_from"].astext, AuditLog.at)
+        ).all()
+        requested = dict(
+            ctx.session.execute(
+                select(ChangeRequest.id, ChangeRequest.requested_by).where(
+                    ChangeRequest.id.in_(
+                        [row.change_request_id for row, _ in found if row.change_request_id]
+                    )
+                )
+            ).all()
+        )
+        rows: list[list[Any]] = []
+        for entry, employee in found:
+            asker = requested.get(entry.change_request_id) if entry.change_request_id else None
+            effective_from = (entry.after or {}).get("effective_from", "")
+            done_by = users.get(entry.actor_id, "") if entry.actor_id else "The daily job"
+            rows.append(
+                [
+                    employee.employee_code,
+                    employee.full_name,
+                    date.fromisoformat(str(effective_from)),
+                    format_ist(entry.at),
+                    done_by,
+                    users.get(asker, "") if asker else "",
+                    entry.reason or "",
+                ]
+            )
+        sheets.append(Sheet(plant.code, columns, rows, heading=f"{plant.code} · {plant.name}"))
+    return sheets
 
 
 # --- 3. Contractor hours ------------------------------------------------------------------------

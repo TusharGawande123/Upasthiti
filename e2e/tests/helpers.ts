@@ -238,7 +238,6 @@ export async function makePermanentEmployee(
     plant_id: plant.id,
     category_id: category.id,
     shift_id: plant.shiftId,
-    ot_rate_per_hour: "150.00",
     joined_on: new Date().toISOString().slice(0, 10),
   });
 }
