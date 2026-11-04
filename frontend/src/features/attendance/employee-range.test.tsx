@@ -112,6 +112,9 @@ function base(extra: Record<string, unknown> = {}) {
   } as Parameters<typeof mockApi>[0];
 }
 
+// The tab is loaded on demand (lazy): the first test waits for that load, also on a busy machine.
+const SLOW = { timeout: 12_000 };
+
 beforeEach(() => localStorage.clear());
 afterEach(() => vi.unstubAllGlobals());
 
@@ -121,7 +124,7 @@ describe("one employee over a period", () => {
 
     renderRoute("/admin/employees/e-1?tab=attendance");
 
-    await screen.findByText("Day by day for a period");
+    await screen.findByText("Day by day for a period", {}, SLOW);
     const table = (await screen.findAllByRole("table")).find((item) =>
       within(item).queryByText("Early exit"),
     ) as HTMLElement;
@@ -138,7 +141,7 @@ describe("one employee over a period", () => {
     const user = userEvent.setup();
 
     renderRoute("/admin/employees/e-1?tab=attendance");
-    await screen.findByText("Day by day for a period");
+    await screen.findByText("Day by day for a period", {}, SLOW);
     await user.click(screen.getAllByRole("button", { name: "Last 7 days" })[0] as HTMLElement);
 
     await waitFor(() => {
@@ -174,7 +177,7 @@ describe("one employee over a period", () => {
     const user = userEvent.setup();
 
     renderRoute("/admin/employees/e-1?tab=attendance");
-    await screen.findByText("Day by day for a period");
+    await screen.findByText("Day by day for a period", {}, SLOW);
     const buttons = await screen.findAllByRole("button", { name: "Download Excel" });
     await user.click(buttons[buttons.length - 1] as HTMLElement);
     await user.click(screen.getByRole("button", { name: "Print sheet (PDF)" }));

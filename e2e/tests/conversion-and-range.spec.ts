@@ -40,6 +40,8 @@ test("a Super Admin makes a plant with two temporary workers", async ({ page }) 
   await signIn(page, SUPER_ADMIN_LOGIN);
   const api = adminApi(page);
   const plant = await makePlant(api, "CV1");
+  // Attendance counts from this day (a new plant has none until the Super Admin sets it).
+  await api.patch(`/plants/${plant.id}`, { attendance_start_date: daysAgo(10) });
   for (const [key, code, name] of [
     ["direct", "CV-01", "Sunil More"],
     ["asked", "CV-02", "Kavita Joshi"],

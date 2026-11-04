@@ -49,6 +49,11 @@ function daysInMonth(month: string): number {
 
 const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
+/** "09:40–17:00": the IN and OUT of a day as the calendar shows them. */
+function timesOf(day: Day): string {
+  return `${day.first_in ? formatTime(day.first_in) : ""}–${day.last_out ? formatTime(day.last_out) : ""}`;
+}
+
 function CalendarDay({
   date,
   day,
@@ -79,12 +84,16 @@ function CalendarDay({
     <button
       type="button"
       onClick={() => onOpen(date)}
-      aria-label={t("attendance.register.cellLabel", {
-        name: employeeName,
-        day: dayNumber,
-        code: day.code,
-        corrected: day.is_corrected ? t("attendance.register.correctedWord") : "",
-      })}
+      aria-label={t(
+        day.first_in ? "attendance.employee.dayLabelTimes" : "attendance.register.cellLabel",
+        {
+          name: employeeName,
+          day: dayNumber,
+          code: day.code,
+          times: day.first_in ? timesOf(day) : "",
+          corrected: day.is_corrected ? t("attendance.register.correctedWord") : "",
+        },
+      )}
       className={cn(
         "relative flex min-h-14 min-w-0 cursor-pointer flex-col rounded-md border border-transparent p-1 text-left hover:ring-2 hover:ring-primary/40",
         FAMILY_COLOURS[family],
@@ -93,9 +102,7 @@ function CalendarDay({
       <span className="text-[11px]">{dayNumber}</span>
       <span className="font-mono text-sm font-bold">{day.code}</span>
       {day.first_in ? (
-        <span className="tnum hidden text-[10px] sm:block">
-          {formatTime(day.first_in)}–{day.last_out ? formatTime(day.last_out) : ""}
-        </span>
+        <span className="tnum hidden text-[10px] sm:block">{timesOf(day)}</span>
       ) : null}
       {day.is_corrected ? (
         <span aria-hidden className="absolute top-1 right-1 size-1.5 rounded-full bg-black" />

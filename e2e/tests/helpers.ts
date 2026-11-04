@@ -26,8 +26,12 @@ export async function expectNoSeriousAccessibilityIssues(page: Page) {
   const serious = result.violations.filter(
     (violation) => violation.impact === "serious" || violation.impact === "critical",
   );
+  // The first element of each problem is named, so a failure says where to look.
   expect(
-    serious.map((violation) => `${violation.id}: ${violation.nodes.length} element(s)`),
+    serious.map(
+      (violation) =>
+        `${violation.id}: ${violation.nodes.length} element(s), e.g. ${violation.nodes[0]?.html.slice(0, 160)}`,
+    ),
   ).toEqual([]);
 }
 
