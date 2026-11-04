@@ -130,4 +130,3 @@ A fresh session per slice; the Status section is the handoff.
   - Next: slice F (frontend), then slice G.
 - 2026-11-04 (Sonnet + medium): **slice F done and committed** (8dd8126, ae12911, 2f5c400, b6bf175): convert dialog + banner + type history + approvals + notification; register range mode with presets and the progress bar; one-employee range card with the print sheet; two range cards on the reports page with automatic retry. Built straight from the spec (no mock-ups, team decision). Frontend `npm test` passes (coverage branches 84.77%, floor 84), lint, typecheck, build and size budgets pass.
   - Next: slice G: add the new states to `e2e/tests/responsive.spec.ts` and write the e2e tests; the gate refusal tests of AC-21; run the full backend suite, the e2e run, `/review-milestone`; decisions file 0037; CLAUDE.md diff for the lead; PR.
-
