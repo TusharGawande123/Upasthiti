@@ -12,6 +12,7 @@ from typing import Any
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.date_range import check_date_range
 from app.core.errors import ApiError
 from app.core.time import IST, to_ist, utc_now
 from app.modules.attendance import read_service, service
@@ -22,6 +23,7 @@ from app.modules.auth.dependencies import CurrentUser
 from app.modules.auth.permissions import Access, Capability
 from app.modules.auth.scope import plant_filter
 from app.modules.employees.models import Employee
+from app.modules.employees.type_history import type_history_rows
 from app.modules.kiosks.models import KioskDevice
 from app.modules.leave.models import LeaveRecord
 from app.modules.org.models import Shift, ShiftRuleVersion
@@ -108,6 +110,54 @@ def month_of_employee(
             for item in leave
         ],
         "corrections": correction_service.present(session, corrections),
+    }
+
+
+def range_of_employee(
+    session: Session,
+    current_user: CurrentUser,
+    employee: Employee,
+    date_from: date,
+    date_to: date,
+) -> dict[str, Any]:
+    """One employee, day by day, for up to 366 days (M5c spec §5.1). Leave reasons are never sent.
+    The type of each day comes from the stored day, so a conversion in the middle shows."""
+    check_date_range(date_from, date_to, read_service.MAX_EMPLOYEE_RANGE_DAYS)
+    read_service.check_day_not_future(date_from)
+    last = min(date_to, to_ist(utc_now()).date())
+    pending = service.ensure_fresh_within_budget(session, [employee.id], date_from, last, utc_now())
+    allowed = plant_filter(current_user, Capability.VIEW_ATTENDANCE)
+    statement = select(AttendanceDay).where(
+        AttendanceDay.employee_id == employee.id,
+        AttendanceDay.attendance_date.between(date_from, last),
+        AttendanceDay.status != "not_employed",
+    )
+    if allowed is not None:
+        statement = statement.where(AttendanceDay.plant_id.in_(allowed))
+    rows = list(session.scalars(statement.order_by(AttendanceDay.attendance_date)))
+    leave_paid = read_service.leave_paid_map(session, rows)
+    by_type = {
+        kind: read_service.totals_of([row for row in rows if row.employee_type == kind], leave_paid)
+        for kind in ("permanent", "temporary")
+        if any(row.employee_type == kind for row in rows)
+    }
+    type_rows = type_history_rows(session, employee.id)
+    changes = [
+        {"from_date": max(row.from_date, date_from), "type": row.type}
+        for row in type_rows
+        if row.from_date <= last
+        and (row.to_date is None or row.to_date >= date_from)
+        and (row.to_date is None or row.to_date >= row.from_date)
+    ]
+    return {
+        "employee": read_service.person_summaries(session, [employee.id])[employee.id],
+        "date_from": date_from,
+        "date_to": last,
+        "days": read_service.present_days(session, rows),
+        "totals": read_service.totals_of(rows, leave_paid),
+        "totals_by_type": by_type,
+        "type_changes": changes,
+        "preparing": {"pending_days": pending},
     }
 
 

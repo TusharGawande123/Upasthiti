@@ -45,6 +45,8 @@ from app.modules.regularisations.models import Regularisation, RegularisationDec
 
 DEMO_PREFIX = "DEMO"
 MAX_RANGE_DAYS = 92
+MAX_REGISTER_RANGE_DAYS = 93  # the range register on screen (M5c)
+MAX_EMPLOYEE_RANGE_DAYS = 366  # one employee, screen and file (M5c)
 
 
 # --- Which plants and people ----------------------------------------------------------------
@@ -340,6 +342,101 @@ def daily(
 
 
 # --- Register -----------------------------------------------------------------------------------
+
+
+def _register_employees(
+    session: Session,
+    plant_id: uuid.UUID,
+    first: date,
+    last: date,
+    *,
+    employee_type: str | None,
+    department_id: uuid.UUID | None,
+    q: str | None,
+) -> Select[Employee]:
+    """The employees of a register page, filtered and in code order."""
+    employees = _employees_in(session, [plant_id], first, last)
+    if employee_type:
+        employees = employees.where(Employee.type == employee_type)
+    if department_id:
+        employees = employees.where(Employee.department_id == department_id)
+    if q:
+        pattern = f"%{q.strip().lower()}%"
+        employees = employees.where(
+            or_(
+                func.lower(Employee.full_name).like(pattern),
+                func.lower(Employee.employee_code).like(pattern),
+            )
+        )
+    return employees.order_by(Employee.employee_code)
+
+
+def register_range(
+    session: Session,
+    current_user: CurrentUser,
+    params: PageParams,
+    *,
+    date_from: date,
+    date_to: date,
+    plant_id: uuid.UUID,
+    employee_type: str | None,
+    department_id: uuid.UUID | None,
+    q: str | None,
+    include_demo: bool,
+) -> tuple[Plant, date, list[RegisterRow], int, int]:
+    """The employee x day grid of any range up to 93 days (M5c spec §5.1). Returns the plant,
+    the last day shown (a range never reaches into the future), the rows, the number of people
+    and how many days are still being calculated."""
+    check_date_range(date_from, date_to, MAX_REGISTER_RANGE_DAYS)
+    check_day_not_future(date_from)
+    plants = visible_plant_ids(session, current_user, plant_id=plant_id, include_demo=include_demo)
+    plant = session.get(Plant, plant_id)
+    if plant is None or plant_id not in plants:
+        raise ApiError("NOT_FOUND", "Not found.", 404)
+    last = min(date_to, to_ist(utc_now()).date())
+    employees = _register_employees(
+        session,
+        plant_id,
+        date_from,
+        last,
+        employee_type=employee_type,
+        department_id=department_id,
+        q=q,
+    )
+    total = session.scalar(select(func.count()).select_from(employees.order_by(None).subquery()))
+    page = list(session.scalars(employees.offset(params.offset).limit(params.page_size)))
+    ids = [employee.id for employee in page]
+    pending = service.ensure_fresh_within_budget(session, ids, date_from, last, utc_now())
+    rows = list(
+        session.scalars(
+            select(AttendanceDay).where(
+                AttendanceDay.employee_id.in_(ids),
+                AttendanceDay.attendance_date.between(date_from, last),
+                AttendanceDay.plant_id == plant_id,
+            )
+        )
+    )
+    leave_paid = leave_paid_map(session, rows)
+    by_employee: dict[uuid.UUID, dict[date, AttendanceDay]] = defaultdict(dict)
+    for row in rows:
+        by_employee[row.employee_id][row.attendance_date] = row
+    people = person_summaries(session, ids)
+    items = []
+    for employee in page:
+        days = by_employee.get(employee.id, {})
+        cells = []
+        current = date_from
+        while current <= last:
+            cells.append(_cell(current, days.get(current), leave_paid))
+            current += timedelta(days=1)
+        items.append(
+            RegisterRow(
+                employee=people[employee.id],
+                days=cells,
+                totals=totals_of(days.values(), leave_paid),
+            )
+        )
+    return plant, last, items, total or 0, pending
 
 
 def month_bounds(month: str) -> tuple[date, date]:

@@ -9,6 +9,7 @@ The loader gathers the inputs of many days in a few queries (AttendanceCalendar,
 corrections, leave) and hands each day to the pure `compute_day()`.
 """
 
+import time
 import uuid
 from collections import defaultdict
 from collections.abc import Iterable
@@ -43,6 +44,9 @@ from app.modules.regularisations.models import (
 from app.modules.settings.service import get_int_setting
 
 CATCH_UP_BATCH = 500
+# A long range recomputes at most this much per request (M5c spec rule 9).
+RANGE_RECOMPUTE_DAYS = 3000
+RANGE_RECOMPUTE_SECONDS = 8.0
 # The nightly close looks back this far, so days missed while the free server slept are closed.
 NIGHTLY_LOOK_BACK_DAYS = 7
 
@@ -191,6 +195,53 @@ def ensure_fresh(
     if keys or missing:
         recompute_days(session, [(row[0], row[1]) for row in keys], now)
         session.commit()
+
+
+def ensure_fresh_within_budget(
+    session: Session,
+    employee_ids: list[uuid.UUID],
+    date_from: date,
+    date_to: date,
+    now: datetime,
+    *,
+    max_days: int = RANGE_RECOMPUTE_DAYS,
+    max_seconds: float = RANGE_RECOMPUTE_SECONDS,
+) -> int:
+    """Like `ensure_fresh`, for a long range (M5c spec rule 9): recomputes at most `max_days`
+    employee-days (or about `max_seconds`), newest days first, and answers how many stale days are
+    still left. The rest is finished by the 5-minute catch-up job, so a read is never wrong, only
+    sometimes "not ready yet". Days of an unfinished day (status open) are always recomputed."""
+    _create_missing_rows(session, employee_ids, date_from, date_to, now)
+    stale = or_(AttendanceDay.stale, AttendanceDay.calc_version != ATTENDANCE_CALC_VERSION)
+    in_range = (
+        AttendanceDay.employee_id.in_(employee_ids),
+        AttendanceDay.attendance_date.between(date_from, date_to),
+    )
+    started = time.monotonic()
+    done = 0
+    while done < max_days and time.monotonic() - started < max_seconds:
+        keys = session.execute(
+            select(AttendanceDay.employee_id, AttendanceDay.attendance_date)
+            .where(*in_range, stale)
+            .order_by(AttendanceDay.attendance_date.desc())
+            .limit(min(CATCH_UP_BATCH, max_days - done))
+        ).all()
+        if not keys:
+            break
+        recompute_days(session, [(row[0], row[1]) for row in keys], now)
+        session.commit()
+        done += len(keys)
+    open_keys = session.execute(
+        select(AttendanceDay.employee_id, AttendanceDay.attendance_date).where(
+            *in_range, AttendanceDay.status == "open"
+        )
+    ).all()
+    if open_keys:
+        recompute_days(session, [(row[0], row[1]) for row in open_keys], now)
+        session.commit()
+    return (
+        session.scalar(select(func.count()).select_from(AttendanceDay).where(*in_range, stale)) or 0
+    )
 
 
 def close_recent_days(session: Session, now: datetime) -> int:
