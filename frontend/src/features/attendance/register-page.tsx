@@ -111,7 +111,13 @@ function RegisterGrid({
   const headings = rows[0] ? totalColumns(rows[0].totals, t) : [];
   return (
     <div className="hidden md:block">
-      <div className="max-h-[70vh] overflow-auto">
+      {/* A scrolling area must be reachable by keyboard, also when no cell is a button. */}
+      <section
+        className="max-h-[70vh] overflow-auto"
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: keyboard access to a scrolling area (WCAG 2.1.1)
+        tabIndex={0}
+        aria-label={t("attendance.register.gridLabel")}
+      >
         <table className="border-separate border-spacing-0 text-sm">
           <thead>
             <tr>
@@ -170,7 +176,7 @@ function RegisterGrid({
             ))}
           </tbody>
         </table>
-      </div>
+      </section>
       <p className="border-t p-3 text-xs text-muted-foreground">
         {t("attendance.register.scrollHint")}
       </p>

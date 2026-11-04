@@ -73,9 +73,9 @@ def upgrade() -> None:
     op.execute(
         """
         INSERT INTO employee_type_history (id, employee_id, type, from_date, contractor_id,
-                                           hourly_rate, ot_rate_per_hour, reason)
+                                           hourly_rate, ot_rate_per_hour)
         SELECT gen_random_uuid(), id, type, joined_on, contractor_id, hourly_rate,
-               ot_rate_per_hour, 'Start of the type history'
+               ot_rate_per_hour
         FROM employees
         """
     )

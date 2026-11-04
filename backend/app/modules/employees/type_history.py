@@ -49,7 +49,6 @@ def start_type_history(
         contractor_id=employee.contractor_id,
         hourly_rate=employee.hourly_rate,
         ot_rate_per_hour=employee.ot_rate_per_hour,
-        reason="Start of the type history",
         created_by=created_by,
     )
     session.add(row)

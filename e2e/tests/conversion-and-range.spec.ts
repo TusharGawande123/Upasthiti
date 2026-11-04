@@ -23,6 +23,13 @@ function daysAgo(count: number): string {
   return day.toISOString().slice(0, 10);
 }
 
+/** Logs in and waits until the admin site has opened (the user menu shows), so a later page.goto
+ * keeps the session. */
+async function signIn(page: Page, login: string) {
+  await logIn(page, login);
+  await expect(page.getByRole("button", { name: /E2E/ })).toBeVisible();
+}
+
 async function logOut(page: Page) {
   await page.getByRole("button", { name: /E2E/ }).click();
   await page.getByRole("menuitem", { name: "Log out" }).click();
@@ -30,7 +37,7 @@ async function logOut(page: Page) {
 }
 
 test("a Super Admin makes a plant with two temporary workers", async ({ page }) => {
-  await logIn(page, SUPER_ADMIN_LOGIN);
+  await signIn(page, SUPER_ADMIN_LOGIN);
   const api = adminApi(page);
   const plant = await makePlant(api, "CV1");
   for (const [key, code, name] of [
@@ -53,7 +60,7 @@ test("a Super Admin makes a plant with two temporary workers", async ({ page }) 
 });
 
 test("the Super Admin converts a temporary worker and sees what follows", async ({ page }) => {
-  await logIn(page, SUPER_ADMIN_LOGIN);
+  await signIn(page, SUPER_ADMIN_LOGIN);
   const worker = workers.direct;
   await page.goto(`/admin/employees/${worker?.id}`);
   await page.getByRole("button", { name: "Convert to permanent" }).click();
@@ -68,7 +75,7 @@ test("the Super Admin converts a temporary worker and sees what follows", async 
 
   await expect(page.getByText("Face enrolment pending").first()).toBeVisible();
   await expect(page.getByText("Converted", { exact: true })).toBeVisible();
-  await expect(page.getByText("Type history")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Type history" })).toBeVisible();
   await expect(page.getByRole("button", { name: "Convert to permanent" })).toHaveCount(0);
   await expectNoSeriousAccessibilityIssues(page);
 
@@ -79,7 +86,7 @@ test("the Super Admin converts a temporary worker and sees what follows", async 
 });
 
 test("a Corporate Head asks for a conversion and the Super Admin approves it", async ({ page }) => {
-  await logIn(page, CORPORATE_HEAD_LOGIN);
+  await signIn(page, CORPORATE_HEAD_LOGIN);
   const worker = workers.asked;
   await page.goto(`/admin/employees/${worker?.id}`);
   await page.getByRole("button", { name: "Ask for conversion" }).click();
@@ -92,7 +99,7 @@ test("a Corporate Head asks for a conversion and the Super Admin approves it", a
   await expect(page.getByText("Face enrolment pending")).toHaveCount(0);
   await logOut(page);
 
-  await logIn(page, SUPER_ADMIN_LOGIN);
+  await signIn(page, SUPER_ADMIN_LOGIN);
   await page.getByRole("link", { name: /Approvals/ }).click();
   await page
     .getByText(/Convert Kavita Joshi/)
@@ -104,7 +111,7 @@ test("a Corporate Head asks for a conversion and the Super Admin approves it", a
 });
 
 test("the register is read for any period and downloaded as Excel", async ({ page }) => {
-  await logIn(page, SUPER_ADMIN_LOGIN);
+  await signIn(page, SUPER_ADMIN_LOGIN);
   await page.goto("/admin/attendance/register");
   await page.getByRole("button", { name: "Date range" }).click();
   await page.getByRole("button", { name: "Last 7 days" }).click();
@@ -122,7 +129,7 @@ test("the register is read for any period and downloaded as Excel", async ({ pag
 test("one employee is read day by day for a period and the print sheet downloads", async ({
   page,
 }) => {
-  await logIn(page, SUPER_ADMIN_LOGIN);
+  await signIn(page, SUPER_ADMIN_LOGIN);
   await page.goto(`/admin/employees/${workers.direct?.id}?tab=attendance`);
   await expect(page.getByText("Day by day for a period")).toBeVisible();
   await page.getByRole("button", { name: "Last 30 days" }).last().click();

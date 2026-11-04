@@ -161,7 +161,12 @@ export function EmployeeRangeCard({ employeeId }: { employeeId: string }) {
                 {t("attendance.employee.range.empty")}
               </p>
             ) : (
-              <div className="overflow-x-auto rounded-md border">
+              <section
+                className="overflow-x-auto rounded-md border"
+                // biome-ignore lint/a11y/noNoninteractiveTabindex: keyboard access to a scrolling area (WCAG 2.1.1)
+                tabIndex={0}
+                aria-label={t("attendance.employee.range.tableLabel")}
+              >
                 <table className="w-full min-w-[40rem] text-left text-sm">
                   <thead className="bg-muted text-xs">
                     <tr>
@@ -240,7 +245,7 @@ export function EmployeeRangeCard({ employeeId }: { employeeId: string }) {
                     ))}
                   </tbody>
                 </table>
-              </div>
+              </section>
             )}
           </>
         ) : null}
