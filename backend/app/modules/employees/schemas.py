@@ -35,6 +35,8 @@ class EmployeeResponse(BaseModel):
     has_pending_change: bool
     # M3: enrolled / not_enrolled / old_model (face employees), withdrawn / not_face_method (QR).
     face_state: str = "not_face_method"
+    # M5c: a converted worker whose face is not enrolled yet (cannot punch until it is).
+    face_enrolment_pending: bool = False
     # M4b: the Super Admin has switched phone punching on for this employee.
     phone_punch_enabled: bool = False
 
@@ -54,10 +56,21 @@ class PlantHistoryItem(BaseModel):
     reason: str | None
 
 
+class TypeHistoryItem(BaseModel):
+    type: str
+    from_date: date
+    to_date: date | None
+    reason: str | None
+
+
 class EmployeeDetailResponse(BaseModel):
     employee: EmployeeResponse
     shift_history: list[ShiftHistoryItem]
     plant_history: list[PlantHistoryItem]
+    # M5c: permanent or temporary, from when; a scheduled conversion shows as a later row.
+    type_history: list[TypeHistoryItem] = []
+    converted_on: date | None = None
+    conversion_scheduled_for: date | None = None
 
 
 class CreateEmployeeRequest(BaseModel):
@@ -97,6 +110,17 @@ class TransferRequest(BaseModel):
     shift_id: uuid.UUID
     effective_from: date
     reason: str = Field(min_length=3, max_length=500)
+
+
+class ConvertRequest(BaseModel):
+    """Temporary to permanent (M5c): from which day, and why."""
+
+    effective_from: date
+    reason: str = Field(min_length=3, max_length=300)
+
+
+class CancelConversionRequest(BaseModel):
+    reason: str = Field(min_length=3, max_length=300)
 
 
 class MarkLeftRequest(BaseModel):

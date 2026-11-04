@@ -56,32 +56,103 @@ def start_type_history(
     return row
 
 
-def sync_type_history(
-    session: Session,
-    employee: Employee,
-    *,
-    changed_from: date,
-    created_by: uuid.UUID | None,
-    reason: str | None,
-) -> None:
-    """Keep the open row in step with the employee after an edit.
+def row_covering(session: Session, employee_id: uuid.UUID, day: date) -> EmployeeTypeHistory | None:
+    return session.scalar(
+        select(EmployeeTypeHistory)
+        .where(
+            EmployeeTypeHistory.employee_id == employee_id,
+            EmployeeTypeHistory.from_date <= day,
+            or_(EmployeeTypeHistory.to_date.is_(None), EmployeeTypeHistory.to_date >= day),
+        )
+        .order_by(EmployeeTypeHistory.from_date.desc())
+        .limit(1)
+    )
 
-    Same type: the open row only takes the new contractor and rates. New type: the open row is
-    closed the day before `changed_from` and a new row opens on it (the same day twice: the
-    latest save wins, nothing is deleted).
+
+def sync_type_history(
+    session: Session, employee: Employee, *, today: date, created_by: uuid.UUID | None
+) -> None:
+    """After an edit: the row that covers today takes the new contractor and rates.
+
+    The type itself never changes here, only a conversion changes it (and writes its own rows).
+    A scheduled conversion (a later row) is left alone.
     """
-    row = open_type_row(session, employee.id)
+    row = row_covering(session, employee.id, today)
     if row is None:
         start_type_history(session, employee, created_by)
         return
-    if row.type != employee.type and row.from_date < changed_from:
-        row.to_date = changed_from - timedelta(days=1)
-        session.flush()
-        row = EmployeeTypeHistory(
-            employee_id=employee.id, from_date=changed_from, created_by=created_by, reason=reason
-        )
-        session.add(row)
-    row.type = employee.type
     row.contractor_id = employee.contractor_id
     row.hourly_rate = employee.hourly_rate
     row.ot_rate_per_hour = employee.ot_rate_per_hour
+
+
+def scheduled_conversion(
+    session: Session, employee_id: uuid.UUID, today: date
+) -> EmployeeTypeHistory | None:
+    """The open permanent row that starts after today: a conversion waiting for its day."""
+    return session.scalar(
+        select(EmployeeTypeHistory).where(
+            EmployeeTypeHistory.employee_id == employee_id,
+            EmployeeTypeHistory.type == "permanent",
+            EmployeeTypeHistory.to_date.is_(None),
+            EmployeeTypeHistory.from_date > today,
+        )
+    )
+
+
+def type_history_rows(session: Session, employee_id: uuid.UUID) -> list[EmployeeTypeHistory]:
+    return list(
+        session.scalars(
+            select(EmployeeTypeHistory)
+            .where(EmployeeTypeHistory.employee_id == employee_id)
+            .order_by(EmployeeTypeHistory.from_date, EmployeeTypeHistory.created_at)
+        )
+    )
+
+
+def add_permanent_row(
+    session: Session,
+    employee: Employee,
+    *,
+    from_date: date,
+    reason: str,
+    created_by: uuid.UUID | None,
+) -> EmployeeTypeHistory:
+    """Close the open (temporary) row the day before `from_date` and open the permanent one.
+    The closed row keeps the contractor and rates of its period. A row that would start before
+    its own start day ends up empty and never covers a day."""
+    current = open_type_row(session, employee.id)
+    if current is not None:
+        current.to_date = from_date - timedelta(days=1)
+        session.flush()
+    row = EmployeeTypeHistory(
+        employee_id=employee.id,
+        type="permanent",
+        from_date=from_date,
+        reason=reason,
+        created_by=created_by,
+    )
+    session.add(row)
+    session.flush()
+    return row
+
+
+def cancel_scheduled_row(
+    session: Session, employee_id: uuid.UUID, scheduled: EmployeeTypeHistory
+) -> None:
+    """Undo a scheduled conversion: the permanent row is emptied (closed before its own start,
+    never deleted) and the temporary row is open again."""
+    scheduled.to_date = scheduled.from_date - timedelta(days=1)
+    session.flush()
+    previous = session.scalar(
+        select(EmployeeTypeHistory)
+        .where(
+            EmployeeTypeHistory.employee_id == employee_id,
+            EmployeeTypeHistory.id != scheduled.id,
+            EmployeeTypeHistory.to_date == scheduled.from_date - timedelta(days=1),
+        )
+        .order_by(EmployeeTypeHistory.from_date.desc())
+        .limit(1)
+    )
+    if previous is not None:
+        previous.to_date = None

@@ -30,7 +30,9 @@ from app.modules.employees.rules import EmployeeValues, default_punch_method
 from app.modules.employees.schemas import (
     BulkRequest,
     BulkResponse,
+    CancelConversionRequest,
     ChangeRequestCreated,
+    ConvertRequest,
     CreateEmployeeRequest,
     EmployeeDetailResponse,
     EmployeeResponse,
@@ -83,6 +85,7 @@ def list_employees(
         default=None, pattern="^(enrolled|not_enrolled|reenrol_suggested|old_model)$"
     ),
     phone: str | None = Query(default=None, pattern="^(on|off)$"),
+    converted: bool | None = None,
     params: PageParams = Depends(page_params),
     current_user: CurrentUser = Depends(viewer),
     session: Session = Depends(get_session),
@@ -98,6 +101,7 @@ def list_employees(
         search=q,
         face_state=face_state,
         phone=phone,
+        converted=converted,
     )
     employees, total = queries.list_employees(
         session, params, filters, only_plant_ids=_scope(current_user)
@@ -255,6 +259,57 @@ def transfer_employee(
         return _accepted(request.id, summary)
     operations.transfer_employee(
         session, operations.AuditContext(current_user.actor), employee, **details
+    )
+    session.commit()
+    return _one(session, employee)
+
+
+@router.post("/{employee_id}/convert-to-permanent", response_model=EmployeeResponse)
+def convert_to_permanent(
+    employee_id: uuid.UUID,
+    body: ConvertRequest,
+    current_user: CurrentUser = Depends(changer),
+    session: Session = Depends(get_session),
+) -> Any:
+    """Temporary to permanent (M5c). The Super Admin's conversion is applied (or scheduled) at
+    once; a Corporate Head's waits for approval."""
+    employee = queries.get_employee(session, employee_id, only_plant_ids=_scope(current_user))
+    details = body.model_dump()
+    if _needs_approval(current_user):
+        summary = (
+            f"Convert {employee.full_name} ({employee.employee_code}) to permanent "
+            f"from {body.effective_from:%d/%m/%Y}"
+        )
+        request = approvals.create_request(
+            session,
+            actor=current_user.actor,
+            kind=RequestKind.CONVERT,
+            payload={"employee_id": str(employee.id), "convert": to_json(details)},
+            summary=summary,
+            employee_id=employee.id,
+            plant_ids=[employee.plant_id],
+        )
+        return _accepted(request.id, summary)
+    operations.convert_to_permanent(
+        session, operations.AuditContext(current_user.actor), employee, **details
+    )
+    session.commit()
+    return _one(session, employee)
+
+
+@router.delete("/{employee_id}/convert-to-permanent", response_model=EmployeeResponse)
+def cancel_scheduled_conversion(
+    employee_id: uuid.UUID,
+    body: CancelConversionRequest,
+    current_user: CurrentUser = Depends(changer),
+    session: Session = Depends(get_session),
+) -> Any:
+    """Only the Super Admin cancels a planned conversion before its day (spec section 8)."""
+    if _needs_approval(current_user):
+        raise ApiError("FORBIDDEN", "Only the Super Admin can cancel a planned conversion.", 403)
+    employee = queries.get_employee(session, employee_id, only_plant_ids=_scope(current_user))
+    operations.cancel_scheduled_conversion(
+        session, operations.AuditContext(current_user.actor), employee, body.reason
     )
     session.commit()
     return _one(session, employee)

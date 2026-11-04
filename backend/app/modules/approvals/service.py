@@ -62,6 +62,14 @@ def apply_payload(
             session, context, _employee(session, payload["employee_id"]), **details
         )
         return {"employee_ids": [payload["employee_id"]]}
+    if kind == RequestKind.CONVERT.value:
+        operations.convert_to_permanent(
+            session,
+            context,
+            _employee(session, payload["employee_id"]),
+            **from_json(payload["convert"]),
+        )
+        return {"employee_ids": [payload["employee_id"]]}
     if kind == RequestKind.BULK.value:
         employees = [_employee(session, employee_id) for employee_id in payload["employee_ids"]]
         operations.bulk_change(
@@ -116,7 +124,9 @@ def create_request(
         )
     try_without_saving(
         session,
-        lambda: apply_payload(session, operations.AuditContext(actor), kind.value, payload),
+        lambda: apply_payload(
+            session, operations.AuditContext(actor, dry_run=True), kind.value, payload
+        ),
     )
     request = ChangeRequest(
         kind=kind.value,

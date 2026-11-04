@@ -273,6 +273,7 @@ _ALL_KINDS = (
     "monthly_register",
     "phone_many_phones",  # M4b F-70 (Super Admin only)
     "phone_selfie_no_face",  # M4b review fix (Super Admin only)
+    "conversion_face_pending",  # M5c (Super Admin only)
 )
 
 

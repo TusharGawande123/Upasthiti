@@ -224,6 +224,26 @@ def revoke_card_of_leaver(
     return card
 
 
+def revoke_card_of_converted(
+    session: Session, actor: Actor, employee: Employee
+) -> QrCredential | None:
+    """Called when a temporary worker becomes permanent (M5c): the working card is revoked in the
+    same transaction, because a face employee's card is refused anyway. The record stays."""
+    card = queries.active_card_of(session, employee.id)
+    if card is None:
+        return None
+    _revoke(
+        session,
+        actor,
+        card,
+        RevokeKind.CONVERTED,
+        "Employee became permanent",
+        action="qr_card.revoke",
+        plant_id=employee.plant_id,
+    )
+    return card
+
+
 # --- Bulk -------------------------------------------------------------------------------------
 
 

@@ -49,6 +49,13 @@ def new_temporary(boss: TestClient, plant: PlantIds, joined_on: str = "2026-10-0
     return uuid.UUID(response.json()["id"])
 
 
+def convert(boss: TestClient, employee_id: uuid.UUID, effective_from: str):  # noqa: ANN201
+    return boss.post(
+        f"{EMPLOYEES}/{employee_id}/convert-to-permanent",
+        json={"effective_from": effective_from, "reason": "Permanent offer"},
+    )
+
+
 def history_of(session: Session, employee_id: uuid.UUID) -> list[EmployeeTypeHistory]:
     session.expire_all()
     return list(
@@ -81,10 +88,7 @@ def test_a_change_of_type_closes_the_old_row_and_old_days_keep_their_type(
 ) -> None:
     employee_id = new_temporary(boss, plant)
 
-    edit = boss.patch(
-        f"{EMPLOYEES}/{employee_id}",
-        json={"type": "permanent", "hourly_rate": None, "punch_method": "face"},
-    )
+    edit = convert(boss, employee_id, "2026-10-28")
     assert edit.status_code == 200, edit.text
 
     rows = history_of(db_session, employee_id)
@@ -105,10 +109,7 @@ def test_the_calendar_answers_a_type_per_day(
     boss: TestClient, plant: PlantIds, db_session: Session
 ) -> None:
     employee_id = new_temporary(boss, plant)
-    boss.patch(
-        f"{EMPLOYEES}/{employee_id}",
-        json={"type": "permanent", "hourly_rate": None, "punch_method": "face"},
-    )
+    assert convert(boss, employee_id, "2026-10-28").status_code == 200
 
     calendar = AttendanceCalendar.load(
         db_session, [employee_id], date(2026, 10, 1), date(2026, 10, 31), window_before_hours=4
@@ -146,19 +147,6 @@ def test_a_contractor_or_rate_edit_keeps_one_open_row(
     open_row = open_type_row(db_session, employee_id)
     assert open_row is not None
     assert str(open_row.hourly_rate) == "99.00"
-
-
-def test_the_same_day_twice_keeps_one_row_for_the_day(
-    boss: TestClient, plant: PlantIds, db_session: Session
-) -> None:
-    employee_id = new_temporary(boss, plant)
-    permanent = {"type": "permanent", "hourly_rate": None, "punch_method": "face"}
-    boss.patch(f"{EMPLOYEES}/{employee_id}", json=permanent)
-
-    again = boss.patch(f"{EMPLOYEES}/{employee_id}", json={"full_name": "Sunil M"})
-
-    assert again.status_code == 200, again.text
-    assert [row.type for row in history_of(db_session, employee_id)] == ["temporary", "permanent"]
 
 
 def test_the_migration_backfill_gives_every_employee_one_open_row(

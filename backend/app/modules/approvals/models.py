@@ -23,6 +23,7 @@ class RequestKind(enum.StrEnum):
     TRANSFER = "employee.transfer"
     BULK = "employee.bulk"
     IMPORT = "employee.import"
+    CONVERT = "employee.convert"  # M5c: temporary to permanent
 
 
 class RequestStatus(enum.StrEnum):

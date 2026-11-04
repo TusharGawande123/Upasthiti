@@ -28,6 +28,9 @@ EMAIL_TEXTS: dict[str, str] = {
     "notification.correction_requested": "A correction is waiting for your decision.",
     "notification.phone_selfie_no_face": "{count} phone selfies at {plant} show no face.",
     "notification.correction_decided": "Your correction request was decided.",
+    "notification.conversion_face_pending": (
+        "A worker at {plant} became permanent. Their face is not enrolled yet."
+    ),
 }
 
 
