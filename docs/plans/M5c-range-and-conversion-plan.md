@@ -123,3 +123,9 @@ A fresh session per slice; the Status section is the handoff.
 - 2026-11-04: spec and plan approved. No code written yet. Next: slice A (type history), then B, C, D, E; design gate A can start in parallel.
 - Open (spec §14, proposed values kept): Q6 report limits, Q10 type-history backfill from the joining date, Q11 "not yet computed" days for non-admins, Q12 Plant Head sees earlier temporary days.
 - 2026-11-04 (team, after approval): dropped slice B (no overtime for permanent), F-91, F-88, the design-gate mock-ups and the overtime-hiding step of slice F. Spec and extras list updated.
+- 2026-11-04 (Sonnet + medium): **slices A, C, D, E done and committed locally** (3fbbb7a, def270d, f1cd97e, f5d0d56). Tests: type history 7, conversion 10, range reads 10, range files 8 (all pass); older related suites pass (attendance, reports, employees, approvals, QR cards, notifications, removal tools). The full backend suite has NOT been run since slice A: run it once before the PR.
+  - Slice C also: employee edit can no longer change the type (only Convert); the daily job revokes the card in the name of the user who planned the conversion; the dry run of a Corporate Head's request sends no notice (`AuditContext.dry_run`).
+  - Slice D: register-range `days` has only `date` and `weekday` (no `day_kind`; the cell codes WO/H show it).
+  - Slice E: Excel register is written into a temp file in batches of 100 (`reports/streaming.py`); PDF refused above 3,000 employee-months. Not done: a real peak-memory check of a one-year export (AC-5; S-52 was not approved), the gate refusal tests of AC-21 (old card, face, phone), and the `errors.<CODE>` texts in `common.json` (slice F).
+  - Next: slice F (frontend), then slice G.
+
