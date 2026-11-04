@@ -160,13 +160,13 @@ def present_days(session: Session, rows: Sequence[AttendanceDay]) -> list[Day]:
                 holiday_name=holiday.name if holiday else None,
                 holiday_paid=holiday.is_paid if holiday else None,
                 pending_corrections=pending.get((row.employee_id, row.attendance_date), 0),
-                open_state=_open_state(row),
+                open_state=open_state_of(row),
             )
         )
     return answers
 
 
-def _open_state(row: AttendanceDay) -> str | None:
+def open_state_of(row: AttendanceDay) -> str | None:
     """Open days show who is inside (rule 8): derived from the stored first IN and last OUT."""
     if row.status != "open":
         return None
@@ -344,7 +344,7 @@ def daily(
 # --- Register -----------------------------------------------------------------------------------
 
 
-def _register_employees(
+def register_employees(
     session: Session,
     plant_id: uuid.UUID,
     first: date,
@@ -394,7 +394,7 @@ def register_range(
     if plant is None or plant_id not in plants:
         raise ApiError("NOT_FOUND", "Not found.", 404)
     last = min(date_to, to_ist(utc_now()).date())
-    employees = _register_employees(
+    employees = register_employees(
         session,
         plant_id,
         date_from,
@@ -521,7 +521,7 @@ def _cell(day: date, row: AttendanceDay | None, leave_paid: dict[uuid.UUID, bool
     paid = leave_paid.get(row.leave_record_id) if row.leave_record_id else None
     return RegisterCell(
         date=day,
-        code=register_code(row.status, row.day_kind, _open_state(row), paid),
+        code=register_code(row.status, row.day_kind, open_state_of(row), paid),
         is_corrected=row.is_corrected,
         has_exceptions=bool(row.exceptions),
     )

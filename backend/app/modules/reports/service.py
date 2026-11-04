@@ -11,6 +11,8 @@ import logging
 import threading
 import time
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import date
 
@@ -114,28 +116,36 @@ def _file_period(request: Request, date_from: date, date_to: date) -> str:
     return f"{date_from:%Y%m%d}-{date_to:%Y%m%d}"
 
 
-def build_file(session: Session, current_user: CurrentUser, request: Request) -> File:
-    if request.kind not in KINDS:
-        raise ApiError("REPORT_KIND_UNKNOWN", "This report does not exist.", 404)
-    if request.format not in ("xlsx", "pdf"):
-        raise ApiError("VALIDATION_FAILED", "Choose Excel or PDF.", 422, {"field": "format"})
-    date_from, date_to, period_text = _period(request)
+@contextmanager
+def report_slot(current_user: CurrentUser) -> Iterator[None]:
+    """The limits every report file shares: 20 files in 10 minutes and one report at a time per
+    user. The slot is given back when the file is built or fails."""
     if not report_file_limiter.allow(str(current_user.id)):
         raise ApiError("TOO_MANY_REQUESTS", "Too many files. Try again in a few minutes.", 429)
     with _building_lock:
         if current_user.id in _building:
             raise ApiError("REPORT_BUSY", "Wait for your other report to finish.", 429)
         _building.add(current_user.id)
-    started = time.monotonic()
     try:
+        yield
+    finally:
+        with _building_lock:
+            _building.discard(current_user.id)
+
+
+def build_file(session: Session, current_user: CurrentUser, request: Request) -> File:
+    if request.kind not in KINDS:
+        raise ApiError("REPORT_KIND_UNKNOWN", "This report does not exist.", 404)
+    if request.format not in ("xlsx", "pdf"):
+        raise ApiError("VALIDATION_FAILED", "Choose Excel or PDF.", 422, {"field": "format"})
+    date_from, date_to, period_text = _period(request)
+    started = time.monotonic()
+    with report_slot(current_user):
         report = _report(session, current_user, request, date_from, date_to, period_text)
         if request.format == "pdf":
             content = build_pdf(report)
         else:
             content = build_xlsx(_with_summary(report))
-    finally:
-        with _building_lock:
-            _building.discard(current_user.id)
     logger.info(
         "report built",
         extra={
@@ -148,7 +158,7 @@ def build_file(session: Session, current_user: CurrentUser, request: Request) ->
         },
     )
     plant_code = _plant_code(session, request, report)
-    _audit(session, current_user, request, plant_code, period_text, report.row_count)
+    audit_download(session, current_user, request, plant_code, period_text, report.row_count)
     period = _file_period(request, date_from, date_to)
     media_type = "application/pdf" if request.format == "pdf" else XLSX_TYPE
     name = f"upasthiti-{request.kind}-{plant_code}-{period}.{request.format}"
@@ -233,7 +243,7 @@ def _with_summary(report: Report) -> Report:
     return replace(report, sheets=[summary, *report.sheets])
 
 
-def _audit(
+def audit_download(
     session: Session,
     current_user: CurrentUser,
     request: Request,
