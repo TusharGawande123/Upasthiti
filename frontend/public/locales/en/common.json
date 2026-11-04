@@ -3782,6 +3782,18 @@
         "fri": "Fri",
         "sat": "Sat",
         "sun": "Sun"
+      },
+      "range": {
+        "title": "Day by day for a period",
+        "printSheet": "Print sheet (PDF)",
+        "date": "Date",
+        "hours": "Hours",
+        "status": "Status",
+        "late": "Late",
+        "early": "Early exit",
+        "type": "Type",
+        "empty": "No attendance days in this period.",
+        "splitLine": "{{type}}: {{present}} present, {{hours}}"
       }
     },
     "swap": {
@@ -3803,6 +3815,15 @@
       "cancelReason": "Why is the swap cancelled?",
       "cancelConfirm": "Cancel this swap",
       "cancelled": "Shift swap cancelled"
+    },
+    "weekday": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
     }
   },
   "muster": {

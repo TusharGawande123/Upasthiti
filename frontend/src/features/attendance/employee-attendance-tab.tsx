@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { formatDay } from "./attendance-format";
 import { AttendanceHeatmap } from "./attendance-heatmap";
 import { DayDrawerHost } from "./day-drawer-host";
+import { EmployeeRangeCard } from "./employee-range-card";
 import { CodeLegend, DASH, totalColumns } from "./register-shared";
 import { ShiftSwapCard } from "./shift-swap-card";
 import { FAMILY_COLOURS, familyOfCode } from "./status-chip";
@@ -286,6 +287,7 @@ export function EmployeeAttendanceTab({ employee, isSuperAdmin }: Props) {
           />
         </CardContent>
       </Card>
+      <EmployeeRangeCard employeeId={employee.id} />
       <DayDrawerHost />
     </div>
   );

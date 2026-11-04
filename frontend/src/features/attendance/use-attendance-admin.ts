@@ -116,6 +116,18 @@ export type RangeRegisterResponse = {
   preparing: { pending_days: number };
 };
 
+// M5c: one employee, day by day, for up to 366 days.
+export type EmployeeRange = {
+  employee: Person;
+  date_from: string;
+  date_to: string;
+  days: Day[];
+  totals: Totals;
+  totals_by_type: Record<string, Totals>;
+  type_changes: { from_date: string; type: string }[];
+  preparing: { pending_days: number };
+};
+
 export type RangeRegisterFilters = {
   date_from: string;
   date_to: string;
@@ -227,6 +239,23 @@ export function useRegisterRange(filters: RangeRegisterFilters, enabled: boolean
     queryKey: [...ATTENDANCE_KEY, "register-range", filters],
     queryFn: () =>
       apiGet<RangeRegisterResponse>(`/attendance/register-range${queryString({ ...filters })}`),
+    enabled,
+    placeholderData: keepPreviousData,
+    refetchInterval: (query) =>
+      (query.state.data?.preparing.pending_days ?? 0) > 0 ? RANGE_RETRY_MS : false,
+  });
+}
+
+/** One employee over a range; asks again every 5 seconds while days are being calculated. */
+export function useEmployeeRange(
+  employeeId: string,
+  range: { date_from: string; date_to: string },
+  enabled: boolean,
+) {
+  return useQuery({
+    queryKey: [...ATTENDANCE_KEY, "employee-range", employeeId, range],
+    queryFn: () =>
+      apiGet<EmployeeRange>(`/attendance/employee/${employeeId}/range${queryString({ ...range })}`),
     enabled,
     placeholderData: keepPreviousData,
     refetchInterval: (query) =>
@@ -352,6 +381,18 @@ export function downloadRegisterRange(
     plant_id: scope.plantId,
     type: scope.type || undefined,
     include_demo: scope.includeDemo || undefined,
+  });
+}
+
+/** One employee over a period as a file (the PDF is the print-friendly sheet, F-89). */
+export function downloadEmployeeRange(
+  file: "xlsx" | "pdf",
+  scope: { employeeId: string; dateFrom: string; dateTo: string },
+): Promise<Blob> {
+  return reportFile("employee-range", file, {
+    employee_id: scope.employeeId,
+    date_from: scope.dateFrom,
+    date_to: scope.dateTo,
   });
 }
 
