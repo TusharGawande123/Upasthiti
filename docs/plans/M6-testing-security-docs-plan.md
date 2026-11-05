@@ -13,8 +13,8 @@ in M6). Approved extras only: F-93, F-99, S-55, S-58, S-60, S-61, S-62, S-64 (F-
 
 Rules for every slice: one small Conventional Commit per step, NO Co-Authored-By or "Generated with" lines (team
 rule), push after each slice, update the Status section, never `git add -A`, every new file starts with a purpose
-comment, "attendance device" in people-facing text, `errors.<CODE>` for every new code, pytest/Vitest/Playwright
-never at the same time, Playwright headed locally, dates and times pinned, each new test names its AC.
+comment, "attendance device" in people-facing text, `errors.<CODE>` for every new code, pytest and Vitest may
+run together, Playwright runs alone, never two of one kind (decision 0038), Playwright headed locally, dates and times pinned, each new test names its AC.
 **Do not re-test what is already tested:** the AC matrix (phase 0) decides; new tests are written only for gaps.
 Before each agent the lead is asked for model and effort (default Sonnet 5.5 medium).
 
@@ -113,8 +113,7 @@ Before each agent the lead is asked for model and effort (default Sonnet 5.5 med
   nightly: fake data → pg_dump → restore → upgrade → counts.
 - 5.5 S-64 `app/scripts/recompute_check.py` (read-only compare of stored `attendance_days` vs `compute_day`),
   nightly job + log; `app/scripts/export_memory_check.py` (one-year register + full export under 512 MB, ≤450 MB).
-- 5.6 AC-M6-45: e2e seed refuses non-local host; journeys refuse non-local baseURL; `.test-run.lock` taken by
-  pytest, Vitest and Playwright global setup ("Another test run is active. Wait for it to finish.").
+- 5.6 AC-M6-45: e2e seed refuses non-local host; journeys refuse non-local baseURL; `.test-run.lock` per suite kind (pytest, Vitest; Playwright takes an exclusive lock that also waits for the others) in the global setups ("Another test run is active. Wait for it to finish."). Rule changed by decision 0038.
 
 ## Phase 6 – Journeys, responsive + axe, Lighthouse (R-2, R-6; AC-M6-5..8, 27)
 - 6.1 `e2e/tests/page-list.ts` with every route (missing: /admin/setup, /admin/plants/:id, /admin/employees/:id/edit,

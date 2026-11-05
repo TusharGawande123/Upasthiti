@@ -23,6 +23,11 @@ Spec: docs/specs/M6-testing-security-docs.md, plan: docs/plans/M6-testing-securi
 - **M5c AC-8 is fixed in M6:** the one-employee Excel and PDF show no overtime column or total for a permanent
   employee (decision 0037); a test pins it. Lead, 2026-11-05.
 
+- **Tests that may run together (changes the rule of CLAUDE.md section 9 and spec 7.8 rule 3):** pytest and Vitest may
+  run at the same time (different databases, Vitest uses none); Playwright runs alone; two runs of the same kind never
+  run together. The `.test-run.lock` guard (AC-M6-45) therefore locks per suite kind and Playwright takes an
+  exclusive lock. The CLAUDE.md wording is updated in the M6 CLAUDE.md diff. Lead, 2026-11-05.
+
 ## Carry-over items decided later in M6
 Added here one line each as they are decided (client IP, revoked-device audit flood, gate notice text in the audit,
 orphan-storage sweep, backdating window, leaked offline key cases).
