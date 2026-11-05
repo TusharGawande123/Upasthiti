@@ -39,6 +39,7 @@ from tests.role_matrix import (
     expected_answer,
 )
 
+READINESS_PATH = "/api/v1/health/ready"
 SESSION_ENDING_ROUTES = {
     ("POST", "/api/v1/auth/logout"),
     ("POST", "/api/v1/phone/logout"),
@@ -59,6 +60,8 @@ def all_routes(app: FastAPI) -> set[tuple[str, str]]:
 
     found: set[tuple[str, str]] = set()
     for context in fastapi_routing.iter_route_contexts(app.router.routes):
+        if context.methods is None or context.path_format is None:
+            continue
         for method in context.methods - {"HEAD", "OPTIONS"}:
             found.add((method, context.path_format))
     return found
@@ -153,7 +156,7 @@ def capability_of_route(app: FastAPI) -> dict[tuple[str, str], str]:
     for context in fastapi_routing.iter_route_contexts(app.router.routes):
         dependant = getattr(context.route, "dependant", None)
         capability = _find_capability(dependant) if dependant is not None else None
-        if capability is not None:
+        if capability is not None and context.methods and context.path_format:
             for method in context.methods - {"HEAD", "OPTIONS"}:
                 found[(method, context.path_format)] = capability
     return found
@@ -208,9 +211,16 @@ def test_every_route_answers_each_caller_as_the_table_says(
     ordered = sorted(ROUTE_AUDIENCE, key=lambda key: key in SESSION_ENDING_ROUTES)
 
     wrong = []
+    session_ended = False
     for method, path_format in ordered:
+        if session_ended and (method, path_format) in SESSION_ENDING_ROUTES:
+            continue  # the first ending route did its work; the session is gone for the rest
         expected = expected_answer(ROUTE_AUDIENCE[(method, path_format)], identity)
         status, text = send(method, concrete_path(path_format))
+        if (method, path_format) in SESSION_ENDING_ROUTES and status < 400:
+            session_ended = True
+        if status == 503 and path_format == READINESS_PATH:
+            continue  # the readiness check answers 503 by design when the database is away
         if status >= 500:
             wrong.append((method, path_format, status, "server error"))
         elif expected == OPEN and status in (401, 403):

@@ -102,7 +102,7 @@ ROUTE_AUDIENCE: dict[tuple[str, str], Audience] = {
     ("POST", "/api/v1/categories/{item_id}/deactivate"): Audience.SUPER,  # EDIT_PLANT_SETUP
     ("POST", "/api/v1/categories/{item_id}/reactivate"): Audience.SUPER,  # EDIT_PLANT_SETUP
     # --- change-requests ---
-    ("GET", "/api/v1/change-requests"): Audience.ANY_ADMIN,
+    ("GET", "/api/v1/change-requests"): Audience.SUPER_CORP,  # decide or view own
     ("GET", "/api/v1/change-requests/pending-count"): Audience.SUPER,  # DECIDE_CHANGE_REQUESTS
     ("GET", "/api/v1/change-requests/{request_id}"): Audience.ANY_ADMIN,
     (
@@ -131,6 +131,11 @@ ROUTE_AUDIENCE: dict[tuple[str, str], Audience] = {
     ): Audience.SUPER,  # MANAGE_CONTRACTORS
     # --- dashboard ---
     ("GET", "/api/v1/dashboard/live"): Audience.ALL_ADMINS,  # VIEW_ATTENDANCE
+    # --- data-requests ---
+    ("GET", "/api/v1/data-requests"): Audience.SUPER,  # MANAGE_DATA_REQUESTS
+    ("POST", "/api/v1/data-requests"): Audience.SUPER,  # MANAGE_DATA_REQUESTS
+    ("GET", "/api/v1/data-requests/{request_id}"): Audience.SUPER,  # MANAGE_DATA_REQUESTS
+    ("POST", "/api/v1/data-requests/{request_id}/events"): Audience.SUPER,  # MANAGE_DATA_REQUESTS
     # --- departments ---
     ("PATCH", "/api/v1/departments/{item_id}"): Audience.SUPER,  # EDIT_PLANT_SETUP
     ("POST", "/api/v1/departments/{item_id}/deactivate"): Audience.SUPER,  # EDIT_PLANT_SETUP
@@ -201,6 +206,9 @@ ROUTE_AUDIENCE: dict[tuple[str, str], Audience] = {
     ("POST", "/api/v1/employees/{employee_id}/shift-swaps"): Audience.SUPER,  # MANAGE_SHIFT_SWAPS
     ("GET", "/api/v1/employees/{employee_id}/timeline"): Audience.ALL_ADMINS,  # VIEW_EMPLOYEES
     ("POST", "/api/v1/employees/{employee_id}/transfer"): Audience.SUPER_CORP,  # CHANGE_EMPLOYEES
+    # --- exports ---
+    ("GET", "/api/v1/exports/recent"): Audience.SUPER,  # EXPORT_ALL_DATA
+    ("POST", "/api/v1/exports/full"): Audience.SUPER,  # EXPORT_ALL_DATA
     # --- face ---
     ("GET", "/api/v1/face/consent-texts/{version}"): Audience.ALL_ADMINS,  # VIEW_FACE_ENROLMENT
     ("GET", "/api/v1/face/enrolment-progress"): Audience.ALL_ADMINS,  # VIEW_FACE_ENROLMENT
