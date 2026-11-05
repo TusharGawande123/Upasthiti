@@ -230,6 +230,20 @@ const adminPages: RouteObject[] = [
     ),
   },
   {
+    path: "/admin/privacy-requests",
+    lazy: page(
+      () => import("../features/privacy-requests/privacy-requests-page"),
+      (m) => m.PrivacyRequestsPage,
+    ),
+  },
+  {
+    path: "/admin/data-export",
+    lazy: page(
+      () => import("../features/data-export/data-export-page"),
+      (m) => m.DataExportPage,
+    ),
+  },
+  {
     path: "/admin/sessions",
     lazy: page(
       () => import("../features/auth/sessions-page"),

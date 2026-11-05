@@ -44,6 +44,8 @@ const ADMIN_PAGES = [
   "/admin/audit",
   "/admin/users",
   "/admin/notices",
+  "/admin/privacy-requests",
+  "/admin/data-export",
 ];
 
 /** The whole page must fit the screen width (a table may scroll inside its own card). */
