@@ -24,6 +24,8 @@ from tests.clock_helpers import frozen_at, ist
 from tests.conftest import clear_cached_settings
 from tests.people_helpers import PlantIds, client_for, create_plant
 
+pytestmark = pytest.mark.time_sensitive
+
 NOON = ist(date(2026, 10, 29), 12, 0)
 URL = "/api/v1/notifications"
 
@@ -78,7 +80,11 @@ def test_one_notification_per_dedupe_key_and_an_open_count_is_updated(world: dic
     world["session"].commit()
 
     assert first is not None and again is None
-    rows = world["session"].scalars(select(Notification)).all()
+    rows = (
+        world["session"]
+        .scalars(select(Notification).order_by(Notification.created_at, Notification.id))
+        .all()
+    )
     assert len(rows) == 1 and rows[0].params == {"count": 3}
     resolve_notification(world["session"], "still:DEMO1:2026-10-29", utc_now())
     assert rows[0].resolved_at is not None
@@ -231,7 +237,11 @@ def test_email_goes_once_per_person_with_no_names_when_smtp_is_set(
     to, _subject, body = smtp[0]
     assert to == "boss@example.com"
     assert "2 people are still inside DEMO1" in body
-    deliveries = session.scalars(select(NotificationDelivery)).all()
+    deliveries = session.scalars(
+        select(NotificationDelivery).order_by(
+            NotificationDelivery.attempted_at, NotificationDelivery.id
+        )
+    ).all()
     assert [(d.state, d.channel) for d in deliveries] == [("sent", "email")]
 
 

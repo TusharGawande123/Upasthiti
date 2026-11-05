@@ -28,6 +28,8 @@ from tests.test_m5_attendance_api import (  # noqa: F401
     world,
 )
 
+pytestmark = pytest.mark.time_sensitive
+
 PLANT_WIDE = "/api/v1/reports/register-range"
 ONE_PERSON = "/api/v1/reports/employee-range"
 
@@ -176,7 +178,11 @@ def test_every_range_download_writes_an_audit_row_without_a_name(world: dict) ->
 
     session = world["session"]
     session.expire_all()
-    rows = session.scalars(select(AuditLog).where(AuditLog.action == "report.download")).all()
+    rows = session.scalars(
+        select(AuditLog)
+        .where(AuditLog.action == "report.download")
+        .order_by(AuditLog.at, AuditLog.id)
+    ).all()
 
     assert sorted(row.after["kind"] for row in rows) == ["employee-range", "register-range"]
     for row in rows:

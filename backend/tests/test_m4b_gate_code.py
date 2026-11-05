@@ -45,6 +45,8 @@ from tests.phone_api_helpers import (
     switch_phone,
 )
 
+pytestmark = pytest.mark.time_sensitive
+
 MONDAY = date(2026, 11, 2)
 CODE_PATH = "/api/v1/kiosk/gate-code"
 SEVEN = ist(MONDAY, 7, 0)
@@ -516,7 +518,9 @@ def test_ac_42_the_phone_code_must_change_faster_than_the_cooldown(
         json={"values": {"phone_gate_code_seconds": 56}, "reason": "Test change"},
     )
     assert longer_code.status_code == 422  # 56 + 5 = 61 s is not shorter than 60 s
-    assert db_session.scalars(select(AuditLog).where(AuditLog.action == "settings.update")).all()
+    assert db_session.scalars(
+        select(AuditLog).where(AuditLog.action == "settings.update").order_by(AuditLog.at)
+    ).all()
 
 
 def test_the_code_text_is_the_only_new_secret_and_needs_no_new_setting_in_the_environment() -> None:
@@ -570,7 +574,9 @@ def test_a_code_naming_an_unknown_device_leaves_an_audit_row_with_a_hash_only(
         assert send_code(worker_phone, unknown).json()["reason_code"] == "GATE_CODE_INVALID"
 
     rows = db_session.scalars(
-        select(AuditLog).where(AuditLog.action == "phone_punch.gate_code_unknown_device")
+        select(AuditLog)
+        .where(AuditLog.action == "phone_punch.gate_code_unknown_device")
+        .order_by(AuditLog.at, AuditLog.id)
     ).all()
     assert len(rows) == 1
     assert str(rows[0].entity_id) == people.qr_id

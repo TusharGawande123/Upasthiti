@@ -31,6 +31,8 @@ from tests.conftest import clear_cached_settings
 from tests.image_helpers import make_jpeg
 from tests.people_helpers import PlantIds, client_for, create_plant, temporary_body
 
+pytestmark = pytest.mark.time_sensitive
+
 PUNCHES = "/api/v1/punches"
 
 
@@ -365,7 +367,13 @@ def test_the_detail_adds_version_device_time_and_location(boss: TestClient, day:
 
 
 def views(session: Session) -> list[AuditLog]:
-    return list(session.scalars(select(AuditLog).where(AuditLog.action == "snapshot.view")))
+    return list(
+        session.scalars(
+            select(AuditLog)
+            .where(AuditLog.action == "snapshot.view")
+            .order_by(AuditLog.at, AuditLog.id)
+        )
+    )
 
 
 def test_the_super_admin_opens_a_photo_and_every_view_is_audited(

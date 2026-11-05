@@ -34,7 +34,7 @@ from tests.kiosk_helpers import GATE_LOCATION, Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant, temporary_body
 
 # These tests are about something else than the early-OUT alert (M5).
-pytestmark = pytest.mark.usefixtures("early_out_alert_off")
+pytestmark = [pytest.mark.usefixtures("early_out_alert_off"), pytest.mark.time_sensitive]
 
 PUNCH = "/api/v1/punch/kiosk"
 REPORT = "/api/v1/kiosk/report"
@@ -141,7 +141,9 @@ def punch_rows(session: Session) -> list[Punch]:
 
 
 def snapshot_rows(session: Session) -> list[PunchSnapshot]:
-    return list(session.scalars(select(PunchSnapshot)))
+    return list(
+        session.scalars(select(PunchSnapshot).order_by(PunchSnapshot.created_at, PunchSnapshot.id))
+    )
 
 
 def add_earlier_punch(
@@ -787,7 +789,11 @@ def test_a_revoked_test_card_is_refused_and_leaves_no_punch_and_no_photo(
 
 def refused_test_card_rows(session: Session) -> list[AuditLog]:
     return list(
-        session.scalars(select(AuditLog).where(AuditLog.action == "kiosk.test_card_refused"))
+        session.scalars(
+            select(AuditLog)
+            .where(AuditLog.action == "kiosk.test_card_refused")
+            .order_by(AuditLog.at, AuditLog.id)
+        )
     )
 
 

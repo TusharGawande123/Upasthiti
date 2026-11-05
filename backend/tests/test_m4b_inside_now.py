@@ -26,6 +26,8 @@ from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body
 from tests.phone_helpers import make_phone_punch, make_phone_session
 
+pytestmark = pytest.mark.time_sensitive
+
 MONDAY = date(2026, 11, 2)
 
 
@@ -291,7 +293,11 @@ def test_ac_41_the_still_inside_alert_leaves_out_the_outside_worker_and_goes_whe
     run_five_minute_alerts(world["session"], now)  # a repeat changes nothing
 
     alerts = list(
-        world["session"].scalars(select(Notification).where(Notification.kind == "still_inside"))
+        world["session"].scalars(
+            select(Notification)
+            .where(Notification.kind == "still_inside")
+            .order_by(Notification.created_at, Notification.id)
+        )
     )
     assert [str(alert.plant_id) for alert in alerts] == [world["k200"].id]
     assert alerts[0].subject_ids == [world["people"]["P-2"]]  # F-201 is not in it
@@ -334,7 +340,11 @@ def test_refused_gate_code_punches_of_phones_do_not_count_for_the_gates_alert(wo
     session.commit()
     run_five_minute_alerts(session, now)
     assert not list(
-        session.scalars(select(Notification).where(Notification.kind == "many_rejections"))
+        session.scalars(
+            select(Notification)
+            .where(Notification.kind == "many_rejections")
+            .order_by(Notification.created_at, Notification.id)
+        )
     )
 
     refuse("kiosk", 10)  # the tenth refusal AT THE DEVICE

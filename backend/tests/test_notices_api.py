@@ -17,6 +17,8 @@ from app.modules.users.models import Role, User
 from app.modules.users.plant_access import set_user_plant
 from tests.people_helpers import PlantIds, client_for, create_plant
 
+pytestmark = pytest.mark.time_sensitive
+
 NOTICES = "/api/v1/notices"
 
 
@@ -76,7 +78,11 @@ def error_code(response) -> str:
 
 
 def audits(session: Session, action: str) -> list[AuditLog]:
-    return list(session.scalars(select(AuditLog).where(AuditLog.action == action)))
+    return list(
+        session.scalars(
+            select(AuditLog).where(AuditLog.action == action).order_by(AuditLog.at, AuditLog.id)
+        )
+    )
 
 
 # --- Creating -----------------------------------------------------------------------------------

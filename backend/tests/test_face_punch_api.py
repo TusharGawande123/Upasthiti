@@ -42,6 +42,8 @@ from tests.face_helpers import enrol, frame, new_employee, set_privacy
 from tests.kiosk_helpers import GATE_LOCATION, Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant
 
+pytestmark = pytest.mark.time_sensitive
+
 PUNCH = "/api/v1/punch/kiosk"
 CHALLENGE = "/api/v1/punch/challenge"
 CODE = "/api/v1/punch/kiosk/code"
@@ -374,7 +376,10 @@ def test_no_face_and_unreadable_frames(
     broken = [{"role": "frontal", "jpeg": "bm90IGEgcGljdHVyZQ=="}, frame(1, yaw=25, role="turn")]
     answer = face_punch(db_client, device, 1, frames=broken).json()
     assert answer["reason_code"] == "FRAMES_INVALID"
-    reasons = {punch.reason_codes[0]: punch.id for punch in db_session.scalars(select(Punch)).all()}
+    reasons = {
+        punch.reason_codes[0]: punch.id
+        for punch in db_session.scalars(select(Punch).order_by(Punch.id)).all()
+    }
     snapshot_punches = set(db_session.scalars(select(PunchSnapshot.punch_id)).all())
     assert reasons["FRAMES_INVALID"] not in snapshot_punches  # no usable picture: no photo
 
