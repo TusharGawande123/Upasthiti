@@ -59,6 +59,7 @@ from app.modules.phone.rate_limits import (
 from app.modules.phone.schemas import CardProofRequest, FaceProofRequest
 from app.modules.phone.sessions import end_all, lock_employee
 from app.modules.phone.sign_in_service import SignedIn, finish_sign_in
+from app.modules.phone.typed_code_audit import audit_fields_for_typed_code
 from app.modules.punches.face_service import (
     capture_rules,
     choose_challenge,
@@ -190,7 +191,14 @@ def prove_face(
     )
     if not matched or candidate is None:
         # This failure used the face worker, so it counts towards the company-wide limit.
-        _fail(session, proof, ip, started, count_for_everyone=True)
+        _fail(
+            session,
+            proof,
+            ip,
+            started,
+            count_for_everyone=True,
+            code_is_known=candidate is not None,
+        )
     return _pass(session, proof, candidate, now, started)
 
 
@@ -342,6 +350,7 @@ def _fail(
     started: float,
     *,
     count_for_everyone: bool = False,
+    code_is_known: bool = False,
 ) -> NoReturn:
     """One answer for every "not you" case. The audit keeps the kind and the typed code only,
     never a picture or a score (rule 5). Always raises. Only a failure that used the face
@@ -350,13 +359,16 @@ def _fail(
     proof.result = "failed"
     if count_for_everyone:
         failed_proof_limiter.record(EVERYONE)
+    after: dict[str, object] = {"kind": proof.kind}
+    if proof.claimed_code is not None:  # a card proof has no typed code
+        after.update(audit_fields_for_typed_code(proof.claimed_code, employee_known=code_is_known))
     record_audit(
         session,
         actor=Actor("employee", None, ip),
         action="phone_proof.failed",
         entity_type="phone_proof",
         entity_id=None,
-        after={"kind": proof.kind, "code": proof.claimed_code},
+        after=after,
     )
     session.commit()
     _wait_until(started)

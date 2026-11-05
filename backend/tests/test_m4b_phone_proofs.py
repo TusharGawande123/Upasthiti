@@ -21,6 +21,7 @@ from app.face.fake_engine import Problem
 from app.modules.audit.models import AuditLog
 from app.modules.phone.models import PhoneAccount, PhoneNoticeAcceptance, PhoneProof
 from app.modules.phone.notice import raw_notice, require_notice_accepted
+from app.modules.phone.typed_code_audit import typed_code_hmac
 from app.modules.punches.models import PunchSnapshot
 from app.modules.qr_cards.models import QrCredential
 from app.modules.qr_cards.payload import build_payload
@@ -149,7 +150,14 @@ def test_ac_11_every_not_you_case_gives_the_same_answer_after_one_second(
     failed = db_session.scalars(
         select(AuditLog).where(AuditLog.action == "phone_proof.failed").order_by(AuditLog.at)
     ).all()
-    assert [row.after for row in failed] == [{"kind": "face", "code": code} for code, _ in cases]
+    # M6: a code of nobody is kept only as hash and length (decision 0038); a real one as typed.
+    assert failed[0].after == {
+        "kind": "face",
+        "code_hmac": typed_code_hmac("NOBODY-1"),
+        "code_length": 8,
+    }
+    assert failed[3].after == {"kind": "face", "code": "F-201"}
+    assert all(row.after is not None and row.after["kind"] == "face" for row in failed)
 
 
 def test_a_printed_photo_fails_the_proof(people: People, phone: TestClient) -> None:
