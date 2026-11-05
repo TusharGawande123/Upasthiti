@@ -166,7 +166,7 @@ def _select_for(table_name: str) -> tuple[Select[Any], list[str]]:
         source = source.outerjoin(employees, employees.c.id == table.c.employee_id)
         selected.append(employees.c.employee_code.label(EMPLOYEE_CODE_COLUMN))
         names.append(EMPLOYEE_CODE_COLUMN)
-    statement: Select[Any] = select(*selected).select_from(source)
+    statement: Any = select(*selected).select_from(source)
     return statement, names
 
 
