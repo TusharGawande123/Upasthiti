@@ -180,7 +180,11 @@ def test_ac_m6_35_every_database_column_is_listed_or_excluded() -> None:
         left_out = set(EXCLUDED_COLUMNS.get(name, {}))
         assert allowed.isdisjoint(left_out), name
         assert allowed <= set(table.c.keys()), f"{name}: an allowed column does not exist"
-        missing += [f"{name}.{c}" for c in table.c if c not in allowed | left_out]
+        missing += [
+            f"{name}.{c}"
+            for c in (column.name for column in table.c)
+            if c not in allowed | left_out
+        ]
     assert missing == []
 
 
