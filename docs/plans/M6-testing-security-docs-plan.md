@@ -189,3 +189,5 @@ size; full e2e headed; `pre-commit run --all-files`; 5 green CI checks + CodeQL.
   when no GAP is left (until then `--check` fails on purpose). Next: phase 1 (flaky sweep).
   Open for the lead: M5 AC-49 (monthly register e-mail F-65 not built) and M5c AC-8 (employee Excel shows an
   overtime column for permanent staff).
+- 2026-11-05 (late): work stopped because of the lead's usage limit. Phase 1 committed (not fully verified), streams A to F
+  pushed as `m6/<id>` branches. Everything needed to continue is in docs/plans/M6-handover-for-anuradha.md.
