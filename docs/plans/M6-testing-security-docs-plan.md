@@ -183,3 +183,10 @@ size; full e2e headed; `pre-commit run --all-files`; 5 green CI checks + CodeQL.
 
 ## Status
 - 2026-11-05: spec and plan approved with the lead's 9 choices. Next: phase 0 (baseline run, AC matrix).
+- 2026-11-05 Phase 0 done. Baseline (0.1): backend 1703 passed (91.63 %), frontend 1011 passed (branches 84.71 %),
+  e2e 78 passed; all in docs/reports/M6-test-report.md. AC matrix (0.2): `backend/scripts/ac_matrix.py` and
+  docs/reports/M6-ac-matrix.md: 356 criteria = 299 Covered, 24 Manual, 6 Superseded, 2 Accepted gap, 25 GAP.
+  The 25 GAP rows are closed in phase 5 (each row names the test needed); `test_m6_ac_matrix.py` is added in phase 5
+  when no GAP is left (until then `--check` fails on purpose). Next: phase 1 (flaky sweep).
+  Open for the lead: M5 AC-49 (monthly register e-mail F-65 not built) and M5c AC-8 (employee Excel shows an
+  overtime column for permanent staff).
