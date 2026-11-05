@@ -76,7 +76,7 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=84 -p no:randomly"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=90 -p no:randomly"
 markers = [
     "face_models: needs the downloaded face model files (skipped without them)",
     "time_sensitive: uses the clock; CI runs it again with the clock started near midnight IST",

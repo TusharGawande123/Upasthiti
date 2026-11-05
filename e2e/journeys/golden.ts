@@ -6,6 +6,11 @@ export function isoDate(day: Date): string {
   return `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
 }
 
+/** Today's date in India (the server decides "today" in IST, whatever time zone this machine has). */
+export function todayInIndia(): string {
+  return new Intl.DateTimeFormat("en-CA", { timeZone: "Asia/Kolkata" }).format(new Date());
+}
+
 /** The first day of last month (local date; the e2e machine runs in Indian time). */
 export function firstOfLastMonth(now: Date = new Date()): Date {
   return new Date(now.getFullYear(), now.getMonth() - 1, 1);

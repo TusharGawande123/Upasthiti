@@ -11,7 +11,7 @@ import {
   makePlant,
   SUPER_ADMIN_LOGIN,
 } from "../tests/helpers";
-import { isoDate } from "./golden";
+import { todayInIndia } from "./golden";
 import { downloadFile, type ReadZip, readBack } from "./journey-helpers";
 
 test("J-18 privacy notice, data-request register and the full export read back", async ({
@@ -36,7 +36,7 @@ test("J-18 privacy notice, data-request register and the full export read back",
   const employee = await makePermanentEmployee(api, plant, "J18-001", "Privacy Journey Person");
 
   // 1. A data request is written into the register and goes through two steps.
-  const today = isoDate(new Date());
+  const today = todayInIndia();
   const created = await api.post<{
     id: string;
     status: string;
@@ -91,8 +91,8 @@ test("J-18 privacy notice, data-request register and the full export read back",
   });
   const zip = readBack<ReadZip>(zipPath);
   expect(zip.manifest, "the zip has a manifest.json").not.toBeNull();
-  const manifest = zip.manifest;
-  if (!manifest) return;
+  // The expect above already proved the manifest exists.
+  const manifest = zip.manifest as NonNullable<ReadZip["manifest"]>;
   expect(manifest.total_rows).toBe(manifest.files.reduce((sum, file) => sum + file.rows, 0));
   for (const file of manifest.files) {
     expect(zip.names, `${file.file} is in the zip`).toContain(file.file);

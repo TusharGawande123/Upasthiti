@@ -13,7 +13,7 @@ import {
   PLANT_HEAD_LOGIN,
   SUPER_ADMIN_LOGIN,
 } from "../tests/helpers";
-import { isoDate } from "./golden";
+import { todayInIndia } from "./golden";
 import { openAs, tryCall } from "./journey-helpers";
 
 test.describe.configure({ mode: "serial" });
@@ -52,14 +52,14 @@ test("J-03 a Corporate Head's new employee and transfer wait; one is approved, o
       plant_id: plantA.id,
       category_id: plantA.helperId,
       shift_id: plantA.shiftId,
-      joined_on: isoDate(new Date()),
+      joined_on: todayInIndia(),
     });
     expect(created.status).toBe(202);
     const transferred = await tryCall(head.page, "post", `/employees/${mover.id}/transfer`, {
       to_plant_id: plantB.id,
       category_id: plantB.helperId,
       shift_id: plantB.shiftId,
-      effective_from: isoDate(new Date()),
+      effective_from: todayInIndia(),
       reason: "Journey transfer",
     });
     expect(transferred.status).toBe(202);
@@ -149,7 +149,7 @@ test("J-04 a Plant Head sees only their own plant and cannot open another by its
       plant_id: own.id,
       category_id: own.helperId,
       shift_id: own.shiftId,
-      joined_on: isoDate(new Date()),
+      joined_on: todayInIndia(),
     });
     expect(created.status).toBe(403);
     await head.page.goto("/admin");
