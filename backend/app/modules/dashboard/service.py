@@ -23,6 +23,7 @@ from app.modules.attendance.read_service import (
 )
 from app.modules.auth.dependencies import CurrentUser
 from app.modules.auth.permissions import Access, Capability
+from app.modules.auth.scope import ensure_plant_in_scope
 from app.modules.contractors.models import Contractor
 from app.modules.dashboard.schemas import (
     ContractorCount,
@@ -419,6 +420,9 @@ def muster(
     now: datetime,
 ) -> MusterResponse:
     """Who is inside each plant now, with names; by department, then name (spec §4.2)."""
+    if plant_id is not None:
+        # A plant of another plant's head looks like it does not exist (also for the file name).
+        ensure_plant_in_scope(current_user, Capability.VIEW_ATTENDANCE, plant_id)
     plants = visible_plant_ids(session, current_user, plant_id=plant_id, include_demo=include_demo)
     inside = people_inside(session, plants, now)
     employees = {
