@@ -14,6 +14,7 @@
     "playwright.config.ts",
     "playwright.live.config.ts",
     "tests",
+    "journeys",
     "tests-live"
   ]
 }
