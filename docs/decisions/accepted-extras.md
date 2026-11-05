@@ -178,7 +178,7 @@ Chosen in chat by the team (Anuradha, for the lead) on 2026-11-04.
 Chosen by the lead (Tushar Gawande) in chat on 2026-11-05.
 
 - M6 · F-93 · Backup and restore drill + runbook (Claude runs the drill on the local Docker Postgres; the drill on the client server belongs to the deployment session) · Approved · 2026-11-05
-- M6 · F-97 · Daily "Face enrolment pending" reminder (was F-86) · Approved · 2026-11-05
+- Rejected: F-97 daily "Face enrolment pending" reminder (was F-86): the one-time urgent notice of M5c is enough · 2026-11-05
 - M6 · F-99 · Marathi and Hindi for phone pages, notices, consent text and gate poster, before go-live (the lead checks the texts) · Approved · 2026-11-05
 - M6 · S-55 · pytest-randomly (BSD-3-Clause) + nightly three-clock run · Approved · 2026-11-05
 - M6 · S-58 · OWASP ZAP baseline scan, local only (Apache-2.0) · Approved · 2026-11-05
