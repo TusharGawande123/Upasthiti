@@ -8,7 +8,7 @@ screen shows it read-only, because changing it would have no effect yet.
 from dataclasses import dataclass
 
 # Bump this in each milestone, so its settings become editable.
-CURRENT_MILESTONE = 5
+CURRENT_MILESTONE = 6
 
 SettingValueType = int | float | str | None
 
@@ -119,6 +119,8 @@ SETTING_DEFINITIONS: tuple[SettingDefinition, ...] = (
     # the contact is filled with the first Super Admin when the system is set up (spec §7 rule 13).
     SettingDefinition("company_address", "privacy", "", "", 3, 5, 300, is_text=True),
     SettingDefinition("privacy_contact", "privacy", "", "", 3, 5, 200, is_text=True),
+    # M6 (R-12): days from a data request to the answer (the promise of the consent texts).
+    SettingDefinition("data_request_days", "privacy", 30, "days", 6, 7, 90),
     # M4 (spec §7 rule 17): location on every punch, flag rules, offline gate devices.
     SettingDefinition("impossible_travel_kmh", "antiproxy", 60, "km/h", 4, 10, 200),
     SettingDefinition("impossible_travel_min_distance_m", "antiproxy", 500, "m", 4, 100, 5000),

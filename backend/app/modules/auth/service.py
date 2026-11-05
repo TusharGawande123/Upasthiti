@@ -223,6 +223,27 @@ def end_one_session(
         session.commit()
 
 
+def check_password_again(session: Session, *, user: User, password: str, ip: str) -> bool:
+    """Ask a logged-in user for the password once more before a risky action (M6 full export).
+
+    The same rules as the login: a locked account is refused, a wrong password is counted toward
+    the lockout (and audited) like a wrong login. Returns False for a wrong password so the caller
+    answers in its own words; raises ACCOUNT_LOCKED when this wrong password locked the account."""
+    now = utc_now()
+    if user.locked_until is not None and user.locked_until > now:
+        raise _account_locked(user.locked_until, now)
+    if verify_password(user.password_hash, password):
+        user.failed_login_count = 0
+        session.commit()
+        return True
+    try:
+        _count_failed_password(session, user, ip, now)
+    except ApiError as error:
+        if error.code != "INVALID_CREDENTIALS":
+            raise
+    return False
+
+
 def _count_failed_password(session: Session, user: User, ip: str, now: datetime) -> None:
     """Count a wrong password; lock the account at the limit (spec §7 rule 4). Always raises."""
     user.failed_login_count += 1
