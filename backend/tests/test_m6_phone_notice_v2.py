@@ -27,6 +27,8 @@ from tests.test_m4b_phone_proofs import (
     snapshot_folder,
 )
 
+pytestmark = pytest.mark.time_sensitive
+
 # The raw text of each language is fixed once v2 is in use; a change must be a new version.
 NOTICE_V2_SHA256 = {
     "en": "68bbe8047967cb52e9d32dd857c73ef8cc75b27c9592c9345cbc82b0eb43a2a2",
