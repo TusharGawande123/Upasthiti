@@ -173,3 +173,22 @@ Chosen in chat by the team (Anuradha, for the lead) on 2026-11-04.
 - M5c · S-50 · Streaming report helper (needed for the one-year export) · Approved · 2026-11-04
 - Later: F-83 CSV export, F-84 ready-to-convert list, F-85 conversion due reminder, F-86 daily enrolment reminder,
   F-90 compare two periods, S-51 range index check, S-52 one-year memory check in CI, S-53 recompute progress line
+
+## M6 – Testing, security review, documentation (docs/specs/M6-testing-security-docs.md)
+Chosen by the lead (Tushar Gawande) in chat on 2026-11-05.
+
+- M6 · F-93 · Backup and restore drill + runbook (Claude runs the drill on the local Docker Postgres; the drill on the client server belongs to the deployment session) · Approved · 2026-11-05
+- M6 · F-97 · Daily "Face enrolment pending" reminder (was F-86) · Approved · 2026-11-05
+- M6 · F-99 · Marathi and Hindi for phone pages, notices, consent text and gate poster, before go-live (the lead checks the texts) · Approved · 2026-11-05
+- M6 · S-55 · pytest-randomly (BSD-3-Clause) + nightly three-clock run · Approved · 2026-11-05
+- M6 · S-58 · OWASP ZAP baseline scan, local only (Apache-2.0) · Approved · 2026-11-05
+- M6 · S-60 · Lighthouse CI (Apache-2.0) · Approved · 2026-11-05
+- M6 · S-61 · Chaos and offline fuzz test for gate sync · Approved · 2026-11-05
+- M6 · S-62 · Migration round-trip check · Approved · 2026-11-05
+- M6 · S-64 · Nightly recompute self-check + one-year export memory check in CI (was S-44, S-52) · Approved · 2026-11-05
+- Also decided: the user manual and the worker gate and phone guide are written in English, Marathi and Hindi (R-8).
+- Later: F-98 retention purge tool
+- Not now: F-92 system check page, F-94 person data pack, F-95 admin activity report, F-96 audit viewer upgrade,
+  F-100 two-step login, F-101 muster roll-call ticks, F-102 contractor scorecard, F-103 gate rush report,
+  F-104 preflight script, F-105 breach log in the app, S-54 run-all script, S-56 mutation testing,
+  S-57 API fuzzing, S-59 visual regression, S-63 strict CSP for admin pages
