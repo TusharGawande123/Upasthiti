@@ -4618,6 +4618,7 @@
   },
   "phone": {
     "title": "Phone attendance",
+    "language": "Language",
     "back": "Back",
     "cancel": "Cancel",
     "tryAgain": "Try again",
