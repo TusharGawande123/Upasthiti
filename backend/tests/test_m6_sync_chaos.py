@@ -233,7 +233,7 @@ def test_the_offline_sync_keeps_its_properties_under_chaos(
         deadline=None,
         database=None,
         derandomize=not os.environ.get("CHAOS_EXAMPLES"),  # CI is repeatable, nightly explores
-        suppress_health_check=list(HealthCheck),
+        suppress_health_check=HealthCheck.all(),
     )
 
     run_state_machine_as_test(machine, settings=chaos_settings)
