@@ -31,3 +31,12 @@ Spec: docs/specs/M6-testing-security-docs.md, plan: docs/plans/M6-testing-securi
 ## Carry-over items decided later in M6
 Added here one line each as they are decided (client IP, revoked-device audit flood, gate notice text in the audit,
 orphan-storage sweep, backdating window, leaked offline key cases).
+
+## Scope trimmed by the lead's instruction "do not re-test what was tested before" (2026-11-05)
+- **Journeys J-01 to J-19 (AC-M6-5 to 8):** a journey is written only for what no existing e2e spec already proves.
+  A journey that an existing spec covers is listed in the test report as "covered by <spec>" with the reason. Every
+  journey still ends with a read-back where it makes a file or a number. The AC matrix (docs/reports/M6-ac-matrix.md)
+  decides what is already tested; only its `GAP` rows get new tests (phase 5).
+- **Running agents in parallel:** each parallel agent works in its own git worktree with its own test database
+  (`upasthiti_<letter>_test`); Playwright is run by one session only.
+- **Agent model:** all remaining M6 agents use Sonnet 5.5 at medium effort unless the lead says otherwise.
