@@ -10,10 +10,9 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { describeError } from "@/features/auth/error-message";
 import { ApiError } from "@/lib/api-client";
 import { phoneApi } from "./phone-api";
+import { usePhoneLanguage } from "./phone-language";
 import { Notice, PhoneButton, PhoneCard, PhoneTitle } from "./phone-ui";
 import { PHONE_ME_KEY, useKnownPhoneMe, useSignOut } from "./phone-use-phone";
-
-const NOTICE_KEY = ["phone", "notice"] as const;
 
 export function PhoneNoticePage() {
   const { t } = useTranslation();
@@ -21,9 +20,12 @@ export function PhoneNoticePage() {
   const queryClient = useQueryClient();
   const me = useKnownPhoneMe();
   const signOut = useSignOut();
+  // The notice text is read in the language chosen on the phone; the server keeps that language
+  // and the hash of exactly that text with "I agree".
+  const { language } = usePhoneLanguage();
   const notice = useQuery({
-    queryKey: NOTICE_KEY,
-    queryFn: phoneApi.notice,
+    queryKey: ["phone", "notice", language],
+    queryFn: () => phoneApi.notice(language),
     retry: false,
     staleTime: 0,
   });
@@ -39,6 +41,7 @@ export function PhoneNoticePage() {
       await phoneApi.acceptNotice({
         version: notice.data.version,
         text_sha256: notice.data.text_sha256,
+        language: notice.data.language,
       });
       await queryClient.invalidateQueries({ queryKey: PHONE_ME_KEY });
       navigate("/phone", { replace: true });

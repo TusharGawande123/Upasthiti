@@ -6,12 +6,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "includes": [
-      "frontend/**",
-      "e2e/**",
-      "!**/coverage",
-      "!**/dist"
-    ]
+    "includes": ["frontend/**", "e2e/**", "!**/coverage", "!**/dist"]
   },
   "formatter": {
     "enabled": true,

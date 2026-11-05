@@ -239,6 +239,7 @@ describe("phone notice", () => {
       expect(calls.find((call) => call.path === "/phone/notice/accept")?.body).toEqual({
         version: "1",
         text_sha256: "b".repeat(64),
+        language: "en",
       }),
     );
   });
