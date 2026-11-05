@@ -100,10 +100,17 @@ class Settings(BaseSettings):
     # A letter stored in every offline punch, so a later key change stays possible.
     offline_evidence_key_id: str = Field(default="A", pattern=r"^[A-Z]$")
 
+    # --- M6: encrypted backups (F-93) ---
+    # Encrypts the backup files made by `app.scripts.backup`. Optional: only that script reads it.
+    # Lose it and the backups cannot be read.
+    backup_key: SecretStr | None = None
+    backup_key_id: str = Field(default="A", pattern=r"^[A-Z]$")
+
     @field_validator(
         "qr_signing_key",
         "snapshot_encryption_key",
         "face_template_key",
+        "backup_key",
         "offline_evidence_key",
         "storage_backend",
         "supabase_url",
@@ -117,7 +124,7 @@ class Settings(BaseSettings):
             return None
         return value
 
-    @field_validator("qr_signing_key", "snapshot_encryption_key", "face_template_key")
+    @field_validator("qr_signing_key", "snapshot_encryption_key", "face_template_key", "backup_key")
     @classmethod
     def key_must_be_32_bytes(cls, key: SecretStr | None) -> SecretStr | None:
         if key is not None:
