@@ -25,6 +25,7 @@ dependencies = [
     "shapely>=2.2.0",
     "sqlalchemy>=2.1.4",
     "tzdata>=2026.5",
+    "uharfbuzz>=0.57.0",
     "uvicorn[standard]>=0.54.0",
     "webauthn>=3.0.1",
     "xlsxwriter>=3.2.9",

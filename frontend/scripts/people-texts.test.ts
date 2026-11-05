@@ -26,11 +26,16 @@ const PLANT_OFFICE_ENDING = /please visit the plant office\.$/i;
 // Short retry hints are allowed for camera, light and network problems (decision 0022).
 const RETRY_HINT = /(try again|try once more|hold still|scan the code again)/i;
 
-function refusalsOf(group: TextTree): [string, { title: string; next?: string }][] {
-  return Object.entries(group)
-    .filter(([, value]) => typeof value === "object" && !Array.isArray(value))
-    .map(([code, value]) => [code, value as { title: string; next?: string }])
-    .filter(([, entry]) => FINAL_TITLES.includes(entry.title));
+type Refusal = { title: string; next?: string };
+
+function refusalsOf(group: TextTree): [string, Refusal][] {
+  const entries: [string, Refusal][] = [];
+  for (const [code, value] of Object.entries(group)) {
+    if (typeof value !== "object" || Array.isArray(value)) continue;
+    const refusal = value as unknown as Refusal;
+    if (FINAL_TITLES.includes(refusal.title)) entries.push([code, refusal]);
+  }
+  return entries;
 }
 
 describe("the texts people read", () => {
