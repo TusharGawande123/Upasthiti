@@ -1770,7 +1770,13 @@
       "save": "Save shift"
     },
     "poster": {
-      "button": "Download gate poster (A4 PDF)"
+      "button": "Download gate poster (A4 PDF)",
+      "language": "Language of the gate poster",
+      "languages": {
+        "en": "English",
+        "mr": "Marathi",
+        "hi": "Hindi"
+      }
     }
   },
   "setup": {
