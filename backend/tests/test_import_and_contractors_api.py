@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 
 from app.modules.audit.models import AuditLog
 from app.modules.employees.import_excel import COLUMNS
-from app.modules.employees.models import Employee
+from app.modules.employees.models import Employee, EmployeeTypeHistory
 from app.modules.users.models import Role
 from tests.people_helpers import PlantIds, client_for, create_plant
 
@@ -309,3 +309,24 @@ def test_the_new_qr_people_can_be_given_cards_straight_away(
     assert issued["done"] == 1
     assert issued["skipped"] == []
     assert len(issued["card_ids"]) == 1
+
+
+def test_an_import_row_with_the_code_of_a_temporary_worker_converts_nobody(
+    boss: TestClient, k134: PlantIds, db_session: Session
+) -> None:
+    """M5c AC-24: the import only creates people; a row with an existing code and the type
+    permanent is refused, the type stays, no type-history row is added, nothing is converted."""
+    first = upload(boss, [good_row("2001", "Asha Rao", kind="temporary")], dry_run=False)
+    assert first.json()["created"] == 1
+    history_rows = len(db_session.scalars(select(EmployeeTypeHistory)).all())
+
+    response = upload(boss, [good_row("2001", "Asha Rao", kind="permanent")], dry_run=False)
+
+    assert response.status_code == 422
+    assert response.json()["error"]["code"] == "IMPORT_HAS_ERRORS"
+    db_session.expire_all()
+    employee = db_session.scalars(select(Employee).where(Employee.employee_code == "2001")).one()
+    assert employee.type == "temporary"
+    assert len(db_session.scalars(select(EmployeeTypeHistory)).all()) == history_rows
+    converted = db_session.scalars(select(AuditLog).where(AuditLog.action == "employee.convert"))
+    assert converted.all() == []
