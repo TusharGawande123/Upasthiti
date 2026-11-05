@@ -191,3 +191,18 @@ size; full e2e headed; `pre-commit run --all-files`; 5 green CI checks + CodeQL.
   overtime column for permanent staff).
 - 2026-11-05 (late): work stopped because of the lead's usage limit. Phase 1 committed (not fully verified), streams A to F
   pushed as `m6/<id>` branches. Everything needed to continue is in docs/plans/M6-handover-for-anuradha.md.
+- 2026-11-06: work continued by Anuradha's Claude session. Phase 1 verified (both midnight-clock runs of
+  `-m time_sensitive` passed, hygiene guard clean). All streams merged: E backup, D documents, F gap tests (22 GAP rows closed,
+  M5c AC-8 fixed in the app), A security (role matrix, plant scoping, CSRF, downloads, injection, sessions; two real bugs fixed: a
+  NUL byte gave a 500, and a Plant Head could read another plant's muster), G chaos test, migration round-trip, recompute check,
+  `.test-run.lock`, nightly workflow and pytest-randomly, C Marathi and Hindi (notice v2, phone pages, three-language poster with
+  `uharfbuzz`), B data-request register and full export (screens and tests), E journeys, page list, axe and Lighthouse CI.
+  Phase 6: all existing e2e specs pass headless (79); journeys J-03, 04, 11, 12, 13, 14, 15, 18 written and passing headed;
+  J-01, 02, 05, 07, 09, 10, 17 partly and J-06, 08, 16, 19 fully covered by existing specs (docs/reports/M6-journey-coverage.md);
+  the AC matrix has no GAP row left (M1 AC-35 by the axe page list, M4b AC-57 by `phone-gate-code.spec.ts`). Axe found one real
+  problem (a scrollable table box not reachable by keyboard): fixed. Phase 7: load and sizing runs in backend/loadtest/README.md.
+  Finding: at 0.1 CPU (Render Free) the punch is about three to four times slower than on 21/10/2026 and misses NFR-01
+  (one gate p95 2.9 s); from 1 CPU up it is well inside the target. The face and phone 450 MB checks run in the CI `docker` job.
+  Review agents (code quality, security, compliance, i18n): no Critical or High finding; the findings were fixed or listed in the
+  test report. Coverage floors set to measured minus 1. SRS salary parts removed, `device-setup.md` renamed.
+  Next: carry-over decisions in 0038, final test report, CLAUDE.md diff to the lead, PR.
