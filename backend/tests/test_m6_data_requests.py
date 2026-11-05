@@ -8,7 +8,7 @@ from datetime import date, timedelta
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from sqlalchemy import select, text
+from sqlalchemy import event, select, text
 from sqlalchemy.exc import DBAPIError
 from sqlalchemy.orm import Session
 
@@ -420,3 +420,24 @@ def test_ac_m6_32_only_the_super_admin_sees_the_notice(
 
     assert "notification.data_request_due" in kinds(boss)
     assert "notification.data_request_due" not in kinds(head)
+
+
+def test_adding_a_step_locks_the_request_row(boss: TestClient, db_session: Session) -> None:
+    """Two people adding a step at once must queue up (FOR UPDATE), so a second `closed` after a
+    `closed` is refused. A second real connection cannot see this test's uncommitted data, so the
+    test checks the lock in the SQL that is sent."""
+    request_id = new_request(boss)["id"]
+    sent_sql: list[str] = []
+
+    def remember(_conn, _cursor, statement, *_rest) -> None:  # noqa: ANN001
+        sent_sql.append(statement)
+
+    engine = db_session.get_bind()
+    event.listen(engine, "before_cursor_execute", remember)
+    try:
+        step(boss, request_id, "identity_checked")
+    finally:
+        event.remove(engine, "before_cursor_execute", remember)
+
+    locking = [sql for sql in sent_sql if "FROM data_requests" in sql and "FOR UPDATE" in sql]
+    assert locking, "the request row was not locked"

@@ -195,8 +195,15 @@ def _fetch(
     return rows, total or 0
 
 
-def _get_request(session: Session, request_id: uuid.UUID) -> DataRequest:
-    request = session.get(DataRequest, request_id)
+def _get_request(
+    session: Session, request_id: uuid.UUID, *, lock_for_update: bool = False
+) -> DataRequest:
+    """Load a request. With `lock_for_update` the row is locked until the commit, so two
+    people adding a step at the same moment queue up and the second sees the first one's step."""
+    statement = select(DataRequest).where(DataRequest.id == request_id)
+    if lock_for_update:
+        statement = statement.with_for_update()
+    request = session.scalar(statement)
     if request is None:
         raise ApiError("DATA_REQUEST_NOT_FOUND", "This request was not found.", 404)
     return request
@@ -289,7 +296,7 @@ def create_request(
 def add_event(
     session: Session, current_user: CurrentUser, request_id: uuid.UUID, body: AddEventRequest
 ) -> EventResponse:
-    request = _get_request(session, request_id)
+    request = _get_request(session, request_id, lock_for_update=True)
     events = _events_of(session, request.id)
     last_type = events[-1].event_type if events else None
     if last_type == "closed":

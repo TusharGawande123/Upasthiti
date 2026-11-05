@@ -12,9 +12,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.modules.data_requests.models import DataRequest, DataRequestEvent
+from app.modules.data_requests.service import DUE_SOON_DAYS
 from app.modules.notifications.service import create_notification
 
-NOTICE_DAYS_BEFORE = (5, 0)
+NOTICE_DAYS_BEFORE = (DUE_SOON_DAYS, 0)
 
 
 def raise_due_notices(session: Session, today: date, now: datetime) -> int:

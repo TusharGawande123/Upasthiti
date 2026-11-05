@@ -30,7 +30,10 @@ def list_data_requests(
     kind: RequestKind | None = None,
     overdue: bool | None = Query(default=None, description="Past the due day and not closed"),
     due_soon: bool | None = Query(
-        default=None, description="Not closed and due in 5 days or less (or overdue): the banner"
+        default=None,
+        description=(
+            f"Not closed and due in {service.DUE_SOON_DAYS} days or less (or overdue): the banner"
+        ),
     ),
     params: PageParams = Depends(page_params),
     current_user: CurrentUser = Depends(super_admin),
