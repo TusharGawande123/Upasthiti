@@ -85,7 +85,7 @@ def test_twenty_card_and_ten_face_punches_of_fifteen_people_sync_in_pairs(
                 method,
                 evidence,
                 elapsed=timedelta(minutes=minutes),
-                **({"challenge": "turn_left"} if method == "face" else {}),
+                challenge="turn_left" if method == "face" else None,
             )
             for minutes, method, evidence in sorted(planned, key=lambda entry: entry[0])
         ]
@@ -118,5 +118,6 @@ def test_twenty_card_and_ten_face_punches_of_fifteen_people_sync_in_pairs(
     sync_rows = db_session.scalars(
         select(AuditLog).where(AuditLog.action == "kiosk.sync").order_by(AuditLog.at, AuditLog.id)
     ).all()
-    assert [row.after for row in sync_rows] == [{"saved": 20}, {"saved": 10}]
+    # The clock is frozen, so both rows share one time: compare the counts without an order.
+    assert sorted((row.after or {})["saved"] for row in sync_rows) == [10, 20]
     assert db_session.scalars(select(KioskDevice)).one().status == "active"
