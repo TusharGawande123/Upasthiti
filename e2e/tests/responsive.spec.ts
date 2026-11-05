@@ -5,6 +5,8 @@ import { expect, type Page, test } from "@playwright/test";
 import { FRONTEND_URL } from "../backend-env";
 import {
   adminApi,
+  CORPORATE_HEAD_LOGIN,
+  expectNoSeriousAccessibilityIssues,
   logIn,
   makeKioskCode,
   makePermanentEmployee,
@@ -13,40 +15,13 @@ import {
   openKioskWithCard,
   SUPER_ADMIN_LOGIN,
 } from "./helpers";
+import { ADMIN_PAGE_LIST, OTHER_PAGE_LIST, type PageEntry } from "./page-list";
 
 test.describe.configure({ mode: "serial" });
 
 const PHONE = { width: 390, height: 844 };
 const SMALL_PHONE = { width: 360, height: 640 };
 const TABLET = { width: 768, height: 1024 };
-
-// Pages with a table or a long form: the ones that were too wide on a phone.
-const ADMIN_PAGES = [
-  "/admin",
-  "/admin/employees",
-  "/admin/employees/new",
-  "/admin/qr-cards",
-  "/admin/punches",
-  "/admin/review",
-  "/admin/muster",
-  "/admin/attendance",
-  "/admin/attendance/register",
-  "/admin/corrections",
-  "/admin/leave",
-  "/admin/holidays",
-  "/admin/reports",
-  "/admin/insights/punctuality",
-  "/admin/notifications",
-  "/admin/plants",
-  "/admin/kiosks",
-  "/admin/approvals",
-  "/admin/settings",
-  "/admin/audit",
-  "/admin/users",
-  "/admin/notices",
-  "/admin/privacy-requests",
-  "/admin/data-export",
-];
 
 /** The whole page must fit the screen width (a table may scroll inside its own card). */
 async function expectNoSidewaysScroll(page: Page, where: string) {
@@ -68,6 +43,35 @@ async function settle(page: Page) {
   await expect(page.getByRole("heading").first()).toBeVisible();
 }
 
+/** The sizes of AC-M6-5..8 (360 px and 768 px) plus the usual phone, which was checked before. */
+const LIST_SIZES = [
+  ["small phone", SMALL_PHONE],
+  ["phone", PHONE],
+  ["tablet", TABLET],
+] as const;
+
+type PageIds = { plantId: string; employeeId: string };
+
+/** Fills the ":id" of a route from the made-up plant and employee. */
+function addressOf(entry: PageEntry, ids: PageIds): string {
+  const base = entry.open ?? entry.route;
+  if (entry.parameter === "plantId") return base.replace(":plantId", ids.plantId);
+  if (entry.parameter === "employeeId") return base.replace(":employeeId", ids.employeeId);
+  return base;
+}
+
+/** One page of the list: opens it, waits for it, then checks the width and runs axe. */
+async function measureListedPage(page: Page, entry: PageEntry, ids: PageIds, where: string) {
+  const address = addressOf(entry, ids);
+  await page.goto(address);
+  await page.waitForLoadState("networkidle");
+  if (!entry.noHeading) {
+    await expect(page.getByRole("heading").first()).toBeVisible();
+  }
+  await expectNoSidewaysScroll(page, `${where} ${address}`);
+  await expectNoSeriousAccessibilityIssues(page);
+}
+
 test("the admin pages fit a phone and a tablet, and the menu button reaches every page", async ({
   page,
 }) => {
@@ -85,15 +89,14 @@ test("the admin pages fit a phone and a tablet, and the menu button reaches ever
     );
   }
 
-  for (const [label, size] of [
-    ["phone", PHONE],
-    ["tablet", TABLET],
-  ] as const) {
+  const employee = await makePermanentEmployee(api, plant, "PH0-001", "Permanent Employee Name");
+  const ids: PageIds = { plantId: plant.id, employeeId: employee.id };
+
+  // Every admin page of the page list (the Corporate Head page is in the next test).
+  for (const [label, size] of LIST_SIZES) {
     await page.setViewportSize(size);
-    for (const path of ADMIN_PAGES) {
-      await page.goto(path);
-      await settle(page);
-      await expectNoSidewaysScroll(page, `${label} ${path}`);
+    for (const entry of ADMIN_PAGE_LIST.filter((listed) => listed.role === "super")) {
+      await measureListedPage(page, entry, ids, label);
     }
   }
 
@@ -114,7 +117,7 @@ test("the admin pages fit a phone and a tablet, and the menu button reaches ever
 });
 
 // M5c: the range register, the one-employee period list and the convert dialog (the reports page
-// with its two new cards is in ADMIN_PAGES above).
+// with its two new cards is in the page list).
 test("the M5c screens fit 360 px, a phone and a tablet", async ({ page }) => {
   test.setTimeout(180_000);
   await logIn(page, SUPER_ADMIN_LOGIN);
@@ -290,5 +293,40 @@ test("the employee page, its Attendance tab and the Phone attendance card fit 36
       }
       await expectNoSidewaysScroll(page, `${size.width}px ${path}`);
     }
+  }
+});
+
+// The page of the Corporate Head (the list marks it) and the pages that need no login.
+test("the Corporate Head page and the pages without a login fit 360 px, a phone and a tablet", async ({
+  browser,
+}) => {
+  test.setTimeout(180_000);
+  const noIds: PageIds = { plantId: "", employeeId: "" };
+
+  const headContext = await browser.newContext({ baseURL: FRONTEND_URL, locale: "en-IN" });
+  const head = await headContext.newPage();
+  await logIn(head, CORPORATE_HEAD_LOGIN);
+  await expect(head.getByRole("heading", { name: /Welcome/ })).toBeVisible();
+  for (const [label, size] of LIST_SIZES) {
+    await head.setViewportSize(size);
+    for (const entry of ADMIN_PAGE_LIST.filter((listed) => listed.role === "corporate")) {
+      await measureListedPage(head, entry, noIds, label);
+    }
+  }
+  await headContext.close();
+
+  // Pages marked "phone" are measured by phone-punch.spec.ts, after a real phone sign-in.
+  const anonymousPages = OTHER_PAGE_LIST.filter((listed) => listed.role === "anonymous");
+  for (const [label, size] of LIST_SIZES) {
+    const context = await browser.newContext({
+      baseURL: FRONTEND_URL,
+      viewport: size,
+      locale: "en-IN",
+    });
+    const visitor = await context.newPage();
+    for (const entry of anonymousPages) {
+      await measureListedPage(visitor, entry, noIds, label);
+    }
+    await context.close();
   }
 });
