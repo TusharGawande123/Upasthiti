@@ -29,6 +29,13 @@ const E2E_DATABASE_URL =
   process.env.E2E_DATABASE_URL ??
   "postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_e2e";
 
+// M6 AC-M6-45: the tests wipe this database, so it must be on this computer (the seed script
+// checks the same again; this stops the run before any server is started).
+const E2E_DATABASE_HOST = new URL(E2E_DATABASE_URL).hostname;
+if (!["localhost", "127.0.0.1", "[::1]", "::1"].includes(E2E_DATABASE_HOST)) {
+  throw new Error("Refused: the end-to-end database must be on this computer.");
+}
+
 export const BACKEND_ENV: Record<string, string> = {
   APP_ENV: "test",
   RUN_SCHEDULER: "false",
