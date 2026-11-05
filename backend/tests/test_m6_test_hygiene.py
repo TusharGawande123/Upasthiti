@@ -112,10 +112,11 @@ def _is_empty_list(node: ast.AST) -> bool:
 
 def _enclosing_function(node: ast.AST) -> ast.AST:
     current = node
-    while _parent(current) is not None and not isinstance(
-        current, ast.FunctionDef | ast.AsyncFunctionDef | ast.Module
-    ):
-        current = _parent(current)  # type: ignore[assignment]
+    while not isinstance(current, ast.FunctionDef | ast.AsyncFunctionDef | ast.Module):
+        parent = _parent(current)
+        if parent is None:
+            break
+        current = parent
     return current
 
 
@@ -182,7 +183,7 @@ def _unordered_reads(tree: ast.Module) -> list[int]:
         end, methods = _climb_chain(node)
         if "order_by" in methods:
             continue
-        if _is_list_read(end, methods):
+        if _is_list_read(end, methods) and isinstance(node, ast.Call):
             lines.append(node.lineno)
     return lines
 
