@@ -144,7 +144,7 @@ def test_every_face_setting_is_editable_and_has_a_default(boss: TestClient) -> N
     listed = _settings(boss)
     face_keys = [key for key, d in DEFINITIONS_BY_KEY.items() if d.group in ("face", "privacy")]
 
-    assert len(face_keys) == 20
+    assert len(face_keys) == 21  # 20 until M6 added data_request_days to the privacy group
     for key in face_keys:
         assert listed[key]["editable"] is True, key
     assert listed["face_match_threshold"]["value"] == 0.45
