@@ -5,6 +5,7 @@ real run with real tools is the drill (docs/reports/M6-backup-drill.md).
 """
 
 import json
+import sys
 import tarfile
 from pathlib import Path
 
@@ -166,6 +167,10 @@ def test_create_writes_an_encrypted_file_and_a_manifest(
     # The password travels in the environment, never in the arguments (a process list shows them).
     assert FAKE_PASSWORD not in " ".join(pg_dump_call["arguments"])
     assert pg_dump_call["environment"] == {"PGPASSWORD": FAKE_PASSWORD}
+
+    if sys.platform != "win32":  # Windows has no owner-only file mode
+        assert path.stat().st_mode & 0o777 == 0o600
+        assert path.with_name(path.name + ".manifest.json").stat().st_mode & 0o777 == 0o600
 
     sidecar = json.loads(path.with_name(path.name + ".manifest.json").read_text())
     assert sidecar["alembic_revision"] == backup.newest_alembic_revision()

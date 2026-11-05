@@ -427,3 +427,26 @@ def test_a_converted_person_keeps_the_overtime_of_the_temporary_days(world: dict
     header, rows = sheet_rows(excel.content)
     assert "Overtime (HH:MM)" in header
     assert rows[-1][header.index("Overtime (HH:MM)")] not in (None, "", "00:00")
+
+
+def test_old_full_export_zip_files_are_swept_by_the_five_minute_job() -> None:
+    import os
+    import time
+
+    from app.jobs.daily import sweep_leftover_files_logged
+
+    folder = Path(tempfile.gettempdir())
+    old = folder / "upasthiti-export-sweep-old.zip"
+    fresh = folder / "upasthiti-export-sweep-fresh.zip"
+    old.write_bytes(b"x")
+    fresh.write_bytes(b"x")
+    long_ago = time.time() - 3600
+    os.utime(old, (long_ago, long_ago))
+    try:
+        sweep_leftover_files_logged()
+
+        assert not old.exists()
+        assert fresh.exists()
+    finally:
+        fresh.unlink(missing_ok=True)
+        old.unlink(missing_ok=True)

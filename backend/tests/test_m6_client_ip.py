@@ -187,3 +187,24 @@ def test_pairing_limit_cannot_be_beaten_by_a_fake_header(db_app: FastAPI) -> Non
     assert answers[10].status_code == 429
     assert answers[10].json()["error"]["code"] == "TOO_MANY_REQUESTS"
     assert all(answer.status_code != 429 for answer in answers[:10])
+
+
+def test_a_missing_configured_header_is_warned_about_once(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    from starlette.requests import Request
+
+    from app.core import client_ip
+
+    use_settings(monkeypatch, CLIENT_IP_HEADER="x-real-client")
+    monkeypatch.setattr(client_ip, "_missing_header_warned", False)
+    request = Request({"type": "http", "headers": [], "client": ("10.0.0.9", 50000)})
+
+    with caplog.at_level("WARNING", logger="app.core.client_ip"):
+        first = client_ip.get_client_ip(request)
+        second = client_ip.get_client_ip(request)
+
+    assert first == second == "10.0.0.9"  # the fall-back is unchanged
+    warnings = [record for record in caplog.records if "CLIENT_IP_HEADER" in record.getMessage()]
+    assert len(warnings) == 1
+    assert "10.0.0.9" not in warnings[0].getMessage()

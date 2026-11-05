@@ -67,7 +67,8 @@ WARNING: this file holds personal data of many people. Keep it on an encrypted d
 it through chat, email or GitHub, and delete it when it is no longer needed.
 
 What is inside
-- one CSV file per table (UTF-8, comma separated), named after the table
+- one CSV file per table (UTF-8, comma separated), named after the table (the files named
+  kiosk_*.csv are the attendance devices)
 - manifest.json: the rows of every file and a SHA-256 to check that a file is complete
 - all times are in UTC (add 5 hours 30 minutes for Indian time)
 - rows of a plant also carry its code (plant_code), rows about a person carry the employee code
@@ -305,8 +306,12 @@ def _build_guarded(session: Session, current_user: CurrentUser, reason: str) -> 
         # A failure, or a stop while the file was made: no half file stays, and the log says so.
         delete_file(path)
         session.rollback()
-        _audit_end(session, current_user, reason, status="interrupted")
         logger.exception("The full export was interrupted")
+        try:
+            _audit_end(session, current_user, reason, status="interrupted")
+        except Exception:
+            # The audit line is best effort here: the ORIGINAL error must reach the caller.
+            logger.exception("The audit line of the interrupted export could not be written")
         raise
     size = os.path.getsize(path)
     _audit_end(session, current_user, reason, status="done", size=size, rows=row_count)

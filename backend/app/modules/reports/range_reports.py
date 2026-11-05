@@ -46,7 +46,7 @@ from app.modules.reports.xlsx_writer import (
 MAX_REPORT_RANGE_DAYS = 366
 MIN_SECONDS_LEFT = 0.1  # a batch still gets a moment when the time budget is used up
 WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
-OVERTIME_COLUMN = 10  # position of "Overtime (HH:MM)" in the one-employee sheet
+OVERTIME_HEADER = "Overtime (HH:MM)"
 SUMMARY_COLUMNS = [
     Column("Code", TEXT, 10),
     Column("Name", TEXT, 24),
@@ -466,7 +466,7 @@ def _employee_sheet(answer: dict[str, Any]) -> Sheet:
         Column("Status", TEXT, 18),
         Column("Late (min)", INT, 9),
         Column("Early exit (min)", INT, 11),
-        Column("Overtime (HH:MM)", TEXT, 12),
+        Column(OVERTIME_HEADER, TEXT, 12),
         Column("Corrected", TEXT, 9),
     ]
     rows: list[list[Any]] = []
@@ -518,9 +518,12 @@ def _employee_sheet(answer: dict[str, Any]) -> Sheet:
     # stored day, never from today's type: a converted person keeps the overtime figure of the
     # temporary days, a permanent person has no overtime column or total at all.
     if not any(day.employee_type == "temporary" for day in days):
-        del columns[OVERTIME_COLUMN]
+        overtime_index = next(
+            index for index, column in enumerate(columns) if column.header == OVERTIME_HEADER
+        )
+        del columns[overtime_index]
         for row in rows:
-            del row[OVERTIME_COLUMN]
+            del row[overtime_index]
     return Sheet(
         "Attendance",
         columns,

@@ -269,3 +269,11 @@ def test_a_failed_email_is_recorded_without_the_address(
     assert "@" not in (delivery.error_code or "")
     sent = boss.post(f"{URL}/test-email")
     assert sent.status_code == 502 and sent.json()["error"]["code"] == "EMAIL_SEND_FAILED"
+
+
+def test_email_text_reads_correctly_for_a_count_of_one() -> None:
+    one = email_sender.email_text("notification.still_inside", {"count": 1, "plant": "DEMO1"})
+    many = email_sender.email_text("notification.still_inside", {"count": 2, "plant": "DEMO1"})
+
+    assert one == "1 person is still inside DEMO1 after the shift ended."
+    assert many == "2 people are still inside DEMO1 after the shift ended."

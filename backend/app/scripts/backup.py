@@ -55,7 +55,8 @@ from app.core.crypto import (
     template_binding,
 )
 
-BACKUP_FOLDER_BACKEND = Path(__file__).resolve().parents[2]
+PRIVATE_FILE_MODE = 0o600  # read and write for the owner only
+BACKEND_FOLDER = Path(__file__).resolve().parents[2]
 DEFAULT_DOCKER_CONTAINER = "upasthiti-postgres-1"
 ALLOWED_TARGET_ENDINGS = ("_restore", "_drill")
 BACKUP_FILE_SUFFIX = ".upsbak"
@@ -182,7 +183,7 @@ def read_alembic_revision(engine: Engine) -> str | None:
 def newest_alembic_revision() -> str:
     """The migration this code expects (the head of backend/migrations)."""
     config = Config()
-    config.set_main_option("script_location", str(BACKUP_FOLDER_BACKEND / "migrations"))
+    config.set_main_option("script_location", str(BACKEND_FOLDER / "migrations"))
     head = ScriptDirectory.from_config(config).get_current_head()
     if head is None:
         raise BackupError("no migrations were found")
@@ -269,8 +270,11 @@ def create_backup(
     stamp = datetime.now(UTC).strftime("%Y%m%dT%H%M%SZ")
     backup_path = output_dir / f"upasthiti-backup-{stamp}{BACKUP_FILE_SUFFIX}"
 
+    # The work folder holds the plain dump for a moment: only its owner may enter it (0o700,
+    # which mkdtemp already gives). The finished files are private to the owner too (0o600).
     with tempfile.TemporaryDirectory(prefix="upasthiti-backup-") as work_folder:
         work = Path(work_folder)
+        work.chmod(0o700)
         dump_path = work / DUMP_NAME_IN_ARCHIVE
         arguments = ["pg_dump", "-Fc", *connection.client_options(via_docker=via_docker)]
         arguments += ["-d", connection.name]
@@ -289,12 +293,15 @@ def create_backup(
         )
         archive_path = work / "bundle.tar"
         write_archive(archive_path, dump_path, manifest, snapshot_folder)
+        backup_path.touch(mode=PRIVATE_FILE_MODE)  # the file exists as 0o600 before data goes in
         encrypt_file(archive_path, backup_path, key=key, key_id=settings.backup_key_id)
+        backup_path.chmod(PRIVATE_FILE_MODE)
 
     # The manifest holds counts and a hash only (no personal data): a readable copy helps people.
-    backup_path.with_name(backup_path.name + ".manifest.json").write_text(
-        json.dumps(manifest, indent=2), encoding="utf-8"
-    )
+    manifest_file = backup_path.with_name(backup_path.name + ".manifest.json")
+    manifest_file.touch(mode=PRIVATE_FILE_MODE)
+    manifest_file.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+    manifest_file.chmod(PRIVATE_FILE_MODE)
     return backup_path
 
 

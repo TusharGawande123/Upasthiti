@@ -11,6 +11,7 @@ The value is used only for logs and rate limits, never as proof of location (dec
 """
 
 import ipaddress
+import logging
 
 from fastapi import Request
 
@@ -18,6 +19,9 @@ from app.core.config import get_settings
 
 FORWARDED_FOR_HEADER = "x-forwarded-for"
 UNKNOWN_IP = "unknown"
+
+logger = logging.getLogger(__name__)
+_missing_header_warned = False
 
 
 def pick_client_ip(
@@ -72,14 +76,30 @@ def _valid_or_none(address: str) -> str | None:
         return None
 
 
+def _warn_once_about_missing_header(header_name: str) -> None:
+    """A set-up mistake (wrong header name, or the proxy was changed) would otherwise be silent:
+    every limit would then count the proxy's address. One warning per process, no personal data."""
+    global _missing_header_warned
+    if _missing_header_warned:
+        return
+    _missing_header_warned = True
+    logger.warning(
+        "CLIENT_IP_HEADER is set but a request came without it; using the connection address",
+        extra={"fields": {"header": header_name}},
+    )
+
+
 def get_client_ip(request: Request) -> str:
     settings = get_settings()
     socket_ip = request.client.host if request.client else None
     single_header = settings.client_ip_header
+    single_value = request.headers.get(single_header) if single_header else None
+    if single_header and single_value is None:
+        _warn_once_about_missing_header(single_header)
     return pick_client_ip(
         request.headers.get(FORWARDED_FOR_HEADER),
         socket_ip,
         settings.trusted_proxy_hops,
-        single_value=request.headers.get(single_header) if single_header else None,
+        single_value=single_value,
         use_single_value=bool(single_header),
     )

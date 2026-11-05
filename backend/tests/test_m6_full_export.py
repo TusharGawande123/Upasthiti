@@ -367,3 +367,27 @@ def test_the_recent_list_shows_the_last_exports_newest_first(boss: TestClient) -
     assert items[0]["actor_name"] == "Test super_admin"
     assert items[0]["reason"] == REASON
     assert items[0]["size_bytes"] > 0
+
+
+def test_a_failing_audit_line_does_not_hide_the_original_error(
+    boss: TestClient, monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    class DiskProblemError(RuntimeError):
+        pass
+
+    def broken_write(*_arguments: object) -> None:
+        raise DiskProblemError("disk problem")
+
+    def broken_audit(*_arguments: object, **_keywords: object) -> None:
+        raise ValueError("audit failed")
+
+    monkeypatch.setattr(service, "_write_table", broken_write)
+    monkeypatch.setattr(service, "_audit_end", broken_audit)
+    before = temp_export_files()
+
+    response = boss.post(URL, json=export_body())
+
+    # The request still ends as the plain server error of the real problem, and the file is gone.
+    assert response.status_code == 500
+    assert temp_export_files() == before
+    assert "could not be written" in caplog.text
