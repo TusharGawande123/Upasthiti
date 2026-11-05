@@ -29,6 +29,11 @@ import {
   useDueSoonRequests,
 } from "./use-data-requests";
 
+// Same number as the server (DUE_SOON_DAYS in data_requests/service.py): the warning colour.
+const DUE_SOON_DAYS = 5;
+// The list asks for this many rows per page.
+const PAGE_SIZE = 25;
+
 // The due date in words: how many days are left, or how many days late.
 function DueText({ request }: { request: DataRequest }) {
   const { t } = useTranslation();
@@ -44,7 +49,7 @@ function DueText({ request }: { request: DataRequest }) {
     );
   }
   return (
-    <Badge tone={request.days_left <= 5 ? "warning" : "neutral"}>
+    <Badge tone={request.days_left <= DUE_SOON_DAYS ? "warning" : "neutral"}>
       <Clock aria-hidden />
       {t("privacyRequests.due.left", { count: request.days_left })}
     </Badge>
@@ -67,14 +72,23 @@ export function PrivacyRequestsPage() {
   const [filters, setFilters] = useState({ status: "", kind: "", overdue: false });
   const [adding, setAdding] = useState(false);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [page, setPage] = useState(1);
   const list = useDataRequests({
     status: filters.status || undefined,
     kind: filters.kind || undefined,
     overdue: filters.overdue || undefined,
-    page: 1,
+    page,
   });
   const dueSoon = useDueSoonRequests();
   const dueSoonCount = dueSoon.data?.total ?? 0;
+  const total = list.data?.total ?? 0;
+  const lastPage = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
+  // A new filter shows its own first page, never a page that may not exist any more.
+  function changeFilters(changes: Partial<typeof filters>) {
+    setFilters({ ...filters, ...changes });
+    setPage(1);
+  }
 
   return (
     <div className="mx-auto max-w-6xl space-y-5">
@@ -104,8 +118,8 @@ export function PrivacyRequestsPage() {
           <Select
             id="filter-status"
             value={filters.status}
-            className="h-10 w-48"
-            onChange={(event) => setFilters({ ...filters, status: event.target.value })}
+            className="h-10 w-auto min-w-48 max-w-full"
+            onChange={(event) => changeFilters({ status: event.target.value })}
           >
             <option value="">{t("privacyRequests.filter.any")}</option>
             {REQUEST_STATUSES.map((value) => (
@@ -122,8 +136,8 @@ export function PrivacyRequestsPage() {
           <Select
             id="filter-kind"
             value={filters.kind}
-            className="h-10 w-48"
-            onChange={(event) => setFilters({ ...filters, kind: event.target.value })}
+            className="h-10 w-auto min-w-48 max-w-full"
+            onChange={(event) => changeFilters({ kind: event.target.value })}
           >
             <option value="">{t("privacyRequests.filter.any")}</option>
             {REQUEST_KINDS.map((value) => (
@@ -137,7 +151,7 @@ export function PrivacyRequestsPage() {
           <input
             type="checkbox"
             checked={filters.overdue}
-            onChange={(event) => setFilters({ ...filters, overdue: event.target.checked })}
+            onChange={(event) => changeFilters({ overdue: event.target.checked })}
           />
           {t("privacyRequests.filter.overdue")}
         </label>
@@ -212,6 +226,39 @@ export function PrivacyRequestsPage() {
           <p className="p-6 text-center text-sm text-muted-foreground">
             {t("privacyRequests.empty")}
           </p>
+        ) : null}
+        {total > 0 ? (
+          <div className="flex flex-wrap items-center justify-between gap-2 border-t p-3 text-sm">
+            <span className="tnum text-muted-foreground">
+              {t("privacyRequests.paging.showing", {
+                shown: list.data?.items.length ?? 0,
+                total,
+              })}
+            </span>
+            {lastPage > 1 ? (
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page <= 1}
+                  onClick={() => setPage(page - 1)}
+                >
+                  {t("privacyRequests.paging.previous")}
+                </Button>
+                <span className="tnum">
+                  {t("privacyRequests.paging.pageOf", { page, pages: lastPage })}
+                </span>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  disabled={page >= lastPage}
+                  onClick={() => setPage(page + 1)}
+                >
+                  {t("privacyRequests.paging.next")}
+                </Button>
+              </div>
+            ) : null}
+          </div>
         ) : null}
       </Card>
 

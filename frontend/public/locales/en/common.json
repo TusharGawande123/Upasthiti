@@ -578,6 +578,7 @@
     "unreachable": "Server not reachable. Is the backend running?"
   },
   "common": {
+    "tableRegion": "Table",
     "notFound": "Page not found",
     "backToAdmin": "Go to the admin dashboard",
     "serverWaking": "Waking up the server… this can take up to a minute.",
@@ -835,6 +836,12 @@
     "subtitle": "What people ask about their data: to see it, correct it, erase it, withdraw consent or complain. Each one must be answered within 30 days.",
     "banner_one": "{{count}} request is due in 5 days or less.",
     "banner_other": "{{count}} requests are due in 5 days or less (or late).",
+    "paging": {
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {{page}} of {{pages}}",
+      "showing": "Showing {{shown}} of {{total}}"
+    },
     "empty": "No requests yet. When an employee asks about their data, add it here.",
     "notEmployee": "Not an employee",
     "left": "Left",
@@ -1770,7 +1777,7 @@
       },
       "saveTitle": "Save as a new version",
       "margin": "Margin",
-      "marginHint": "0–{{max}} m. A attendance device this far outside the line still counts as inside. Keep it small.",
+      "marginHint": "0–{{max}} m. An attendance device this far outside the line still counts as inside. Keep it small.",
       "marginRange": "Use 0–{{max}} metres.",
       "metres": "metres",
       "reason": "Reason (optional, saved in the audit log)",
@@ -4710,18 +4717,24 @@
       "conversion_face_pending": "Face enrolment pending"
     },
     "text": {
-      "still_inside": "{{count}} people are still inside {{plant}}, {{minutes}} minutes after the shift ended.",
+      "still_inside_one": "{{count}} person is still inside {{plant}}, {{minutes}} minutes after the shift ended.",
+      "still_inside_other": "{{count}} people are still inside {{plant}}, {{minutes}} minutes after the shift ended.",
       "device_offline": "Attendance device '{{device}}' at {{plant}} is offline. Check its power and internet.",
-      "many_rejections": "{{count}} punches were refused at {{plant}} in {{minutes}} minutes. Please check the device.",
-      "incomplete_days": "{{count}} days at {{plant}} are missing an OUT (yesterday {{date}}).",
+      "many_rejections_one": "{{count}} punch was refused at {{plant}} in {{minutes}} minutes. Please check the device.",
+      "many_rejections_other": "{{count}} punches were refused at {{plant}} in {{minutes}} minutes. Please check the device.",
+      "incomplete_days_one": "{{count}} day at {{plant}} is missing an OUT (yesterday {{date}}).",
+      "incomplete_days_other": "{{count}} days at {{plant}} are missing an OUT (yesterday {{date}}).",
       "review_digest": "{{count}} punches are waiting in Needs review ({{flagged}} flagged, {{rejected}} refused).",
-      "absence_streak": "A person at {{plant}} has been absent for {{count}} working days in a row, since {{since}}.",
+      "absence_streak_one": "A person at {{plant}} has been absent for {{count}} working day in a row, since {{since}}.",
+      "absence_streak_other": "A person at {{plant}} has been absent for {{count}} working days in a row, since {{since}}.",
       "correction_requested": "A correction was asked for {{date}} at {{plant}}.",
       "correction_decided_approved": "Your correction for {{date}} was approved.",
       "correction_decided_rejected": "Your correction for {{date}} was not approved. {{reason}}",
       "monthly_register": "The register of {{month}} is ready for {{plant}}.",
-      "phone_many_phones": "An employee signed in on {{count}} phones in 30 days. Check the signed-in phones.",
-      "phone_selfie_no_face": "{{count}} phone selfies at {{plant}} on {{date}} show no face. Please check them in the punch log.",
+      "phone_many_phones_one": "An employee signed in on {{count}} phone in 30 days. Check the signed-in phones.",
+      "phone_many_phones_other": "An employee signed in on {{count}} phones in 30 days. Check the signed-in phones.",
+      "phone_selfie_no_face_one": "{{count}} phone selfie at {{plant}} on {{date}} shows no face. Please check it in the punch log.",
+      "phone_selfie_no_face_other": "{{count}} phone selfies at {{plant}} on {{date}} show no face. Please check them in the punch log.",
       "conversion_face_pending": "A worker at {{plant}} became permanent on {{effective_from}}. Their face is not enrolled yet. They cannot punch until it is."
     },
     "link": {

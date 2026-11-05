@@ -94,6 +94,34 @@ describe("the register list", () => {
     );
   });
 
+  it("pages through a long list and goes back to page 1 when a filter changes", async () => {
+    const calls = mockApi(
+      base({
+        "GET /data-requests": (call: RecordedCall) =>
+          call.path.includes("due_soon")
+            ? { body: { items: [], page: 1, page_size: 1, total: 0 } }
+            : { body: { items: [dataRequest()], page: 1, page_size: 25, total: 60 } },
+      }),
+    );
+    renderRoute("/admin/privacy-requests");
+    await screen.findByText("Ramesh Kulkarni");
+    expect(screen.getByText("Showing 1 of 60")).toBeInTheDocument();
+    expect(screen.getByText("Page 1 of 3")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Previous" })).toBeDisabled();
+
+    await userEvent.click(screen.getByRole("button", { name: "Next" }));
+
+    expect(await screen.findByText("Page 2 of 3")).toBeInTheDocument();
+    expect(calls.some((c) => c.path.includes("page=2"))).toBe(true);
+
+    await userEvent.selectOptions(screen.getByLabelText("Kind"), "erasure");
+
+    expect(await screen.findByText("Page 1 of 3")).toBeInTheDocument();
+    expect(calls.some((c) => c.path.includes("kind=erasure") && c.path.includes("page=1"))).toBe(
+      true,
+    );
+  });
+
   it("shows an error with a retry button", async () => {
     mockApi(base({ "GET /data-requests": apiError(500, "INTERNAL_ERROR") }));
 
