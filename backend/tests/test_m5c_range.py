@@ -22,6 +22,8 @@ from tests.test_m5_attendance_api import (  # noqa: F401  (world is a fixture)
     world,
 )
 
+pytestmark = pytest.mark.time_sensitive
+
 REGISTER_RANGE = "/api/v1/attendance/register-range"
 
 

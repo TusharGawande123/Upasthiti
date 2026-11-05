@@ -24,6 +24,8 @@ from tests.clock_helpers import PINNED_DAY, frozen_at, ist
 from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body
 
+pytestmark = pytest.mark.time_sensitive
+
 NOW = ist(PINNED_DAY, 12, 0)  # Wed 28/10/2026 12:00 IST
 THURSDAY = date(2026, 10, 29)
 

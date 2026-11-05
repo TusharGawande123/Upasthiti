@@ -40,7 +40,7 @@ MONDAY = date(2026, 11, 2)
 DEMO2_CENTRE = {"lat": 19.9000, "lon": 75.3000, "accuracy_m": 10.0, "age_s": 2}
 
 # These tests are about the phone punch, not about the early-OUT alert of the gate (M5).
-pytestmark = pytest.mark.usefixtures("early_out_alert_off")
+pytestmark = [pytest.mark.usefixtures("early_out_alert_off"), pytest.mark.time_sensitive]
 
 
 @pytest.fixture(autouse=True)

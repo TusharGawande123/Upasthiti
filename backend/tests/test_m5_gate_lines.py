@@ -21,6 +21,8 @@ from tests.people_helpers import PlantIds, client_for, create_plant
 from tests.test_face_punch_api import face_punch
 from tests.test_punch_api import make_worker, send
 
+pytestmark = pytest.mark.time_sensitive
+
 THURSDAY = date(2026, 10, 29)
 FRIDAY = date(2026, 10, 30)
 

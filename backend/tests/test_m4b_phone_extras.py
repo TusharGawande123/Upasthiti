@@ -41,6 +41,8 @@ from tests.phone_api_helpers import (
 )
 from tests.phone_helpers import make_phone_session
 
+pytestmark = pytest.mark.time_sensitive
+
 OUTSIDE = "/api/v1/employees/{}/phone/outside-work"
 
 

@@ -25,6 +25,8 @@ from tests.people_helpers import (
     temporary_body,
 )
 
+pytestmark = pytest.mark.time_sensitive
+
 EMPLOYEES = "/api/v1/employees"
 
 

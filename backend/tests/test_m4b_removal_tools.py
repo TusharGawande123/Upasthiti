@@ -32,6 +32,8 @@ from app.scripts.remove_demo_plant import RemovalRefusedError
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body
 from tests.phone_helpers import make_phone_punch, make_phone_session
 
+pytestmark = pytest.mark.time_sensitive
+
 PHONE_MODELS = (
     PhoneAccess,
     PhoneAccount,

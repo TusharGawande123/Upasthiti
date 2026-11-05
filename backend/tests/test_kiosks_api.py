@@ -19,6 +19,8 @@ from tests.factories import log_in, make_user
 from tests.kiosk_helpers import Device
 from tests.test_org_api import LAT0, LON0, METRES_PER_DEGREE, square_geofence
 
+pytestmark = pytest.mark.time_sensitive
+
 KIOSKS = "/api/v1/kiosks"
 REGISTER = "/api/v1/kiosk/register"
 ME = "/api/v1/kiosk/me"

@@ -27,6 +27,8 @@ from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.offline_helpers import OfflineGate
 from tests.people_helpers import PlantIds, client_for, create_plant
 
+pytestmark = pytest.mark.time_sensitive
+
 
 @pytest.fixture(autouse=True)
 def snapshot_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:

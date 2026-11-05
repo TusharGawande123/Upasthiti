@@ -10,6 +10,8 @@ from pathlib import Path
 
 import pytest
 
+pytestmark = pytest.mark.time_sensitive
+
 APP = Path(__file__).resolve().parent.parent / "app" / "modules"
 
 # file -> (the hook it must call, how many times at least)

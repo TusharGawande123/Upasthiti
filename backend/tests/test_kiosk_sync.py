@@ -31,6 +31,8 @@ from tests.people_helpers import PlantIds, client_for, create_plant
 from tests.test_m4_location_and_flags import add_counted_punch, north_of_gate
 from tests.test_punch_api import Worker, make_worker, photo_text
 
+pytestmark = pytest.mark.time_sensitive
+
 
 @pytest.fixture(autouse=True)
 def snapshot_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:

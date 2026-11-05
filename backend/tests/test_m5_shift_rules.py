@@ -25,6 +25,8 @@ from app.modules.users.plant_access import set_user_plant
 from tests.clock_helpers import PINNED_DAY, frozen_at, ist
 from tests.factories import log_in, make_user
 
+pytestmark = pytest.mark.time_sensitive
+
 NOON = ist(PINNED_DAY, 12, 0)
 
 

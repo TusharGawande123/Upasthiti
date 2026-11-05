@@ -21,6 +21,8 @@ from app.modules.users.models import Role, User
 from app.modules.users.plant_access import set_user_plant
 from tests.people_helpers import PlantIds, client_for, create_plant, temporary_body
 
+pytestmark = pytest.mark.time_sensitive
+
 EMPLOYEES = "/api/v1/employees"
 CARDS = "/api/v1/qr-cards"
 

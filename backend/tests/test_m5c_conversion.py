@@ -23,6 +23,8 @@ from app.modules.users.models import Role
 from tests.clock_helpers import PINNED_DAY, frozen_at, ist
 from tests.people_helpers import PlantIds, client_for, create_plant, temporary_body
 
+pytestmark = pytest.mark.time_sensitive
+
 EMPLOYEES = "/api/v1/employees"
 REQUESTS = "/api/v1/change-requests"
 TODAY = "2026-10-28"

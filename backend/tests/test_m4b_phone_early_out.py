@@ -33,6 +33,8 @@ from tests.phone_api_helpers import (
 )
 from tests.test_m4b_gate_code import ask_code, selfie, send_code
 
+pytestmark = pytest.mark.time_sensitive
+
 # The next Monday on or after today: the plant, the people and the cards are made today, so a
 # date before today would be before their start.
 _TODAY = today_ist()

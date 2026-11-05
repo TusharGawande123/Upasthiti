@@ -13,6 +13,8 @@ from app.modules.employees.models import Employee
 from app.modules.users.models import Role
 from tests.people_helpers import PlantIds, client_for, create_plant, iso, permanent_body
 
+pytestmark = pytest.mark.time_sensitive
+
 EMPLOYEES = "/api/v1/employees"
 REQUESTS = "/api/v1/change-requests"
 

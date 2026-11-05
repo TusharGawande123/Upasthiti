@@ -18,6 +18,8 @@ from app.modules.users.models import Role, User
 from tests.people_helpers import PlantIds, client_for, create_plant, temporary_body
 from tests.test_punch_tables import make_punch
 
+pytestmark = pytest.mark.time_sensitive
+
 
 @pytest.fixture
 def boss(db_app: FastAPI, db_session: Session) -> TestClient:

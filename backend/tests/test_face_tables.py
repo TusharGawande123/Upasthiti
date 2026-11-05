@@ -28,6 +28,8 @@ from app.modules.users.models import Role, User
 from app.modules.users.service import create_first_super_admin
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body
 
+pytestmark = pytest.mark.time_sensitive
+
 SHA = "a" * 64
 NONCE = b"n" * 12
 

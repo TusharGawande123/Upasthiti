@@ -23,6 +23,8 @@ from app.modules.attendance.compute import (
 )
 from app.modules.org.shift_rules_service import ShiftRules
 
+pytestmark = pytest.mark.time_sensitive
+
 LEAVE_ID = UUID(int=1)  # fake ids: compute_day() only passes them through
 HOLIDAY_ID = UUID(int=2)
 CASES = yaml.safe_load((Path(__file__).parent / "attendance_cases.yaml").read_text("utf-8"))

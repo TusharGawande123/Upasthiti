@@ -32,7 +32,7 @@ from tests.people_helpers import PlantIds, client_for, create_plant
 from tests.test_punch_api import Worker, make_worker, punch_rows, send
 
 # These tests are about something else than the early-OUT alert (M5).
-pytestmark = pytest.mark.usefixtures("early_out_alert_off")
+pytestmark = [pytest.mark.usefixtures("early_out_alert_off"), pytest.mark.time_sensitive]
 
 METRES_PER_DEGREE_LAT = 111_195.0
 
