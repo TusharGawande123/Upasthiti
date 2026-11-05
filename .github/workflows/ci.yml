@@ -129,6 +129,10 @@ jobs:
         run: |
           npm run size | tee -a "$GITHUB_STEP_SUMMARY"
           test "${PIPESTATUS[0]}" -eq 0
+      # M6 S-60: Lighthouse (@lhci/cli, Apache-2.0) on the built site served by `vite preview`:
+      # accessibility below 0.95 fails the job, the other scores only warn.
+      - name: Lighthouse (accessibility at least 0.95)
+        run: npm run lighthouse
 
   e2e:
     name: e2e
