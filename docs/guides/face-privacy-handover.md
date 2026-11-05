@@ -15,8 +15,8 @@ Sources: spec `docs/specs/M3-face-attendance.md` §8, decisions 0016 and 0017.
 | Pictures at a punch | Nowhere. They are checked in memory on the Render server (Singapore) and dropped | Seconds |
 | Small photo of a **refused** face punch, or of a punch where the employee had to type the code | Supabase Storage, encrypted | The photo retention setting (60 days by default), then deleted automatically |
 | Small photo of a QR card punch | Supabase Storage, encrypted | Same retention setting. The photo is also checked by the computer to see that a face is present |
-| Consent record (text version, language, hash of the exact text shown, time, who recorded it) | Database | Kept as proof, for the employment period plus the period the Labour Codes require. The client's HR or lawyer must say how many years |
-| Punch times (attendance) | Database | Kept as labour law requires, even after face data is deleted |
+| Consent record (text version, language, hash of the exact text shown, time, who recorded it) | Database | Kept as proof, for the employment period plus the period the client's legal adviser confirms (years to be decided by the client) |
+| Punch times (attendance) | Database | Kept as the Labour Codes require, for the period the client's legal adviser confirms (working figure: at least 5 years, see `docs/compliance/m6-recommended-answers.md`), even after face data is deleted |
 
 Accepted face punches keep **no** photo.
 
@@ -52,11 +52,13 @@ Accepted face punches keep **no** photo.
 
 ## 4. Data requests: manual procedure
 
-The full data-request log is planned for M6 (FR-42). Until then, keep a paper or Excel list: date,
-employee, what was asked, what was done, who did it, date of the answer.
+Write every request in the **Data requests** register (Super Admin menu): date, employee, what was asked, what
+was done, who did it, date of the answer. A paper or Excel list is the fallback if the website is down.
 
-An employee asks the plant office. Reply **within 30 days** (the consent text promises this). Only
-the **Super Admin** can act.
+An employee asks the plant office. Our target is to reply **within 30 days** (the consent text promises this).
+Deadlines and who must be told come from the client's policy and the law; the client's HR or legal adviser
+confirms them. Only the **Super Admin** can act. The free-text note of a request and the "left reason" must not
+hold health details.
 
 **Access ("what do you keep about me?")**
 1. Open the employee in the admin website. The **Face** panel shows: consent given (date,
@@ -74,7 +76,8 @@ the **Super Admin** can act.
 1. Open the employee › Face panel › **Delete face data**. A reason is required.
 2. The template is deleted at once. The employee is "Not enrolled" and must punch another way.
    If they have no QR card, use **Withdraw consent** instead (next item), which also moves them to QR.
-3. Punch times and the audit log are **not** deleted: labour law requires them.
+3. Punch times and the audit log are **not** deleted: kept as the Labour Codes require, for the period the client's
+   legal adviser confirms (working figure: at least 5 years).
 4. Photos of earlier refused punches disappear when their retention days end. Tell the employee
    the date. (There is no screen to delete a single photo early; ask the software team if the
    lawyer needs one.)
@@ -91,13 +94,14 @@ in the same step. If the employee returns, consent and enrolment are done again.
 ## 5. If face data is exposed (incident steps, spec §8.4)
 
 Examples: `FACE_TEMPLATE_KEY` leaked; the database or the photo storage bucket made public; a
-laptop with the keys stolen.
+laptop with the keys stolen. The client's HR or legal adviser confirms who must be told and when.
 
-1. Write an **incident note** at once: date and time, what happened, who found it.
+1. Write an **incident note** at once: date and time, what happened, who found it. Keep the audit log and the
+   server logs before anything is changed or deleted. The runbook (section 14) has the template.
 2. The client's HR or lawyer informs the **Data Protection Board of India** and **each affected
-   employee** without delay. A detailed report goes to the Board within 72 hours (DPDP Act §8(6)
-   and Rules). Inform **CERT-In** within 6 hours (CERT-In Directions 2022). The Super Admin starts
-   this.
+   employee** without delay. A detailed report to the Board follows (the DPDP Act §8(6) and Rules mention 72 hours).
+   Inform **CERT-In** (the CERT-In Directions 2022 mention 6 hours). Both figures are to be confirmed by the
+   client's lawyer. Tell the hosting provider too. The Super Admin starts this.
 3. Make a new key on the laptop: `uv run python -m app.scripts.make_face_key`. Put it in Render
    (`FACE_TEMPLATE_KEY`) and the password manager.
 4. Delete all templates (employee › Face panel › **Delete face data**, reason "key compromise";
@@ -109,7 +113,8 @@ laptop with the keys stolen.
 6. Keep the incident note with the date of each step.
 
 Note: after a deletion, the encrypted data may stay in Supabase's own short-term backups until they
-roll over. It is encrypted with a key Supabase does not have. Write this in the privacy register.
+roll over. Copies inside our own backups disappear when the backup expires (maximum backup age, see
+`docs/guides/backup-restore.md`). It is encrypted with a key Supabase does not have. Write this in the privacy register.
 
 ## 6. Processor agreements to sign
 
@@ -135,7 +140,7 @@ processor list must be updated. The accounts should belong to the client at hand
 | Waiting code-entry data | Deleted after 90 seconds | Automatic |
 | Photos of refused or code-path face punches, and QR card photos | Deleted after the retention setting (60 days default) | Automatic, daily |
 | Consent records | Kept (see section 1) | **Client decides the years** |
-| Punch rows and audit log | Never deleted | – |
+| Punch rows and audit log | Never deleted; kept as the Labour Codes require, for the period the client's legal adviser confirms (working figure: at least 5 years) | – |
 
 Open points for the client's HR or lawyer (decision 0017): the grievance officer named formally; the
 years to keep consent records; whether the DPDP Rules' minimum log period affects the 60-day photo

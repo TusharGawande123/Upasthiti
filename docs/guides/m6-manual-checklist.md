@@ -86,6 +86,7 @@ shown. The photo is taken with the front camera.
 3. Open **Plants**, the plant, **Download gate poster (A4 PDF)**. Print it on the office printer.
 4. Check that it is one page and readable from 1 metre.
 5. If the poster is available in Marathi and Hindi, print those too and ask a reader to check the Devanagari letters.
+6. Write: **Reviewer and date of the Marathi and Hindi notice, poster and manuals: ______ (client reader: ______)**.
 
 **Expected result.** The scan works first time. The poster is one page and readable. Devanagari letters are
 whole, with no broken marks.

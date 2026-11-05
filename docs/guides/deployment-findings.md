@@ -1,8 +1,7 @@
 # Deployment findings (facts and checklists for the later deployment session)
 
 Spec: `docs/specs/M6-testing-security-docs.md`, section 7.9 (requirement R-14, AC-M6-46).
-**This is a fact sheet, not a deployment.** No deployment step was done in M6. Nothing here describes the source code
-handover (not decided). The words "to fill" are numbers that the M6 load test report supplies
+**This is a fact sheet, not a deployment.** No deployment step was done in M6. The words "to fill" are numbers that the M6 load test report supplies
 (`docs/reports/M6-test-report.md`).
 
 ## 1. Where the setup stops being free-tier shaped
@@ -29,7 +28,7 @@ The full table with "what happens if lost" is in `docs/guides/runbook.md`, secti
 | `SNAPSHOT_ENCRYPTION_KEY` | Yes | `make_snapshot_key` | Photos unreadable |
 | `FACE_TEMPLATE_KEY` | Yes | `make_face_key` | Everyone enrolled again |
 | `OFFLINE_EVIDENCE_KEY` (+ `_ID`) | Yes | `make_offline_key` | Waiting offline punches unreadable |
-| `BACKUP_KEY` | Yes for backups (Planned F-93) | `make_backup_key` | Backups unreadable |
+| `BACKUP_KEY` | Yes for backups | `make_backup_key` | Backups unreadable |
 | `STORAGE_BACKEND` and storage settings | Yes | – | Photos not saved |
 | `SMTP_*` | Optional | – | E-mail off, bell stays |
 | `RUN_SCHEDULER`, `RUN_MIGRATIONS_ON_START`, `LOG_LEVEL`, `APP_VERSION`, `FACE_*` | Optional | – | – |
@@ -85,8 +84,8 @@ Other facts:
 
 ## 7. Backups and restore
 
-- Planned: nightly encrypted `pg_dump` plus a copy of the photo folder (F-93, approved), restore script, drill.
-  Procedure: `docs/guides/runbook.md`, section 11. Result of the local drill: `docs/reports/M6-backup-drill.md` **[to fill]**.
+- Built (F-93): nightly encrypted `pg_dump` plus a copy of the photo folder, restore script, drill. See `docs/guides/backup-restore.md`.
+  Procedure: `docs/guides/runbook.md`, section 11. Result of the local drill: `docs/reports/M6-backup-drill.md`.
 - If the script is not ready: manual `pg_dump -Fc`, `pg_restore` into a new database, copy the photo folder.
 - Where the backups go and who holds `BACKUP_KEY`: **[ask the client]**.
 - The password manager list of keys: runbook section 3.

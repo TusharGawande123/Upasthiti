@@ -78,8 +78,29 @@ Linux cron (`crontab -e`):
 
     0 2 * * * cd /opt/upasthiti/backend && uv run python -m app.scripts.backup create --output-dir /backups/upasthiti >> /backups/upasthiti/backup.log 2>&1
 
-Delete old backups by your own rule (for example keep 30 daily ones): the script never deletes.
+Delete old backups by your own rule: the script never deletes. Set a **maximum backup age**. We suggest
+**30 days**; the client decides. A backup older than that is deleted, so deleted personal data does not live on
+for years inside old backups.
 Look at the log after the first night, and once a quarter do a restore drill into a
 `_drill` database and check the three OK lines.
+
+## After a restore
+
+A backup is a copy of the past. Things deleted after the backup date come back with it. Before people use the
+restored system, do these steps:
+
+1. Let the daily cleanup job run again (it removes expired punch photos and old device health samples). The team
+   confirms how to start it by hand; otherwise it runs at its next scheduled time.
+2. Apply again every **face deletion** and **consent withdrawal** made since the backup date. Look at the
+   data-request register and the audit log for those dates. Open each person and press **Delete face data** or
+   **Withdraw consent** again.
+3. Photos that should have expired since the backup date are removed by step 1. Check that the photo folder was
+   restored to the same date as the database.
+4. Check the data-request register: a request answered after the backup date may be missing. Add it again from the
+   paper or Excel notes, and keep its 30-day target.
+5. Write the restore date and these steps in the incident or maintenance note.
+
+For the privacy handover: copies of personal data inside backups disappear when the backup expires (the maximum
+backup age above).
 
 First proven run and timings: `docs/reports/M6-backup-drill.md`.

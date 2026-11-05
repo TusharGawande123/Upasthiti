@@ -1,6 +1,6 @@
-# Setting up a gate kiosk
+# Setting up a gate attendance device
 
-For the plant office and the admin. A kiosk is a phone, tablet or PC with a camera that
+For the plant office and the admin. An attendance device is a phone, tablet or PC with a camera that
 stands at a plant gate. This page covers **pairing** (the first setup) and **daily use** at the
 gate (from M2). Pairing needs
 **location switched on**; there is no other way and no approval route (decision 0005).
@@ -13,7 +13,7 @@ gate (from M2). Pairing needs
 
 ## On the admin screen
 
-1. Open **Kiosks › Add kiosk**. Choose the plant, give the device a name (for example
+1. Open **Attendance devices › Add device**. Choose the plant, give the device a name (for example
    "Main gate tablet") and press **Make pairing code**.
 2. The screen shows a 6-digit code, a QR code and a 10-minute countdown. The code works
    **once**. If it runs out, press **Make a new code**.
@@ -31,7 +31,7 @@ gate (from M2). Pairing needs
 6. Put the browser in full screen and keep the screen on.
 
 When it works, the device says **Paired to <plant>** and shows the server time in IST. The
-admin screen shows the kiosk as **Active**.
+admin screen shows the attendance device as **Active**.
 
 ## If something goes wrong
 
@@ -44,7 +44,7 @@ admin screen shows the kiosk as **Active**.
 | Location not accurate enough | The device cannot find its place well enough (more than 50 m off) | Switch Wi-Fi on, move near a window or the open gate, **Try again** |
 | Not at the plant | The device is outside the plant's geofence | Take it to the gate. Already there? Ask the admin to check the geofence on the map |
 | Browser not supported | The browser is old or the page is not https | Use the latest Chrome or Edge |
-| Switched off | The admin revoked this kiosk | Admin adds it again as a new kiosk |
+| Switched off | The admin revoked this attendance device | Admin adds it again as a new device |
 
 Every problem screen shows a small line **For the admin: CODE**. Tell the admin this code
 if you need help; it is also in the audit log.
@@ -52,9 +52,9 @@ if you need help; it is also in the audit log.
 ## Good to know
 
 - The device keeps its own secret key. It cannot be copied out of the browser, and every
-  request is signed with it, so a copied kiosk id does not work on another device.
+  request is signed with it, so a copied device id does not work on another device.
 - Clearing the browser's site data on the device removes the key. The device then has to be
-  paired again (the admin adds it as a new kiosk).
+  paired again (the admin adds it as a new device).
 - The 50 m accuracy limit and the margin around the geofence are settings the Super Admin
   can change (Settings).
 - Location must stay allowed after pairing too: since M4 **every punch** is checked against the
@@ -62,7 +62,7 @@ if you need help; it is also in the audit log.
 
 ## Punching with a QR card (from M2)
 
-After pairing, the kiosk shows the camera picture, the server time and **Show your ID card to
+After pairing, the attendance device shows the camera picture, the server time and **Show your ID card to
 the camera**. Nobody has to tap anything: scanning starts by itself.
 
 1. The worker holds the card in front of the camera (10–30 cm).
@@ -140,16 +140,16 @@ face punch keeps **no** photo.
 The camera used for the face photo can be changed with the camera button (front camera is the
 default), the same as for card photos.
 
-**Keep the device locked.** Keep the browser in full-screen kiosk mode (see below). A device
+**Keep the device locked.** Keep the browser in full-screen mode (see below). A device
 that anyone can open is a risk: someone could try to feed it prepared pictures.
 
-## Make the device a good gate kiosk
+## Make the device a good gate attendance device
 
 **Full screen and sound.** Tap the screen once after the page opens (**Tap once to turn on
-sound and full screen**). Browsers allow sound only after a tap. Without it the kiosk still
+sound and full screen**). Browsers allow sound only after a tap. Without it the attendance device still
 works, silently.
 
-**Windows PC (Chrome or Edge).** Make a desktop shortcut that opens the kiosk full screen
+**Windows PC (Chrome or Edge).** Make a desktop shortcut that opens the attendance device full screen
 and allows sound without a tap. Right-click the desktop › New › Shortcut, and use one of
 these targets (with your site address):
 
@@ -158,32 +158,32 @@ these targets (with your site address):
 "C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe" --kiosk https://<site>/attendance --edge-kiosk-type=fullscreen --autoplay-policy=no-user-gesture-required
 ```
 
-Put the shortcut in the Startup folder (Win + R › `shell:startup`) so the kiosk opens after a
-restart. To leave kiosk mode, press Alt + F4.
+Put the shortcut in the Startup folder (Win + R › `shell:startup`) so the attendance device opens after a
+restart. To leave full-screen mode, press Alt + F4.
 
 **Android phone or tablet (Chrome).**
-- Settings › Security › **App pinning** (or "Pin windows") on; open the kiosk in Chrome and
-  pin it, so the screen stays on the kiosk page.
+- Settings › Security › **App pinning** (or "Pin windows") on; open the attendance device in Chrome and
+  pin it, so the screen stays on the attendance device page.
 - Keep the device on its charger.
 
 **Camera and location.** The first time, the browser asks for the camera: press **Allow**.
 If it was refused, tap the padlock next to the address, set **Camera** and **Location** to
 **Allow**, and press **Try again**.
 
-**Keep the screen on.** The kiosk asks the device to keep its screen on while the page is
+**Keep the screen on.** The attendance device asks the device to keep its screen on while the page is
 open, but the power settings must allow it too:
 - Windows: Settings › System › Power › Screen and sleep: **Never** when plugged in.
 - Android: Settings › Display › Screen timeout: the longest; with Developer options on, also
   **Stay awake** (screen never sleeps while charging).
 
-**Camera position.** Aim the camera only at the person standing at the kiosk: at face height,
+**Camera position.** Aim the camera only at the person standing at the attendance device: at face height,
 with no view of the road, the queue behind or other workstations. Photos of people who are not
-punching have no reason to exist. Fix the gate poster (see below) next to the kiosk.
+punching have no reason to exist. Fix the gate poster (see below) next to the attendance device.
 
-**Light.** Workers must be visible in the photo. If the gate is too dark the kiosk says
+**Light.** Workers must be visible in the photo. If the gate is too dark the attendance device says
 **Too dark. Please switch on the gate light.**
 
-**Updates.** The kiosk checks for a new version every 5 minutes and reloads itself only after
+**Updates.** The attendance device checks for a new version every 5 minutes and reloads itself only after
 30 seconds with nobody punching, never in the middle of a punch.
 
 **After every update of the website (deploy).** Open each gate page once (or wait until it has
@@ -274,7 +274,7 @@ A revoked device deletes its saved punches at once, without sending them.
 ## Every morning: the TEST card
 
 The Super Admin prints a **TEST card** (QR cards › Test cards) for each gate. The guard or the
-Plant Head shows it to the kiosk at the start of the day. **KIOSK OK** with the server time
+Plant Head shows it to the attendance device at the start of the day. **DEVICE OK** with the server time
 means the camera, the internet connection and the server all work. A TEST card records no
 attendance and takes no photo.
 
@@ -282,9 +282,9 @@ attendance and takes no photo.
 
 Plants › the plant › **Download gate poster (A4 PDF)** gives an A4 page with how to punch (card and,
 from M3, face) and the photo privacy notice (how long photos are kept). Print it and fix it next to
-the kiosk. It also prints the address of the public privacy page (`/privacy`) as text.
+the attendance device. It also prints the address of the public privacy page (`/privacy`) as text.
 
-## If the kiosk shows a problem while punching
+## If the attendance device shows a problem while punching
 
 | The screen says | What to do |
 |---|---|

@@ -5,8 +5,6 @@ Other languages: `user-manual.mr.md` (Marathi), `user-manual.hi.md` (Hindi).
 
 Screenshots are shown as `[Screenshot: ...]`. They are added later from demo data (no real names).
 
-Draft note: parts that belong to the M6 milestone and may not be built yet are marked **(M6, planned)**.
-
 ---
 
 ## 1. Before you start (everyone)
@@ -27,7 +25,7 @@ Draft note: parts that belong to the M6 milestone and may not be built yet are m
 | Attendance devices | All plants | Read | Own plant: add, pair, switch off |
 | Corrections | Decides | Asks | Asks (own plant) |
 | Dashboard and reports | All plants | All plants | Own plant |
-| Data requests, data export **(M6, planned)** | Yes | No | No |
+| Data requests, data export | Yes | No | No |
 
 If a button is missing, your role may not allow it. The screen then says "You can view this but not change it."
 
@@ -147,16 +145,19 @@ The Corporate Head's employee changes wait here.
 
 [Screenshot: conversion dialog]
 
-### 2.10 Task 10: Answer a data request **(M6, planned)**
+### 2.10 Task 10: Answer a data request
 An employee can ask what data you hold, ask for a correction, for deletion, or take back consent. You must
-answer within **30 days**.
+answer within **30 days**: this is our target. Deadlines and who must be told come from the client's policy and the
+law; the client's HR or legal adviser confirms them.
 1. Open **Data requests**. Press **Add request**. Choose the kind, the person (employee code), how it came and the
-   date received. Do not write health details in the note.
+   date received. **Do not write health details in the note.** The same rule holds for the "left reason" of an
+   employee.
 2. Open the request. Add the steps in order: **Identity checked** (ID card seen, or the person signed in on the
    phone), **Action taken**, **Answer sent**, **Closed**.
 3. For a face deletion use the **Face** panel (**Delete face data** or **Withdraw consent**).
 4. A deletion request is closed as **Partly done** with the reason "Attendance and audit records are kept as the
-   Labour Codes require."
+   Labour Codes require." They are kept for the period the client's legal adviser confirms (working figure: at
+   least 5 years, see `docs/compliance/m6-recommended-answers.md`).
 5. Watch the due date. The bell warns you 5 days before.
 
 [Screenshot: Data requests]
@@ -170,8 +171,9 @@ answer within **30 days**.
   You can also allow **Outside work**.
 - **Leave and Holidays:** add leave and plant holidays.
 - **Audit log:** see who did what.
-- **Data export (M6, planned):** download all data to your own computer. It holds personal data. Keep it on an
-  encrypted drive. Never send it by chat or email.
+- **Data export:** download all data to your own computer. It holds personal data. Keep it on an
+  encrypted drive. Never send it by chat or email, and never send the whole export to one person (for a single
+  person's request, keep only that person's rows).
 
 > **Rule for the Super Admin: do not write medical details.** In a leave reason never write an illness, a diagnosis,
 > a doctor or a medicine. Write "Personal reason" instead. The reason is optional.

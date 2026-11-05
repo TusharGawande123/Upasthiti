@@ -1,7 +1,7 @@
 # M6: recommended answers to the open compliance points
 
-Status: **Proposed by the team, decided by the lead on 2026-11-05** (the client's HR or lawyer still confirms
-where marked). Source: `docs/compliance/m5-m4b-open-points.md`, spec `docs/specs/M6-testing-security-docs.md`
+Status: **Proposed by the team, accepted by the lead on 2026-11-05. Proposed, HR/legal to confirm** (the client's HR
+or lawyer still confirms where marked). Source: `docs/compliance/m5-m4b-open-points.md`, spec `docs/specs/M6-testing-security-docs.md`
 section 10 and section 15 (answers 3 to 11), decisions 0017, 0034, 0035, 0036, 0037, 0038.
 
 > **This is engineering guidance, not legal advice.** It helps the lead decide what he can decide himself and
@@ -26,12 +26,14 @@ Protection Board and the person after a breach).
   data-request register (Super Admin menu "Data requests") the same day. Identity is checked in person with the
   ID card, or through the employee's own phone sign-in. The Super Admin acts (Face panel: delete face data or
   withdraw consent; edit the employee for a correction). Attendance and audit rows are kept, and the answer says
-  so. The answer goes out within 30 days. The register entry is closed with the outcome.
+  so. Our target is to answer within 30 days. The register entry is closed with the outcome.
 - Breach: write an incident note at once. HR or the lawyer informs the Data Protection Board and each affected
-  person. CERT-In is informed within 6 hours. The key is rotated. The steps are in the runbook
+  person. CERT-In is informed (the directions mention 6 hours; to be confirmed by the client's lawyer). The key is rotated.
+  The incident note and the logs are saved before any key or data is changed or deleted. The hosting provider is told.
+  Deadlines and who must be told come from the client's policy and the law; the client's HR or legal adviser confirms them. The steps are in the runbook
   (`docs/guides/runbook.md`, section "If personal data is exposed") and in `docs/guides/face-privacy-handover.md`.
 
-**Why.** The notice already promises 30 days. The register makes that promise provable.
+**Why.** The notice already promises 30 days. The register makes that promise provable. The 30 days are our target.
 
 **Lead's decision (2026-11-05).** Agreed: register in the app plus the runbook steps. The grievance officer is
 **not yet known: the name will come from the client.** No breach log inside the app (F-105 not approved); the
@@ -135,7 +137,7 @@ item 1). IP addresses are kept **at least 1 year**. **No purge now.**
 **Question.** Nothing deletes attendance, corrections or audit rows. The Labour Codes years are not fixed in
 writing.
 
-**Recommended answer.** Keep everything. Write **"at least 5 years"** in the privacy documents as the working
+**Recommended answer.** Keep everything. Write **"at least 5 years"** in the privacy documents, as the period the client's legal adviser confirms, as the working
 figure and ask the client's advisor to confirm it. The first data is from October 2026, so no row can be due
 before 2029 and no purge tool is needed yet.
 
@@ -194,15 +196,21 @@ conversion is enough: **no daily reminder** (F-97 rejected).
 
 ## Retention table (the values to write everywhere)
 
-| Data | How long | Where it is set |
-|---|---|---|
-| Photos of QR punches and of refused or code-path face punches | **60 days**, then deleted by the daily job | Setting "snapshot retention" |
-| Attendance device health samples | **7 days** | Fixed in the daily job |
-| Punch rows | **Kept** (never deleted by the app) | Append-only |
-| Audit log (includes IP addresses) | **Kept**; IP addresses at least 1 year | Append-only |
-| Attendance records (days, corrections, leave) | **At least 5 years** (working figure, advisor confirms) | Nothing is deleted |
-| Face template | Until the person leaves, withdraws consent or asks for deletion; then deleted at once | Automatic |
-| Consent records | Kept as proof; years to be decided by the client | Not deleted |
+One table for all data. Every status is **Proposed, HR/legal to confirm**.
+
+| Data | How long | Where it is set | Status |
+|---|---|---|---|
+| Photos of QR punches and of refused or code-path face punches | **60 days**, then deleted by the daily job | Setting "snapshot retention" | Proposed, HR/legal to confirm |
+| Attendance device health samples | **7 days** | Fixed in the daily job | Proposed, HR/legal to confirm |
+| Phone sign-in sessions | Deleted **90 days after they end** | Daily job | Proposed, HR/legal to confirm |
+| Phone proofs (the short check before a first password) | **1 day** | Daily job | Proposed, HR/legal to confirm |
+| Punch rows | **Kept** (never deleted by the app) | Append-only | Proposed, HR/legal to confirm |
+| Attendance records (days, corrections, leave) | Kept as the Labour Codes require, for the period the client's legal adviser confirms (working figure: **at least 5 years**) | Nothing is deleted | Proposed, HR/legal to confirm |
+| Audit log | **Kept** | Append-only | Proposed, HR/legal to confirm |
+| IP addresses (in the audit log and security records) | **At least 1 year**; years to be decided by the client | Append-only, no purge now | Proposed, HR/legal to confirm |
+| Face template | Until the person leaves, withdraws consent or asks for deletion; then deleted at once | Automatic | Proposed, HR/legal to confirm |
+| Consent records | Kept as proof; years to be decided by the client | Not deleted | Proposed, HR/legal to confirm |
+| Backups (copies of everything above) | Deleted at the maximum backup age (suggested 30 days; the client decides) | The client's backup rule | Proposed, HR/legal to confirm |
 
 ## What still needs the client or HR / legal
 
@@ -214,4 +222,6 @@ conversion is enough: **no daily reminder** (F-97 rejected).
 6. The processor agreements with the hosting providers (see `docs/guides/face-privacy-handover.md`, section 6).
 7. The consent method: today the Super Admin taps "I agree" in front of the employee (decision 0017).
 
-All statuses stay **Proposed** until the client and the lawyer have confirmed the points marked above.
+All statuses stay **Proposed, HR/legal to confirm** until the client and the lawyer have confirmed the points marked
+above. The lead has accepted the working figures for building and writing the documents; nothing here is a final
+legal decision.
