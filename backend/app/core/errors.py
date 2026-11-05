@@ -11,6 +11,7 @@ from typing import Any
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from sqlalchemy.exc import DataError
 from starlette.exceptions import HTTPException as StarletteHTTPException
 
 from app.core.logging import REQUEST_ID_HEADER
@@ -91,6 +92,13 @@ async def handle_http_error(request: Request, error: StarletteHTTPException) -> 
     return error_response(error.status_code, code, str(error.detail))
 
 
+async def handle_unstorable_value(request: Request, error: DataError) -> JSONResponse:
+    """The database refused a value (for example a NUL character in text). That is the caller's
+    input, not a server fault. Nothing of the value or the SQL is logged or returned."""
+    logger.warning("Value refused by the database: %s", type(error.orig).__name__)
+    return error_response(422, "VALIDATION_FAILED", "The request is not valid.", {"fields": []})
+
+
 async def handle_unexpected_error(request: Request, error: Exception) -> JSONResponse:
     # The full error goes to the server log only. The response stays generic so that no
     # stack trace or internal detail ever reaches a browser or kiosk.
@@ -114,5 +122,9 @@ def register_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(
         StarletteHTTPException,
         handle_http_error,  # pyright: ignore[reportArgumentType]
+    )
+    app.add_exception_handler(
+        DataError,
+        handle_unstorable_value,  # pyright: ignore[reportArgumentType]
     )
     app.add_exception_handler(Exception, handle_unexpected_error)
