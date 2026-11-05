@@ -373,4 +373,4 @@ upasthiti/
   (`same_person_two_devices_minutes`, default 10).
 - Gate devices must run in locked full-screen kiosk mode (setup guide): anyone with devtools on
   the gate PC can sign punch requests. **Done:** this stays a setup-guide rule
-  (docs/guides/kiosk-setup.md); a faked browser location is an accepted risk (M4 spec §8.3).
+  (docs/guides/device-setup.md); a faked browser location is an accepted risk (M4 spec §8.3).

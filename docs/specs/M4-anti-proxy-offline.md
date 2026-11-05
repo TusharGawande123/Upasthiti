@@ -1404,7 +1404,7 @@ All six were answered by the lead (Tushar Gawande) in chat on 2026-10-28; the an
   Workbox in use; review screen and flag rule summary (including `LOCATION_STALE` offline); health
   history kept 7 days; coverage floor 82%.
 - **`.env.example`:** `OFFLINE_EVIDENCE_KEY`, `OFFLINE_EVIDENCE_KEY_ID` with comments.
-- **`docs/guides/kiosk-setup.md`:** location on every punch, PC Wi-Fi switched on, "Add to home
+- **`docs/guides/device-setup.md`:** location on every punch, PC Wi-Fi switched on, "Add to home
   screen", storage persistence and the storage self-check, what the gate does offline (last known
   location reused and flagged), check the waiting-punch count before revoking, open each gate once
   after a deploy.

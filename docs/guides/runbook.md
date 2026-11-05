@@ -92,7 +92,7 @@ Run `uv run python -m app.scripts.create_super_admin` and answer the questions. 
 3. Press **Add device**, choose the plant, give a name, press **Make pairing code**. The code works once, for 10 minutes.
 4. On the new device (Chrome or Edge, latest; HTTPS; **Location on**) open `/attendance` and type the code or scan the QR.
    Stand at the gate until it says **Paired**.
-5. Put the browser in full screen. Details: the attendance device setup guide (`docs/guides/kiosk-setup.md`).
+5. Put the browser in full screen. Details: the attendance device setup guide (`docs/guides/device-setup.md`).
 6. Clearing the browser's site data on a device removes its key: pair it again.
 
 ## 6. Answer a data request (30-day clock)

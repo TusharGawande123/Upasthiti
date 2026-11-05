@@ -7,7 +7,7 @@ Simple English. People-facing text says "attendance device", never "kiosk".
 |---|---|---|
 | `user-manual.en.md`, `user-manual.mr.md`, `user-manual.hi.md` | Super Admin, Corporate Head, Plant Head | Task steps for each role (English, Marathi, Hindi); screenshots are placeholders |
 | `worker-guide.en.md`, `worker-guide.mr.md`, `worker-guide.hi.md` | Workers | One A4 page: how to punch with face or QR card, what to do when refused, the phone option |
-| `kiosk-setup.md` | The person who mounts the gate device | Hardware, full screen, pairing, location, offline, status messages (the file name keeps the old code name) |
+| `device-setup.md` | The person who mounts the gate device | Hardware, full screen, pairing, location, offline, status messages |
 | `runbook.md` | The client's IT person | Start and stop, keys, backup and restore, data requests, client IP setting, headers, breach template, checks |
 | `deployment-findings.md` | The later deployment session | Facts and checklists for moving to the client's own server (no deployment steps) |
 | `face-privacy-handover.md` | IT person, HR, Super Admin | Face data, consent, data requests, incident steps |

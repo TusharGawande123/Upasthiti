@@ -185,7 +185,7 @@ distances are written down.
 
 **Device:** the gate device in its holder. **Place:** at the gate, sun and shade. **Time:** 1 hour.
 
-1. Mount the device as in `docs/guides/kiosk-setup.md` (the attendance device setup guide).
+1. Mount the device as in `docs/guides/device-setup.md` (the attendance device setup guide).
 2. Check that the text is easy to read at arm's length.
 3. Check the screen in direct sun and note whether the brightness is enough.
 4. Leave the page open for 30 minutes without touching it. Check the screen did not sleep (screen wake lock).
