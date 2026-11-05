@@ -7,12 +7,19 @@ import { cn } from "@/lib/utils";
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
   return (
     // `relative` keeps hidden screen-reader labels (position: absolute) inside the scrolling box.
-    <div className="relative overflow-x-auto">
+    // tabIndex lets a keyboard user scroll the box sideways (axe: scrollable-region-focusable).
+    // A named <section> is a region landmark, which is allowed to take keyboard focus.
+    <section
+      aria-label="Table"
+      className="relative overflow-x-auto focus-visible:outline-2 focus-visible:outline-ring"
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable box must be reachable by keyboard
+      tabIndex={0}
+    >
       <table
         className={cn("w-full min-w-[40rem] caption-bottom text-[13.5px]", className)}
         {...props}
       />
-    </div>
+    </section>
   );
 }
 
