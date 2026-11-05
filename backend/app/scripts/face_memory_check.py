@@ -48,7 +48,6 @@ from collections import Counter
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
-from decimal import Decimal
 from pathlib import Path
 
 import cv2
@@ -309,7 +308,7 @@ def prepare(fixture_path: Path) -> int:
                     contractor_id=None,
                     punch_method="face",
                     hourly_rate=None,
-                    ot_rate_per_hour=Decimal("150.00"),
+                    ot_rate_per_hour=None,
                     joined_on=today_ist() - timedelta(days=30),
                 ),
             )
@@ -355,7 +354,7 @@ def prepare(fixture_path: Path) -> int:
                     contractor_id=None,
                     punch_method="face",
                     hourly_rate=None,
-                    ot_rate_per_hour=Decimal("150.00"),
+                    ot_rate_per_hour=None,
                     joined_on=today_ist() - timedelta(days=30),
                 ),
             )

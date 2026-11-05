@@ -1,6 +1,7 @@
 """The daily housekeeping job (spec §7 rule 10 and §8 "Retention").
 
-1. Future-dated plant transfers take effect on their day.
+1. Future-dated plant transfers take effect on their day, and so do planned conversions of
+   a temporary worker to permanent (M5c).
 2. Login sessions that ended more than 30 days ago are deleted (they are not audit records).
 3. Card-punch photos past their retention are deleted from storage (M2; the rows stay).
 4. Shift rule versions that start today are copied into the shift row (M5, decision 0036).
@@ -27,7 +28,7 @@ from app.core.storage import Storage, StorageError, get_storage
 from app.core.time import IST, to_ist, today_ist, utc_now
 from app.modules.attendance.service import close_recent_days, recompute_stale
 from app.modules.auth.models import LoginSession
-from app.modules.employees.operations import apply_due_transfers
+from app.modules.employees.operations import apply_due_conversions, apply_due_transfers
 from app.modules.face.cleanup import run_face_cleanup
 from app.modules.kiosks.heartbeat_service import KEEP_SAMPLES_DAYS
 from app.modules.kiosks.models import KioskHeartbeat
@@ -40,6 +41,7 @@ from app.modules.org.shift_rules_service import apply_due_rule_versions
 from app.modules.phone.access_service import end_expired_outside_work
 from app.modules.phone.cleanup import run_phone_cleanup
 from app.modules.punches.retention import purge_expired_snapshots
+from app.modules.reports.streaming import sweep_old_files
 
 logger = logging.getLogger(__name__)
 
@@ -66,6 +68,7 @@ def purge_old_heartbeats(session: Session, now: datetime, batch_size: int = 5000
 def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str, int]:
     """Do all daily work and say how much it did."""
     transfers = apply_due_transfers(session, today_ist())
+    conversions = apply_due_conversions(session, today_ist())
     shift_rules = apply_due_rule_versions(session, today_ist())
     cutoff = utc_now() - timedelta(days=SESSION_KEEP_DAYS)
     old_sessions = session.scalars(
@@ -74,12 +77,14 @@ def run_daily_jobs(session: Session, storage: Storage | None = None) -> dict[str
     session.commit()
     return {
         "transfers_applied": transfers,
+        "conversions_applied": conversions,
         "shift_rules_applied": shift_rules,
         "sessions_deleted": len(old_sessions),
         "snapshots_purged": _purge_snapshots(session, storage),
         "heartbeats_deleted": purge_old_heartbeats(session, utc_now()),
         "notifications_deleted": purge_old_notifications(session, utc_now()),
         "outside_work_ended": end_expired_outside_work(session, today_ist()),
+        "report_files_removed": sweep_old_files(),
         **run_phone_cleanup(session, utc_now()),
     }
 

@@ -122,7 +122,7 @@ def build_template(session: Session) -> bytes:
             "face",
             "",
             "",
-            "150.00",
+            "",
             "01/11/2026",
         ),
         (
@@ -136,7 +136,7 @@ def build_template(session: Session) -> bytes:
             "qr",
             "",
             "85.00",
-            "",
+            "120.00",
             "01/11/2026",
         ),
     )
@@ -153,6 +153,7 @@ def build_template(session: Session) -> bytes:
             "plant_code: e.g. K134. category, department, shift: names as on the plant's page.",
             "punch_method: face (permanent) or qr (temporary); empty = the usual one.",
             "contractor: only for temporary workers; the name as in Contractors.",
+            "ot_rate_per_hour (overtime rate): only for temporary workers, empty for permanent.",
             "Rates in rupees with up to 2 decimals. joined_on as DD/MM/YYYY.",
             "Do not type formulas. Nothing is saved unless every row is correct.",
         )

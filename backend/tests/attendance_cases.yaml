@@ -77,10 +77,18 @@
   expect: {status: present, worked_min: 590, overtime_min: 0}
 - id: E10
   events: [in 09:00, out 19:10]
+  expect: {status: present, worked_min: 610, overtime_min: 0, payable_min: 480}
+- id: E10-temporary
+  type: temporary
+  events: [in 09:00, out 19:10]
   expect: {status: present, worked_min: 610, overtime_min: 130}
 - id: E11-at-two-hours
+  type: temporary
   events: [in 09:00, out 19:00]
   expect: {overtime_min: 120}
+- id: E11-permanent-no-overtime
+  events: [in 09:00, out 19:00]
+  expect: {overtime_min: 0, payable_min: 480}
 - id: E11-one-minute-short
   events: [in 09:00, out 18:59]
   expect: {overtime_min: 0}
@@ -109,6 +117,12 @@
   events: [in 10:00, out 14:00]
   expect: {status: present, day_kind: weekly_off, worked_min: 240, payable_min: 240, overtime_min: 0, late_min: 0, status_min: null}
 - id: E16b
+  day: 2026-11-01
+  kind: weekly_off
+  events: [in 09:00, out 19:30]
+  expect: {status: present, day_kind: weekly_off, worked_min: 630, overtime_min: 0}
+- id: E16b-temporary
+  type: temporary
   day: 2026-11-01
   kind: weekly_off
   events: [in 09:00, out 19:30]
@@ -150,7 +164,7 @@
 - id: E19
   day: 2026-10-29
   events: [in 10:00, out +1 05:30]
-  expect: {status: half_day, worked_min: 1170, late_min: 60, status_min: 420, overtime_min: 750, payable_min: 1170}
+  expect: {status: half_day, worked_min: 1170, late_min: 60, status_min: 420, overtime_min: 0, payable_min: 420}
 - id: E20
   events: [in 09:00, out 16:00 flag, out 17:00]
   expect: {status: present, worked_min: 480, extra_punch_count: 1, uses_unchecked_flag: true}
@@ -189,6 +203,7 @@
   events: [in 09:00, out 17:20]
   expect: {overtime_min: 0}
 - id: AC8-twenty-minutes-minimum-zero
+  type: temporary
   shift: office_m0
   events: [in 09:00, out 17:20]
   expect: {overtime_min: 20, payable_min: 500}
@@ -221,6 +236,12 @@
   events: [in 19:45, out +1 07:00]
   expect: {status: half_day, status_min: 675, late_min: 45}
 - id: N4
+  shift: night
+  day: 2026-10-29
+  events: [in 19:00, out +1 09:20]
+  expect: {status: present, worked_min: 860, overtime_min: 0, payable_min: 720}
+- id: N4-temporary
+  type: temporary
   shift: night
   day: 2026-10-29
   events: [in 19:00, out +1 09:20]

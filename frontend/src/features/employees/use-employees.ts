@@ -6,7 +6,7 @@
 // answers apart so the screen can say "Sent for approval" instead of "Saved".
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type { FaceFilter, FaceState } from "@/features/face/use-face";
-import { apiGet, apiPatch, apiPost, apiUpload } from "@/lib/api-client";
+import { apiGet, apiPatch, apiPost, apiSend, apiUpload } from "@/lib/api-client";
 import { type Page, queryString } from "@/lib/paging";
 
 export type EmployeeType = "permanent" | "temporary";
@@ -39,10 +39,23 @@ export type Employee = {
   face_state?: FaceState;
   // M4b: phone punching is switched on for this employee (admin-controlled, decision 0004).
   phone_punch_enabled?: boolean;
+  // M5c: converted from temporary and the face is not enrolled yet (cannot punch until it is).
+  face_enrolment_pending?: boolean;
+};
+
+// M5c: permanent or temporary, from when. A planned conversion is a later row.
+export type TypeHistoryItem = {
+  type: EmployeeType;
+  from_date: string;
+  to_date: string | null;
+  reason: string | null;
 };
 
 export type EmployeeDetail = {
   employee: Employee;
+  type_history?: TypeHistoryItem[];
+  converted_on?: string | null;
+  conversion_scheduled_for?: string | null;
   shift_history: {
     shift_id: string;
     shift_name: string;
@@ -79,6 +92,8 @@ export type EmployeeFilters = {
   face_state?: FaceFilter;
   /** M4b: employees with phone punching switched on or off. */
   phone?: "on" | "off";
+  /** M5c: people who were temporary and are permanent now. */
+  converted?: boolean;
   page: number;
   page_size?: number;
 };
@@ -216,6 +231,53 @@ export function useReactivate(employeeId: string) {
   return useMutation({
     mutationFn: (input: { joined_on: string; reason: string }) =>
       apiPost<Employee>(`/employees/${employeeId}/reactivate`, input),
+    onSuccess: refresh,
+  });
+}
+
+// F-88: what a conversion from a day would do (nothing has changed yet).
+export type ConversionPreview = {
+  effective_from: string;
+  planned: boolean;
+  days_recomputed: number;
+  card_serial: string | null;
+  contractor: string | null;
+  clears_hourly_rate: boolean;
+  clears_overtime_rate: boolean;
+};
+
+export function useConversionPreview(employeeId: string, effectiveFrom: string, enabled: boolean) {
+  return useQuery({
+    queryKey: [...EMPLOYEES_KEY, employeeId, "convert-preview", effectiveFrom],
+    queryFn: () =>
+      apiGet<ConversionPreview>(
+        `/employees/${employeeId}/convert-preview${queryString({ effective_from: effectiveFrom })}`,
+      ),
+    enabled,
+    retry: false,
+  });
+}
+
+/** Temporary to permanent (M5c). A Corporate Head's answer is a request waiting for approval. */
+export function useConvertEmployee(employeeId: string) {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (input: { effective_from: string; reason: string }) =>
+      apiPost<Employee | PendingApproval>(`/employees/${employeeId}/convert-to-permanent`, input),
+    onSuccess: refresh,
+  });
+}
+
+/** Cancels a planned conversion before its day (Super Admin). */
+export function useCancelConversion(employeeId: string) {
+  const refresh = useRefreshPeople();
+  return useMutation({
+    mutationFn: (input: { reason: string }) =>
+      apiSend<Employee>({
+        path: `/employees/${employeeId}/convert-to-permanent`,
+        method: "DELETE",
+        body: input,
+      }),
     onSuccess: refresh,
   });
 }

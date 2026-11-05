@@ -171,7 +171,7 @@ export function EmployeeFormPage() {
       shift_id: values.shift_id,
       contractor_id: temporary ? values.contractor_id || null : null,
       hourly_rate: temporary ? values.hourly_rate : null,
-      ot_rate_per_hour: values.ot_rate_per_hour || null,
+      ot_rate_per_hour: values.type === "temporary" ? values.ot_rate_per_hour || null : null,
       joined_on: values.joined_on,
     };
     const onError = (error: unknown) => {
@@ -488,21 +488,23 @@ export function EmployeeFormPage() {
                 </Field>
               </>
             ) : null}
-            <Field
-              id="ot-rate"
-              label={t("employees.form.otRate")}
-              hint={t("employees.form.otRateHint")}
-              error={errors.ot_rate_per_hour}
-            >
-              <Input
+            {values.type === "temporary" ? (
+              <Field
                 id="ot-rate"
-                inputMode="decimal"
-                value={values.ot_rate_per_hour}
-                className="tnum"
-                aria-invalid={Boolean(errors.ot_rate_per_hour)}
-                onChange={(event) => set("ot_rate_per_hour", event.target.value)}
-              />
-            </Field>
+                label={t("employees.form.otRate")}
+                hint={t("employees.form.otRateHint")}
+                error={errors.ot_rate_per_hour}
+              >
+                <Input
+                  id="ot-rate"
+                  inputMode="decimal"
+                  value={values.ot_rate_per_hour}
+                  className="tnum"
+                  aria-invalid={Boolean(errors.ot_rate_per_hour)}
+                  onChange={(event) => set("ot_rate_per_hour", event.target.value)}
+                />
+              </Field>
+            ) : null}
           </CardContent>
         </Card>
 

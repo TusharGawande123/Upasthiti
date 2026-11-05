@@ -24,26 +24,30 @@ def hhmm(minutes: int | None) -> str:
     return f"{minutes // 60}:{minutes % 60:02d}"
 
 
-def build_xlsx(report: Report) -> bytes:
-    buffer = io.BytesIO()
-    workbook = xlsxwriter.Workbook(buffer, {"in_memory": True, "strings_to_formulas": False})
-    formats = {
+def make_formats(workbook) -> dict:  # noqa: ANN001
+    return {
         "title": workbook.add_format({"bold": True, "font_size": 14}),
         "bold": workbook.add_format({"bold": True}),
         "head": workbook.add_format({"bold": True, "bg_color": "#E8ECF4", "border": 1}),
         "date": workbook.add_format({"num_format": "dd/mm/yyyy"}),
         "total": workbook.add_format({"bold": True, "bg_color": "#F4F6F9"}),
     }
+
+
+def build_xlsx(report: Report) -> bytes:
+    buffer = io.BytesIO()
+    workbook = xlsxwriter.Workbook(buffer, {"in_memory": True, "strings_to_formulas": False})
+    formats = make_formats(workbook)
     used_names: set[str] = set()
     for sheet in report.sheets:
-        worksheet = workbook.add_worksheet(_unique_name(sheet.name, used_names))
-        _header_block(worksheet, report, sheet, formats)
+        worksheet = workbook.add_worksheet(unique_name(sheet.name, used_names))
+        header_block(worksheet, report, sheet, formats)
         _table(worksheet, sheet, formats)
     workbook.close()
     return buffer.getvalue()
 
 
-def _unique_name(name: str, used: set[str]) -> str:
+def unique_name(name: str, used: set[str]) -> str:
     """Excel tab names: at most 31 characters, none of []:*?/\\, each only once."""
     cleaned = "".join(char for char in name if char not in "[]:*?/\\")[:31] or "Sheet"
     candidate, number = cleaned, 2
@@ -54,7 +58,7 @@ def _unique_name(name: str, used: set[str]) -> str:
     return candidate
 
 
-def _header_block(worksheet, report: Report, sheet: Sheet, formats: dict) -> None:  # noqa: ANN001
+def header_block(worksheet, report: Report, sheet: Sheet, formats: dict) -> None:  # noqa: ANN001
     generated = f"{to_ist(report.generated_at):%d/%m/%Y %H:%M} IST"
     worksheet.write_string(0, 0, "Sheet Shapers – Upasthiti", formats["title"])
     worksheet.write_string(1, 0, report.title, formats["bold"])

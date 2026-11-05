@@ -2,7 +2,7 @@
 day, the undecided count and the Super Admin's recompute."""
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from typing import Any, Literal
 
 from fastapi import APIRouter, Depends, Query
@@ -15,6 +15,10 @@ from app.core.pagination import Page, PageParams, page_params
 from app.modules.attendance import detail_service, read_service, service
 from app.modules.attendance.schemas import (
     DailyItem,
+    EmployeeRangeResponse,
+    Preparing,
+    RangeDay,
+    RangeRegisterResponse,
     RecomputeRequest,
     RecomputeResponse,
     RegisterPlant,
@@ -112,6 +116,63 @@ def register(
         page_size=page_size,
         total=total,
     )
+
+
+@router.get("/register-range", response_model=RangeRegisterResponse)
+def register_range(
+    date_from: date,
+    date_to: date,
+    plant_id: uuid.UUID = Query(),
+    type: Literal["permanent", "temporary"] | None = None,  # noqa: A002
+    department_id: uuid.UUID | None = None,
+    q: str | None = Query(default=None, max_length=100),
+    include_demo: bool = False,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(50, ge=1, le=100),
+    current_user: CurrentUser = Depends(reader),
+    session: Session = Depends(get_session),
+) -> RangeRegisterResponse:
+    """The employee x day grid for any range up to 93 days (M5c)."""
+    plant, last, items, total, pending = read_service.register_range(
+        session,
+        current_user,
+        PageParams(page=page, page_size=page_size),
+        date_from=date_from,
+        date_to=date_to,
+        plant_id=plant_id,
+        employee_type=type,
+        department_id=department_id,
+        q=q,
+        include_demo=include_demo,
+    )
+    days = [
+        RangeDay(date=day, weekday=day.isoweekday())
+        for day in (date_from + timedelta(days=n) for n in range((last - date_from).days + 1))
+    ]
+    return RangeRegisterResponse(
+        date_from=date_from,
+        date_to=last,
+        plant=RegisterPlant(id=plant.id, code=plant.code, name=plant.name),
+        days=days,
+        items=items,
+        page=page,
+        page_size=page_size,
+        total=total,
+        preparing=Preparing(pending_days=pending),
+    )
+
+
+@router.get("/employee/{employee_id}/range", response_model=EmployeeRangeResponse)
+def employee_range(
+    employee_id: uuid.UUID,
+    date_from: date,
+    date_to: date,
+    current_user: CurrentUser = Depends(reader),
+    session: Session = Depends(get_session),
+) -> Any:
+    """One employee, day by day, for up to 366 days (M5c)."""
+    employee = detail_service.employee_for_reading(session, current_user, employee_id)
+    return detail_service.range_of_employee(session, current_user, employee, date_from, date_to)
 
 
 @router.get("/undecided", response_model=UndecidedResponse)

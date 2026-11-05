@@ -10,6 +10,7 @@ import {
   FileSpreadsheet,
   Flag,
   type LucideIcon,
+  ScanFace,
   ShieldAlert,
   Siren,
   Smartphone,
@@ -36,6 +37,7 @@ const KIND_ICONS: Record<NotificationKind, LucideIcon> = {
   monthly_register: FileSpreadsheet,
   phone_many_phones: Smartphone,
   phone_selfie_no_face: UserRoundX,
+  conversion_face_pending: ScanFace,
 };
 
 // The words of the action link under each text.
@@ -51,6 +53,7 @@ const LINK_WORDS: Record<NotificationKind, string> = {
   monthly_register: "register",
   phone_many_phones: "phone",
   phone_selfie_no_face: "punches",
+  conversion_face_pending: "employee",
 };
 
 /** The values that fill the text: dates are written as DD/MM/YYYY, the rest comes as it is. */

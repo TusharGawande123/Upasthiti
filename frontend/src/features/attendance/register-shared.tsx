@@ -23,7 +23,8 @@ export const LEGEND_CODES = [
 ] as const;
 
 /** The twelve month totals, in the order of the register file. */
-export function totalColumns(totals: Totals, t: (key: string) => string) {
+/** The totals of a person. `overtimeApplies` is false for a permanent employee: no overtime figure. */
+export function totalColumns(totals: Totals, t: (key: string) => string, overtimeApplies = true) {
   return [
     {
       key: "present",
@@ -74,7 +75,7 @@ export function totalColumns(totals: Totals, t: (key: string) => string) {
     {
       key: "overtimeHours",
       label: t("attendance.register.total.overtimeHours"),
-      value: formatDuration(totals.overtime_min),
+      value: overtimeApplies ? formatDuration(totals.overtime_min) : DASH,
     },
     {
       key: "lateCount",

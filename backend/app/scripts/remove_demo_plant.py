@@ -334,6 +334,12 @@ def remove(session: Session, plan: RemovalPlan) -> None:
                 )
             )
         )
+        # M5c: the type history of these people (permanent or temporary, from when).
+        session.execute(
+            delete(t("employee_type_history")).where(
+                t("employee_type_history").c.employee_id.in_(employee_ids)
+            )
+        )
         session.execute(
             delete(t("change_requests")).where(t("change_requests").c.employee_id.in_(employee_ids))
         )

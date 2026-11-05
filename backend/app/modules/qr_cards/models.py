@@ -44,6 +44,7 @@ class RevokeKind(enum.StrEnum):
     LOST = "lost"
     DAMAGED = "damaged"
     LEFT = "left"  # the employee was marked as left
+    CONVERTED = "converted"  # the temporary worker became permanent (M5c)
     REPLACED = "replaced"  # a new card was issued
     OTHER = "other"
 

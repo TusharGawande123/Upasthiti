@@ -8,7 +8,9 @@ import {
   LogOut,
   Pencil,
   RotateCcw,
+  ScanFace,
   Undo2,
+  UserCheck,
   UserCog,
 } from "lucide-react";
 import { lazy, Suspense, useState } from "react";
@@ -27,8 +29,14 @@ import { PhoneAttendanceCard } from "@/features/phone-admin/phone-attendance-car
 import { PhoneTag } from "@/features/phone-admin/phone-tag";
 import { EmployeeCardPanel } from "@/features/qr-cards/employee-card-panel";
 import { formatDate, formatRupees, formatTime } from "@/lib/format";
-import { EmployeeStatusBadge, initialsOf, TypeBadge } from "./employee-badges";
-import { MarkLeftDialog, ReactivateDialog, TransferDialog } from "./employee-dialogs";
+import { ConvertedTag, EmployeeStatusBadge, initialsOf, TypeBadge } from "./employee-badges";
+import {
+  CancelConversionDialog,
+  ConvertDialog,
+  MarkLeftDialog,
+  ReactivateDialog,
+  TransferDialog,
+} from "./employee-dialogs";
 import { useEmployee, useTimeline } from "./use-employees";
 
 const EVENT_ICONS: Record<string, typeof Pencil> = {
@@ -39,6 +47,9 @@ const EVENT_ICONS: Record<string, typeof Pencil> = {
   "employee.import": CirclePlus,
   "employee.mark_left": LogOut,
   "employee.reactivate": Undo2,
+  "employee.convert": UserCheck,
+  "employee.convert_scheduled": UserCheck,
+  "employee.convert_cancelled": Undo2,
 };
 
 // The Attendance tab is loaded only when it is opened, so the admin first load stays small.
@@ -67,7 +78,9 @@ export function EmployeeDetailPage() {
   const role = me.data?.role;
   const detail = useEmployee(employeeId);
   const timeline = useTimeline(employeeId);
-  const [dialog, setDialog] = useState<"transfer" | "left" | "reactivate" | null>(null);
+  const [dialog, setDialog] = useState<
+    "transfer" | "left" | "reactivate" | "convert" | "cancelConversion" | null
+  >(null);
 
   if (detail.isError) {
     return (
@@ -82,8 +95,11 @@ export function EmployeeDetailPage() {
   if (detail.isPending) return <Skeleton className="mx-auto h-64 max-w-6xl" />;
 
   const { employee, plant_history: plantHistory, shift_history: shiftHistory } = detail.data;
+  const typeHistory = detail.data.type_history ?? [];
+  const scheduledFor = detail.data.conversion_scheduled_for ?? null;
   const canChange = role === "super_admin" || role === "corporate_head";
   const isLeft = employee.status === "left";
+  const canConvert = canChange && !isLeft && employee.type === "temporary";
   const field = (key: string) => t(`employees.fields.${key}`, { defaultValue: key });
 
   return (
@@ -115,6 +131,7 @@ export function EmployeeDetailPage() {
                 <span className="code font-bold">{employee.plant_code}</span>
               </Badge>
               {employee.phone_punch_enabled ? <PhoneTag /> : null}
+              {detail.data.converted_on ? <ConvertedTag /> : null}
             </div>
           </div>
         </div>
@@ -133,6 +150,14 @@ export function EmployeeDetailPage() {
                   <ArrowRightLeft aria-hidden />
                   {t("employees.transfer.button")}
                 </Button>
+                {canConvert && !scheduledFor ? (
+                  <Button variant="outline" onClick={() => setDialog("convert")}>
+                    <UserCheck aria-hidden />
+                    {role === "corporate_head"
+                      ? t("employees.conversion.askButton")
+                      : t("employees.conversion.button")}
+                  </Button>
+                ) : null}
               </>
             ) : null}
             {role === "super_admin" && !isLeft ? (
@@ -164,6 +189,42 @@ export function EmployeeDetailPage() {
             >
               {t("employees.detail.review")}
             </Link>
+          ) : null}
+        </Alert>
+      ) : null}
+
+      {employee.face_enrolment_pending ? (
+        <Alert tone="warning" className="items-center">
+          <ScanFace aria-hidden />
+          <span>
+            <b>{t("employees.conversion.pending")}</b> {t("employees.conversion.pendingText")}
+          </span>
+          {role === "super_admin" ? (
+            <Link
+              to={`/admin/employees/${employee.id}?face=enrol`}
+              className="ml-auto inline-flex h-8 items-center rounded-lg bg-primary px-3 text-[13px] font-semibold text-primary-foreground"
+            >
+              {t("employees.conversion.enrolNow")}
+            </Link>
+          ) : null}
+        </Alert>
+      ) : null}
+
+      {scheduledFor ? (
+        <Alert tone="info" className="items-center">
+          <UserCheck aria-hidden />
+          <span>
+            <b>{t("employees.conversion.scheduledTitle", { date: formatDate(scheduledFor) })}</b>
+          </span>
+          {role === "super_admin" ? (
+            <Button
+              variant="outline"
+              size="sm"
+              className="ml-auto"
+              onClick={() => setDialog("cancelConversion")}
+            >
+              {t("employees.conversion.cancelButton")}
+            </Button>
           ) : null}
         </Alert>
       ) : null}
@@ -227,16 +288,49 @@ export function EmployeeDetailPage() {
                         <Row label={t("employees.form.hourlyRate")}>
                           {employee.hourly_rate ? `${formatRupees(employee.hourly_rate)}/h` : "–"}
                         </Row>
+                        <Row label={t("employees.form.otRate")}>
+                          {employee.ot_rate_per_hour
+                            ? `${formatRupees(employee.ot_rate_per_hour)}/h`
+                            : "–"}
+                        </Row>
                       </>
                     ) : null}
-                    <Row label={t("employees.form.otRate")}>
-                      {employee.ot_rate_per_hour
-                        ? `${formatRupees(employee.ot_rate_per_hour)}/h`
-                        : "–"}
-                    </Row>
                   </dl>
                 </CardContent>
               </Card>
+
+              {typeHistory.length > 1 ? (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>{t("employees.conversion.historyTitle")}</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <ul className="divide-y">
+                      {typeHistory.map((item) => (
+                        <li
+                          key={`${item.type}-${item.from_date}`}
+                          className="flex items-center gap-3 py-2 text-sm"
+                        >
+                          <TypeBadge type={item.type} />
+                          <span className="tnum">
+                            {t("employees.detail.sinceTo", {
+                              from: formatDate(item.from_date),
+                              to: item.to_date
+                                ? formatDate(item.to_date)
+                                : t("employees.detail.now"),
+                            })}
+                            {item.reason ? (
+                              <span className="block text-xs text-muted-foreground">
+                                {item.reason}
+                              </span>
+                            ) : null}
+                          </span>
+                        </li>
+                      ))}
+                    </ul>
+                  </CardContent>
+                </Card>
+              ) : null}
 
               <Card>
                 <CardHeader>
@@ -364,6 +458,20 @@ export function EmployeeDetailPage() {
           forApproval={role === "corporate_head"}
           onClose={() => setDialog(null)}
         />
+      ) : null}
+      {dialog === "convert" ? (
+        <ConvertDialog
+          employee={employee}
+          forApproval={role === "corporate_head"}
+          onClose={() => setDialog(null)}
+          onEnrol={() => {
+            setDialog(null);
+            navigate(`/admin/employees/${employee.id}?face=enrol`);
+          }}
+        />
+      ) : null}
+      {dialog === "cancelConversion" ? (
+        <CancelConversionDialog employee={employee} onClose={() => setDialog(null)} />
       ) : null}
       {dialog === "left" ? (
         <MarkLeftDialog employee={employee} onClose={() => setDialog(null)} />

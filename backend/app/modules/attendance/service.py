@@ -9,6 +9,8 @@ The loader gathers the inputs of many days in a few queries (AttendanceCalendar,
 corrections, leave) and hands each day to the pure `compute_day()`.
 """
 
+import threading
+import time
 import uuid
 from collections import defaultdict
 from collections.abc import Iterable
@@ -43,6 +45,12 @@ from app.modules.regularisations.models import (
 from app.modules.settings.service import get_int_setting
 
 CATCH_UP_BATCH = 500
+# A long range recomputes at most this much per request (M5c spec rule 9).
+RANGE_RECOMPUTE_DAYS = 3000
+RANGE_RECOMPUTE_SECONDS = 8.0
+# Only this many long reads recompute at the same time. A read that finds no free place answers
+# with what is ready plus `pending` and the screen asks again (a read is never wrong).
+RANGE_RECOMPUTE_PLACES = threading.BoundedSemaphore(3)
 # The nightly close looks back this far, so days missed while the free server slept are closed.
 NIGHTLY_LOOK_BACK_DAYS = 7
 
@@ -190,6 +198,81 @@ def ensure_fresh(
     ).all()
     if keys or missing:
         recompute_days(session, [(row[0], row[1]) for row in keys], now)
+        session.commit()
+
+
+def ensure_fresh_within_budget(
+    session: Session,
+    employee_ids: list[uuid.UUID],
+    date_from: date,
+    date_to: date,
+    now: datetime,
+    *,
+    max_days: int = RANGE_RECOMPUTE_DAYS,
+    max_seconds: float = RANGE_RECOMPUTE_SECONDS,
+) -> int:
+    """Like `ensure_fresh`, for a long range (M5c spec rule 9): recomputes at most `max_days`
+    employee-days (or about `max_seconds`), newest days first, and answers how many stale days are
+    still left. The rest is finished by the 5-minute catch-up job, so a read is never wrong, only
+    sometimes "not ready yet". Days of an unfinished day (status open) are always recomputed."""
+    stale = or_(AttendanceDay.stale, AttendanceDay.calc_version != ATTENDANCE_CALC_VERSION)
+    in_range = (
+        AttendanceDay.employee_id.in_(employee_ids),
+        AttendanceDay.attendance_date.between(date_from, date_to),
+    )
+    if not RANGE_RECOMPUTE_PLACES.acquire(blocking=False):
+        return _count_stale(session, in_range, stale)
+    try:
+        _recompute_in_steps(session, employee_ids, date_from, date_to, now, max_days, max_seconds)
+    finally:
+        RANGE_RECOMPUTE_PLACES.release()
+    return _count_stale(session, in_range, stale)
+
+
+def _count_stale(session: Session, in_range: tuple, stale) -> int:  # noqa: ANN001
+    return (
+        session.scalar(select(func.count()).select_from(AttendanceDay).where(*in_range, stale)) or 0
+    )
+
+
+def _recompute_in_steps(
+    session: Session,
+    employee_ids: list[uuid.UUID],
+    date_from: date,
+    date_to: date,
+    now: datetime,
+    max_days: int,
+    max_seconds: float,
+) -> None:
+    """The work of `ensure_fresh_within_budget`: missing days, then stale days newest first until
+    the budget is used, then the open days of the range (at most one batch of them)."""
+    _create_missing_rows(session, employee_ids, date_from, date_to, now)
+    stale = or_(AttendanceDay.stale, AttendanceDay.calc_version != ATTENDANCE_CALC_VERSION)
+    in_range = (
+        AttendanceDay.employee_id.in_(employee_ids),
+        AttendanceDay.attendance_date.between(date_from, date_to),
+    )
+    started = time.monotonic()
+    done = 0
+    while done < max_days and time.monotonic() - started < max_seconds:
+        keys = session.execute(
+            select(AttendanceDay.employee_id, AttendanceDay.attendance_date)
+            .where(*in_range, stale)
+            .order_by(AttendanceDay.attendance_date.desc())
+            .limit(min(CATCH_UP_BATCH, max_days - done))
+        ).all()
+        if not keys:
+            break
+        recompute_days(session, [(row[0], row[1]) for row in keys], now)
+        session.commit()
+        done += len(keys)
+    open_keys = session.execute(
+        select(AttendanceDay.employee_id, AttendanceDay.attendance_date)
+        .where(*in_range, AttendanceDay.status == "open")
+        .limit(CATCH_UP_BATCH)
+    ).all()
+    if open_keys:
+        recompute_days(session, [(row[0], row[1]) for row in open_keys], now)
         session.commit()
 
 
@@ -419,7 +502,7 @@ class DayLoader:
             return DayInputs(
                 day=day,
                 employed=False,
-                employee_type=facts.employee_type if facts else "permanent",  # type: ignore[arg-type]  # column is str; check allows permanent or temporary
+                employee_type=calendar.type_on(employee_id, day),  # type: ignore[arg-type]  # column is str; check allows permanent or temporary
                 day_kind=day_kind,
                 rules=None,
                 window_start=self.now,
@@ -449,7 +532,7 @@ class DayLoader:
         return DayInputs(
             day=day,
             employed=True,
-            employee_type=facts.employee_type,  # type: ignore[arg-type]  # same as above
+            employee_type=calendar.type_on(employee_id, day),  # type: ignore[arg-type]  # same as above
             day_kind=day_kind,
             rules=window.shift.rules,
             window_start=window.start,
@@ -478,7 +561,6 @@ def _store(
 ) -> None:
     calendar = loader.calendar
     window = calendar.window(employee_id, day)
-    facts = calendar.employees.get(employee_id)
     plant_id = calendar.plant_on(employee_id, day) or session.scalar(
         select(Employee.plant_id).where(Employee.id == employee_id)
     )
@@ -487,7 +569,7 @@ def _store(
         "plant_id": plant_id,
         "shift_id": window.shift.shift_id if window else None,
         "shift_rule_version_id": window.shift.rule_version_id if window else None,
-        "employee_type": facts.employee_type if facts else "permanent",
+        "employee_type": calendar.type_on(employee_id, day),
         "day_kind": result.day_kind,
         "status": result.status,
         "leave_record_id": inputs.leave.leave_id if inputs.leave else None,

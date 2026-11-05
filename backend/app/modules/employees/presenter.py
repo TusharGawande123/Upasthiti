@@ -6,15 +6,23 @@ import uuid
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.time import today_ist
 from app.modules.approvals.models import ChangeRequest, RequestStatus
 from app.modules.contractors.models import Contractor
-from app.modules.employees.models import Employee, EmployeePlantHistory, ShiftAssignment
+from app.modules.employees.models import (
+    Employee,
+    EmployeePlantHistory,
+    EmployeeTypeHistory,
+    ShiftAssignment,
+)
 from app.modules.employees.schemas import (
     EmployeeDetailResponse,
     EmployeeResponse,
     PlantHistoryItem,
     ShiftHistoryItem,
+    TypeHistoryItem,
 )
+from app.modules.employees.type_history import scheduled_conversion, type_history_rows
 from app.modules.face.engine_provider import running_model_id
 from app.modules.face.state import list_face_states
 from app.modules.org.models import Department, EmployeeCategory, Plant, Shift
@@ -67,6 +75,15 @@ def employee_responses(session: Session, employees: list[Employee]) -> list[Empl
     )
 
     states = list_face_states(session, employees, running_model_id())
+    # M5c: permanent now, temporary before (a conversion).
+    converted_ids = set(
+        session.scalars(
+            select(EmployeeTypeHistory.employee_id).where(
+                EmployeeTypeHistory.employee_id.in_(employee_ids),
+                EmployeeTypeHistory.type == "temporary",
+            )
+        )
+    )
     phone_on = set(
         session.scalars(
             select(PhoneAccess.employee_id).where(
@@ -105,6 +122,12 @@ def employee_responses(session: Session, employees: list[Employee]) -> list[Empl
             left_reason=employee.left_reason,
             has_pending_change=employee.id in pending,
             face_state=states[employee.id],
+            face_enrolment_pending=(
+                employee.id in converted_ids
+                and employee.type == "permanent"
+                and employee.status == "active"
+                and states[employee.id] == "not_enrolled"
+            ),
             phone_punch_enabled=employee.id in phone_on,
         )
         for employee in employees
@@ -119,6 +142,20 @@ def employee_detail(
 ) -> EmployeeDetailResponse:
     shift_names = _names(session, Shift, {row.shift_id for row in shift_rows}, Shift.name)
     plant_codes = _names(session, Plant, {row.plant_id for row in plant_rows}, Plant.code)
+    type_rows = type_history_rows(session, employee.id)
+    scheduled = scheduled_conversion(session, employee.id, today_ist())
+    # The day the latest temporary period ended + 1 is the day the person became permanent.
+    converted_on = next(
+        (
+            row.from_date
+            for row in reversed(type_rows)
+            if row.type == "permanent"
+            and row is not scheduled
+            and row.from_date <= today_ist()
+            and any(other.type == "temporary" for other in type_rows)
+        ),
+        None,
+    )
     return EmployeeDetailResponse(
         employee=employee_responses(session, [employee])[0],
         shift_history=[
@@ -130,6 +167,15 @@ def employee_detail(
             )
             for row in shift_rows
         ],
+        type_history=[
+            TypeHistoryItem(
+                type=row.type, from_date=row.from_date, to_date=row.to_date, reason=row.reason
+            )
+            for row in type_rows
+            if row.to_date is None or row.to_date >= row.from_date
+        ],
+        converted_on=converted_on,
+        conversion_scheduled_for=scheduled.from_date if scheduled else None,
         plant_history=[
             PlantHistoryItem(
                 plant_id=row.plant_id,

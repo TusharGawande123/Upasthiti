@@ -106,7 +106,9 @@ def make_fake_data(session: Session) -> dict[str, int]:
                         hourly_rate=Decimal(randomizer.randrange(60, 130))
                         if is_temporary
                         else None,
-                        ot_rate_per_hour=Decimal(randomizer.randrange(90, 200)),
+                        ot_rate_per_hour=Decimal(randomizer.randrange(90, 200))
+                        if is_temporary
+                        else None,
                         joined_on=today_ist() - timedelta(days=randomizer.randrange(30, 900)),
                     ),
                 )

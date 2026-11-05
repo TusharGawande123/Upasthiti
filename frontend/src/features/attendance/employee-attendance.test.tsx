@@ -241,9 +241,9 @@ describe("the Attendance tab", () => {
     await openTab(user);
 
     expect(
-      await screen.findByRole("button", { name: /Ramesh Kulkarni, day 1, HD, corrected/ }),
+      await screen.findByRole("button", { name: /Ramesh Kulkarni, day 1, HD.*corrected/ }),
     ).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Ramesh Kulkarni, day 2, P" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^Ramesh Kulkarni, day 2, P/ })).toBeInTheDocument();
     expect(screen.getByText("Present days").nextSibling).toHaveTextContent("19");
     expect(screen.getByText("Leave paid / unpaid").nextSibling).toHaveTextContent("1 / 0");
     expect(screen.getByText("Worked hours").nextSibling).toHaveTextContent("169 h");

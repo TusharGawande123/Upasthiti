@@ -5,13 +5,18 @@ import re
 import uuid
 from dataclasses import dataclass
 
-from sqlalchemy import ColumnElement, Select, func, or_, select
+from sqlalchemy import ColumnElement, Select, and_, func, not_, or_, select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
 from app.core.pagination import PageParams, fetch_page
 from app.modules.audit.models import AuditLog
-from app.modules.employees.models import Employee, EmployeePlantHistory, ShiftAssignment
+from app.modules.employees.models import (
+    Employee,
+    EmployeePlantHistory,
+    EmployeeTypeHistory,
+    ShiftAssignment,
+)
 from app.modules.face.engine_provider import running_model_id
 from app.modules.face.state import face_state_condition, reenrol_suggested_ids
 from app.modules.phone.models import PhoneAccess
@@ -38,6 +43,7 @@ class EmployeeFilters:
     search: str | None = None
     face_state: str | None = None  # M3 (F-40): enrolled, not_enrolled, old_model, ...
     phone: str | None = None  # M4b: "on" or "off" (is phone punching switched on?)
+    converted: bool | None = None  # M5c: was once temporary and is permanent now
 
 
 def list_employees(
@@ -64,6 +70,12 @@ def list_employees(
         statement = statement.where(
             Employee.id.in_(phone_on) if filters.phone == "on" else Employee.id.not_in(phone_on)
         )
+    if filters.converted is not None:
+        was_temporary = select(EmployeeTypeHistory.employee_id).where(
+            EmployeeTypeHistory.type == "temporary"
+        )
+        converted = and_(Employee.type == "permanent", Employee.id.in_(was_temporary))
+        statement = statement.where(converted if filters.converted else not_(converted))
     if filters.shift_id is not None:
         statement = statement.where(
             Employee.id.in_(

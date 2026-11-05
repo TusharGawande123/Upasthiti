@@ -16,6 +16,7 @@ import { cn } from "@/lib/utils";
 import { formatDay } from "./attendance-format";
 import { AttendanceHeatmap } from "./attendance-heatmap";
 import { DayDrawerHost } from "./day-drawer-host";
+import { EmployeeRangeCard } from "./employee-range-card";
 import { CodeLegend, DASH, totalColumns } from "./register-shared";
 import { ShiftSwapCard } from "./shift-swap-card";
 import { FAMILY_COLOURS, familyOfCode } from "./status-chip";
@@ -48,6 +49,11 @@ function daysInMonth(month: string): number {
 
 const WEEKDAYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
 
+/** "09:40–17:00": the IN and OUT of a day as the calendar shows them. */
+function timesOf(day: Day): string {
+  return `${day.first_in ? formatTime(day.first_in) : ""}–${day.last_out ? formatTime(day.last_out) : ""}`;
+}
+
 function CalendarDay({
   date,
   day,
@@ -78,23 +84,25 @@ function CalendarDay({
     <button
       type="button"
       onClick={() => onOpen(date)}
-      aria-label={t("attendance.register.cellLabel", {
-        name: employeeName,
-        day: dayNumber,
-        code: day.code,
-        corrected: day.is_corrected ? t("attendance.register.correctedWord") : "",
-      })}
+      aria-label={t(
+        day.first_in ? "attendance.employee.dayLabelTimes" : "attendance.register.cellLabel",
+        {
+          name: employeeName,
+          day: dayNumber,
+          code: day.code,
+          times: day.first_in ? timesOf(day) : "",
+          corrected: day.is_corrected ? t("attendance.register.correctedWord") : "",
+        },
+      )}
       className={cn(
         "relative flex min-h-14 min-w-0 cursor-pointer flex-col rounded-md border border-transparent p-1 text-left hover:ring-2 hover:ring-primary/40",
         FAMILY_COLOURS[family],
       )}
     >
-      <span className="text-[11px]">{dayNumber}</span>
-      <span className="font-mono text-sm font-bold">{day.code}</span>
+      <span className="text-[11px]">{dayNumber}</span>{" "}
+      <span className="font-mono text-sm font-bold">{day.code}</span>{" "}
       {day.first_in ? (
-        <span className="tnum hidden text-[10px] sm:block">
-          {formatTime(day.first_in)}–{day.last_out ? formatTime(day.last_out) : ""}
-        </span>
+        <span className="tnum hidden text-[10px] sm:block">{timesOf(day)}</span>
       ) : null}
       {day.is_corrected ? (
         <span aria-hidden className="absolute top-1 right-1 size-1.5 rounded-full bg-black" />
@@ -214,7 +222,11 @@ export function EmployeeAttendanceTab({ employee, isSuperAdmin }: Props) {
             <CardContent>
               {data.data ? (
                 <dl className="grid grid-cols-2 gap-2">
-                  {totalColumns(data.data.totals, t).map((column) => (
+                  {totalColumns(
+                    data.data.totals,
+                    t,
+                    data.data.days.some((day) => day.employee_type === "temporary"),
+                  ).map((column) => (
                     <div key={column.key} className="min-w-0 rounded-md border p-2.5">
                       <dt className="text-xs text-muted-foreground">{column.label}</dt>
                       <dd className="tnum text-lg font-bold">{column.value}</dd>
@@ -286,6 +298,7 @@ export function EmployeeAttendanceTab({ employee, isSuperAdmin }: Props) {
           />
         </CardContent>
       </Card>
+      <EmployeeRangeCard employeeId={employee.id} />
       <DayDrawerHost />
     </div>
   );

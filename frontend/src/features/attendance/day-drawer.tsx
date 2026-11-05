@@ -156,7 +156,9 @@ function DayBody({ detail, isSuperAdmin }: { detail: DayDetail; isSuperAdmin: bo
         <Tile label={t("attendance.day.result.earlyExit")}>
           {minutesOrDash(day.early_exit_min)}
         </Tile>
-        <Tile label={t("attendance.day.result.overtime")}>{minutesOrDash(day.overtime_min)}</Tile>
+        {day.employee_type === "temporary" ? (
+          <Tile label={t("attendance.day.result.overtime")}>{minutesOrDash(day.overtime_min)}</Tile>
+        ) : null}
       </dl>
 
       {detail.explanation.length > 0 ? (

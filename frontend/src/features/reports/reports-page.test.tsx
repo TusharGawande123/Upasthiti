@@ -68,6 +68,7 @@ describe("report addresses", () => {
     dateTo: "2026-10-31",
     plantId: "p-1",
     contractorId: "c-1",
+    employeeId: "e-9",
     includeDemo: false,
   };
   const config = (kind: string) =>
@@ -82,6 +83,21 @@ describe("report addresses", () => {
     );
     expect(reportAddress(config("exceptions"), "xlsx", choice)).toBe(
       "/reports/exceptions.xlsx?date_from=2026-10-01&date_to=2026-10-31&plant_id=p-1",
+    );
+  });
+
+  it("builds the address of the conversions report (F-91)", () => {
+    expect(reportAddress(config("conversions"), "xlsx", choice)).toBe(
+      "/reports/conversions.xlsx?date_from=2026-10-01&date_to=2026-10-31&plant_id=p-1",
+    );
+  });
+
+  it("builds the addresses of the two range reports (M5c)", () => {
+    expect(reportAddress(config("register-range"), "xlsx", choice)).toBe(
+      "/reports/register-range.xlsx?date_from=2026-10-01&date_to=2026-10-31&plant_id=p-1",
+    );
+    expect(reportAddress(config("employee-range"), "pdf", choice)).toBe(
+      "/reports/employee-range.pdf?date_from=2026-10-01&date_to=2026-10-31&plant_id=p-1&employee_id=e-9",
     );
   });
 
@@ -102,7 +118,7 @@ describe("report addresses", () => {
 });
 
 describe("the reports page", () => {
-  it("shows the three limits and the seven reports", async () => {
+  it("shows the three limits and the ten reports", async () => {
     stubReports(SUPER_ADMIN);
 
     renderRoute("/admin/reports");
@@ -117,10 +133,13 @@ describe("the reports page", () => {
       "Exceptions",
       "Rejected punches",
       "Corrections",
+      "Register for a period",
+      "One employee for a period",
+      "Conversions to permanent",
     ]) {
       expect(screen.getByRole("heading", { name: title })).toBeInTheDocument();
     }
-    expect(screen.getAllByRole("button", { name: "Excel" })).toHaveLength(7);
+    expect(screen.getAllByRole("button", { name: "Excel" })).toHaveLength(10);
   });
 
   it("asks for the Excel file of a month and saves it under the server's name", async () => {
@@ -231,5 +250,77 @@ describe("the reports page", () => {
     await screen.findByText("One file at a time");
 
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
+  });
+});
+
+describe("the range reports (M5c)", () => {
+  it("keeps the register of a period off until a plant is chosen, then asks for it", async () => {
+    stubReports(SUPER_ADMIN);
+    const user = userEvent.setup();
+    renderRoute("/admin/reports");
+    const card = (await screen.findByRole("heading", { name: "Register for a period" })).closest(
+      "[aria-labelledby]",
+    ) as HTMLElement;
+
+    const excel = within(card).getByRole("button", { name: "Excel" });
+    expect(excel).toBeDisabled();
+    await user.selectOptions(within(card).getByLabelText("Plant"), "p-1");
+
+    expect(excel).toBeEnabled();
+  });
+
+  it("allows up to 366 days for the register of a period but not more", async () => {
+    stubReports(SUPER_ADMIN);
+    const user = userEvent.setup();
+    renderRoute("/admin/reports");
+    const card = (await screen.findByRole("heading", { name: "Register for a period" })).closest(
+      "[aria-labelledby]",
+    ) as HTMLElement;
+    await user.selectOptions(within(card).getByLabelText("Plant"), "p-1");
+    fireEvent.change(within(card).getByLabelText("From"), { target: { value: "2025-11-01" } });
+    fireEvent.change(within(card).getByLabelText("To"), { target: { value: "2026-11-01" } });
+    expect(within(card).getByRole("button", { name: "Excel" })).toBeEnabled();
+
+    fireEvent.change(within(card).getByLabelText("From"), { target: { value: "2025-10-01" } });
+
+    expect(within(card).getByRole("alert")).toHaveTextContent(/up to 366 days/);
+    expect(within(card).getByRole("button", { name: "Excel" })).toBeDisabled();
+  });
+
+  it("asks again by itself while the days are still being prepared", async () => {
+    stubReports(SUPER_ADMIN);
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    const jsonFetch = globalThis.fetch;
+    let reportCalls = 0;
+    const fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (!String(url).includes("/reports/register-range.")) return jsonFetch(url, init);
+      reportCalls += 1;
+      return reportCalls === 1
+        ? Response.json(
+            { error: { code: "ATTENDANCE_PREPARING", message: "x", details: { pending_days: 9 } } },
+            { status: 409 },
+          )
+        : new Response("file", {
+            status: 200,
+            headers: { "Content-Disposition": 'attachment; filename="range.xlsx"' },
+          });
+    });
+    vi.stubGlobal("fetch", fetchMock);
+    URL.createObjectURL = vi.fn(() => "blob:range");
+    URL.revokeObjectURL = vi.fn();
+    const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+    renderRoute("/admin/reports");
+    const card = (await screen.findByRole("heading", { name: "Register for a period" })).closest(
+      "[aria-labelledby]",
+    ) as HTMLElement;
+    await user.selectOptions(within(card).getByLabelText("Plant"), "p-1");
+
+    await user.click(within(card).getByRole("button", { name: "Excel" }));
+    expect(await within(card).findByText(/Getting the days ready/)).toBeInTheDocument();
+    await vi.advanceTimersByTimeAsync(5000);
+
+    expect(await within(card).findByText("Downloaded range.xlsx")).toBeInTheDocument();
+    expect(reportCalls).toBe(2);
+    vi.useRealTimers();
   });
 });

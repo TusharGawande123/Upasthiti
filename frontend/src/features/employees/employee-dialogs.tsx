@@ -18,10 +18,13 @@ import { Input, Textarea } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { describeError } from "@/features/auth/error-message";
 import { useNamedItems, usePlants, useShifts } from "@/features/plants/use-plants";
-import { todayIst } from "@/lib/format";
+import { formatDate, todayIst } from "@/lib/format";
 import {
   type Employee,
   isPendingApproval,
+  useCancelConversion,
+  useConversionPreview,
+  useConvertEmployee,
   useMarkLeft,
   useReactivate,
   useTransferEmployee,
@@ -198,6 +201,243 @@ export function TransferDialog({
             <Button type="submit" disabled={!valid || transfer.isPending}>
               {transfer.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}
               {forApproval ? t("employees.sendForApproval") : t("employees.transfer.confirm")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** The first day of last month, as YYYY-MM-DD: the earliest day a conversion may start (M5c). */
+function earliestConversionDay(): string {
+  const [year = 0, month = 1] = today().split("-").map(Number);
+  const first = new Date(Date.UTC(year, month - 2, 1));
+  return first.toISOString().slice(0, 10);
+}
+
+function latestConversionDay(): string {
+  const limit = new Date(`${today()}T00:00:00Z`);
+  limit.setUTCDate(limit.getUTCDate() + 60);
+  return limit.toISOString().slice(0, 10);
+}
+
+/**
+ * Temporary to permanent (M5c). The Super Admin converts at once (or plans it); a Corporate Head
+ * asks and the Super Admin decides. After a conversion the Super Admin can go straight to the
+ * face enrolment (F-87), because until the face is enrolled the person cannot punch.
+ */
+export function ConvertDialog({
+  employee,
+  forApproval,
+  onClose,
+  onEnrol,
+}: {
+  employee: Employee;
+  forApproval: boolean;
+  onClose: () => void;
+  onEnrol: () => void;
+}) {
+  const { t } = useTranslation();
+  const convert = useConvertEmployee(employee.id);
+  const [effectiveFrom, setEffectiveFrom] = useState(today());
+  const [reason, setReason] = useState("");
+  const [done, setDone] = useState<"converted" | "planned" | "asked" | null>(null);
+  // F-88: before pressing Convert, the server says what this day would change (and refuses early).
+  const preview = useConversionPreview(employee.id, effectiveFrom, effectiveFrom !== "");
+  const valid = effectiveFrom !== "" && reason.trim().length >= MIN_REASON && !preview.isError;
+
+  if (done === "converted" && !forApproval) {
+    return (
+      <Dialog open onOpenChange={(open) => !open && onClose()}>
+        <DialogContent>
+          <DialogTitle>{t("employees.conversion.doneTitle")}</DialogTitle>
+          <DialogDescription>{t("employees.conversion.doneText")}</DialogDescription>
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              {t("employees.conversion.later")}
+            </Button>
+            <Button onClick={onEnrol}>{t("employees.conversion.enrolNow")}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    );
+  }
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogTitle>
+          {forApproval
+            ? t("employees.conversion.askTitle", { name: employee.full_name })
+            : t("employees.conversion.title", { name: employee.full_name })}
+        </DialogTitle>
+        <DialogDescription>{t("employees.conversion.description")}</DialogDescription>
+        <ul className="mt-3 list-disc space-y-1 pl-5 text-sm">
+          <li>{t("employees.conversion.changeType")}</li>
+          <li>{t("employees.conversion.changeContractor")}</li>
+          <li>{t("employees.conversion.changeCard")}</li>
+          <li>{t("employees.conversion.changeFace")}</li>
+        </ul>
+        <p className="mt-2 text-[13px] text-muted-foreground">
+          {t("employees.conversion.refusedNote")}
+        </p>
+        <section
+          aria-label={t("employees.conversion.previewTitle")}
+          className="mt-3 rounded-md border bg-muted/40 p-3 text-sm"
+        >
+          <h3 className="font-bold">{t("employees.conversion.previewTitle")}</h3>
+          {preview.isPending ? (
+            <p className="text-muted-foreground">{t("employees.conversion.previewLoading")}</p>
+          ) : null}
+          {preview.isError ? (
+            <p role="alert" className="text-destructive">
+              {describeError(preview.error, t)}
+            </p>
+          ) : null}
+          {preview.data ? (
+            <ul className="mt-1 list-disc space-y-1 pl-5">
+              <li>
+                {preview.data.planned
+                  ? t("employees.conversion.previewPlanned", {
+                      date: formatDate(preview.data.effective_from),
+                    })
+                  : t("employees.conversion.previewDays", { count: preview.data.days_recomputed })}
+              </li>
+              {preview.data.card_serial ? (
+                <li>
+                  {t("employees.conversion.previewCard", { serial: preview.data.card_serial })}
+                </li>
+              ) : null}
+              {preview.data.contractor ? (
+                <li>
+                  {t("employees.conversion.previewContractor", {
+                    name: preview.data.contractor,
+                  })}
+                </li>
+              ) : null}
+              {preview.data.clears_hourly_rate ? (
+                <li>{t("employees.conversion.previewHourly")}</li>
+              ) : null}
+              {preview.data.clears_overtime_rate ? (
+                <li>{t("employees.conversion.previewOvertime")}</li>
+              ) : null}
+            </ul>
+          ) : null}
+        </section>
+        <form
+          className="mt-4 space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (!valid) return;
+            convert.mutate(
+              { effective_from: effectiveFrom, reason: reason.trim() },
+              {
+                onSuccess: (result) => {
+                  if (isPendingApproval(result)) {
+                    toast.success(t("employees.conversion.sentForApproval"));
+                    onClose();
+                  } else if (effectiveFrom > today()) {
+                    toast.success(t("employees.conversion.planned"));
+                    onClose();
+                  } else {
+                    setDone("converted");
+                  }
+                },
+              },
+            );
+          }}
+        >
+          {convert.error ? (
+            <Alert tone="danger">
+              <span>{describeError(convert.error, t)}</span>
+            </Alert>
+          ) : null}
+          <Field
+            id="convert-date"
+            label={t("employees.conversion.effectiveFrom")}
+            hint={t("employees.conversion.effectiveHint")}
+          >
+            <Input
+              id="convert-date"
+              type="date"
+              min={earliestConversionDay()}
+              max={latestConversionDay()}
+              value={effectiveFrom}
+              onChange={(event) => setEffectiveFrom(event.target.value)}
+            />
+          </Field>
+          <Field id="convert-reason" label={t("common.reason")} hint={t("common.reasonExplain")}>
+            <Textarea
+              id="convert-reason"
+              rows={2}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          </Field>
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" disabled={!valid || convert.isPending}>
+              {convert.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}
+              {forApproval ? t("employees.conversion.askButton") : t("employees.conversion.button")}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  );
+}
+
+/** Cancels a planned conversion before its day (M5c, Super Admin). */
+export function CancelConversionDialog({ employee, onClose }: DialogProps) {
+  const { t } = useTranslation();
+  const cancel = useCancelConversion(employee.id);
+  const [reason, setReason] = useState("");
+  const valid = reason.trim().length >= MIN_REASON;
+
+  return (
+    <Dialog open onOpenChange={(open) => !open && onClose()}>
+      <DialogContent>
+        <DialogTitle>{t("employees.conversion.cancelTitle")}</DialogTitle>
+        <DialogDescription>{t("employees.conversion.cancelText")}</DialogDescription>
+        <form
+          className="mt-4 space-y-4"
+          onSubmit={(event) => {
+            event.preventDefault();
+            if (valid)
+              cancel.mutate(
+                { reason: reason.trim() },
+                {
+                  onSuccess: () => {
+                    toast.success(t("employees.conversion.cancelled"));
+                    onClose();
+                  },
+                },
+              );
+          }}
+        >
+          {cancel.error ? (
+            <Alert tone="danger">
+              <span>{describeError(cancel.error, t)}</span>
+            </Alert>
+          ) : null}
+          <Field id="cancel-reason" label={t("common.reason")} hint={t("common.reasonExplain")}>
+            <Textarea
+              id="cancel-reason"
+              rows={2}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+            />
+          </Field>
+          <DialogFooter>
+            <Button variant="outline" onClick={onClose}>
+              {t("common.cancel")}
+            </Button>
+            <Button type="submit" variant="danger" disabled={!valid || cancel.isPending}>
+              {cancel.isPending ? <Loader2 className="animate-spin" aria-hidden /> : null}
+              {t("employees.conversion.cancelButton")}
             </Button>
           </DialogFooter>
         </form>

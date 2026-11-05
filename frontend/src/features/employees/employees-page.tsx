@@ -29,7 +29,13 @@ import { PhoneTag } from "@/features/phone-admin/phone-tag";
 import { useNamedItems } from "@/features/plants/use-plants";
 import { formatNumber, formatRupees } from "@/lib/format";
 import { BulkDialog } from "./bulk-dialog";
-import { ChangeWaiting, EmployeeStatusBadge, initialsOf, TypeBadge } from "./employee-badges";
+import {
+  ChangeWaiting,
+  EmployeeStatusBadge,
+  FaceEnrolmentPendingBadge,
+  initialsOf,
+  TypeBadge,
+} from "./employee-badges";
 import {
   type BulkAction,
   type Employee,
@@ -363,6 +369,7 @@ export function EmployeesPage() {
                             {employee.full_name}
                           </Link>
                           {employee.has_pending_change ? <ChangeWaiting /> : null}
+                          {employee.face_enrolment_pending ? <FaceEnrolmentPendingBadge /> : null}
                           {employee.phone_punch_enabled ? <PhoneTag className="ml-2" /> : null}
                         </span>
                       </span>
@@ -378,7 +385,9 @@ export function EmployeesPage() {
                       {employee.contractor_name ?? "–"}
                     </TableCell>
                     <TableCell className="tnum text-right">
-                      {employee.ot_rate_per_hour ? (
+                      {employee.type === "permanent" ? (
+                        "–"
+                      ) : employee.ot_rate_per_hour ? (
                         `${formatRupees(employee.ot_rate_per_hour)}/h`
                       ) : (
                         <span className="text-warning">{t("employees.missing")}</span>

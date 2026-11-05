@@ -1,6 +1,6 @@
 // Small status pieces used on the employee list, detail and approvals. Status is never shown by
 // colour alone: each badge has an icon AND a word.
-import { Ban, CircleCheck, Hourglass, QrCode, ScanFace } from "lucide-react";
+import { Ban, CircleCheck, Hourglass, QrCode, ScanFace, UserCheck } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import type { Employee } from "./use-employees";
@@ -43,6 +43,28 @@ export function ChangeWaiting() {
       <Hourglass className="size-3" aria-hidden />
       {t("employees.changeWaiting")}
     </span>
+  );
+}
+
+/** M5c: a converted worker whose face is not enrolled yet cannot punch until it is. */
+export function FaceEnrolmentPendingBadge() {
+  const { t } = useTranslation();
+  return (
+    <Badge tone="warning">
+      <ScanFace aria-hidden />
+      {t("employees.conversion.pending")}
+    </Badge>
+  );
+}
+
+/** M5c: the person was a temporary worker once. */
+export function ConvertedTag() {
+  const { t } = useTranslation();
+  return (
+    <Badge tone="neutral">
+      <UserCheck aria-hidden />
+      {t("employees.conversion.convertedTag")}
+    </Badge>
   );
 }
 

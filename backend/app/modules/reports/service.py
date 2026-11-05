@@ -11,12 +11,15 @@ import logging
 import threading
 import time
 import uuid
+from collections.abc import Iterator
+from contextlib import contextmanager
 from dataclasses import dataclass, replace
 from datetime import date
 
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.date_range import check_date_range
 from app.core.errors import ApiError
 from app.core.time import utc_now
 from app.modules.attendance.read_service import check_day_not_future, visible_plant_ids
@@ -43,9 +46,11 @@ KINDS = {
     "exceptions": ("Exceptions", False),
     "rejected-punches": ("Rejected punches", False),
     "corrections": ("Corrections", False),
+    "conversions": ("Conversions to permanent", True),
 }
 MONTH_KINDS = ("register", "contractor-hours")
 MAX_RANGE_DAYS = 31
+LONG_RANGE_KINDS = {"conversions": 366}  # a year of conversions in one file (M5c, F-91)
 ROLE_NAMES = {
     Role.SUPER_ADMIN.value: "Super Admin",
     Role.CORPORATE_HEAD.value: "Corporate Head",
@@ -93,10 +98,8 @@ def _period(request: Request) -> tuple[date, date, str]:
         return first, last, f"{first:%B %Y}"
     if request.date_from is None or request.date_to is None:
         raise ApiError("VALIDATION_FAILED", "Choose the dates.", 422, {"field": "date_from"})
-    if request.date_to < request.date_from:
-        raise ApiError("VALIDATION_FAILED", "The end is before the start.", 422)
-    if (request.date_to - request.date_from).days + 1 > MAX_RANGE_DAYS:
-        raise ApiError("REPORT_RANGE_TOO_LONG", "Choose at most 31 days.", 422)
+    longest = LONG_RANGE_KINDS.get(request.kind, MAX_RANGE_DAYS)
+    check_date_range(request.date_from, request.date_to, longest)
     check_day_not_future(request.date_from)
     return (
         request.date_from,
@@ -114,28 +117,42 @@ def _file_period(request: Request, date_from: date, date_to: date) -> str:
     return f"{date_from:%Y%m%d}-{date_to:%Y%m%d}"
 
 
-def build_file(session: Session, current_user: CurrentUser, request: Request) -> File:
-    if request.kind not in KINDS:
-        raise ApiError("REPORT_KIND_UNKNOWN", "This report does not exist.", 404)
-    if request.format not in ("xlsx", "pdf"):
-        raise ApiError("VALIDATION_FAILED", "Choose Excel or PDF.", 422, {"field": "format"})
-    date_from, date_to, period_text = _period(request)
+@contextmanager
+def report_slot(current_user: CurrentUser) -> Iterator[None]:
+    """The limits every report file shares: 20 files in 10 minutes and one report at a time per
+    user. The slot is given back when the file is built or fails."""
     if not report_file_limiter.allow(str(current_user.id)):
         raise ApiError("TOO_MANY_REQUESTS", "Too many files. Try again in a few minutes.", 429)
     with _building_lock:
         if current_user.id in _building:
             raise ApiError("REPORT_BUSY", "Wait for your other report to finish.", 429)
         _building.add(current_user.id)
-    started = time.monotonic()
     try:
+        yield
+    except ApiError as error:
+        # "Still being calculated" did no real work: it must not use up the 20 files, because the
+        # reports page asks again by itself (M5c).
+        if error.code == "ATTENDANCE_PREPARING":
+            report_file_limiter.refund(str(current_user.id))
+        raise
+    finally:
+        with _building_lock:
+            _building.discard(current_user.id)
+
+
+def build_file(session: Session, current_user: CurrentUser, request: Request) -> File:
+    if request.kind not in KINDS:
+        raise ApiError("REPORT_KIND_UNKNOWN", "This report does not exist.", 404)
+    if request.format not in ("xlsx", "pdf"):
+        raise ApiError("VALIDATION_FAILED", "Choose Excel or PDF.", 422, {"field": "format"})
+    date_from, date_to, period_text = _period(request)
+    started = time.monotonic()
+    with report_slot(current_user):
         report = _report(session, current_user, request, date_from, date_to, period_text)
         if request.format == "pdf":
             content = build_pdf(report)
         else:
             content = build_xlsx(_with_summary(report))
-    finally:
-        with _building_lock:
-            _building.discard(current_user.id)
     logger.info(
         "report built",
         extra={
@@ -148,7 +165,7 @@ def build_file(session: Session, current_user: CurrentUser, request: Request) ->
         },
     )
     plant_code = _plant_code(session, request, report)
-    _audit(session, current_user, request, plant_code, period_text, report.row_count)
+    audit_download(session, current_user, request, plant_code, period_text, report.row_count)
     period = _file_period(request, date_from, date_to)
     media_type = "application/pdf" if request.format == "pdf" else XLSX_TYPE
     name = f"upasthiti-{request.kind}-{plant_code}-{period}.{request.format}"
@@ -210,6 +227,7 @@ def _sheets(context: Context, current_user: CurrentUser, request: Request) -> li
         "late-early-overtime": data.late_early_overtime,
         "exceptions": data.exceptions,
         "rejected-punches": data.rejected_punches,
+        "conversions": data.conversions,
     }
     return builders[request.kind](context)
 
@@ -233,13 +251,14 @@ def _with_summary(report: Report) -> Report:
     return replace(report, sheets=[summary, *report.sheets])
 
 
-def _audit(
+def audit_download(
     session: Session,
     current_user: CurrentUser,
     request: Request,
     plant_code: str,
     period_text: str,
     rows: int,
+    extra: dict[str, str] | None = None,
 ) -> None:
     record_audit(
         session,
@@ -252,6 +271,7 @@ def _audit(
             "plant": plant_code,
             "period": period_text,
             "rows": rows,
+            **(extra or {}),
         },
     )
     session.commit()

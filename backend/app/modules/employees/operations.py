@@ -18,20 +18,31 @@ from app.core.errors import ApiError
 from app.core.time import today_ist
 from app.modules.approvals.models import ChangeRequest, RequestStatus
 from app.modules.attendance.service import mark_days_stale
-from app.modules.audit.service import Actor, record_audit
+from app.modules.audit.service import SYSTEM_ACTOR, Actor, record_audit
+from app.modules.contractors.models import Contractor
 from app.modules.employees.models import (
     Employee,
     EmployeePlantHistory,
     EmployeeStatus,
+    EmployeeTypeHistory,
+    PunchMethod,
     ShiftAssignment,
 )
 from app.modules.employees.rules import (
+    MAX_DAYS_AHEAD,
     EmployeeValues,
     check_effective_date,
     check_new_code,
     check_values,
     clean_code,
     field_error,
+)
+from app.modules.employees.type_history import (
+    add_permanent_row,
+    cancel_scheduled_row,
+    scheduled_conversion,
+    start_type_history,
+    sync_type_history,
 )
 from app.modules.face.gallery_cache import invalidate_plant_gallery
 from app.modules.face.models import TemplateDeleteKind
@@ -40,8 +51,11 @@ from app.modules.face.template_service import (
     close_consent_of_leaver,
     delete_active_template,
 )
+from app.modules.notifications.service import create_notification
+from app.modules.org.models import Plant
 from app.modules.phone.access_service import end_phone_for_leaver
-from app.modules.qr_cards.service import revoke_card_of_leaver
+from app.modules.qr_cards.queries import active_card_of
+from app.modules.qr_cards.service import revoke_card_of_converted, revoke_card_of_leaver
 
 MAX_LEFT_DAYS_AHEAD = 30
 MAX_BULK_SIZE = 500
@@ -54,6 +68,8 @@ class AuditContext:
 
     actor: Actor
     change_request_id: uuid.UUID | None = None
+    # True while a Corporate Head's change is only tried (and rolled back): no notice, no email.
+    dry_run: bool = False
 
 
 # --- Reading ---------------------------------------------------------------------------------
@@ -146,6 +162,7 @@ def create_employee(session: Session, context: AuditContext, values: EmployeeVal
             created_by=context.actor.actor_id,
         )
     )
+    start_type_history(session, employee, context.actor.actor_id)
     session.flush()
     _mark_attendance_stale(session, employee, values.joined_on)
     _audit(session, context, employee, "employee.create", before=None)
@@ -168,6 +185,10 @@ def update_employee(
     before = snapshot(session, employee)
     current = values_of(session, employee)
     new_values = check_values(session, current.with_changes(changes))
+    if new_values.type != current.type:
+        raise field_error(
+            "VALIDATION_FAILED", "The type changes only with Convert to permanent.", "type"
+        )
     leaves_face = current.punch_method == "face" and new_values.punch_method != "face"
 
     for field_name in (
@@ -184,6 +205,8 @@ def update_employee(
         setattr(employee, field_name, getattr(new_values, field_name))
     if new_values.shift_id != current.shift_id:
         _move_to_shift(session, employee, new_values.shift_id, shift_from or today_ist())
+    # A contractor or rate edit goes into the type history row of today (M5c).
+    sync_type_history(session, employee, today=today_ist(), created_by=context.actor.actor_id)
     session.flush()
     changed_from = [today_ist(), current.joined_on, new_values.joined_on]
     if new_values.shift_id != current.shift_id and shift_from:
@@ -292,6 +315,227 @@ def apply_due_transfers(session: Session, today: date) -> int:
         employee.department_id = history_row.department_id
         _mark_attendance_stale(session, employee, today)
     return len(due_rows)
+
+
+# --- Temporary to permanent (M5c) ---------------------------------------------------------------
+
+
+def first_day_of_previous_month(today: date) -> date:
+    first_of_month = today.replace(day=1)
+    return (first_of_month - timedelta(days=1)).replace(day=1)
+
+
+def check_conversion_date(employee: Employee, effective_from: date) -> None:
+    """Not before the joining date or the 1st of the previous month, up to 60 days ahead."""
+    today = today_ist()
+    earliest = max(employee.joined_on, first_day_of_previous_month(today))
+    if effective_from < earliest or effective_from > today + timedelta(days=MAX_DAYS_AHEAD):
+        raise field_error(
+            "CONVERSION_DATE_INVALID", "Choose a valid date for the conversion.", "effective_from"
+        )
+
+
+def check_can_convert(session: Session, employee: Employee) -> None:
+    """The checks of spec section 7 rules 13 and 14; they run again when a request is approved."""
+    _check_active(employee)
+    if employee.type == "permanent":
+        raise ApiError("EMPLOYEE_ALREADY_PERMANENT", "This employee is already permanent.", 409)
+    if scheduled_conversion(session, employee.id, today_ist()) is not None:
+        raise ApiError(
+            "CONVERSION_ALREADY_SCHEDULED",
+            "A conversion is already planned for this employee.",
+            409,
+        )
+    waiting = session.scalar(
+        select(ChangeRequest.id).where(
+            ChangeRequest.employee_id == employee.id,
+            ChangeRequest.status == RequestStatus.PENDING.value,
+        )
+    )
+    if waiting is not None:
+        raise ApiError(
+            "CHANGE_ALREADY_PENDING", "A change for this employee is waiting for approval.", 409
+        )
+
+
+def convert_to_permanent(
+    session: Session,
+    context: AuditContext,
+    employee: Employee,
+    *,
+    effective_from: date,
+    reason: str,
+) -> Employee:
+    """A temporary worker becomes permanent from a date. Same id and code, nothing else about the
+    person changes. A date that has come takes effect now; a later one is scheduled and the daily
+    job applies it."""
+    check_can_convert(session, employee)
+    check_conversion_date(employee, effective_from)
+    before = snapshot(session, employee)
+    add_permanent_row(
+        session,
+        employee,
+        from_date=effective_from,
+        reason=reason,
+        created_by=context.actor.actor_id,
+    )
+    if effective_from > today_ist():
+        _audit(
+            session,
+            context,
+            employee,
+            "employee.convert_scheduled",
+            before=before,
+            reason=reason,
+            extra={"effective_from": effective_from},
+        )
+        return employee
+    _apply_conversion(session, context, employee, effective_from, reason, before)
+    return employee
+
+
+def preview_conversion(
+    session: Session, employee: Employee, effective_from: date
+) -> dict[str, Any]:
+    """F-88: what a conversion from `effective_from` would do, without changing anything.
+    The same checks as the real conversion run first, so a refusal shows before Convert."""
+    check_can_convert(session, employee)
+    check_conversion_date(employee, effective_from)
+    today = today_ist()
+    card = active_card_of(session, employee.id)
+    contractor = (
+        session.scalar(select(Contractor.name).where(Contractor.id == employee.contractor_id))
+        if employee.contractor_id
+        else None
+    )
+    first_stale_day = effective_from if effective_from >= today else effective_from.replace(day=1)
+    return {
+        "effective_from": effective_from,
+        "planned": effective_from > today,
+        "days_recomputed": max(0, (today - first_stale_day).days + 1),
+        "card_serial": card.card_serial if card else None,
+        "contractor": contractor,
+        "clears_hourly_rate": employee.hourly_rate is not None,
+        "clears_overtime_rate": employee.ot_rate_per_hour is not None,
+    }
+
+
+def cancel_scheduled_conversion(
+    session: Session, context: AuditContext, employee: Employee, reason: str
+) -> Employee:
+    """Cancel a planned conversion before its day: the temporary period stays open (audited)."""
+    scheduled = scheduled_conversion(session, employee.id, today_ist())
+    if scheduled is None:
+        raise ApiError(
+            "CONVERSION_NOT_SCHEDULED", "No conversion is planned for this employee.", 409
+        )
+    before = snapshot(session, employee)
+    cancelled_day = scheduled.from_date
+    cancel_scheduled_row(session, employee.id, scheduled)
+    _audit(
+        session,
+        context,
+        employee,
+        "employee.convert_cancelled",
+        before=before,
+        reason=reason,
+        extra={"effective_from": cancelled_day},
+    )
+    return employee
+
+
+def apply_due_conversions(session: Session, today: date) -> int:
+    """Daily job: scheduled conversions whose day has come take effect. Safe to repeat: once the
+    employee is permanent, nothing is due. Caller commits."""
+    due = session.execute(
+        select(EmployeeTypeHistory, Employee)
+        .join(Employee, Employee.id == EmployeeTypeHistory.employee_id)
+        .where(
+            EmployeeTypeHistory.type == "permanent",
+            EmployeeTypeHistory.to_date.is_(None),
+            EmployeeTypeHistory.from_date <= today,
+            Employee.type == "temporary",
+        )
+    ).all()
+    context = AuditContext(SYSTEM_ACTOR)
+    applied = 0
+    for history_row, employee in due:
+        before = snapshot(session, employee)
+        if employee.status != EmployeeStatus.ACTIVE.value:
+            # The person left before the day came: nothing is applied (spec section 9).
+            cancelled_day = history_row.from_date
+            cancel_scheduled_row(session, employee.id, history_row)
+            _audit(
+                session,
+                context,
+                employee,
+                "employee.convert_cancelled",
+                before=before,
+                reason="The employee left before the conversion day",
+                extra={"effective_from": cancelled_day},
+            )
+            continue
+        # A card is revoked by a person, never by "the system": the one who planned the
+        # conversion (the audit row of the conversion itself still says `system`).
+        planner = Actor(actor_type="user", actor_id=history_row.created_by)
+        _apply_conversion(
+            session,
+            context,
+            employee,
+            history_row.from_date,
+            history_row.reason or "",
+            before,
+            card_actor=planner,
+        )
+        applied += 1
+    return applied
+
+
+def _apply_conversion(
+    session: Session,
+    context: AuditContext,
+    employee: Employee,
+    effective_from: date,
+    reason: str,
+    before: dict[str, Any],
+    card_actor: Actor | None = None,
+) -> None:
+    """What a conversion does to the employee, all in the caller's transaction (spec rule 14).
+    The type history already holds the new row."""
+    employee.type = "permanent"
+    employee.contractor_id = None
+    employee.hourly_rate = None
+    employee.ot_rate_per_hour = None
+    employee.punch_method = PunchMethod.FACE.value
+    revoke_card_of_converted(session, card_actor or context.actor, employee)
+    session.flush()
+    # A past date also recomputes the first day of its month: the month totals and the
+    # weekly-off counts of that month are built from all of its days.
+    stale_from = effective_from if effective_from >= today_ist() else effective_from.replace(day=1)
+    _mark_attendance_stale(session, employee, stale_from)
+    _audit(
+        session,
+        context,
+        employee,
+        "employee.convert",
+        before=before,
+        reason=reason,
+        extra={"effective_from": effective_from, "face_enrolment_pending": True},
+    )
+    if context.dry_run:
+        return
+    plant_code = session.scalar(select(Plant.code).where(Plant.id == employee.plant_id)) or ""
+    create_notification(
+        session,
+        kind="conversion_face_pending",
+        severity="urgent",
+        plant_id=employee.plant_id,
+        text_key="notification.conversion_face_pending",
+        params={"plant": plant_code, "effective_from": effective_from.isoformat()},
+        link=f"/admin/employees/{employee.id}",
+        dedupe_key=f"conversion_face_pending:{employee.id}:{effective_from.isoformat()}",
+        subject_ids=[employee.id],
+    )
 
 
 # --- Leaving and coming back --------------------------------------------------------------------

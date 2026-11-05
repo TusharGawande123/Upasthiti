@@ -234,6 +234,45 @@ class RegisterResponse(BaseModel):
     total: int
 
 
+class RangeDay(BaseModel):
+    date: date
+    weekday: int  # 1 = Monday ... 7 = Sunday
+
+
+class Preparing(BaseModel):
+    """Days still being calculated (M5c rule 9): the screen asks again until this is 0."""
+
+    pending_days: int = 0
+
+
+class RangeRegisterResponse(BaseModel):
+    date_from: date
+    date_to: date
+    plant: RegisterPlant
+    days: list[RangeDay]
+    items: list[RegisterRow]
+    page: int
+    page_size: int
+    total: int
+    preparing: Preparing
+
+
+class TypeChange(BaseModel):
+    from_date: date
+    type: str
+
+
+class EmployeeRangeResponse(BaseModel):
+    employee: PersonSummary
+    date_from: date
+    date_to: date
+    days: list[Day]
+    totals: Totals
+    totals_by_type: dict[str, Totals]
+    type_changes: list[TypeChange]
+    preparing: Preparing
+
+
 class UndecidedPlant(BaseModel):
     plant: RegisterPlant
     short_hours: int

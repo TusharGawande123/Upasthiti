@@ -3,7 +3,7 @@ punch part). Real PostgreSQL, fake face engine (person 1 is F-201's face, person
 Every time is pinned (time-machine) to Monday 02/11/2026 IST, as in the spec."""
 
 import uuid
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -12,6 +12,7 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.core.time import today_ist
 from app.face.fake_engine import Problem
 from app.modules.org.models import Geofence
 from app.modules.punches.models import Punch, PunchChallenge, PunchSnapshot
@@ -416,11 +417,12 @@ def test_ac_41b_with_outside_work_off_the_same_punch_is_outside_geofence(
 def test_ac_49_the_until_day_counts_whole_and_the_next_day_it_is_off(
     boss: TestClient, phone: TestClient, people: People
 ) -> None:
-    allow_outside_work(boss, people.face_id, until="2026-11-03")
-    with frozen_at(ist(date(2026, 11, 3), 23, 50)):
+    last_day = today_ist() + timedelta(days=1)
+    allow_outside_work(boss, people.face_id, until=last_day.isoformat())
+    with frozen_at(ist(last_day, 23, 50)):
         inside_last_day = phone_face_punch(phone, person=1, location=FAR_AWAY)
     assert inside_last_day.json()["outside_plant"] is True
-    with frozen_at(ist(date(2026, 11, 4), 0, 10)):
+    with frozen_at(ist(last_day + timedelta(days=1), 0, 10)):
         next_day = phone_face_punch(phone, person=1, location=FAR_AWAY)
     assert next_day.json()["reason_code"] == "OUTSIDE_GEOFENCE"
 

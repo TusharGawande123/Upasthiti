@@ -9,7 +9,8 @@ export type RequestKind =
   | "employee.update"
   | "employee.transfer"
   | "employee.bulk"
-  | "employee.import";
+  | "employee.import"
+  | "employee.convert";
 
 // "failed": the re-check at approval found a problem, so nothing was applied.
 export type RequestStatus = "pending" | "approved" | "rejected" | "withdrawn" | "failed";
