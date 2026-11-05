@@ -60,6 +60,14 @@ test("J-18 privacy notice, data-request register and the full export read back",
   );
   expect(afterCheck.status).toBe("identity_checked");
   await api.post(`/data-requests/${created.id}/events`, {
+    event_type: "action_taken",
+    detail: "Prepared a copy of the person's data",
+  });
+  await api.post(`/data-requests/${created.id}/events`, {
+    event_type: "answer_sent",
+    detail: "Handed the copy to the person",
+  });
+  await api.post(`/data-requests/${created.id}/events`, {
     event_type: "closed",
     detail: "Copy of the data handed over",
     outcome: "done",
@@ -93,6 +101,13 @@ test("J-18 privacy notice, data-request register and the full export read back",
   const active = await api.get<{ total: number }>("/employees?page_size=1&status=active");
   const left = await api.get<{ total: number }>("/employees?page_size=1&status=left");
   expect(employeesFile?.rows).toBe(active.total + left.total);
-  // No face data of anyone leaves the building in the export.
-  expect(zip.names.filter((name) => /template|passkey|password/i.test(name))).toEqual([]);
+  // No secret column leaves the building: the sealed face template, the passkey credential and
+  // key, password hashes and session tokens are in no file of the export (only metadata is).
+  const secretColumns =
+    /^(ciphertext|nonce|password_hash|credential_id|public_key|user_handle|token_hash)$/;
+  for (const [file, columns] of Object.entries(zip.csv_headers)) {
+    expect(columns.filter((column) => secretColumns.test(column)), `${file} has no secret column`)
+      .toEqual([]);
+  }
+  expect(Object.keys(zip.csv_headers).length).toBeGreaterThan(10);
 });

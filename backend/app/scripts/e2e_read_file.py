@@ -7,11 +7,13 @@ holds (not what the screen said) with the golden numbers. Supported files:
 
   .xlsx  {"kind": "xlsx", "sheets": [{"name", "rows": [[cell text, ...], ...]}]} (cells as text)
   .pdf   {"kind": "pdf", "pages": <number>, "text": [text of page 1, ...]}
-  .zip   {"kind": "zip", "names": [...], "manifest": <manifest.json parsed, or null>}
+  .zip   {"kind": "zip", "names": [...], "manifest": <manifest.json parsed, or null>,
+          "csv_headers": {"<file>.csv": [column name, ...]}}
 
 It refuses to run unless APP_ENV=test, and it only reads.
 """
 
+import csv
 import io
 import json
 import os
@@ -55,7 +57,14 @@ def read_zip(path: Path) -> dict[str, Any]:
         manifest = None
         if "manifest.json" in names:
             manifest = json.loads(io.TextIOWrapper(archive.open("manifest.json"), "utf-8").read())
-    return {"kind": "zip", "names": names, "manifest": manifest}
+        # The first line of each CSV file: the column names, so a journey can prove that a
+        # secret column (a sealed template, a password hash) is not in the export.
+        csv_headers = {}
+        for name in names:
+            if name.endswith(".csv"):
+                first_line = io.TextIOWrapper(archive.open(name), "utf-8-sig").readline()
+                csv_headers[name] = next(csv.reader([first_line]), [])
+    return {"kind": "zip", "names": names, "manifest": manifest, "csv_headers": csv_headers}
 
 
 def read_file(path: Path) -> dict[str, Any]:

@@ -69,6 +69,7 @@ export type ReadPdf = { kind: "pdf"; pages: number; text: string[] };
 export type ReadZip = {
   kind: "zip";
   names: string[];
+  csv_headers: Record<string, string[]>;
   manifest: {
     total_rows: number;
     files: Array<{ file: string; table: string; rows: number }>;

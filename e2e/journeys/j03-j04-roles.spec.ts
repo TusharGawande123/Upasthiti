@@ -103,7 +103,10 @@ test("J-03 a Corporate Head's new employee and transfer wait; one is approved, o
     expect(decided.find((item) => item.status === "rejected")?.decision_reason).toBe(
       "Not needed this month",
     );
+    // Decided requests are in the History tab; the reason is shown in the detail drawer of the row.
     await head.page.goto("/admin/my-requests");
+    await head.page.getByRole("tab", { name: "History" }).click();
+    await head.page.getByText(/Rejected Journey/).first().click();
     await expect(head.page.getByText("Not needed this month")).toBeVisible();
   } finally {
     await head.close();
