@@ -108,3 +108,5 @@ heartbeat_limiter = RateLimiter(max_attempts=6, window_seconds=60)
 
 # M5 (spec §7 rule 18): at most 20 report files in 10 minutes per user.
 report_file_limiter = RateLimiter(max_attempts=20, window_seconds=TEN_MINUTES)
+# M6 (spec 7.7 rule 6): at most 3 full data exports an hour per user.
+full_export_limiter = RateLimiter(max_attempts=3, window_seconds=60 * 60)

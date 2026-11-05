@@ -25,6 +25,7 @@ from app.modules.dashboard.router import router as dashboard_router
 from app.modules.data_requests.router import router as data_requests_router
 from app.modules.employees.router import router as employees_router
 from app.modules.employees.search_router import router as search_router
+from app.modules.exports.router import router as exports_router
 from app.modules.face.engine_provider import get_face_engine
 from app.modules.face.router import router as face_router
 from app.modules.health.router import router as health_router
@@ -126,6 +127,7 @@ def create_app() -> FastAPI:
     api_router.include_router(phone_router)
     api_router.include_router(phone_admin_router)
     api_router.include_router(data_requests_router)
+    api_router.include_router(exports_router)
     app.include_router(api_router)
     return app
 

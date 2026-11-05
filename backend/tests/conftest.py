@@ -59,6 +59,7 @@ from app.modules.auth.rate_limit import (  # noqa: E402
     code_try_limiter,
     enrolment_shot_limiter,
     failed_pairing_limiter,
+    full_export_limiter,
     login_limiter,
     pairing_limiter,
     punch_limiter,
@@ -213,6 +214,7 @@ def fresh_rate_limits() -> Iterator[None]:
     punch_limiter.reset()
     report_limiter.reset()
     report_file_limiter.reset()
+    full_export_limiter.reset()
     enrolment_shot_limiter.reset()
     challenge_limiter.reset()
     code_try_limiter.reset()
