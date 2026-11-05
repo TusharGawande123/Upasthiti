@@ -103,6 +103,8 @@ export default defineConfig(({ mode }) => {
       // Form tests type many characters; under coverage a laptop needs more than the default 5 s.
       testTimeout: 15_000,
       setupFiles: ["./src/test/setup.ts"],
+      // M6 AC-M6-45: one Vitest run at a time per checkout (the `.test-run.lock` guard).
+      globalSetup: ["./scripts/vitest-global-setup.mjs"],
       coverage: {
         provider: "v8",
         include: ["src/**/*.{ts,tsx}"],

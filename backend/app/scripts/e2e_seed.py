@@ -21,6 +21,7 @@ from app.modules.users.models import Role, User
 
 BACKEND_FOLDER = Path(__file__).resolve().parents[2]
 E2E_DATABASE_NAME_ENDING = "_e2e"
+LOCAL_HOSTS = {"localhost", "127.0.0.1", "::1"}
 E2E_PASSWORD = "E2e-Test-Password-1"  # noqa: S105 (fake, for local/CI tests only)
 E2E_USERS = (
     ("e2e.super", "E2E Super Admin", Role.SUPER_ADMIN),
@@ -32,9 +33,14 @@ E2E_USERS = (
 
 def main() -> int:
     settings = load_settings_or_exit()
-    database_name = make_url(settings.database_url).database or ""
+    database_url = make_url(settings.database_url)
+    database_name = database_url.database or ""
     if settings.app_env != "test" or not database_name.endswith(E2E_DATABASE_NAME_ENDING):
         print("Refused: needs APP_ENV=test and a database whose name ends in _e2e.")
+        return 1
+    # M6 AC-M6-45: a remote database (a shared or live one) is never wiped, whatever its name is.
+    if (database_url.host or "localhost") not in LOCAL_HOSTS:
+        print("Refused: the end-to-end database must be on this computer.")
         return 1
 
     _create_database_if_missing(settings.database_url, database_name)

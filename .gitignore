@@ -51,3 +51,7 @@ models/
 # Face guide model (downloaded by frontend/scripts/fetch-face-model.mjs, never committed)
 frontend/public/models/
 guides-pdf/
+
+# Test-run guard (decision 0038): who is running tests right now
+.test-run.lock
+.test-run.lock.mutex

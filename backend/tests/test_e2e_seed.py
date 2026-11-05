@@ -17,3 +17,11 @@ def test_refuses_a_database_without_the_e2e_ending(monkeypatch: pytest.MonkeyPat
     monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://u:p@127.0.0.1:1/upasthiti")
 
     assert e2e_seed.main() == 1
+
+
+def test_refuses_a_database_on_another_computer(monkeypatch: pytest.MonkeyPatch) -> None:
+    """M6 AC-M6-45: even a name that ends in _e2e is not wiped on a remote host."""
+    monkeypatch.setenv("APP_ENV", "test")
+    monkeypatch.setenv("DATABASE_URL", "postgresql+psycopg://u:p@db.example.com:5432/upasthiti_e2e")
+
+    assert e2e_seed.main() == 1
