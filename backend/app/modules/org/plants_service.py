@@ -224,7 +224,7 @@ def _check_no_active_kiosks(session: Session, plant: Plant) -> None:
     if active_kiosks:
         raise ApiError(
             "PLANT_HAS_ACTIVE_KIOSKS",
-            "Revoke this plant's kiosks first.",
+            "Revoke this plant's attendance devices first.",
             409,
             {"count": active_kiosks},
         )
