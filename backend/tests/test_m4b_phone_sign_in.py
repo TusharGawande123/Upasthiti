@@ -13,7 +13,7 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from app.core.errors import ApiError
-from app.core.time import IST
+from app.core.time import IST, today_ist
 from app.modules.audit.models import AuditLog
 from app.modules.org.models import UserPlantAccess
 from app.modules.phone.models import PhoneAccess, PhoneAccount
@@ -38,6 +38,8 @@ from tests.phone_api_helpers import (
     sign_in,
     switch_phone,
 )
+
+pytestmark = pytest.mark.time_sensitive
 
 MONDAY = date(2026, 11, 2)  # the spec's day (§10)
 
@@ -64,7 +66,11 @@ def phone(db_app: FastAPI) -> TestClient:
 
 
 def audit_rows(session: Session, action: str) -> list[AuditLog]:
-    return list(session.scalars(select(AuditLog).where(AuditLog.action == action)))
+    return list(
+        session.scalars(
+            select(AuditLog).where(AuditLog.action == action).order_by(AuditLog.at, AuditLog.id)
+        )
+    )
 
 
 def error_code(response) -> str:  # noqa: ANN001
@@ -204,7 +210,7 @@ def test_a_left_employee_cannot_sign_in(
     give_password(db_session, people.face_id)
     boss.post(
         f"/api/v1/employees/{people.face_id}/mark-left",
-        json={"left_on": date.today().isoformat(), "reason": "Contract ended"},
+        json={"left_on": today_ist().isoformat(), "reason": "Contract ended"},
     )
     answer = sign_in(phone)
     assert answer.status_code == 401 and error_code(answer) == "PHONE_CREDENTIALS_INVALID"
@@ -449,7 +455,7 @@ def test_ac_9_mark_as_left_ends_phone_access_sessions_and_password(
 
     left = boss.post(
         f"/api/v1/employees/{people.face_id}/mark-left",
-        json={"left_on": date.today().isoformat(), "reason": "Contract ended"},
+        json={"left_on": today_ist().isoformat(), "reason": "Contract ended"},
     )
 
     assert left.status_code == 200, left.text
@@ -467,7 +473,7 @@ def test_ac_9_mark_as_left_ends_phone_access_sessions_and_password(
     assert error_code(phone.get(f"{PHONE}/me")) == "PHONE_NOT_SIGNED_IN"
     reactivated = boss.post(
         f"/api/v1/employees/{people.face_id}/reactivate",
-        json={"joined_on": date.today().isoformat(), "reason": "Came back"},
+        json={"joined_on": today_ist().isoformat(), "reason": "Came back"},
     )
     assert reactivated.status_code == 200, reactivated.text
     view = boss.get(f"/api/v1/employees/{people.face_id}/phone").json()

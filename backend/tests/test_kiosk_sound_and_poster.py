@@ -2,7 +2,7 @@
 (spec M2 §4.12, §5.5, §7 rules 1 and 20; F-1, F-27, F-34; AC-36). Real PostgreSQL; fake data."""
 
 import uuid
-from datetime import date, time
+from datetime import time
 
 import pypdfium2
 import pytest
@@ -19,7 +19,10 @@ from app.modules.org.models import Plant, Shift
 from app.modules.printing import poster_pdf
 from app.modules.users.models import Role, User
 from app.modules.users.plant_access import set_user_plant
+from tests.clock_helpers import PINNED_DAY
 from tests.people_helpers import PlantIds, client_for, create_plant
+
+pytestmark = pytest.mark.time_sensitive
 
 KIOSKS = "/api/v1/kiosks"
 
@@ -308,7 +311,7 @@ def test_more_than_six_shifts_say_and_n_more() -> None:
         for number in range(1, 9)
     ]
     content = poster_pdf.gate_poster_pdf(
-        "Plant", "K1", 60, "example.app/privacy", shifts, date.today()
+        "Plant", "K1", 60, "example.app/privacy", shifts, PINNED_DAY
     )
     document = pypdfium2.PdfDocument(content)
     text = " ".join(document[0].get_textpage().get_text_range().split())

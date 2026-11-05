@@ -19,6 +19,8 @@ from app.modules.punches.models import Punch, PunchSnapshot
 from app.modules.users.models import Role, User
 from tests.people_helpers import PlantIds, client_for, create_plant, temporary_body
 
+pytestmark = pytest.mark.time_sensitive
+
 
 @pytest.fixture
 def boss(db_app: FastAPI, db_session: Session) -> TestClient:
@@ -345,7 +347,8 @@ def make_notice(session: Session, author: User, **changes: object) -> KioskNotic
         "ends_at": now + timedelta(hours=12),
         "created_by": author.id,
     }
-    notice = KioskNotice(**{**values, **changes})
+    moments = {name: now + value for name, value in changes.items() if isinstance(value, timedelta)}
+    notice = KioskNotice(**{**values, **changes, **moments})
     session.add(notice)
     session.flush()
     return notice
@@ -377,8 +380,10 @@ def test_a_notice_can_be_ended_with_who_ended_it(db_session: Session, author: Us
         ({"text": ""}, "ck_kiosk_notices_text_length"),
         ({"text": "x" * 201}, "ck_kiosk_notices_text_length"),
         ({"level": "loud"}, "ck_kiosk_notices_level_known"),
-        ({"ends_at": utc_now() - timedelta(hours=1)}, "ck_kiosk_notices_ends_after_start"),
-        ({"ended_at": utc_now()}, "ck_kiosk_notices_ended_with_user"),
+        # A timedelta means "this long after now"; make_notice() reads the clock when the test runs,
+        # not when pytest collects the file (the clock may be moved in between).
+        ({"ends_at": timedelta(hours=-1)}, "ck_kiosk_notices_ends_after_start"),
+        ({"ended_at": timedelta(0)}, "ck_kiosk_notices_ended_with_user"),
     ],
 )
 def test_the_database_refuses_an_inconsistent_notice(

@@ -5,7 +5,7 @@
 import hashlib
 import time
 import uuid
-from datetime import date, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -46,6 +46,8 @@ from tests.phone_api_helpers import (
     switch_phone,
     turn_yaw,
 )
+
+pytestmark = pytest.mark.time_sensitive
 
 NOTICE_V1_SHA256 = "517de0d5cbd1b31ab8e8fddf60d819005ebdf7beaa46056499b98c6a22501f9f"
 
@@ -475,7 +477,7 @@ def test_me_tells_the_phone_what_it_needs(
 ) -> None:
     boss.put(
         f"/api/v1/employees/{people.face_id}/phone/outside-work",
-        json={"allowed": True, "reason": "Customer site", "until": date.today().isoformat()},
+        json={"allowed": True, "reason": "Customer site", "until": today_ist().isoformat()},
     )
     give_password(db_session, people.face_id)
     sign_in(phone)
