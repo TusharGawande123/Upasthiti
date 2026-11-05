@@ -111,10 +111,11 @@ def me(
 
 @router.get("/notice", response_model=NoticeResponse)
 def notice(
+    language: str = "en",
     caller: PhoneEmployee = Depends(require_phone_employee),
     session: Session = Depends(get_session),
 ) -> NoticeResponse:
-    shown = current_notice(session)
+    shown = current_notice(session, language)
     return NoticeResponse(
         version=shown.version,
         language=shown.language,
@@ -129,7 +130,13 @@ def notice_accept(
     caller: PhoneEmployee = Depends(require_phone_employee),
     session: Session = Depends(get_session),
 ) -> NoticeAcceptResponse:
-    accepted_at = accept_notice(session, caller, version=body.version, text_sha256=body.text_sha256)
+    accepted_at = accept_notice(
+        session,
+        caller,
+        version=body.version,
+        text_sha256=body.text_sha256,
+        language=body.language,
+    )
     return NoticeAcceptResponse(accepted_at=accepted_at)
 
 

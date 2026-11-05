@@ -1,0 +1,17 @@
+**Phone attendance – notice**
+
+Sheet Shapers, {{company_address}}, lets some employees punch IN and OUT with their own phone. The Super Admin switched this on for you because you asked. Please read what it means before you punch.
+
+**What we collect.** Your location, only at the moment you punch or show your ID card to set your password. The phone never sends your location in the background. If "outside work" is switched on for you, the exact GPS position of your phone is saved with every punch and shown to the Super Admin. For a face punch the phone takes a few pictures; the server compares them with the encrypted face template made when you were enrolled (it is not a photo, and it is deleted when you leave or take back your consent), and then deletes the pictures. No photo is kept when the punch is accepted. One small photo is kept only if the punch is refused. When you punch by scanning the code on the attendance device, a selfie is saved with the punch. We also keep the name of your browser and phone system (for example "Chrome on Android") and the time you signed in, so you and the Super Admin can see where you are signed in. If you add a passkey, only a public key is kept: your fingerprint, face unlock or phone PIN never leaves your phone. We never keep your phone number.
+
+**Why.** Only to record your attendance and to stop anyone else from marking attendance for you.
+
+**Who can see it.** The Super Admin. The plant heads see that a punch came from a phone, but not your exact position. Only the Super Admin sees the exact position of a punch outside the plant, and every view of a selfie is recorded.
+
+**How long.** Punch records are kept as labour law requires. Selfies and photos of refused punches are deleted after {{retention_days}} days. Sign-in records are deleted 90 days after they end.
+
+**Your choice.** Phone punching is optional. Saying no, or stopping later, will not affect your job, pay, shift or treatment in any way. You can always punch at the attendance device at the gate. To stop, tap "Stop phone punching" in the menu.
+
+**Your rights and questions.** You can ask what data we keep about you, ask to correct or delete it, and raise a complaint. Grievance officer and contact: {{privacy_contact}}. We reply within 30 days. If you are not satisfied with the answer, you can complain to the Data Protection Board of India.
+
+I have read this notice and I agree to phone attendance.
