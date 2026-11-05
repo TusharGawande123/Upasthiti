@@ -40,6 +40,9 @@ class Settings(BaseSettings):
     # How many proxies (Vercel, Render) sit in front of the backend. Used only to read the
     # client IP for logs and rate limits; never as proof of location (decision 0005).
     trusted_proxy_hops: int = Field(default=0, ge=0, le=5)
+    # Optional: name of a header that the outer proxy sets and a caller cannot write (one IP).
+    # When set (not empty) it is used instead of the hops rule (spec M6 section 7.5).
+    client_ip_header: str | None = Field(default=None, pattern=r"^[A-Za-z0-9-]{0,64}$")
     # Render's free plan has no pre-deploy step, so the container can migrate on start.
     run_migrations_on_start: bool = False
     # Logins allowed per IP per 10 minutes. Honoured ONLY when APP_ENV=test (the end-to-end
