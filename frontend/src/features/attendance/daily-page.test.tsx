@@ -299,3 +299,27 @@ describe("the attendance list", () => {
     expect(screen.queryByRole("switch")).not.toBeInTheDocument();
   });
 });
+
+describe("overtime in the attendance list is for temporary workers only (M5c AC-29)", () => {
+  it("shows the overtime figure of a temporary worker and a dash for a permanent person", async () => {
+    mockApi(
+      base({
+        "GET /attendance/daily": page([
+          item(1, { overtime_min: 50 }),
+          item(2, { overtime_min: 50, employee_type: "temporary" }, { type: "temporary" }),
+        ]),
+      }),
+    );
+
+    renderRoute("/admin/attendance");
+
+    const table = await screen.findByRole("table");
+    const rows = within(table).getAllByRole("row");
+    const permanentRow = rows.find((row) => within(row).queryByText("Person 1"));
+    const temporaryRow = rows.find((row) => within(row).queryByText("Person 2"));
+    expect(permanentRow).toBeDefined();
+    expect(temporaryRow).toBeDefined();
+    expect(within(permanentRow as HTMLElement).queryByText("50 m")).not.toBeInTheDocument();
+    expect(within(temporaryRow as HTMLElement).getByText("50 m")).toBeInTheDocument();
+  });
+});
