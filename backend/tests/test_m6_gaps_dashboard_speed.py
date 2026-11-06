@@ -23,7 +23,8 @@ from tests.clock_helpers import frozen_at, ist
 from tests.kiosk_helpers import Device
 from tests.people_helpers import client_for
 
-pytestmark = pytest.mark.time_sensitive
+# `benchmark`: it measures speed here, so the repeated clock passes skip it.
+pytestmark = [pytest.mark.time_sensitive, pytest.mark.benchmark]
 
 FRIDAY = date(2026, 10, 30)
 NOW = ist(FRIDAY, 10, 0)

@@ -2,7 +2,7 @@
 (spec M2 §7 rules 4-8; AC-8, AC-9, AC-11 to AC-14, AC-17, AC-32). Real PostgreSQL, fake data."""
 
 import uuid
-from collections.abc import Callable
+from collections.abc import Callable, Iterator
 from datetime import UTC, datetime, time, timedelta
 
 import pytest
@@ -22,13 +22,14 @@ from app.antiproxy.rules.cooldown import check_in_out
 from app.antiproxy.rules.qr_credential import check_qr_credential
 from app.antiproxy.rules.snapshot import check_snapshot
 from app.core.config import get_settings
-from app.core.time import IST, today_ist
+from app.core.time import IST
 from app.modules.kiosks.location_check import Location
 from app.modules.kiosks.models import KioskDevice
 from app.modules.punches.models import Direction, Punch
 from app.modules.qr_cards.models import QrCredential
 from app.modules.qr_cards.payload import build_payload
 from app.modules.users.models import Role
+from tests.clock_helpers import PINNED_DAY, frozen_at, ist
 from tests.image_helpers import make_jpeg, make_png
 from tests.kiosk_helpers import GATE_LAT, GATE_LON, ensure_gate_fence
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body, temporary_body
@@ -41,10 +42,17 @@ LIMITS = PunchLimits(
     open_in_max_hours=20,
     snapshot_dark_threshold=40,
 )
-# "Server time" for the rules: today at 10:00 IST (04:30 UTC). It follows the real date because a
-# card made by the test is valid from today, and a fixed date would one day be "before" it.
-TODAY_IST = today_ist()
-NOW = datetime.combine(TODAY_IST, time(10, 0), tzinfo=IST).astimezone(UTC)
+# "Server time" for the rules: the pinned day at 10:00 IST (04:30 UTC). The clock is frozen at the
+# same moment (fixture below), so cards made by the test are valid from this day whatever the
+# real date or the TEST_CLOCK_START_IST value is.
+TODAY_IST = PINNED_DAY
+NOW = ist(PINNED_DAY, 10).astimezone(UTC)
+
+
+@pytest.fixture(autouse=True)
+def clock_pinned_to_now() -> Iterator[None]:
+    with frozen_at(NOW, ticking=True):
+        yield
 
 
 @pytest.fixture

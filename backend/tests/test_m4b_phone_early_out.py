@@ -5,7 +5,8 @@ time pinned (time-machine) to Monday 02/11/2026. The plant's default shift is 07
 half day of 4 hours."""
 
 import uuid
-from datetime import timedelta
+from collections.abc import Iterator
+from datetime import date, timedelta
 from pathlib import Path
 
 import pytest
@@ -14,7 +15,6 @@ from fastapi.testclient import TestClient
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.core.time import today_ist
 from app.modules.punches.models import Punch, PunchSnapshot
 from app.modules.users.models import Role
 from tests.clock_helpers import frozen_at, ist
@@ -35,11 +35,17 @@ from tests.test_m4b_gate_code import ask_code, selfie, send_code
 
 pytestmark = pytest.mark.time_sensitive
 
-# The next Monday on or after today: the plant, the people and the cards are made today, so a
-# date before today would be before their start.
-_TODAY = today_ist()
-MONDAY = _TODAY + timedelta(days=(7 - _TODAY.weekday()) % 7)
+MONDAY = date(2026, 11, 2)
 CONFIRM = f"{PHONE}/punch/early-out/confirm"
+
+
+@pytest.fixture(autouse=True)
+def setup_on_the_pinned_monday() -> Iterator[None]:
+    """The plant, the people and the cards are made early on the pinned Monday, so they exist
+    (and their dates start) before the punches of the tests, whatever the real date or the
+    clock start (TEST_CLOCK_START_IST) is."""
+    with frozen_at(ist(MONDAY, 6, 0), ticking=True):
+        yield
 
 
 @pytest.fixture(autouse=True)

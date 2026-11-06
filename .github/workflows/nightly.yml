@@ -69,7 +69,7 @@ jobs:
         env:
           TEST_DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti_test
           TEST_CLOCK_START_IST: ${{ matrix.clock }}
-        run: uv run pytest -p randomly -q --no-cov
+        run: uv run pytest -p randomly -q --no-cov -m "not benchmark"
 
   # S-61: the offline sync under random drops, duplicates, reordering, clock jumps, reused nonces
   # and a revoked device, many more cases than the pull-request run tries.

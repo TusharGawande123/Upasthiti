@@ -80,6 +80,7 @@ addopts = "--cov=app --cov-report=term-missing --cov-fail-under=90 -p no:randoml
 markers = [
     "face_models: needs the downloaded face model files (skipped without them)",
     "time_sensitive: uses the clock; CI runs it again with the clock started near midnight IST",
+    "benchmark: measures speed or memory against a limit; the repeated clock passes (CI midnight pass, nightly) skip it, the normal run keeps it",
 ]
 
 [tool.coverage.run]
