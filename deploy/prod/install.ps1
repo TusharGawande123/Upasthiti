@@ -191,7 +191,7 @@ if ($LASTEXITCODE -ne 0) { Stop-Install "docker compose could not start. Run: do
 Write-Host "Waiting for the backend to become healthy (up to 5 minutes)..."
 $healthy = $false
 for ($attempt = 0; $attempt -lt 60; $attempt++) {
-    $state = docker inspect --format "{{.State.Health.Status}}" upasthiti-backend-1 2>$null
+    $state = docker inspect --format "{{.State.Health.Status}}" upasthiti-prod-backend-1 2>$null
     if ($state -eq "healthy") { $healthy = $true; break }
     Start-Sleep -Seconds 5
 }

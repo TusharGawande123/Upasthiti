@@ -39,7 +39,8 @@ else
   BACKUP_FOLDER=$(ask "Folder for backup files (another disk if there is one)" /backups/upasthiti)
   mkdir -p "$BACKUP_FOLDER"
   # The backend runs as user 10001 inside the container and must write here.
-  chown 10001 "$BACKUP_FOLDER" 2>/dev/null || chmod 777 "$BACKUP_FOLDER"
+  chown 10001 "$BACKUP_FOLDER" || stop "Could not give $BACKUP_FOLDER to user 10001 (run with sudo)."
+  chmod 700 "$BACKUP_FOLDER"
   ORIGIN="https://$SITE_NAME"; [ "$PORT" = "443" ] || ORIGIN="https://$SITE_NAME:$PORT"
   CADDYFILE=Caddyfile.duckdns; [ -n "$DUCK_TOKEN" ] || CADDYFILE=Caddyfile.own-certificate
 
@@ -84,7 +85,7 @@ if [ -n "$RESTORE_FROM" ]; then
   BACKUP_FOLDER=$(grep '^BACKUP_DIR=' .env | cut -d= -f2-)
   mkdir -p "$BACKUP_FOLDER"
   cp "$RESTORE_FROM" "$BACKUP_FOLDER/"
-  chown 10001 "$BACKUP_FOLDER" 2>/dev/null || chmod 777 "$BACKUP_FOLDER"
+  chown 10001 "$BACKUP_FOLDER" || stop "Could not give $BACKUP_FOLDER to user 10001 (run with sudo)."
   docker compose build
   docker compose up -d postgres
   sleep 15
@@ -97,7 +98,7 @@ step "3. Starting the system"
 docker compose up -d --build
 echo "Waiting for the backend to become healthy (up to 5 minutes)..."
 i=0
-until [ "$(docker inspect --format '{{.State.Health.Status}}' upasthiti-backend-1 2>/dev/null)" = "healthy" ]; do
+until [ "$(docker inspect --format '{{.State.Health.Status}}' upasthiti-prod-backend-1 2>/dev/null)" = "healthy" ]; do
   i=$((i+1)); [ "$i" -le 60 ] || stop "The backend did not become healthy. Run: docker compose logs backend"
   sleep 5
 done
@@ -107,7 +108,12 @@ step "4. Firewall"
 PORT=$(grep '^HTTPS_PORT=' .env | cut -d= -f2)
 if command -v ufw >/dev/null 2>&1; then
   SUBNET=$(ask "Plant network (CIDR, example 192.168.1.0/24; empty = skip)" "")
-  if [ -n "$SUBNET" ]; then ufw allow from "$SUBNET" to any port "$PORT" proto tcp; else echo "Skipped: set the firewall yourself (guide section 6)."; fi
+  if [ -n "$SUBNET" ]; then
+    ufw allow from "$SUBNET" to any port "$PORT" proto tcp
+    # Docker publishes ports around ufw, so ufw alone does NOT limit this port. DOCKER-USER is
+    # checked first: drop everything to the port that does not come from the plant network.
+    iptables -I DOCKER-USER ! -s "$SUBNET" -p tcp --dport 443 -m conntrack --ctorigdstport "$PORT" -j DROP 2>/dev/null       && echo "Rule added in DOCKER-USER (not kept after a reboot: guide section 6, point 1)."       || echo "WARNING: could not add the DOCKER-USER rule. Limit the port with your network firewall (guide section 6)."
+  else echo "Skipped: set the firewall yourself (guide section 6)."; fi
 else
   echo "ufw not found: set the firewall yourself so only the plant network reaches port $PORT."
 fi

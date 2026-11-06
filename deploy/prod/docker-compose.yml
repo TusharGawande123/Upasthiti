@@ -3,7 +3,7 @@
 # install.ps1 / install.sh make it). Start: docker compose up -d --build    Stop: docker compose down
 # Data lives in Docker volumes (postgres-data, snapshots, caddy-data): `down` keeps them,
 # `down -v` DELETES THEM - never use -v.
-name: upasthiti
+name: upasthiti-prod
 
 services:
   postgres:
@@ -99,7 +99,7 @@ services:
       - caddy-config:/config
       - ${CERT_DIR:-./certs}:/certs:ro
     healthcheck:
-      test: ["CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost/version.json"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:2019/config/"]
       interval: 30s
       timeout: 5s
       retries: 5

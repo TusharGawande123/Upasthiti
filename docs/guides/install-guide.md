@@ -142,7 +142,9 @@ The script is safe to run again. It never replaces an existing `.env`.
 ## 6. Network, firewall and devices
 
 1. **Firewall.** Windows: the script made the rule "Upasthiti HTTPS" for the local network only. Linux: it asked for
-   the plant network (CIDR such as `192.168.1.0/24`) and used `ufw`. Do not open this port to the internet unless you
+   the plant network (CIDR such as `192.168.1.0/24`), used `ufw` and added a `DOCKER-USER` rule. **Docker publishes
+   ports around ufw**, so ufw alone does not protect this port, and the `DOCKER-USER` rule is lost at reboot: make it
+   permanent (for example with `iptables-persistent`) or, better, limit the port on the company network firewall. Do not open this port to the internet unless you
    have decided to allow phone punching from outside (section 11).
 2. **All 7 plants** must be able to reach this computer's address from the gate devices. If the plants are on
    different networks, ask the network team to route them. Test from a device at each plant (section 7, step 6).
