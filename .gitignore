@@ -55,3 +55,4 @@ guides-pdf/
 # Test-run guard (decision 0038): who is running tests right now
 .test-run.lock
 .test-run.lock.mutex
+reports-local/
