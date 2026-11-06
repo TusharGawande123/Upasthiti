@@ -82,6 +82,19 @@ in `deploy/prod/certs/` and in `.env` set `CADDYFILE=Caddyfile.own-certificate`.
 trust the certificate issuer (a company certificate must be installed on each device first; test on one phone and one
 PC before the rollout).
 
+**C. DuckDNS name, but the network blocks DuckDNS (certificate made elsewhere).** Some plant networks refuse to
+resolve `duckdns.org`, so this computer cannot get the certificate itself. Make the certificate on any computer that
+can reach DuckDNS and copy the two files in:
+1. On that computer run Caddy once with the DuckDNS plugin for the name (the image `upasthiti-caddy:prod` has it) and a
+   one-site Caddyfile with `tls { dns duckdns {env.DUCKDNS_TOKEN} }`. When the log says `certificate obtained
+   successfully`, copy `<name>.crt` as `fullchain.pem` and `<name>.key` as `privkey.pem` out of `/data/caddy/certificates/`.
+2. Put both files in `deploy/prod/certs/` on the server. Treat `privkey.pem` as a secret (never chat or email).
+3. Run the install and **press Enter at the DuckDNS token question**. The script then uses `Caddyfile.own-certificate`.
+4. The certificate lasts **90 days** and does **not** renew itself in this mode. Put the end date in a calendar
+   (15 days before). To make it automatic, ask the network team to allow `duckdns.org`, `www.duckdns.org`,
+   `acme-v02.api.letsencrypt.org` (port 443) and DNS port 53 to `1.1.1.1` / `8.8.8.8`, then in `.env` set
+   `DUCKDNS_TOKEN=<token>` and `CADDYFILE=Caddyfile.duckdns` and run `docker compose up -d`.
+
 ## 5. Run the install
 
 Get the project folder onto the computer (the folder that contains `backend`, `frontend` and `deploy`) and open a
@@ -101,7 +114,7 @@ The script asks:
 1. **Address name** without `https://` (example `upasthiti-sheetshapers.duckdns.org`).
 2. **HTTPS port**: press Enter for 443. If another program already uses 443, type `8443` (then people open
    `https://<name>:8443`).
-3. **DuckDNS token** (hidden while you type).
+3. **DuckDNS token** (hidden while you type). Press Enter with nothing if you use certificate files (option C).
 4. **Backup folder** (choose another disk or a shared folder).
 5. Whether to set the DuckDNS name to this computer's network address now: answer `y`.
 
