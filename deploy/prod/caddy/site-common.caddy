@@ -1,0 +1,58 @@
+# Shared part of both Caddy entry files (deploy/prod): security headers, the API proxy and the
+# website. It is the same content as docs/guides/proxy-samples/Caddyfile; keep the header lists in
+# sync with frontend/vercel.json (backend/tests/test_m6_headers.py compares them).
+(upasthiti_site) {
+	encode zstd gzip
+
+	# On every response.
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "camera=(self), geolocation=(self), microphone=()"
+		-Server
+	}
+
+	# The gate screen: strict CSP, camera and location only for us.
+	@gate path /attendance /attendance/*
+	header @gate {
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		Referrer-Policy "no-referrer"
+	}
+
+	# The employee phone pages: the same CSP, and passkeys allowed.
+	@phone path /phone /phone/*
+	header @phone {
+		Content-Security-Policy "default-src 'self'; script-src 'self' 'wasm-unsafe-eval'; connect-src 'self'; img-src 'self' data: blob:; media-src 'self' blob:; worker-src 'self' blob:; font-src 'self' data:; style-src 'self' 'unsafe-inline'; manifest-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'; object-src 'none'"
+		Permissions-Policy "camera=(self), geolocation=(self), publickey-credentials-get=(self), publickey-credentials-create=(self), microphone=()"
+		Referrer-Policy "no-referrer"
+	}
+
+	# The gate's service worker may control /attendance only; it must never be cached for long.
+	@worker path /sw.js
+	header @worker {
+		Cache-Control "no-cache"
+		Service-Worker-Allowed "/attendance"
+	}
+	@version path /version.json
+	header @version Cache-Control "no-cache"
+
+	# The API: never kept by a browser or a proxy (personal data, one-time codes).
+	handle /api/* {
+		header Cache-Control "no-store"
+		reverse_proxy {$BACKEND_UPSTREAM:backend:8000} {
+			# OVERWRITE what the caller sent, never append to it (backend runs with
+			# TRUSTED_PROXY_HOPS=1: exactly this one proxy).
+			header_up X-Forwarded-For {remote_host}
+			header_up X-Real-IP {remote_host}
+		}
+	}
+
+	# Everything else is the website (one page app: unknown paths show index.html).
+	handle {
+		root * {$FRONTEND_DIR:/srv/upasthiti}
+		try_files {path} /index.html
+		file_server
+	}
+}

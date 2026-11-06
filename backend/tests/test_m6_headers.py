@@ -120,9 +120,20 @@ def test_the_admin_pages_keep_the_base_headers_without_a_csp() -> None:
 # --- The proxy samples must say the same as vercel.json -------------------------------------
 
 
-@pytest.mark.parametrize("sample", ["nginx.conf", "Caddyfile"])
-def test_proxy_samples_set_the_same_headers_as_vercel_json(sample: str) -> None:
-    text = (PROXY_SAMPLES / sample).read_text(encoding="utf-8")
+PROD_CADDY_SITE = REPO / "deploy" / "prod" / "caddy" / "site-common.caddy"
+
+
+@pytest.mark.parametrize(
+    "sample_path",
+    [
+        PROXY_SAMPLES / "nginx.conf",
+        PROXY_SAMPLES / "Caddyfile",
+        PROD_CADDY_SITE,  # the own-server package (deploy/prod) must say the same
+    ],
+    ids=lambda path: path.name,
+)
+def test_proxy_samples_set_the_same_headers_as_vercel_json(sample_path: Path) -> None:
+    text = sample_path.read_text(encoding="utf-8")
     gate_csp = header_map(rule_for("/attendance"))["Content-Security-Policy"]
     phone_permissions = header_map(rule_for("/phone"))["Permissions-Policy"]
 

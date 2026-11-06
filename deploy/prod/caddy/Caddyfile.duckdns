@@ -1,0 +1,15 @@
+# Entry file 1 (default): a free DuckDNS name. Caddy proves it owns the name by writing a DNS
+# record through the DuckDNS API (DNS challenge), so Let's Encrypt gives a real certificate
+# although the server has NO public address and is reachable only inside the plant network.
+#
+# Environment (set in deploy/prod/.env): SITE_ADDRESS (e.g. upasthiti.duckdns.org), DUCKDNS_TOKEN.
+import /etc/caddy/site-common.caddy
+
+{$SITE_ADDRESS} {
+	tls {
+		dns duckdns {env.DUCKDNS_TOKEN}
+		# Ask public resolvers: the plant's own DNS may hide the new record for a while.
+		resolvers 1.1.1.1 8.8.8.8
+	}
+	import upasthiti_site
+}

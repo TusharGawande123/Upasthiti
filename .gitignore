@@ -2,6 +2,7 @@
 .env
 .env.*
 !.env.example
+!.env.production.example
 
 # Dependencies and builds
 node_modules/
@@ -56,3 +57,7 @@ guides-pdf/
 .test-run.lock
 .test-run.lock.mutex
 reports-local/
+
+# Own-server install (deploy/prod): certificates and backups never go to git
+deploy/prod/certs/
+deploy/prod/backups/

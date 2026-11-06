@@ -1,0 +1,113 @@
+# Upasthiti on an own server (client's computer): database, backend and web front door.
+# Everything is configured by the file .env in THIS folder (copy .env.production.example, or let
+# install.ps1 / install.sh make it). Start: docker compose up -d --build    Stop: docker compose down
+# Data lives in Docker volumes (postgres-data, snapshots, caddy-data): `down` keeps them,
+# `down -v` DELETES THEM - never use -v.
+name: upasthiti
+
+services:
+  postgres:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: upasthiti
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is missing in .env}
+      POSTGRES_DB: upasthiti
+    # No "ports": only the backend (same private Docker network) can reach the database.
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U upasthiti -d upasthiti"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    mem_limit: 1g
+
+  backend:
+    build:
+      context: ../../backend
+      args:
+        # Only the models this install uses (the smaller buffalo_s pack, decision 0016); no INT8
+        # copies; INSTALL_PG_TOOLS adds pg_dump/pg_restore for the backup command.
+        FACE_MODEL_DOWNLOADS: buffalo_s,minifasnet_v2,minifasnet_v1se
+        MAKE_INT8_MODELS: "false"
+        INSTALL_PG_TOOLS: "true"
+    image: upasthiti-backend:prod
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # APP_ENV is NOT set on purpose: empty means production (API docs off, strict checks).
+    # Every setting is named here, so a secret meant for another service (DUCKDNS_TOKEN,
+    # POSTGRES_PASSWORD alone) never lands in the backend's environment by accident.
+    environment:
+      DATABASE_URL: postgresql+psycopg://upasthiti:${POSTGRES_PASSWORD}@postgres:5432/upasthiti
+      APP_VERSION: ${APP_VERSION:-prod}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+      APP_SECRET_KEY: ${APP_SECRET_KEY:?APP_SECRET_KEY is missing in .env}
+      APP_PUBLIC_ORIGIN: ${APP_PUBLIC_ORIGIN:?APP_PUBLIC_ORIGIN is missing in .env}
+      # Exactly one proxy (Caddy) sits in front of the backend.
+      TRUSTED_PROXY_HOPS: "1"
+      RUN_MIGRATIONS_ON_START: "true"
+      RUN_SCHEDULER: "true"
+      STORAGE_BACKEND: local
+      STORAGE_LOCAL_DIR: /data/snapshots
+      QR_SIGNING_KEY: ${QR_SIGNING_KEY:?QR_SIGNING_KEY is missing in .env}
+      QR_SIGNING_KEY_ID: ${QR_SIGNING_KEY_ID:-A}
+      SNAPSHOT_ENCRYPTION_KEY: ${SNAPSHOT_ENCRYPTION_KEY:?SNAPSHOT_ENCRYPTION_KEY is missing in .env}
+      FACE_TEMPLATE_KEY: ${FACE_TEMPLATE_KEY:?FACE_TEMPLATE_KEY is missing in .env}
+      FACE_MODEL_PACK: buffalo_s
+      OFFLINE_EVIDENCE_KEY: ${OFFLINE_EVIDENCE_KEY:?OFFLINE_EVIDENCE_KEY is missing in .env}
+      OFFLINE_EVIDENCE_KEY_ID: ${OFFLINE_EVIDENCE_KEY_ID:-A}
+      BACKUP_KEY: ${BACKUP_KEY:?BACKUP_KEY is missing in .env}
+      BACKUP_KEY_ID: ${BACKUP_KEY_ID:-A}
+    volumes:
+      - snapshots:/data/snapshots
+      # Where backup files are written (a folder of the computer, set BACKUP_DIR in .env).
+      - ${BACKUP_DIR:-./backups}:/backups
+    healthcheck:
+      # The backend answers /health/ready only when the database works.
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health/ready', timeout=5)"]
+      interval: 15s
+      timeout: 8s
+      retries: 10
+      start_period: 90s
+    mem_limit: 1536m
+    cpus: 2.0
+
+  caddy:
+    build:
+      context: ../..
+      dockerfile: deploy/prod/Dockerfile.caddy
+    image: upasthiti-caddy:prod
+    restart: unless-stopped
+    depends_on:
+      backend:
+        condition: service_healthy
+    # The container always listens on 443; HTTPS_PORT is only the port people use outside
+    # (443, or 8443 when 443 is taken). With 8443, APP_PUBLIC_ORIGIN must end with :8443.
+    ports:
+      - "${HTTPS_PORT:-443}:443"
+    environment:
+      SITE_ADDRESS: ${SITE_ADDRESS:?SITE_ADDRESS is missing in .env}
+      DUCKDNS_TOKEN: ${DUCKDNS_TOKEN:-}
+      BACKEND_UPSTREAM: backend:8000
+    # CADDYFILE chooses the entry file: Caddyfile.duckdns (default) or Caddyfile.own-certificate.
+    command: ["caddy", "run", "--config", "/etc/caddy/${CADDYFILE:-Caddyfile.duckdns}", "--adapter", "caddyfile"]
+    volumes:
+      - caddy-data:/data
+      - caddy-config:/config
+      - ${CERT_DIR:-./certs}:/certs:ro
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "--no-check-certificate", "https://localhost/version.json"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 60s
+    mem_limit: 256m
+
+volumes:
+  postgres-data:
+  snapshots:
+  caddy-data:
+  caddy-config:
