@@ -198,8 +198,13 @@ if ($existingEnv) {
     }
     $lan = Get-LanAddress
     if ($answer -eq "y" -and $lan) {
-        $result = Invoke-RestMethod "https://www.duckdns.org/update?domains=$($siteName -replace '\.duckdns\.org$','')&token=$duckToken&ip=$lan"
-        Write-Host "DuckDNS answered: $result (address set to this computer's network address $lan)."
+        try {
+            $result = Invoke-RestMethod "https://www.duckdns.org/update?domains=$($siteName -replace '\.duckdns\.org$','')&token=$duckToken&ip=$lan"
+            Write-Host "DuckDNS answered: $result (address set to this computer's network address $lan)."
+        } catch {
+            # A blocked or slow DuckDNS must not stop the install: the address can be set from any computer.
+            Write-Host "WARNING: DuckDNS could not be reached from this computer. Set the address of $siteName to $lan on the DuckDNS page from another computer. The install goes on." -ForegroundColor Yellow
+        }
     } else {
         Write-Host "Skipped. Set the DuckDNS address to this computer's network address yourself (guide, section 5)."
     }
