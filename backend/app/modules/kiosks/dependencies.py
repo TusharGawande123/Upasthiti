@@ -6,20 +6,25 @@ is never used; the counter must always grow, so a recorded request cannot be rep
 
 import logging
 import uuid
+from datetime import timedelta
 
 from fastapi import Depends, Request
-from sqlalchemy import update
+from sqlalchemy import select, update
 from sqlalchemy.orm import Session
 
 from app.core.client_ip import get_client_ip
 from app.core.db import get_session
 from app.core.errors import ApiError
 from app.core.time import utc_now
+from app.modules.audit.models import AuditLog
 from app.modules.audit.service import Actor, record_audit
 from app.modules.kiosks.crypto import signed_message, verify_signature
 from app.modules.kiosks.models import KioskDevice, KioskStatus
 
 logger = logging.getLogger(__name__)
+
+# A switched-off device keeps asking; one audit row per hour is enough (decision 0012, 0038).
+REVOKED_AUDIT_INTERVAL = timedelta(hours=1)
 
 
 def _invalid() -> ApiError:
@@ -39,6 +44,21 @@ def _log_refusal(request: Request, reason: str, kiosk_id: uuid.UUID | None = Non
             }
         },
     )
+
+
+def _revoked_already_audited(session: Session, kiosk: KioskDevice) -> bool:
+    """True when this device already has a DEVICE_REVOKED row from the last hour."""
+    recent = session.scalar(
+        select(AuditLog.id)
+        .where(
+            AuditLog.action == "kiosk.auth_refused",
+            AuditLog.entity_id == kiosk.id,
+            AuditLog.after["reason"].astext == "DEVICE_REVOKED",
+            AuditLog.at > utc_now() - REVOKED_AUDIT_INTERVAL,
+        )
+        .limit(1)
+    )
+    return recent is not None
 
 
 def _audit_refusal(session: Session, request: Request, kiosk: KioskDevice, reason: str) -> None:
@@ -87,7 +107,8 @@ async def require_kiosk(request: Request, session: Session = Depends(get_session
     # Only the real device can read "revoked": a stranger who knows the id learns nothing.
     if kiosk.status == KioskStatus.REVOKED.value:
         _log_refusal(request, "DEVICE_REVOKED", kiosk_id)
-        _audit_refusal(session, request, kiosk, "DEVICE_REVOKED")
+        if not _revoked_already_audited(session, kiosk):
+            _audit_refusal(session, request, kiosk, "DEVICE_REVOKED")
         raise ApiError("DEVICE_REVOKED", "This device has been switched off.", 403)
 
     # One statement: the counter only ever goes up, even for two requests at the same moment.

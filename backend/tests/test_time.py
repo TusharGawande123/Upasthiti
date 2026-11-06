@@ -7,6 +7,8 @@ import pytest
 from app.core.time import to_ist, today_ist, utc_now
 from tests.clock_helpers import PINNED_DAY, frozen_at, ist
 
+pytestmark = pytest.mark.time_sensitive
+
 
 def test_utc_now_is_timezone_aware_utc() -> None:
     assert utc_now().utcoffset() == timedelta(0)

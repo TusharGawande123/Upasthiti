@@ -24,6 +24,7 @@ from app.modules.attendance.day_window import AttendanceCalendar
 from app.modules.attendance.models import AttendanceDay
 from app.modules.attendance.read_service import DEMO_PREFIX
 from app.modules.dashboard.service import people_inside, standing_plant_id
+from app.modules.data_requests.notices import raise_due_notices
 from app.modules.kiosks.models import KioskDevice, KioskStatus
 from app.modules.kiosks.status_service import status_summary
 from app.modules.notifications.models import Notification
@@ -215,6 +216,7 @@ def run_morning_alerts(session: Session, now: datetime) -> None:
     _absence_streaks(session, plants, today, now)
     if today.day == 2:
         _monthly_register(session, plants, today, now)
+    raise_due_notices(session, today, now)  # M6: data requests due soon (Super Admin only)
     session.commit()
 
 

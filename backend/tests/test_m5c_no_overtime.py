@@ -21,6 +21,8 @@ from tests.people_helpers import PlantIds, client_for, create_plant, permanent_b
 from tests.test_import_and_contractors_api import good_row, upload
 from tests.test_m5_attendance_api import FRIDAY, work_a_day, world  # noqa: F401
 
+pytestmark = pytest.mark.time_sensitive
+
 EMPLOYEES = "/api/v1/employees"
 
 

@@ -55,7 +55,7 @@ def kiosk_snapshot(kiosk: KioskDevice) -> dict[str, object]:
 def get_kiosk(session: Session, kiosk_id: uuid.UUID) -> KioskDevice:
     kiosk = session.get(KioskDevice, kiosk_id)
     if kiosk is None:
-        raise ApiError("NOT_FOUND", "Kiosk not found.", 404)
+        raise ApiError("NOT_FOUND", "Attendance device not found.", 404)
     return kiosk
 
 
@@ -85,7 +85,9 @@ def _check_name_is_free(
     if except_kiosk_id is not None:
         statement = statement.where(KioskDevice.id != except_kiosk_id)  # renaming to its own name
     if session.scalar(statement):
-        raise ApiError("KIOSK_NAME_EXISTS", "This plant already has a kiosk with this name.", 409)
+        raise ApiError(
+            "KIOSK_NAME_EXISTS", "This plant already has an attendance device with this name.", 409
+        )
 
 
 def create_kiosk(session: Session, *, actor: Actor, plant: Plant, name: str) -> IssuedCode:
@@ -116,9 +118,9 @@ def create_kiosk(session: Session, *, actor: Actor, plant: Plant, name: str) -> 
 
 def reissue_code(session: Session, *, actor: Actor, kiosk: KioskDevice) -> IssuedCode:
     if kiosk.status == KioskStatus.REVOKED.value:
-        raise ApiError("KIOSK_REVOKED", "This kiosk was switched off.", 409)
+        raise ApiError("KIOSK_REVOKED", "This attendance device was switched off.", 409)
     if kiosk.status == KioskStatus.ACTIVE.value:
-        raise ApiError("KIOSK_ALREADY_PAIRED", "This kiosk is already paired.", 409)
+        raise ApiError("KIOSK_ALREADY_PAIRED", "This attendance device is already paired.", 409)
     issued = _issue_code(session, actor, kiosk)
     record_audit(
         session,
@@ -178,7 +180,7 @@ def update_kiosk(
 
 def revoke_kiosk(session: Session, *, actor: Actor, kiosk: KioskDevice, reason: str) -> KioskDevice:
     if kiosk.status == KioskStatus.REVOKED.value:
-        raise ApiError("KIOSK_REVOKED", "This kiosk was already switched off.", 409)
+        raise ApiError("KIOSK_REVOKED", "This attendance device was already switched off.", 409)
     before = kiosk_snapshot(kiosk)
     kiosk.status = KioskStatus.REVOKED.value
     kiosk.revoked_at = utc_now()

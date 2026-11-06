@@ -4,7 +4,7 @@
 // links it, the gate and the admin do not.
 
 import { useQueryClient } from "@tanstack/react-query";
-import { LogOut, Menu, PowerOff, ShieldCheck, Smartphone, Trash2 } from "lucide-react";
+import { Languages, LogOut, Menu, PowerOff, ShieldCheck, Smartphone, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Link, Navigate, Outlet, useLocation, useNavigate } from "react-router";
@@ -15,6 +15,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { BrandMark } from "@/features/auth/brand-mark";
 import { describeError } from "@/features/auth/error-message";
 import { phoneApi } from "./phone-api";
+import { PHONE_LANGUAGES, useApplyPhoneLanguage, usePhoneLanguage } from "./phone-language";
 import { Notice, PhoneButton } from "./phone-ui";
 import {
   endedReason,
@@ -150,11 +151,36 @@ function PhoneMenu({
   );
 }
 
+/** EN / मराठी / हिंदी: the language of the /phone pages (F-99). It is on every phone page, also
+ * before the sign-in, because the notice and the sign-in help are read in it. */
+function LanguageSwitch() {
+  const { t } = useTranslation();
+  const { language, setLanguage } = usePhoneLanguage();
+  return (
+    <fieldset className="mx-auto flex min-w-0 max-w-160 items-center justify-end gap-2 border-0 px-4 pb-3">
+      <legend className="sr-only">{t("phone.language")}</legend>
+      <Languages className="size-5 text-muted-foreground" aria-hidden />
+      {PHONE_LANGUAGES.map((option) => (
+        <Button
+          key={option.code}
+          variant={option.code === language ? "primary" : "outline"}
+          aria-pressed={option.code === language}
+          className="h-11 min-w-16 px-3 text-base"
+          onClick={() => setLanguage(option.code)}
+        >
+          {option.label}
+        </Button>
+      ))}
+    </fieldset>
+  );
+}
+
 export function PhoneLayout() {
   const { t } = useTranslation();
   const me = useKnownPhoneMe();
   const [menuOpen, setMenuOpen] = useState(false);
   useManifestLink();
+  useApplyPhoneLanguage();
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-primary-soft/60 to-background">
@@ -182,6 +208,7 @@ export function PhoneLayout() {
             </Button>
           ) : null}
         </div>
+        <LanguageSwitch />
         <div
           aria-hidden
           className="h-1.5 bg-[repeating-linear-gradient(135deg,#f5b700_0_14px,#0e1726_14px_28px)]"

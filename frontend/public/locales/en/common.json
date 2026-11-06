@@ -578,6 +578,7 @@
     "unreachable": "Server not reachable. Is the backend running?"
   },
   "common": {
+    "tableRegion": "Table",
     "notFound": "Page not found",
     "backToAdmin": "Go to the admin dashboard",
     "serverWaking": "Waking up the server… this can take up to a minute.",
@@ -822,10 +823,168 @@
     "CONVERSION_ALREADY_SCHEDULED": "A conversion is already planned for this employee.",
     "CONVERSION_DATE_INVALID": "Choose a valid date for the conversion.",
     "CONVERSION_NOT_SCHEDULED": "No conversion is planned for this employee.",
-    "ATTENDANCE_PREPARING": "The attendance of this period is still being calculated. Please try again in a few minutes."
+    "ATTENDANCE_PREPARING": "The attendance of this period is still being calculated. Please try again in a few minutes.",
+    "DATA_REQUEST_NOT_FOUND": "This request was not found.",
+    "DATA_REQUEST_CLOSED": "This request is already closed. Nothing more can be added.",
+    "DATA_REQUEST_STEP_INVALID": "This step cannot be added now. Check the steps that came before.",
+    "EXPORT_PASSWORD_WRONG": "The password is not correct. Nothing was downloaded.",
+    "EXPORT_IN_PROGRESS": "An export is already being prepared. Please try again in a few minutes.",
+    "EXPORT_NO_SPACE": "There is not enough space on the server to prepare the export. Please try again later or ask for help."
+  },
+  "privacyRequests": {
+    "title": "Data requests",
+    "subtitle": "What people ask about their data: to see it, correct it, erase it, withdraw consent or complain. Each one must be answered within 30 days.",
+    "banner_one": "{{count}} request is due in 5 days or less.",
+    "banner_other": "{{count}} requests are due in 5 days or less (or late).",
+    "paging": {
+      "previous": "Previous",
+      "next": "Next",
+      "pageOf": "Page {{page}} of {{pages}}",
+      "showing": "Showing {{shown}} of {{total}}"
+    },
+    "empty": "No requests yet. When an employee asks about their data, add it here.",
+    "notEmployee": "Not an employee",
+    "left": "Left",
+    "add": {
+      "button": "Add request",
+      "title": "Add a data request",
+      "desc": "Write down the request the day it arrives. The answer is due 30 days after it was received.",
+      "submit": "Add request",
+      "searchPerson": "Search by name or employee code",
+      "changePerson": "Change"
+    },
+    "field": {
+      "kind": "Kind of request",
+      "channel": "How it arrived",
+      "person": "Person",
+      "personHint": "Optional. Leave empty if the person is not an employee.",
+      "receivedOn": "Received on",
+      "note": "Short note",
+      "noteHint": "Do not write health details here."
+    },
+    "error": {
+      "receivedOn": "Choose a date that is not in the future."
+    },
+    "toast": {
+      "added": "Request added.",
+      "stepAdded": "Step saved."
+    },
+    "kind": {
+      "access": "See my data",
+      "correction": "Correction",
+      "erasure": "Erasure",
+      "consent_withdrawal": "Consent withdrawal",
+      "complaint": "Complaint",
+      "other": "Other"
+    },
+    "channel": {
+      "in_person": "In person",
+      "email": "Email",
+      "phone_call": "Phone call",
+      "letter": "Letter"
+    },
+    "status": {
+      "open": "Open",
+      "identity_checked": "Identity checked",
+      "in_progress": "In progress",
+      "answered": "Answered",
+      "closed": "Closed"
+    },
+    "outcome": {
+      "done": "Done",
+      "partly_done": "Partly done",
+      "refused": "Refused"
+    },
+    "event": {
+      "identity_checked": "Identity checked",
+      "action_taken": "Action taken",
+      "answer_sent": "Answer sent",
+      "closed": "Closed"
+    },
+    "filter": {
+      "status": "Status",
+      "kind": "Kind",
+      "any": "Any",
+      "overdue": "Overdue only"
+    },
+    "columns": {
+      "received": "Received on",
+      "person": "Person",
+      "kind": "Kind",
+      "status": "Status",
+      "due": "Due"
+    },
+    "due": {
+      "closed": "Closed",
+      "left_one": "{{count}} day left",
+      "left_other": "{{count}} days left",
+      "overdue_one": "Overdue {{count}} day",
+      "overdue_other": "Overdue {{count}} days"
+    },
+    "sheet": {
+      "title": "Data request",
+      "desc": "The steps are saved one after the other. They cannot be changed or deleted.",
+      "timeline": "Steps so far",
+      "noSteps": "No step yet. Start with the identity check.",
+      "closed": "This request is closed. Nothing more can be added."
+    },
+    "step": {
+      "addTitle": "Add the next step",
+      "type": "Step",
+      "outcome": "Result",
+      "detail": "What was done",
+      "reason": "Reason (at least 10 characters)",
+      "submit": "Save step",
+      "keptRecords": "Attendance and audit records are kept as the Labour Codes require, so an erasure request is closed as partly done.",
+      "hint": {
+        "identity_checked": "For example: ID card seen at the plant office, or the employee signed in on the phone.",
+        "action_taken": "For example: face data deleted, or a correction made. This step may be added more than once.",
+        "answer_sent": "How and when the person was answered.",
+        "closed": "Choose the result. Partly done and refused need a reason."
+      }
+    }
+  },
+  "dataExport": {
+    "title": "Data export",
+    "subtitle": "Download everything the system holds to your own computer, for example to answer a request to see a person's data.",
+    "warning": "This file has personal data. Keep it safe and never send it through chat or email.",
+    "included": {
+      "title": "What is included",
+      "people": "Plants, employees, contractors and QR card records",
+      "attendance": "Punches, attendance days, corrections, leave and holidays",
+      "devices": "Attendance devices and their status",
+      "audit": "The audit log and the data requests",
+      "settings": "Users (without passwords) and settings"
+    },
+    "never": {
+      "title": "What is never included",
+      "faces": "Face data and enrolment pictures",
+      "passwords": "Passwords and passkeys",
+      "keys": "Keys and sign-in tokens",
+      "photos": "Stored photos"
+    },
+    "field": {
+      "reason": "Reason (3 to 300 characters)",
+      "password": "Your password",
+      "passwordHint": "Type your password again to confirm it is you."
+    },
+    "button": "Download all data",
+    "preparing": "Preparing...",
+    "preparingHint": "Preparing... this can take a few minutes. Please stay on this page.",
+    "toast": {
+      "done": "The file was made and saved. Keep it safe."
+    },
+    "recent": {
+      "title": "Last 5 exports",
+      "empty": "No export has been made yet.",
+      "done": "Done",
+      "interrupted": "Stopped"
+    }
   },
   "nav": {
     "label": "Main menu",
+    "privacyRequests": "Data requests",
+    "dataExport": "Data export",
     "open": "Open the menu",
     "dashboard": "Dashboard",
     "users": "Users",
@@ -1618,7 +1777,7 @@
       },
       "saveTitle": "Save as a new version",
       "margin": "Margin",
-      "marginHint": "0–{{max}} m. A attendance device this far outside the line still counts as inside. Keep it small.",
+      "marginHint": "0–{{max}} m. An attendance device this far outside the line still counts as inside. Keep it small.",
       "marginRange": "Use 0–{{max}} metres.",
       "metres": "metres",
       "reason": "Reason (optional, saved in the audit log)",
@@ -1770,7 +1929,13 @@
       "save": "Save shift"
     },
     "poster": {
-      "button": "Download gate poster (A4 PDF)"
+      "button": "Download gate poster (A4 PDF)",
+      "language": "Language of the gate poster",
+      "languages": {
+        "en": "English",
+        "mr": "Marathi",
+        "hi": "Hindi"
+      }
     }
   },
   "setup": {
@@ -4552,18 +4717,24 @@
       "conversion_face_pending": "Face enrolment pending"
     },
     "text": {
-      "still_inside": "{{count}} people are still inside {{plant}}, {{minutes}} minutes after the shift ended.",
+      "still_inside_one": "{{count}} person is still inside {{plant}}, {{minutes}} minutes after the shift ended.",
+      "still_inside_other": "{{count}} people are still inside {{plant}}, {{minutes}} minutes after the shift ended.",
       "device_offline": "Attendance device '{{device}}' at {{plant}} is offline. Check its power and internet.",
-      "many_rejections": "{{count}} punches were refused at {{plant}} in {{minutes}} minutes. Please check the device.",
-      "incomplete_days": "{{count}} days at {{plant}} are missing an OUT (yesterday {{date}}).",
+      "many_rejections_one": "{{count}} punch was refused at {{plant}} in {{minutes}} minutes. Please check the device.",
+      "many_rejections_other": "{{count}} punches were refused at {{plant}} in {{minutes}} minutes. Please check the device.",
+      "incomplete_days_one": "{{count}} day at {{plant}} is missing an OUT (yesterday {{date}}).",
+      "incomplete_days_other": "{{count}} days at {{plant}} are missing an OUT (yesterday {{date}}).",
       "review_digest": "{{count}} punches are waiting in Needs review ({{flagged}} flagged, {{rejected}} refused).",
-      "absence_streak": "A person at {{plant}} has been absent for {{count}} working days in a row, since {{since}}.",
+      "absence_streak_one": "A person at {{plant}} has been absent for {{count}} working day in a row, since {{since}}.",
+      "absence_streak_other": "A person at {{plant}} has been absent for {{count}} working days in a row, since {{since}}.",
       "correction_requested": "A correction was asked for {{date}} at {{plant}}.",
       "correction_decided_approved": "Your correction for {{date}} was approved.",
       "correction_decided_rejected": "Your correction for {{date}} was not approved. {{reason}}",
       "monthly_register": "The register of {{month}} is ready for {{plant}}.",
-      "phone_many_phones": "An employee signed in on {{count}} phones in 30 days. Check the signed-in phones.",
-      "phone_selfie_no_face": "{{count}} phone selfies at {{plant}} on {{date}} show no face. Please check them in the punch log.",
+      "phone_many_phones_one": "An employee signed in on {{count}} phone in 30 days. Check the signed-in phones.",
+      "phone_many_phones_other": "An employee signed in on {{count}} phones in 30 days. Check the signed-in phones.",
+      "phone_selfie_no_face_one": "{{count}} phone selfie at {{plant}} on {{date}} shows no face. Please check it in the punch log.",
+      "phone_selfie_no_face_other": "{{count}} phone selfies at {{plant}} on {{date}} show no face. Please check them in the punch log.",
       "conversion_face_pending": "A worker at {{plant}} became permanent on {{effective_from}}. Their face is not enrolled yet. They cannot punch until it is."
     },
     "link": {
@@ -4618,6 +4789,7 @@
   },
   "phone": {
     "title": "Phone attendance",
+    "language": "Language",
     "back": "Back",
     "cancel": "Cancel",
     "tryAgain": "Try again",

@@ -118,8 +118,9 @@ export const phoneApi = {
     apiPost<SignedIn>("/phone/login", body),
   logout: () => apiPost<void>("/phone/logout"),
   stop: () => apiPost<void>("/phone/stop", { confirm: true }),
-  notice: () => apiGet<NoticeText>("/phone/notice"),
-  acceptNotice: (body: { version: string; text_sha256: string }) =>
+  notice: (language: string) =>
+    apiGet<NoticeText>(`/phone/notice?language=${encodeURIComponent(language)}`),
+  acceptNotice: (body: { version: string; text_sha256: string; language: string }) =>
     apiPost<{ accepted_at: string }>("/phone/notice/accept", body),
   faceProofChallenge: (employeeCode: string) =>
     apiPost<FaceProofChallenge>("/phone/proof/face/challenge", { employee_code: employeeCode }),

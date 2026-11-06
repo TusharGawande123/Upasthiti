@@ -45,6 +45,9 @@ from app.modules.regularisations.models import (
 from app.modules.settings.service import get_int_setting
 
 CATCH_UP_BATCH = 500
+# Days written with one INSERT statement (about 30 columns each, far below PostgreSQL's limit of
+# 65,535 parameters). One statement per day made the live dashboard run hundreds of queries.
+STORE_BATCH = 200
 # A long range recomputes at most this much per request (M5c spec rule 9).
 RANGE_RECOMPUTE_DAYS = 3000
 RANGE_RECOMPUTE_SECONDS = 8.0
@@ -153,12 +156,14 @@ def recompute_days(session: Session, keys: Iterable[DayKey], now: datetime) -> i
         return 0
     all_days = [day for days in by_employee.values() for day in days]
     loader = DayLoader.load(session, list(by_employee), min(all_days), max(all_days), now)
-    stored = 0
-    for employee_id, days in by_employee.items():
-        for day in sorted(days):
-            _store(session, employee_id, day, loader.result_for(employee_id, day), loader, now)
-            stored += 1
-    return stored
+    rows = [
+        _day_values(session, employee_id, day, loader.result_for(employee_id, day), loader, now)
+        for employee_id, days in by_employee.items()
+        for day in sorted(days)
+    ]
+    for start in range(0, len(rows), STORE_BATCH):
+        _store_rows(session, rows[start : start + STORE_BATCH])
+    return len(rows)
 
 
 def recompute_stale(session: Session, now: datetime, limit: int = CATCH_UP_BATCH) -> int:
@@ -551,21 +556,25 @@ class DayLoader:
 _ADDING_KINDS = {CorrectionKind.ADD_PUNCH.value, CorrectionKind.ADD_IN_OUT.value}
 
 
-def _store(
+def _day_values(
     session: Session,
     employee_id: uuid.UUID,
     day: date,
     result: DayResult,
     loader: DayLoader,
     now: datetime,
-) -> None:
+) -> dict:
+    """The stored columns of one computed day, with its employee and date."""
     calendar = loader.calendar
     window = calendar.window(employee_id, day)
     plant_id = calendar.plant_on(employee_id, day) or session.scalar(
         select(Employee.plant_id).where(Employee.id == employee_id)
     )
     inputs = loader.inputs_for(employee_id, day)
-    values = {
+    return {
+        "id": uuid.uuid4(),
+        "employee_id": employee_id,
+        "attendance_date": day,
         "plant_id": plant_id,
         "shift_id": window.shift.shift_id if window else None,
         "shift_rule_version_id": window.shift.rule_version_id if window else None,
@@ -591,13 +600,21 @@ def _store(
         "stale": False,
         "computed_at": now,
     }
-    statement = insert(AttendanceDay).values(
-        id=uuid.uuid4(), employee_id=employee_id, attendance_date=day, **values
-    )
+
+
+def _store_rows(session: Session, rows: list[dict]) -> None:
+    """Insert these days, or update the ones that exist (one statement for all of them). Each
+    employee and date appears once, which PostgreSQL requires within one upsert statement."""
+    statement = insert(AttendanceDay).values(rows)
+    changed = {
+        name: statement.excluded[name]
+        for name in rows[0]
+        if name not in ("id", "employee_id", "attendance_date")
+    }
     session.execute(
         statement.on_conflict_do_update(
             index_elements=[AttendanceDay.employee_id, AttendanceDay.attendance_date],
-            set_=values,
+            set_=changed,
         )
     )
 

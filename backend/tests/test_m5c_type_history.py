@@ -21,6 +21,8 @@ from tests.clock_helpers import PINNED_DAY, frozen_at, ist
 from tests.factories import log_in, make_user
 from tests.people_helpers import PlantIds, create_plant, temporary_body
 
+pytestmark = pytest.mark.time_sensitive
+
 EMPLOYEES = "/api/v1/employees"
 
 

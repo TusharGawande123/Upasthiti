@@ -39,6 +39,8 @@ from app.modules.users.plant_access import set_user_plant
 from tests.face_helpers import POSE_FRAMES, enrol, new_employee, set_privacy, shot, start
 from tests.people_helpers import PlantIds, client_for, create_plant
 
+pytestmark = pytest.mark.time_sensitive
+
 
 @pytest.fixture
 def boss(db_app: FastAPI, db_session: Session) -> TestClient:
@@ -140,7 +142,12 @@ def test_re_enrolling_replaces_the_old_template(
     again = enrol(boss, employee_id, person=5)  # the same person is not a duplicate of themself
 
     assert again.status_code == 201 and again.json()["replaced_previous"] is True
-    kinds = [t.delete_kind for t in db_session.scalars(select(FaceTemplate)).all()]
+    kinds = [
+        t.delete_kind
+        for t in db_session.scalars(
+            select(FaceTemplate).order_by(FaceTemplate.created_at, FaceTemplate.id)
+        ).all()
+    ]
     assert sorted(kinds, key=str) == sorted([None, "re_enrolled"], key=str)
 
 

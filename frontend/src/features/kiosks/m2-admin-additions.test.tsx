@@ -280,6 +280,31 @@ describe("gate poster button", () => {
     expect(calls.some((call) => call.path === "/plants/p-1/gate-poster.pdf")).toBe(true);
   });
 
+  it("asks for the poster in Marathi after the language is picked (M6 F-99)", async () => {
+    const tab = { location: { href: "" }, close: vi.fn() };
+    vi.stubGlobal(
+      "open",
+      vi.fn(() => tab),
+    );
+    const calls = mockApi({
+      ...plantAnswers(SUPER_ADMIN),
+      "GET /plants/p-1/gate-poster.pdf?language=mr": { body: {} },
+    });
+    const user = userEvent.setup();
+    renderRoute("/admin/plants/p-1");
+
+    await user.selectOptions(
+      await screen.findByRole("combobox", { name: "Language of the gate poster" }),
+      "mr",
+    );
+    await user.click(screen.getByRole("button", { name: "Download gate poster (A4 PDF)" }));
+
+    await waitFor(() => expect(tab.location.href).toBe("blob:fake-poster"));
+    expect(calls.some((call) => call.path === "/plants/p-1/gate-poster.pdf?language=mr")).toBe(
+      true,
+    );
+  });
+
   it("is there for a Plant Head too, but not for the Corporate Head", async () => {
     mockApi(plantAnswers(PLANT_HEAD));
     const first = renderRoute("/admin/plants/p-1");

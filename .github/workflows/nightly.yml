@@ -1,0 +1,237 @@
+# Nightly checks (M6 plan 5.6, decision 0038): the slow and random checks that do not belong in
+# every pull request. NOT a required check: a red run only tells the team to look. The repository
+# is public: never print secrets or data here.
+name: Nightly
+
+on:
+  schedule:
+    - cron: "30 20 * * *" # 02:00 in India
+  workflow_dispatch:
+    inputs:
+      chaos_examples:
+        description: "How many random cases the offline-sync chaos test tries"
+        default: "200"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: nightly
+  cancel-in-progress: false
+
+env:
+  UV_VERSION: "0.13.0"
+
+jobs:
+  # The whole suite in random order, with the clock started at five tricky moments: just before
+  # and after midnight, a month end, a year end and a Sunday morning (all India time).
+  random-order:
+    name: random order, clock ${{ matrix.clock }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    strategy:
+      fail-fast: false
+      matrix:
+        clock:
+          - "2026-11-04T23:59:30"
+          - "2026-11-05T00:00:30"
+          - "2026-11-30T23:59:30"
+          - "2026-12-31T23:59:30"
+          - "2026-11-08T10:00:00"
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: upasthiti
+          POSTGRES_PASSWORD: upasthiti
+          POSTGRES_DB: upasthiti
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U upasthiti" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Install packages
+        run: uv sync --locked
+      # pytest-randomly is switched off in pyproject.toml (the normal runs keep their order);
+      # `-p randomly` switches it on again. The seed is printed at the top: to repeat a failing
+      # order, run the same command with --randomly-seed=<that number>.
+      - name: Whole suite in random order
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti_test
+          TEST_CLOCK_START_IST: ${{ matrix.clock }}
+        run: uv run pytest -p randomly -q --no-cov
+
+  # S-61: the offline sync under random drops, duplicates, reordering, clock jumps, reused nonces
+  # and a revoked device, many more cases than the pull-request run tries.
+  chaos:
+    name: offline sync chaos
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: backend
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: upasthiti
+          POSTGRES_PASSWORD: upasthiti
+          POSTGRES_DB: upasthiti
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U upasthiti" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Chaos test with many examples
+        env:
+          TEST_DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@localhost:5432/upasthiti_test
+          CHAOS_EXAMPLES: ${{ inputs.chaos_examples || '200' }}
+        run: uv run pytest tests/test_m6_sync_chaos.py -q --no-cov
+
+  # S-64: stored attendance days equal what the rules say, and the biggest files (a one-year
+  # register, the full data export) stay under 450 MB. One year of fake data for 650 people.
+  big-data:
+    name: recompute check and export memory
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_memcheck
+      # Fake secret, 32+ characters, used only here.
+      APP_SECRET_KEY: ci-only-fake-secret-key-0123456789-abcdef
+      STORAGE_BACKEND: local
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: upasthiti
+          POSTGRES_PASSWORD: upasthiti
+          POSTGRES_DB: upasthiti
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U upasthiti" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Make a year of fake attendance
+        run: uv run python -m app.scripts.export_memory_check prepare
+      - name: Recompute self-check (the last 30 closed days)
+        run: uv run python -m app.scripts.recompute_check --from "$(date -u -d '31 days ago' +%F)"
+      - name: One-year register and full export under 450 MB
+        run: uv run python -m app.scripts.export_memory_check measure --limit-mb 450
+
+  # Migrations on a database that holds data: dump it, restore the dump into a new database and
+  # check that the restored copy has the same tables, rows and migration revision (S-62).
+  dump-restore:
+    name: migration dump and restore
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      APP_ENV: test
+      DATABASE_URL: postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_memcheck
+      APP_SECRET_KEY: ci-only-fake-secret-key-0123456789-abcdef
+      PGPASSWORD: upasthiti
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: upasthiti
+          POSTGRES_PASSWORD: upasthiti
+          POSTGRES_DB: upasthiti
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U upasthiti" --health-interval 5s
+          --health-timeout 3s --health-retries 10
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - run: uv sync --locked
+      - name: Migrate a new database and fill it with fake people
+        run: |
+          docker run --rm --network host -e PGPASSWORD postgres:17 \
+            psql -h 127.0.0.1 -U upasthiti -d postgres -c 'CREATE DATABASE upasthiti_memcheck' \
+            -c 'CREATE DATABASE upasthiti_restored'
+          uv run alembic upgrade head
+          uv run python -m app.scripts.make_fake_data
+      - name: Dump (custom format) and restore into another database
+        run: |
+          docker run --rm --network host -e PGPASSWORD postgres:17 \
+            pg_dump -h 127.0.0.1 -U upasthiti -Fc upasthiti_memcheck > "$RUNNER_TEMP/dump.pgc"
+          docker run --rm -i --network host -e PGPASSWORD postgres:17 \
+            pg_restore -h 127.0.0.1 -U upasthiti -d upasthiti_restored --no-owner < "$RUNNER_TEMP/dump.pgc"
+      - name: The restored copy has the same rows and the same migration revision
+        run: |
+          count_rows() {
+            for table in $(docker run --rm --network host -e PGPASSWORD postgres:17 \
+              psql -h 127.0.0.1 -U upasthiti -d "$1" -At -c \
+              "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename"); do
+              echo "$table $(docker run --rm --network host -e PGPASSWORD postgres:17 \
+                psql -h 127.0.0.1 -U upasthiti -d "$1" -At -c "SELECT count(*) FROM \"$table\"")"
+            done
+          }
+          count_rows upasthiti_memcheck > original.txt
+          count_rows upasthiti_restored > restored.txt
+          diff original.txt restored.txt
+          DATABASE_URL="postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_restored" \
+            uv run alembic current | tee restored-revision.txt
+          grep -q "(head)" restored-revision.txt
+          DATABASE_URL="postgresql+psycopg://upasthiti:upasthiti@127.0.0.1:5432/upasthiti_restored" \
+            uv run alembic check
+
+  # Known security problems in the locked Python packages (pip-audit, Apache-2.0, a tool only,
+  # never installed into the app).
+  pip-audit:
+    name: pip-audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@68559e99cc807c1eb7e9238fd43a15bba460eec2 # v10.3.3
+        with:
+          version: ${{ env.UV_VERSION }}
+          enable-cache: true
+      - name: Audit the locked packages the app runs with
+        run: |
+          uv export --locked --no-dev --no-emit-project --format requirements-txt -o "$RUNNER_TEMP/requirements.txt"
+          uvx pip-audit --disable-pip --no-deps -r "$RUNNER_TEMP/requirements.txt"

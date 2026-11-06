@@ -2,6 +2,7 @@
 
 from datetime import timedelta
 
+import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
@@ -13,6 +14,8 @@ from app.modules.auth.models import LoginSession
 from app.modules.users.models import Role
 from tests.conftest import TEST_ORIGIN
 from tests.factories import TEST_PASSWORD, log_in, make_user
+
+pytestmark = pytest.mark.time_sensitive
 
 LOGIN = "/api/v1/auth/login"
 ME = "/api/v1/auth/me"

@@ -29,6 +29,8 @@ from tests.people_helpers import PlantIds, client_for, create_plant, temporary_b
 from tests.phone_helpers import make_phone_punch, make_phone_session
 from tests.test_punch_tables import make_punch, make_snapshot
 
+pytestmark = pytest.mark.time_sensitive
+
 
 @pytest.fixture
 def boss(db_app: FastAPI, db_session: Session) -> TestClient:

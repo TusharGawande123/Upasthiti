@@ -21,6 +21,8 @@ from tests.people_helpers import PlantIds, client_for, create_plant
 from tests.phone_api_helpers import PHONE, People, make_people, signed_in_phone, switch_phone
 from tests.phone_helpers import make_phone_punch
 
+pytestmark = pytest.mark.time_sensitive
+
 MONDAY = date(2026, 11, 2)
 
 

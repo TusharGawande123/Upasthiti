@@ -27,6 +27,8 @@ from tests.people_helpers import client_for, create_plant, permanent_body, tempo
 from tests.phone_api_helpers import switch_phone
 from tests.phone_helpers import make_phone_punch, make_phone_session
 
+pytestmark = pytest.mark.time_sensitive
+
 MONDAY = date(2026, 11, 2)
 DAY = MONDAY.isoformat()
 OUTSIDE = ["OUTSIDE_PLANT"]

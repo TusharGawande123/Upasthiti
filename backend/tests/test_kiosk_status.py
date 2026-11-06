@@ -21,6 +21,8 @@ from tests.factories import log_in, make_user
 from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant
 
+pytestmark = pytest.mark.time_sensitive
+
 HEARTBEAT = "/api/v1/kiosk/heartbeat"
 GOOD = {"state": "good", "lat": 19.85, "lon": 75.25, "accuracy_m": 12.0, "age_s": 3}
 
@@ -143,7 +145,7 @@ def test_a_sample_is_kept_at_most_every_5_minutes_or_when_something_changes(
         ({"location_state": "outside"}, DeviceState.NEEDS_LOCATION),
         ({"location_state": "stale"}, DeviceState.ONLINE),  # offline reuse is not a problem
         ({"queue_count": 12}, DeviceState.SENDING),
-        ({"last_seen_at": utc_now() - timedelta(minutes=10)}, DeviceState.OFFLINE),
+        ({"last_seen_at": timedelta(minutes=-10)}, DeviceState.OFFLINE),  # relative to "now"
         ({"last_seen_at": None}, DeviceState.OFFLINE),
         ({"status": "revoked"}, DeviceState.REVOKED),
         ({"status": "pending"}, DeviceState.PENDING),
@@ -157,7 +159,7 @@ def test_the_state_follows_the_rules_of_the_spec(
     kiosk.location_state = "good"
     kiosk.queue_count = 0
     for field, value in changes.items():
-        setattr(kiosk, field, value)
+        setattr(kiosk, field, now + value if isinstance(value, timedelta) else value)
 
     assert device_state(kiosk, now, offline_after_minutes=3) is expected
 
@@ -202,7 +204,9 @@ def make_shift_now(session: Session, plant: PlantIds) -> None:
     import uuid
 
     now = to_ist(utc_now())
-    for shift in session.scalars(select(Shift).where(Shift.plant_id == uuid.UUID(plant.id))):
+    for shift in session.scalars(
+        select(Shift).where(Shift.plant_id == uuid.UUID(plant.id)).order_by(Shift.id)
+    ):
         shift.is_active = False
     start_time = (now - timedelta(hours=1)).time().replace(microsecond=0)
     end_time = (now + timedelta(hours=1)).time().replace(microsecond=0)

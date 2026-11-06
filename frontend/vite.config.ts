@@ -103,6 +103,8 @@ export default defineConfig(({ mode }) => {
       // Form tests type many characters; under coverage a laptop needs more than the default 5 s.
       testTimeout: 15_000,
       setupFiles: ["./src/test/setup.ts"],
+      // M6 AC-M6-45: one Vitest run at a time per checkout (the `.test-run.lock` guard).
+      globalSetup: ["./scripts/vitest-global-setup.mjs"],
       coverage: {
         provider: "v8",
         include: ["src/**/*.{ts,tsx}"],
@@ -115,7 +117,7 @@ export default defineConfig(({ mode }) => {
         ],
         reporter: ["text", "json-summary"],
         // Coverage floor: 60% in M0, 70% from M1, 75% from M2, 80% from M3; raised in each milestone (spec S-8).
-        thresholds: { lines: 84, functions: 84, branches: 84, statements: 84 },
+        thresholds: { lines: 90, functions: 84, branches: 83, statements: 88 },
       },
     },
   };

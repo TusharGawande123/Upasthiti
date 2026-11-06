@@ -26,6 +26,8 @@ from tests.offline_helpers import OfflineGate, card_evidence
 from tests.people_helpers import PlantIds, client_for, create_plant
 from tests.test_punch_api import Worker
 
+pytestmark = pytest.mark.time_sensitive
+
 HEARTBEAT = "/api/v1/kiosk/heartbeat"
 TYPED_CODE = "1043"
 REVIEW_REASON = "Checked with the shift supervisor Zephyrine"

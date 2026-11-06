@@ -33,6 +33,8 @@ from tests.image_helpers import make_jpeg, make_png
 from tests.kiosk_helpers import GATE_LAT, GATE_LON, ensure_gate_fence
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body, temporary_body
 
+pytestmark = pytest.mark.time_sensitive
+
 LIMITS = PunchLimits(
     punch_cooldown_minutes=2,
     min_minutes_before_out=30,

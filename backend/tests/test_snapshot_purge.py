@@ -17,6 +17,8 @@ from app.modules.org.models import Plant
 from app.modules.punches.models import Punch, PunchSnapshot
 from app.modules.punches.retention import purge_expired_snapshots
 
+pytestmark = pytest.mark.time_sensitive
+
 
 @pytest.fixture
 def storage(tmp_path: Path) -> LocalStorage:

@@ -97,7 +97,7 @@ def test_unknown_ip_is_stored_as_empty(db_session: Session) -> None:
     [
         "UPDATE audit_logs SET action = 'changed'",
         "DELETE FROM audit_logs",
-        "TRUNCATE audit_logs",
+        "TRUNCATE audit_logs CASCADE",
     ],
 )
 def test_database_refuses_to_change_audit_rows(db_session: Session, statement: str) -> None:

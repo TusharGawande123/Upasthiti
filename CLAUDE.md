@@ -68,7 +68,8 @@
   employee categories, settings), employees + contractors, approvals (change
   requests), enrolment (face, QR), kiosk punch, anti-proxy engine, attendance
   processing, dashboards, reports, audit, auth, phone punch (M4b), temporary-to-permanent
-  conversion and type history (M5c).
+  conversion and type history (M5c), data-request register and full data export (M6, Super Admin
+  only), encrypted backup and restore (M6, `app/scripts/backup.py`).
 
 ## 3. Coding Style
 - Readability first: code must be easy to read and understand for a student
@@ -119,6 +120,10 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
   (MPL-2.0, tests only: property tests), webauthn / py_webauthn 3.0.1 (BSD-3-Clause: optional passkey
   sign-in for the phone), Recharts 3.10 (MIT: charts), @tanstack/react-table (MIT, first used in M5),
   smtplib from the standard library (optional alert email: off unless the SMTP_* variables are set).
+- Added in M6 (all free): uharfbuzz 0.57 (Apache-2.0, runtime: shapes Marathi and Hindi in the gate
+  poster PDF), Noto Sans Devanagari (SIL OFL 1.1, font files of the poster), pytest-randomly 5.0 (MIT,
+  tests only, off by default), @lhci/cli 0.16 (Apache-2.0, dev only: Lighthouse CI), @axe-core/playwright
+  (MPL-2.0, e2e only). Run-only tools, not added to the project: pip-audit, npm audit.
 - Tooling: uv, Ruff, pyright, pytest · Biome, Vitest, Playwright ·
   pre-commit, Dependabot, GitHub Actions.
 - M0 choices that differ from the first plan (docs/decisions/0003-dev-tooling.md):
@@ -270,9 +275,18 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
       history report and no overtime for permanent staff (migration 0033). Still open: HR/legal
       confirmation that "no punch until the face is enrolled" is acceptable, and the daily reminder
       F-86.
-- [ ] M6 Testing, security review, documentation, final free-tier deployment
-      (client's own server only if the free tiers are not enough)
-- [x] M7 Payable salary estimate: CANCELLED by the client (2026-11-04). Not built.
+- [x] M6 Testing, security review, documentation, handover findings (built on
+      milestone/M6-testing-security-docs, merged with its PR). AC matrix of all earlier milestones, flaky-test
+      sweep and `time_sensitive` marker, role matrix / plant scoping / CSRF / downloads / injection tests,
+      client IP (`CLIENT_IP_HEADER`) and HMAC of typed codes, strict CSP on /attendance, Marathi and Hindi
+      (phone notice v2, phone pages, gate poster), data-request register and full export (migration 0034),
+      encrypted backup and restore drill, load and sizing results, journeys and axe on every page,
+      manuals and worker guides in English, Marathi and Hindi, runbook, deployment findings (spec
+      docs/specs/M6-testing-security-docs.md, decision 0038, reports in docs/reports/M6-*.md). Still open:
+      the real-device and manual checks of docs/guides/m6-manual-checklist.md, the final deployment on
+      the client's server (a later session; the free tiers are too slow for the punch at 0.1 CPU, see
+      backend/loadtest/README.md) and the Marathi/Hindi reading by the lead.
+- [ ] M7 Payable salary estimate: CANCELLED by the client (2026-11-04). Not built, not to be ticked.
 - [ ] Future (not now): full payroll and statutory features
 
 ## 8. Workflow (Spec-Driven, milestone by milestone)
@@ -315,7 +329,7 @@ The skeleton exists since M0; the README.md has the full first-time setup.
 - Backend (from backend/):
   - `uv sync`: install dependencies.
   - `uv run fastapi dev app/main.py`: run the API locally (docs at /api/docs).
-  - `uv run pytest`: run the tests (coverage floor 84% since M5, raised each milestone). With
+  - `uv run pytest`: run the tests (coverage floor 90% since M6, measured 91.34%, raised each milestone). With
     `TEST_CLOCK_START_IST=2026-11-04T23:59:30` set, every test's clock starts at that Indian time
     (CI runs the time-sensitive files at 23:59:30 and 00:00:30). Add
     `-m face_models` for the tests that use the real face models.
@@ -348,18 +362,33 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   - `uv run python -m app.scripts.remove_test_employees --plant-code K134 --employee-codes 101 102`
     and `uv run python -m app.scripts.clear_geofence --plant-code K134`: one-time tools of decisions
     0032 and 0033 (they show first; `--confirm` applies).
+  - `uv run python -m app.scripts.make_backup_key`: print a new `BACKUP_KEY` line (M6).
+  - `uv run python -m app.scripts.backup create --output-dir <folder>` makes an encrypted backup
+    (database dump + snapshot folder, AES-256-GCM); `backup restore --file <f> --target-database <name>
+    [--confirm]` restores it into a throw-away database and checks counts, migration head and one
+    face template (add `--via-docker` when pg tools run in Docker). Guide: docs/guides/backup-restore.md.
+  - `uv run python -m app.scripts.recompute_check`: read-only compare of stored `attendance_days` with a
+    fresh calculation (exit 1 on a mismatch; nightly). `export_memory_check` (prepare / measure): the
+    one-year register and the full export must stay under 450 MB (M6).
+  - `uv run pytest -m time_sensitive` (with `TEST_CLOCK_START_IST` as above) is the midnight pass of CI.
+    `-p randomly` turns on random test order (nightly workflow `.github/workflows/nightly.yml`: five
+    clock starts, chaos test of the offline sync, recompute check, dump-restore, pip-audit).
 - Frontend (from frontend/):
   - `npm install`, then `npm run dev` (Vite; proxies /api to the local backend).
-  - `npm test` (Vitest + coverage, floor 84 since M5), `npm run lint` / `npm run lint:fix` (Biome),
+  - `npm test` (Vitest + coverage, floors since M6: lines 90, functions 84, branches 83, statements 88), `npm run lint` / `npm run lint:fix` (Biome),
     `npm run typecheck`, `npm run build`.
   - `npm run i18n:check`: every text key used in code exists in
     `public/locales/en/common.json`, and every server error code has an `errors.<CODE>` text.
   - `npm run size` (after the build): bundle budgets (the gate page has its own budget, 65 kB gzip);
     the admin's first load has no kiosk code; it also checks the gate service worker.
-- End-to-end (from e2e/): `npx playwright test` (starts backend + frontend itself; add
-  `--headed` to watch the browser; `tests/responsive.spec.ts` checks phone and tablet sizes). It needs the local Postgres (`docker compose up -d`),
-  uses its own database `upasthiti_e2e` (wiped each run) and runs tests one after another.
-  Do not run it at the same time as `npm test` or `pytest` (they share the machine and the DB).
+  - `npm run lighthouse` (after the build; Lighthouse CI, accessibility at least 0.95).
+- End-to-end (from e2e/): `npx playwright test` (starts backend + frontend itself; headed on a laptop,
+  headless when `CI` is set; `tests/responsive.spec.ts` runs every route of `tests/page-list.ts` at 360
+  and 768 px with axe). It needs the local Postgres (`docker compose up -d`), uses its own database
+  `upasthiti_e2e` (wiped each run) and runs tests one after another. The journeys of M6 are a separate
+  project: `npx playwright test --project=journeys` (not part of the required `e2e` check; nightly).
+  Test runs that may overlap: `pytest` and `npm test`. Playwright runs alone, and never two runs of the
+  same kind at the same time (decision 0038; `.test-run.lock` refuses a second run).
 - Every git hook on every file: `pre-commit run --all-files`.
 - Windows note: plain `python` on the lead's laptop is 3.7, so always use `uv run`
   (uv installs the project's Python 3.14 itself).
@@ -418,7 +447,10 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   `APP_ENV` (unset = production, which switches off /api/docs), `APP_VERSION`,
   `DATABASE_URL` (required), `LOG_LEVEL`; from M1 also `APP_SECRET_KEY` (required),
   `APP_PUBLIC_ORIGIN` (required in production), `TRUSTED_PROXY_HOPS` (live value 4, measured
-  with the audit log; the client IP can still be faked through Vercel, fix planned in M6); also
+  with the audit log) and the optional `CLIENT_IP_HEADER` (M6: a header the outer proxy sets and the
+  caller cannot write; set it only when the backend accepts traffic from that proxy alone, otherwise
+  the per-IP login and pairing limits can be bypassed; all code reads the client IP through
+  `app/core/client_ip.py`); also
   `RUN_MIGRATIONS_ON_START` (Render free has no pre-deploy step), `RUN_SCHEDULER`,
   `TEST_DATABASE_URL` (tests; the name must end in `_test`) and `E2E_LOGIN_LIMIT` (honoured
   only when `APP_ENV=test`; production always allows 20 logins per IP per 10 minutes). A missing required
@@ -439,11 +471,17 @@ The skeleton exists since M0; the README.md has the full first-time setup.
   From M5, all optional: `SMTP_HOST`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`, `SMTP_FROM`,
   `SMTP_SECURITY` (`starttls`, `ssl` or `none`). Leave them unset on the free tiers: email is then
   silently off and the bell in the admin website is the only channel. M4b needs no new variable (the
-  gate-code key is derived from `APP_SECRET_KEY`).
+  gate-code key is derived from `APP_SECRET_KEY`). From M6: `BACKUP_KEY` (needed only by
+  `app/scripts/backup.py`; lose it and the backups cannot be opened; keep it in the password manager)
+  and optional `BACKUP_KEY_ID` (a letter, default A). The setting `data_request_days` (privacy group,
+  default 30) is the time limit of the data-request register.
 - Phone punching (M4b): cookie `ups_phone` (HttpOnly, SameSite=Strict, path `/api/v1/phone`), separate
   from the admin session; passwords 8+ characters; the Super Admin switches phone punching and "Outside
   work allowed" per employee (default off); settings group "phone"; `/phone` has its own strict CSP and
-  Permissions-Policy in `frontend/vercel.json` (the `/phone` rule must stay after the catch-all rule).
+  Permissions-Policy in `frontend/vercel.json` (the `/phone` rule must stay after the catch-all rule);
+  from M6 `/attendance` has its own strict CSP too (the admin pages have none, decision 0038).
+- Phone notice v2 (M6): the notice text exists in English, Marathi and Hindi (`?language=`); every
+  employee accepts it again once. The gate poster can also be printed in the three languages.
 - Face settings (Super Admin, groups "face" and "privacy"): match threshold, margin, ask-for-
   code floor, code threshold (never below the floor), anti-spoof threshold, head-turn steps
   (1 or 2), retry and code-entry times, re-enrol hints, `company_address` and `privacy_contact`

@@ -19,6 +19,8 @@ from tests.factories import log_in, make_user
 from tests.kiosk_helpers import Device
 from tests.test_org_api import LAT0, LON0, METRES_PER_DEGREE, square_geofence
 
+pytestmark = pytest.mark.time_sensitive
+
 KIOSKS = "/api/v1/kiosks"
 REGISTER = "/api/v1/kiosk/register"
 ME = "/api/v1/kiosk/me"
@@ -386,3 +388,19 @@ def test_a_revoked_device_and_a_replayed_request_are_logged_and_audited(
         ("kiosk", revoked.kiosk_id, "DEVICE_REVOKED"),
     }
     assert len(rows) == 2
+
+
+def test_a_revoked_device_that_keeps_polling_writes_one_audit_row_per_hour(
+    boss: TestClient, plant: dict, db_session: Session
+) -> None:
+    created = new_kiosk(boss, plant)
+    device = Device()
+    device.kiosk_id = created["kiosk"]["id"]
+    register(boss, created["pairing_code"], device, at(50, 50))
+    boss.post(f"{KIOSKS}/{device.kiosk_id}/revoke", json={"reason": "Tablet lost"})
+
+    for _ in range(3):
+        boss.get(ME, headers=device.headers("GET", ME))
+
+    rows = list(db_session.scalars(select(AuditLog).where(AuditLog.action == "kiosk.auth_refused")))
+    assert len(rows) == 1

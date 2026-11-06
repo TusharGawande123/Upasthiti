@@ -73,6 +73,9 @@ class Capability(enum.Enum):
     # Switch phone punching / outside work, sign out all phones, require a new password, remove a
     # passkey. Super Admin only (lead decision 5: never through the approvals inbox).
     MANAGE_PHONE_ACCESS = "manage_phone_access"
+    # M6 (spec 7.7): the data-request register and the full data export. Super Admin only.
+    MANAGE_DATA_REQUESTS = "manage_data_requests"
+    EXPORT_ALL_DATA = "export_all_data"
 
 
 SUPER_ADMIN = Role.SUPER_ADMIN
@@ -177,6 +180,8 @@ PERMISSIONS: dict[Capability, dict[Role, Access]] = {
         PLANT_HEAD: Access.OWN_PLANT,
     },
     Capability.MANAGE_PHONE_ACCESS: {SUPER_ADMIN: Access.ALL},
+    Capability.MANAGE_DATA_REQUESTS: {SUPER_ADMIN: Access.ALL},
+    Capability.EXPORT_ALL_DATA: {SUPER_ADMIN: Access.ALL},
 }
 
 

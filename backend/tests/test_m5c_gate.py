@@ -25,6 +25,8 @@ from tests.test_face_punch_api import (  # noqa: F401
 )
 from tests.test_punch_api import Worker, make_worker, send
 
+pytestmark = pytest.mark.time_sensitive
+
 EMPLOYEES = "/api/v1/employees"
 
 

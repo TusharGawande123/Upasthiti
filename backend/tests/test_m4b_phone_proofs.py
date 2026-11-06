@@ -5,7 +5,7 @@
 import hashlib
 import time
 import uuid
-from datetime import date, timedelta
+from datetime import timedelta
 from pathlib import Path
 
 import pytest
@@ -21,6 +21,7 @@ from app.face.fake_engine import Problem
 from app.modules.audit.models import AuditLog
 from app.modules.phone.models import PhoneAccount, PhoneNoticeAcceptance, PhoneProof
 from app.modules.phone.notice import raw_notice, require_notice_accepted
+from app.modules.phone.typed_code_audit import typed_code_hmac
 from app.modules.punches.models import PunchSnapshot
 from app.modules.qr_cards.models import QrCredential
 from app.modules.qr_cards.payload import build_payload
@@ -46,6 +47,8 @@ from tests.phone_api_helpers import (
     switch_phone,
     turn_yaw,
 )
+
+pytestmark = pytest.mark.time_sensitive
 
 NOTICE_V1_SHA256 = "517de0d5cbd1b31ab8e8fddf60d819005ebdf7beaa46056499b98c6a22501f9f"
 
@@ -147,7 +150,14 @@ def test_ac_11_every_not_you_case_gives_the_same_answer_after_one_second(
     failed = db_session.scalars(
         select(AuditLog).where(AuditLog.action == "phone_proof.failed").order_by(AuditLog.at)
     ).all()
-    assert [row.after for row in failed] == [{"kind": "face", "code": code} for code, _ in cases]
+    # M6: a code of nobody is kept only as hash and length (decision 0038); a real one as typed.
+    assert failed[0].after == {
+        "kind": "face",
+        "code_hmac": typed_code_hmac("NOBODY-1"),
+        "code_length": 8,
+    }
+    assert failed[3].after == {"kind": "face", "code": "F-201"}
+    assert all(row.after is not None and row.after["kind"] == "face" for row in failed)
 
 
 def test_a_printed_photo_fails_the_proof(people: People, phone: TestClient) -> None:
@@ -388,8 +398,11 @@ def test_ac_17_require_a_new_password_removes_it_and_the_proof_still_works(
 
 
 def test_the_notice_text_v1_never_changes() -> None:
-    assert hashlib.sha256(raw_notice().encode("utf-8")).hexdigest() == NOTICE_V1_SHA256
-    assert "kiosk" not in raw_notice().lower()
+    assert (
+        hashlib.sha256(raw_notice("phone-notice-v1", "en").encode("utf-8")).hexdigest()
+        == NOTICE_V1_SHA256
+    )
+    assert "kiosk" not in raw_notice("phone-notice-v1", "en").lower()
 
 
 def test_ac_18_no_punch_before_i_agree_then_the_exact_text_is_stored(
@@ -403,7 +416,7 @@ def test_ac_18_no_punch_before_i_agree_then_the_exact_text_is_stored(
     assert refused.value.code == "PHONE_NOTICE_REQUIRED" and refused.value.status_code == 428
     assert phone.get(f"{PHONE}/me").json()["notice"] == {
         "required": True,
-        "version": "phone-notice-v1",
+        "version": "phone-notice-v2",
     }
 
     shown = phone.get(f"{PHONE}/notice").json()
@@ -419,7 +432,7 @@ def test_ac_18_no_punch_before_i_agree_then_the_exact_text_is_stored(
 
     assert accepted.status_code == 201, accepted.text
     row = db_session.scalars(select(PhoneNoticeAcceptance)).one()
-    assert row.version == "phone-notice-v1" and row.language == "en"
+    assert row.version == "phone-notice-v2" and row.language == "en"
     assert row.text_sha256 == hashlib.sha256(shown["text"].encode("utf-8")).hexdigest()
     assert row.session_id == sessions_of(db_session, people.face_id)[0].id
     require_notice_accepted(db_session, employee_id)  # no error now
@@ -475,7 +488,7 @@ def test_me_tells_the_phone_what_it_needs(
 ) -> None:
     boss.put(
         f"/api/v1/employees/{people.face_id}/phone/outside-work",
-        json={"allowed": True, "reason": "Customer site", "until": date.today().isoformat()},
+        json={"allowed": True, "reason": "Customer site", "until": today_ist().isoformat()},
     )
     give_password(db_session, people.face_id)
     sign_in(phone)

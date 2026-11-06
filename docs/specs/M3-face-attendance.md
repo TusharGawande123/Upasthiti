@@ -1310,6 +1310,6 @@ All four were answered by the lead (Tushar Gawande) in chat on 2026-10-24 (decis
   and anti-spoof model; the new libraries.
 - **`.env.example`:** `FACE_TEMPLATE_KEY`, `FACE_MODEL_PACK`, `FACE_MODELS_DIR`, `FACE_ENGINE` with
   comments.
-- **`docs/guides/kiosk-setup.md`:** gate light and camera height for face punches; the face button.
+- **`docs/guides/device-setup.md`:** gate light and camera height for face punches; the face button.
 - **docs/decisions/0016:** the slice-1 result (chosen model, anti-spoof model, numbers) and the
   answers to §14.

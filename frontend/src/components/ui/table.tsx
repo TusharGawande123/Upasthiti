@@ -1,18 +1,27 @@
 // Table parts (shadcn/ui style): a scrollable wrapper with a header and bordered rows.
 import type * as React from "react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 
 // On a phone the table keeps a readable width and scrolls sideways inside its card, instead of
 // squeezing every column until the names break into five lines.
 export function Table({ className, ...props }: React.ComponentProps<"table">) {
+  const { t } = useTranslation();
   return (
     // `relative` keeps hidden screen-reader labels (position: absolute) inside the scrolling box.
-    <div className="relative overflow-x-auto">
+    // tabIndex lets a keyboard user scroll the box sideways (axe: scrollable-region-focusable).
+    // A named <section> is a region landmark, which is allowed to take keyboard focus.
+    <section
+      aria-label={t("common.tableRegion")}
+      className="relative overflow-x-auto focus-visible:outline-2 focus-visible:outline-ring"
+      // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable box must be reachable by keyboard
+      tabIndex={0}
+    >
       <table
         className={cn("w-full min-w-[40rem] caption-bottom text-[13.5px]", className)}
         {...props}
       />
-    </div>
+    </section>
   );
 }
 

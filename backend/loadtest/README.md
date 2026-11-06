@@ -77,6 +77,32 @@ because the database is wiped. Without `--headless`, Locust shows live charts at
 | Seven gates, realistic: 0.16/s each (about 1.1/s in all, 5 min) | 322 | 1 (HTTP 0: the connection ended while the container was busy) | 2.1 s | 3.9 s | 20 s | 148 MB |
 | Seven gates, design maximum: 0.5/s each (10 min) | 960 of 2,100 | 0 | 3.7 s | 5.4 s | 29 s | 154 MB |
 
+## Results of M6 (05/11/2026, same laptop, image built from the M6 branch, fake data)
+
+The same test after milestones M3 to M5 (face, anti-proxy checks, attendance processing). Container limits
+are the CPU in the first column and 512 MB. "Seven gates" is the design maximum (0.5 punches/s per gate);
+"realistic" is 0.16 punches/s per gate. Every run had 0 failed punches. Memory is the container's peak.
+
+| CPU | Run | Punches done | Median | 95th percentile | Peak memory |
+|---|---|---|---|---|---|
+| 0.1 (Render Free) | One gate, 3 min | 74 | 1.0 s | 2.9 s | 279 MB |
+| 0.1 (Render Free) | Seven gates, realistic, 5 min | 94 | 20 s | 39 s | 369 MB |
+| 0.1 (Render Free) | Seven gates, maximum, 10 min | 185 | 21 s | 27 s | 367 MB |
+| 1 | One gate, 3 min | 89 | 0.22 s | 0.29 s | 273 MB |
+| 1 | Seven gates, maximum, 3 min | 542 | 0.53 s | 1.2 s | 366 MB |
+| 2 | One gate, 3 min | 89 | 0.20 s | 0.25 s | 271 MB |
+| 2 | Seven gates, maximum, 3 min | 623 | 0.54 s | 0.69 s | 400 MB |
+| 4 | One gate, 3 min | 90 | 0.19 s | 0.22 s | 270 MB |
+| 4 | Seven gates, maximum, 3 min | 624 | 0.61 s | 0.79 s | 367 MB |
+
+What it means: with **1 CPU or more** the server decision stays well under the 2 s of NFR-01 even with all
+seven gates at the design maximum (2 CPUs keep a comfortable margin). On Render Free's **0.1 CPU** a punch now
+takes about three to four times longer than on 21/10/2026 (one gate: 95th percentile 2.9 s instead of 0.5 s)
+and seven gates at once build a queue. Memory stays below the 450 MB limit in every run. The face punch
+and phone memory checks run in the CI `docker` job. A first run of this session showed many connection
+errors because the test started while the container was still loading the face model; wait for
+`/api/v1/health` to show `"state":"ready"` before starting Locust (the run script of M6 does that).
+
 ## What the numbers mean
 
 - **One gate is comfortable.** At the gate's design rate (300 punches in 10 minutes) the answer takes

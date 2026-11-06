@@ -32,6 +32,8 @@ from tests.phone_api_helpers import (
     switch_phone,
 )
 
+pytestmark = pytest.mark.time_sensitive
+
 MONDAY = date(2026, 11, 2)
 
 
@@ -81,7 +83,9 @@ def passkeys_of(session: Session, employee_id: str) -> list[PhonePasskey]:
     session.expire_all()
     return list(
         session.scalars(
-            select(PhonePasskey).where(PhonePasskey.employee_id == uuid.UUID(employee_id))
+            select(PhonePasskey)
+            .where(PhonePasskey.employee_id == uuid.UUID(employee_id))
+            .order_by(PhonePasskey.id)
         )
     )
 

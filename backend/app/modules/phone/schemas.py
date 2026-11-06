@@ -140,6 +140,7 @@ class NoticeResponse(BaseModel):
 class NoticeAcceptRequest(BaseModel):
     version: str = Field(min_length=1, max_length=40)
     text_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    language: str = Field(default="en", max_length=5)  # the language of the text that was shown
 
 
 class NoticeAcceptResponse(BaseModel):

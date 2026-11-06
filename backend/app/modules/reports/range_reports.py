@@ -46,6 +46,7 @@ from app.modules.reports.xlsx_writer import (
 MAX_REPORT_RANGE_DAYS = 366
 MIN_SECONDS_LEFT = 0.1  # a batch still gets a moment when the time budget is used up
 WEEKDAYS = ("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+OVERTIME_HEADER = "Overtime (HH:MM)"
 SUMMARY_COLUMNS = [
     Column("Code", TEXT, 10),
     Column("Name", TEXT, 24),
@@ -465,7 +466,7 @@ def _employee_sheet(answer: dict[str, Any]) -> Sheet:
         Column("Status", TEXT, 18),
         Column("Late (min)", INT, 9),
         Column("Early exit (min)", INT, 11),
-        Column("Overtime (HH:MM)", TEXT, 12),
+        Column(OVERTIME_HEADER, TEXT, 12),
         Column("Corrected", TEXT, 9),
     ]
     rows: list[list[Any]] = []
@@ -488,6 +489,8 @@ def _employee_sheet(answer: dict[str, Any]) -> Sheet:
             ]
         )
     totals: Totals = answer["totals"]
+    temporary_totals = answer["totals_by_type"].get("temporary")
+    temporary_overtime_min = temporary_totals.overtime_min if temporary_totals else 0
     summary = (
         f"Present {totals.present} · Half-day {totals.half_day} · Short hours {totals.short_hours}"
         f" · Absent {totals.absent} · Incomplete {totals.incomplete}"
@@ -507,10 +510,20 @@ def _employee_sheet(answer: dict[str, Any]) -> Sheet:
             summary,
             totals.late_min,
             "",
-            hhmm(totals.overtime_min),
+            hhmm(temporary_overtime_min),
             "",
         ]
     )
+    # Overtime is for temporary workers only (decision 0037). The type of each day comes from the
+    # stored day, never from today's type: a converted person keeps the overtime figure of the
+    # temporary days, a permanent person has no overtime column or total at all.
+    if not any(day.employee_type == "temporary" for day in days):
+        overtime_index = next(
+            index for index, column in enumerate(columns) if column.header == OVERTIME_HEADER
+        )
+        del columns[overtime_index]
+        for row in rows:
+            del row[overtime_index]
     return Sheet(
         "Attendance",
         columns,

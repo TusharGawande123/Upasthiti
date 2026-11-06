@@ -39,6 +39,7 @@ from app.modules.phone.models import PhoneAccount, SessionRevokeKind, SignInMeth
 from app.modules.phone.notice import notice_required
 from app.modules.phone.rate_limits import phone_sign_in_limiter
 from app.modules.phone.sessions import NewSignIn, end_one, lock_employee, start_session
+from app.modules.phone.typed_code_audit import audit_fields_for_typed_code
 from app.modules.settings.service import get_int_setting
 
 
@@ -183,14 +184,18 @@ def _count_wrong_password(
 def _record_failure(
     session: Session, code: str, employee: Employee | None, ip: str, *, locked: bool = False
 ) -> None:
-    # Only the typed code is stored, never the password.
+    # Only the typed code is stored (a code of nobody only as hash and length), never the password.
     record_audit(
         session,
         actor=Actor("employee", None, ip),
         action="phone_auth.login_failed",
         entity_type="employee",
         entity_id=employee.id if employee else None,
-        after={"code": clean_code(code)[:12], "method": "password", "account_locked": locked},
+        after={
+            **audit_fields_for_typed_code(code, employee_known=employee is not None),
+            "method": "password",
+            "account_locked": locked,
+        },
         plant_id=employee.plant_id if employee else None,
     )
     session.commit()

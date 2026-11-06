@@ -8,6 +8,7 @@ import tempfile
 from collections.abc import Iterator
 from datetime import date
 from pathlib import Path
+from typing import Any
 
 import openpyxl
 import pypdfium2 as pdfium
@@ -27,6 +28,8 @@ from tests.test_m5_attendance_api import (  # noqa: F401
     work_a_day,
     world,
 )
+
+pytestmark = pytest.mark.time_sensitive
 
 PLANT_WIDE = "/api/v1/reports/register-range"
 ONE_PERSON = "/api/v1/reports/employee-range"
@@ -176,7 +179,11 @@ def test_every_range_download_writes_an_audit_row_without_a_name(world: dict) ->
 
     session = world["session"]
     session.expire_all()
-    rows = session.scalars(select(AuditLog).where(AuditLog.action == "report.download")).all()
+    rows = session.scalars(
+        select(AuditLog)
+        .where(AuditLog.action == "report.download")
+        .order_by(AuditLog.at, AuditLog.id)
+    ).all()
 
     assert sorted(row.after["kind"] for row in rows) == ["employee-range", "register-range"]
     for row in rows:
@@ -371,3 +378,75 @@ def test_a_plant_head_gets_only_the_conversions_of_the_own_plant(world: dict) ->
     own_rows = list(first_sheet(own.content).iter_rows(min_row=10))
     assert [row[0].value for row in own_rows] == ["T-1"]
     assert stranger.status_code == 404
+
+
+# --- M5c AC-8: overtime is for temporary workers only (decision 0037) ---------------------------
+
+
+def sheet_rows(content: bytes) -> tuple[list[Any], list[list[Any]]]:
+    """The header row and the rows below it of the one-employee Excel sheet."""
+    sheet = openpyxl.load_workbook(io.BytesIO(content))["Attendance"]
+    rows = [[cell.value for cell in row] for row in sheet.iter_rows(min_row=9)]
+    header_index = next(index for index, row in enumerate(rows) if row[0] == "Date")
+    return rows[header_index], rows[header_index + 1 :]
+
+
+def test_the_employee_files_of_a_permanent_person_have_no_overtime_column_or_total(
+    world: dict,
+) -> None:
+    """M5c AC-8: Excel and PDF of a permanent employee show no overtime; a temporary worker does."""
+    work_a_day(world, "P-1", date(2026, 10, 27), (7, 0), (22, 0))
+    work_a_day(world, "T-1", date(2026, 10, 27), (7, 0), (22, 0))
+
+    permanent = person_file(world, "boss", "P-1", "xlsx", "2026-10-26", "2026-11-02")
+    temporary = person_file(world, "boss", "T-1", "xlsx", "2026-10-26", "2026-11-02")
+    permanent_pdf = person_file(world, "boss", "P-1", "pdf", "2026-10-26", "2026-11-02")
+
+    permanent_header, permanent_rows = sheet_rows(permanent.content)
+    temporary_header, temporary_rows = sheet_rows(temporary.content)
+    assert "Overtime (HH:MM)" not in permanent_header
+    assert len(permanent_header) == len(temporary_header) - 1
+    assert all(len(row) == len(permanent_header) for row in permanent_rows)
+    assert "Overtime (HH:MM)" in temporary_header
+    overtime_total = temporary_rows[-1][temporary_header.index("Overtime (HH:MM)")]
+    assert overtime_total not in (None, "", "00:00")  # the temporary output is unchanged
+    assert permanent_pdf.status_code == 200 and permanent_pdf.content.startswith(b"%PDF")
+    page_text = "".join(
+        page.get_textpage().get_text_range() for page in pdfium.PdfDocument(permanent_pdf.content)
+    )
+    assert "Overtime" not in page_text
+
+
+def test_a_converted_person_keeps_the_overtime_of_the_temporary_days(world: dict) -> None:
+    """M5c AC-8: the type of each day decides, never the type of today."""
+    work_a_day(world, "T-1", date(2026, 10, 27), (7, 0), (22, 0))
+    assert convert_in_world(world["boss"], world, "T-1", "2026-10-30").status_code == 200
+
+    excel = person_file(world, "boss", "T-1", "xlsx", "2026-10-26", "2026-11-02")
+
+    header, rows = sheet_rows(excel.content)
+    assert "Overtime (HH:MM)" in header
+    assert rows[-1][header.index("Overtime (HH:MM)")] not in (None, "", "00:00")
+
+
+def test_old_full_export_zip_files_are_swept_by_the_five_minute_job() -> None:
+    import os
+    import time
+
+    from app.jobs.daily import sweep_leftover_files_logged
+
+    folder = Path(tempfile.gettempdir())
+    old = folder / "upasthiti-export-sweep-old.zip"
+    fresh = folder / "upasthiti-export-sweep-fresh.zip"
+    old.write_bytes(b"x")
+    fresh.write_bytes(b"x")
+    long_ago = time.time() - 3600
+    os.utime(old, (long_ago, long_ago))
+    try:
+        sweep_leftover_files_logged()
+
+        assert not old.exists()
+        assert fresh.exists()
+    finally:
+        fresh.unlink(missing_ok=True)
+        old.unlink(missing_ok=True)

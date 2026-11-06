@@ -7,6 +7,7 @@ import {
   CircleDashed,
   CircleX,
   ClipboardCheck,
+  DatabaseBackup,
   Factory,
   FileBarChart,
   FilePenLine,
@@ -26,6 +27,7 @@ import {
   Search,
   Send,
   Settings,
+  ShieldQuestion,
   Siren,
   Table2,
   Tablet,
@@ -147,6 +149,19 @@ const NAV_ITEMS: NavItem[] = [
   { to: "/admin/users", labelKey: "nav.users", icon: Users, roles: ["super_admin"] },
   { to: "/admin/settings", labelKey: "nav.settings", icon: Settings, roles: ALL_ROLES },
   { to: "/admin/audit", labelKey: "nav.audit", icon: ScrollText, roles: ALL_ROLES },
+  // M6: the data-request register and the full export (Super Admin only).
+  {
+    to: "/admin/privacy-requests",
+    labelKey: "nav.privacyRequests",
+    icon: ShieldQuestion,
+    roles: ["super_admin"],
+  },
+  {
+    to: "/admin/data-export",
+    labelKey: "nav.dataExport",
+    icon: DatabaseBackup,
+    roles: ["super_admin"],
+  },
 ];
 
 export function visibleNavItems(role: Role): NavItem[] {

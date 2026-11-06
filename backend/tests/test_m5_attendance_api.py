@@ -20,6 +20,8 @@ from tests.clock_helpers import frozen_at, ist
 from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body
 
+pytestmark = pytest.mark.time_sensitive
+
 MONDAY = date(2026, 11, 2)
 SATURDAY = date(2026, 10, 31)
 SUNDAY = date(2026, 11, 1)

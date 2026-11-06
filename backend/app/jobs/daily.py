@@ -140,6 +140,17 @@ def run_alerts_logged() -> None:
             run_five_minute_alerts(session, utc_now())
     except Exception:
         logger.exception("Alert check failed")
+    sweep_leftover_files_logged()
+
+
+def sweep_leftover_files_logged() -> None:
+    """Every 5 minutes: remove report and full-export temp files that a cut-off download left."""
+    try:
+        removed = sweep_old_files()
+        if removed:
+            logger.info("Temporary files removed", extra={"fields": {"files": removed}})
+    except Exception:
+        logger.exception("Temporary file sweep failed")
 
 
 def run_morning_alerts_logged() -> None:

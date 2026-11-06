@@ -33,6 +33,8 @@ from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body
 from tests.test_punch_api import Worker, send, snapshot_folder  # noqa: F401  (a fixture)
 
+pytestmark = pytest.mark.time_sensitive
+
 
 @pytest.fixture
 def boss(db_app: FastAPI, db_session: Session) -> TestClient:

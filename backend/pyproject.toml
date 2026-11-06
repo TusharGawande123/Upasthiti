@@ -25,6 +25,7 @@ dependencies = [
     "shapely>=2.2.0",
     "sqlalchemy>=2.1.4",
     "tzdata>=2026.5",
+    "uharfbuzz>=0.57.0",
     "uvicorn[standard]>=0.54.0",
     "webauthn>=3.0.1",
     "xlsxwriter>=3.2.9",
@@ -38,6 +39,7 @@ dev = [
     "pyright>=1.1.414",
     "pytest>=9.1.1",
     "pytest-cov>=7.1.0",
+    "pytest-randomly>=5.0.0",
     "ruff>=0.17.0",
     "time-machine>=3.6.0",
     "zxing-cpp>=3.1.1",
@@ -74,9 +76,10 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = "--cov=app --cov-report=term-missing --cov-fail-under=84"
+addopts = "--cov=app --cov-report=term-missing --cov-fail-under=90 -p no:randomly"
 markers = [
     "face_models: needs the downloaded face model files (skipped without them)",
+    "time_sensitive: uses the clock; CI runs it again with the clock started near midnight IST",
 ]
 
 [tool.coverage.run]

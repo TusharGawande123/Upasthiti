@@ -31,6 +31,8 @@ from tests.test_kiosk_sync import card_item
 from tests.test_m4_location_and_flags import north_of_gate
 from tests.test_punch_api import PUNCH, Worker, make_worker, photo_text, punch_rows, send
 
+pytestmark = pytest.mark.time_sensitive
+
 
 @pytest.fixture(autouse=True)
 def snapshot_folder(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Path:

@@ -27,6 +27,8 @@ from tests.people_helpers import (
     temporary_body,
 )
 
+pytestmark = pytest.mark.time_sensitive
+
 EMPLOYEES = "/api/v1/employees"
 CARDS = "/api/v1/qr-cards"
 TEST_CARDS = "/api/v1/qr-test-cards"
@@ -74,7 +76,11 @@ def head_of(db_app: FastAPI, db_session: Session, plant: PlantIds, username: str
 
 
 def audit_rows(db_session: Session, action: str) -> list[AuditLog]:
-    return list(db_session.scalars(select(AuditLog).where(AuditLog.action == action)))
+    return list(
+        db_session.scalars(
+            select(AuditLog).where(AuditLog.action == action).order_by(AuditLog.at, AuditLog.id)
+        )
+    )
 
 
 # --- Issue ------------------------------------------------------------------------------------

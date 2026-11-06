@@ -24,6 +24,8 @@ from tests.people_helpers import PlantIds, client_for, create_plant
 from tests.test_face_punch_api import code_try, face_punch, signed_post
 from tests.test_punch_api import make_worker, photo_text
 
+pytestmark = pytest.mark.time_sensitive
+
 THURSDAY = date(2026, 10, 29)
 CONFIRM = "/api/v1/punch/kiosk/early-out/confirm"
 

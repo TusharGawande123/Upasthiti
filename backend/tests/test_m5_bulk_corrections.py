@@ -22,6 +22,8 @@ from tests.clock_helpers import frozen_at, ist
 from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.people_helpers import client_for, create_plant, permanent_body
 
+pytestmark = pytest.mark.time_sensitive
+
 THURSDAY = date(2026, 10, 29)
 FRIDAY = date(2026, 10, 30)
 NOW = ist(FRIDAY, 12, 0)

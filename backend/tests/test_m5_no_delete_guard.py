@@ -21,6 +21,7 @@ PROTECTED_MODELS = (
     "PunchReview",
     "AuditLog",
     "Employee",
+    "EmployeeTypeHistory",  # M5c AC-25: the history of the type is never deleted
 )
 PROTECTED_TABLES = (
     "attendance_days",
@@ -30,6 +31,7 @@ PROTECTED_TABLES = (
     "punch_reviews",
     "audit_log",
     "employees",
+    "employee_type_history",
 )
 # `delete(Model...)`, `.delete(Model...)` and raw `DELETE FROM table`.
 MODEL_NAMES = "|".join(PROTECTED_MODELS)

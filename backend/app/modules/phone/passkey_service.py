@@ -58,6 +58,7 @@ from app.modules.phone.sign_in_service import (
     find_employee_by_code,
     finish_sign_in,
 )
+from app.modules.phone.typed_code_audit import audit_fields_for_typed_code
 from app.modules.phone.user_agent import PhoneKind
 
 MAX_PASSKEYS = 3
@@ -410,7 +411,10 @@ def _record_failure(session: Session, code: str, employee: Employee | None, ip: 
         action="phone_auth.login_failed",
         entity_type="employee",
         entity_id=employee.id if employee else None,
-        after={"code": code, "method": "passkey"},
+        after={
+            **audit_fields_for_typed_code(code, employee_known=employee is not None),
+            "method": "passkey",
+        },
         plant_id=employee.plant_id if employee else None,
     )
     session.commit()

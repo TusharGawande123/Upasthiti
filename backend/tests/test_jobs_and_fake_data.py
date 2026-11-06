@@ -14,6 +14,8 @@ from app.modules.users.models import Role
 from app.scripts import make_fake_data as fake_data_script
 from tests.factories import make_user
 
+pytestmark = pytest.mark.time_sensitive
+
 
 def test_daily_job_deletes_only_old_sessions(db_session: Session) -> None:
     user = make_user(db_session, Role.SUPER_ADMIN, username="boss")

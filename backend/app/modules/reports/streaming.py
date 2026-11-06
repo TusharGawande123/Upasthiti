@@ -61,7 +61,12 @@ def sweep_old_files(max_age_seconds: int = 900) -> int:
     while the file was sent). Only our own files, only older than `max_age_seconds`."""
     removed = 0
     limit = time.time() - max_age_seconds
-    for leftover in Path(tempfile.gettempdir()).glob("upasthiti-report-*.xlsx"):
+    leftovers = [
+        *Path(tempfile.gettempdir()).glob("upasthiti-report-*.xlsx"),
+        # M6: a full export whose sending was cut off (spec 9: removed after 15 minutes).
+        *Path(tempfile.gettempdir()).glob("upasthiti-export-*.zip"),
+    ]
+    for leftover in leftovers:
         try:
             if leftover.stat().st_mtime < limit:
                 leftover.unlink()

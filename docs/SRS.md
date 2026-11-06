@@ -92,7 +92,7 @@ in. The final permission matrix is in docs/specs/M1-foundation.md §7 rule 1 (de
 In short:
 - **Super Admin:** everything (users, plants, geofences, shifts, categories, settings,
   contractors, employees, mark as left, QR cards, punch review, regularisation approval,
-  phone punch permission, salary).
+  phone punch permission).
 - **Corporate Head:** creates, edits, transfers, bulk-changes and imports permanent and
   temporary employees of all plants, each through a Super Admin's approval; reads everything
   else; may request regularisations.
@@ -160,8 +160,7 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
   - GPS accuracy limit (50 m);
   - punch cool-down (2 min);
   - snapshot retention (60 days);
-  - impossible-travel speed;
-  - salary-day basis (M7).
+  - impossible-travel speed.
 
 ### 4.b Employees and contractors
 - **FR-07 (M, M1)** Create, edit and deactivate employees:
@@ -282,8 +281,7 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 - **FR-31 (M, M5)** A Corporate Head or Plant Head requests a correction with a reason; the
   Super Admin approves or rejects it. The original punches stay unchanged; the correction is a separate,
   audited record.
-- **FR-32 (S, M5)** Record leave (paid/unpaid) per employee; it feeds attendance status and
-  payable days.
+- **FR-32 (S, M5)** Record leave (paid/unpaid) per employee; it feeds attendance status.
 
 ### 4.j Dashboards
 - **FR-33 (M, M5)** Live dashboard per plant and for all plants:
@@ -293,27 +291,15 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 - **FR-34 (C, M5)** Emergency muster: who is inside each plant right now (printable, works
   from cached data).
 
-### 4.k Reports, salary structure and payable salary estimate
+### 4.k Reports
 - **FR-35 (M, M5)** Reports in Excel and PDF:
   - daily muster;
   - monthly attendance register;
   - hours per temporary worker per contractor;
   - rejected-punch report.
-- **FR-36 (M, M7)** Salary structure per employee: components (Basic, DA, HRA, Travel, other;
-  configurable) with an effective-from date. Older months keep using the old structure.
-- **FR-37 (M, M7)** Monthly estimate:
-  - per-day salary = monthly salary ÷ salary days (26 / 30 / actual, a setting);
-  - payable days = present + paid leave + paid holidays/weekly offs (settings);
-  - earned = per-day × payable days;
-  - overtime pay = OT hours × OT rate;
-  - net = earned + overtime − deductions.
-  - Temporary workers: hours × hourly rate (+ OT).
-  - Exact decimals only.
-- **FR-38 (M, M7)** The admin types in deductions (PF, ESIC, TDS, advance, other); the system
-  never calculates them.
-- **FR-39 (M, M7)** Monthly salary sheet on screen and as Excel. Every screen and file is
-  labelled "Estimate". Example test: ₹30,000 / 30 days, 18 payable days, 4 h OT at ₹150,
-  ₹2,000 deductions → **₹16,600**.
+- **FR-36 to FR-39 (cancelled)** The salary structure and payable salary estimate (old M7) were
+  cancelled by the client on 2026-11-04. They are not built. Payroll stays future scope
+  (CLAUDE.md §1).
 
 ### 4.l Notifications, audit and admin settings
 - **FR-40 (M, M1+)** Audit log of every create, update, deactivate, approve and revoke:
@@ -372,7 +358,6 @@ in brackets. Detailed acceptance criteria are written in each milestone spec.
 | GET | /reports/muster · /reports/register · /reports/contractor-hours (xlsx/pdf) | roles | Reports |
 | GET | /audit | admin | Audit viewer |
 | GET/PUT | /settings | super / plant admin | Settings |
-| CRUD | /salary/structures · POST /salary/runs · PUT /salary/runs/{id}/deductions · GET /salary/runs/{id}.xlsx | HR (M7) | Salary estimate |
 
 ### 5.c OpenAPI
 FastAPI generates `/api/v1/openapi.json`, with docs at `/api/docs` (disabled in production
@@ -434,7 +419,6 @@ an admin alert rule.
   5. A kiosk loses the internet for 1 hour, then syncs → all punches confirmed or flagged
      correctly.
   6. The monthly register exports to Excel and matches hand-calculated values.
-  7. The salary estimate for the CLAUDE.md example gives ₹16,600, labelled "Estimate".
 
 ## 10. Data model
 ER summary and table dictionary: **docs/architecture.md §7**.
@@ -450,7 +434,7 @@ ER summary and table dictionary: **docs/architecture.md §7**.
 | M4b Phone punching | Per-employee phone punch permission, registered phones, phone face + liveness, at-plant geofence / outside-plant tag, review list, temporary workers' phone scan of the gate QR | An allowed employee punches by phone inside the geofence (accepted) and outside the plant (accepted and tagged); a not-allowed employee is rejected |
 | M5 Attendance, dashboards, reports | Pairing, late/early/OT, night shifts, regularisation, leave/holidays, live dashboard, Excel/PDF reports | Hand-calculated test cases match; reports open in Excel |
 | M6 Testing and handover | Full tests, security and compliance review, manuals, runbook, backups, final free-tier deploy and account handover (own server only if the free tiers are not enough, decision 0004) | All must-fix items closed; a teammate follows the runbook successfully |
-| M7 Salary estimate | Structures, rules, manual deductions, sheet + Excel | ₹16,600 example passes; built only after the client's salary slip and the remaining Q9 answers |
+| M7 Salary estimate | CANCELLED by the client on 2026-11-04; not built | none |
 
 Dates and owners are added when the team fixes the academic calendar and work split.
 
@@ -464,7 +448,7 @@ Dates and owners are added when the team fixes the academic calendar and work sp
 | Labour Codes | Working-hour limits, overtime, weekly rest, electronic registers, contract-labour records | Configurable hour and OT rules per plant; digital muster roll + register exports; contractor-wise records |
 | Factories Act 1948 / Maharashtra Factories Rules | Muster roll, hours of work | Register formats exportable as PDF/Excel |
 | Maharashtra Shops & Establishments Act 2017 | Attendance and working hours for office staff | Same engine; office sites set up as plants |
-| Minimum wages / floor wage | Hourly workers paid at least the notified rate | Hourly-rate field with a minimum-rate check (M7) |
+| Minimum wages / floor wage | Hourly workers paid at least the notified rate | Not built: pay is outside the product (M7 cancelled); a minimum-rate check is future scope |
 | Record retention | Keep statutory records for the required years | Append-only punches and audit; soft deletes; configurable retention |
 | Accessibility and fairness | An alternative if face fails | QR option on request; employee code fallback; supervisor-verified punch (extra), fully logged |
 
@@ -477,7 +461,7 @@ premium; each screen designed inside its milestone).
 |---|---|---|
 | Render free tier: 512 MB RAM and cold starts | Face pipeline doesn't fit, or a slow first punch | Lean backend, keep-alive cron, offline queue; Plan B: Azure for Students or Oracle VM (decision 0002) |
 | Face accuracy below target on cheap cameras | False rejects at the gate | Calibrate in M3; employee-code fallback; better lighting / canopy advice |
-| Client answers delayed (plants, shifts, salary) | Rework | Everything is a setting; M7 is last |
+| Client answers delayed (plants, shifts) | Rework | Everything is a setting |
 | Free-tier terms change | Hosting breaks | Portable app (config through env, backend Dockerfile) |
 | `buffalo_l` face model too heavy for Render free; Render Free also gives only 0.1 CPU | Slow or failing face punches | Measured in M3 slice 1 (decision 0016 items 17–20): `buffalo_l` is no-go (decision p95 8.2 s on Render, process peak 454 MB); `buffalo_s` chosen (p95 1.0–1.2 s, peak 127–197 MB). Left to watch: `buffalo_s` accuracy (NFR-05), measured in M3 slice D; Plan B host (decision 0002) if it fails |
 | Team availability (exams) | Delays | Small milestones; demo-ready after M2 |

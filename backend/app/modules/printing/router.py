@@ -22,6 +22,7 @@ from app.modules.org.models import Shift
 from app.modules.org.plants_service import get_plant
 from app.modules.printing import service
 from app.modules.printing.poster_pdf import PosterShift, gate_poster_pdf
+from app.modules.printing.poster_texts import DEFAULT_POSTER_LANGUAGE, POSTER_LANGUAGES
 from app.modules.printing.service import PrintedPdf, PrintLayout
 from app.modules.settings.service import get_int_setting
 
@@ -75,11 +76,15 @@ def print_cards(
 @router.get("/plants/{plant_id}/gate-poster.pdf")
 def gate_poster(
     plant_id: uuid.UUID,
+    language: str = DEFAULT_POSTER_LANGUAGE,
     current_user: CurrentUser = Depends(require(Capability.DOWNLOAD_GATE_POSTER)),
     session: Session = Depends(get_session),
 ) -> Response:
     """The A4 poster for the gate (F-34): how to punch, and the photo notice with the current
-    retention period. A plant outside the user's scope looks like it does not exist."""
+    retention period, in English, Marathi or Hindi (`?language=en|mr|hi`, M6 F-99). A plant
+    outside the user's scope looks like it does not exist."""
+    if language not in POSTER_LANGUAGES:
+        raise ApiError("VALIDATION_FAILED", "Choose English, Marathi or Hindi.", 422)
     allowed = plant_filter(current_user, Capability.DOWNLOAD_GATE_POSTER)
     if allowed is not None and plant_id not in allowed:
         raise ApiError("PLANT_NOT_FOUND", "This plant does not exist.", 404)
@@ -94,6 +99,7 @@ def gate_poster(
         f"{origin}/privacy",
         _active_shifts(session, plant.id),
         today,
+        language,
     )
     return Response(
         content=content,

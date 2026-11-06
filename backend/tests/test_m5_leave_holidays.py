@@ -20,6 +20,8 @@ from tests.clock_helpers import PINNED_DAY, frozen_at, ist
 from tests.factories import log_in, make_user
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body
 
+pytestmark = pytest.mark.time_sensitive
+
 
 @pytest.fixture(autouse=True)
 def pinned_clock() -> Iterator[None]:

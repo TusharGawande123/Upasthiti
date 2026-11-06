@@ -15,12 +15,12 @@ from app.core.client_ip import pick_client_ip
         # A faked first entry is skipped when it sits left of the trusted hops.
         ("6.6.6.6, 203.0.113.7, 76.76.21.1", "10.0.0.9", 2, "203.0.113.7"),
         ("203.0.113.7", "10.0.0.9", 1, "203.0.113.7"),
-        # Fewer addresses than trusted hops: take the left-most one.
-        ("203.0.113.7", "10.0.0.9", 3, "203.0.113.7"),
+        # Fewer addresses than trusted hops: the left-most entry is the caller's, use the socket.
+        ("203.0.113.7", "10.0.0.9", 3, "10.0.0.9"),
         (None, "10.0.0.9", 2, "10.0.0.9"),
         (None, None, 0, "unknown"),
         # Junk in the header or a test client name is never passed on.
-        ("not-an-ip, 76.76.21.1", "10.0.0.9", 2, "unknown"),
+        ("not-an-ip, 76.76.21.1", "10.0.0.9", 2, "10.0.0.9"),
         (None, "testclient", 0, "unknown"),
     ],
 )

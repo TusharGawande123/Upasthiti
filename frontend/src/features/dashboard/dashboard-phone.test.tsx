@@ -110,14 +110,19 @@ describe("vercel.json (S-47)", () => {
     }
   });
 
-  it("leaves the headers of /admin and /attendance as they were", () => {
+  // M6 (decision 0038 choice 2): the gate page /attendance now has its own strict CSP like /phone.
+  // The admin pages still have none.
+  it("keeps the admin pages without a Content-Security-Policy", () => {
     expect(value("/(.*)", "Permissions-Policy")).toBe(
       "camera=(self), geolocation=(self), microphone=()",
     );
     expect(
       config.headers.some((rule) =>
         rule.headers.some(
-          (h) => h.key === "Content-Security-Policy" && !rule.source.startsWith("/phone"),
+          (h) =>
+            h.key === "Content-Security-Policy" &&
+            !rule.source.startsWith("/phone") &&
+            !rule.source.startsWith("/attendance"),
         ),
       ),
     ).toBe(false);

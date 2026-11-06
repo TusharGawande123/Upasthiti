@@ -21,6 +21,8 @@ from app.scripts.make_fake_data import make_fake_data
 from tests.clock_helpers import frozen_at, ist
 from tests.people_helpers import client_for
 
+pytestmark = pytest.mark.time_sensitive
+
 NOW = ist(date(2026, 11, 2), 12, 0)
 EXCEL_SECONDS, PDF_SECONDS, MEMORY_MB = 20, 30, 450
 PARAMS = {"month": "2026-10", "include_demo": "true"}

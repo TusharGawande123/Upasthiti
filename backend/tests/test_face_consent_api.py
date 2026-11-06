@@ -30,6 +30,8 @@ from app.modules.users.models import Role, User
 from app.modules.users.plant_access import set_user_plant
 from tests.people_helpers import PlantIds, client_for, create_plant, permanent_body
 
+pytestmark = pytest.mark.time_sensitive
+
 TEXT = "/api/v1/face/consent-texts/face-consent-v1"
 CONTACT = "Tushar Gawande, tushar@example.invalid"
 ADDRESS = "Plot 1, MIDC Waluj, Chhatrapati Sambhajinagar"

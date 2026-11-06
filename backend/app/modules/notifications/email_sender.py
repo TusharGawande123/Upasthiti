@@ -28,9 +28,19 @@ EMAIL_TEXTS: dict[str, str] = {
     "notification.correction_requested": "A correction is waiting for your decision.",
     "notification.phone_selfie_no_face": "{count} phone selfies at {plant} show no face.",
     "notification.correction_decided": "Your correction request was decided.",
+    "notification.data_request_due": "A data request is due on {due_on}. Please answer in time.",
     "notification.conversion_face_pending": (
         "A worker at {plant} became permanent. Their face is not enrolled yet."
     ),
+}
+
+# The same sentences for a count of exactly 1 ("1 person is", not "1 people are").
+EMAIL_TEXTS_FOR_ONE: dict[str, str] = {
+    "notification.still_inside": "{count} person is still inside {plant} after the shift ended.",
+    "notification.many_rejections": "{count} punch was refused at {plant} in a short time.",
+    "notification.incomplete_days": "{count} day at {plant} has no OUT and needs a correction.",
+    "notification.review_digest": "{count} punch is waiting in Needs review.",
+    "notification.phone_selfie_no_face": "{count} phone selfie at {plant} shows no face.",
 }
 
 
@@ -42,6 +52,8 @@ def email_configured() -> bool:
 
 def email_text(text_key: str, params: dict[str, Any]) -> str:
     template = EMAIL_TEXTS.get(text_key, "There is a new alert in Upasthiti.")
+    if params.get("count") == 1:
+        template = EMAIL_TEXTS_FOR_ONE.get(text_key, template)
     try:
         return template.format(**params)
     except KeyError, IndexError:

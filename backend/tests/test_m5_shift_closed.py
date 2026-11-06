@@ -21,7 +21,7 @@ from tests.test_punch_api import Worker, make_worker, send
 
 # This module tests the shift-closed rule, not the early-OUT alert (test_m5_early_out.py): its
 # OUTs at 12:00 or 17:00 would otherwise ask for a confirmation first.
-pytestmark = pytest.mark.usefixtures("early_out_alert_off")
+pytestmark = [pytest.mark.usefixtures("early_out_alert_off"), pytest.mark.time_sensitive]
 
 THURSDAY = date(2026, 10, 29)
 FRIDAY = THURSDAY + timedelta(days=1)

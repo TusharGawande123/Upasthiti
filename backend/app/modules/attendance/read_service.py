@@ -101,6 +101,11 @@ def _moved_in(plant_ids: list[uuid.UUID]):
     )
 
 
+# People brought up to date together before a read. The whole company is about 650 people, so one
+# batch means one set of loading queries instead of one set per 500 people (M5 AC-27).
+READ_BATCH = 1000
+
+
 def fresh_days(
     session: Session,
     plant_ids: list[uuid.UUID],
@@ -114,10 +119,8 @@ def fresh_days(
         )
     )
     now = utc_now()
-    for start in range(0, len(ids), service.CATCH_UP_BATCH):
-        service.ensure_fresh(
-            session, ids[start : start + service.CATCH_UP_BATCH], date_from, date_to, now
-        )
+    for start in range(0, len(ids), READ_BATCH):
+        service.ensure_fresh(session, ids[start : start + READ_BATCH], date_from, date_to, now)
     return ids
 
 

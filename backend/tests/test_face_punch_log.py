@@ -29,6 +29,8 @@ from tests.people_helpers import PlantIds, client_for, create_plant
 from tests.test_face_punch_api import code_try, face_punch
 from tests.test_punch_api import Worker, send
 
+pytestmark = pytest.mark.time_sensitive
+
 PUNCHES = "/api/v1/punches"
 
 

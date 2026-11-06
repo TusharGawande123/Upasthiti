@@ -8,6 +8,7 @@ older days right, so the dashboard never recomputes a whole month.
 
 import uuid
 from collections import defaultdict
+from collections.abc import Callable
 from datetime import date, datetime, timedelta
 
 from sqlalchemy import Select, extract, func, select
@@ -23,6 +24,7 @@ from app.modules.attendance.read_service import (
 )
 from app.modules.auth.dependencies import CurrentUser
 from app.modules.auth.permissions import Access, Capability
+from app.modules.auth.scope import ensure_plant_in_scope
 from app.modules.contractors.models import Contractor
 from app.modules.dashboard.schemas import (
     ContractorCount,
@@ -153,27 +155,51 @@ def live(
     inside, outside = inside_and_outside(session, plants, now)
     types = _people_facts(session, inside)
     outside_by_plant = _count_by_home_plant(session, outside)
-    sees_flags = current_user.access(Capability.REVIEW_PUNCHES) is Access.ALL
-    month_start = today.replace(day=1)
+    started_ids = [
+        plant.id
+        for plant in plant_rows.values()
+        if plant.attendance_start_date is not None and plant.attendance_start_date <= today
+    ]
+    # One query per kind of number for ALL plants, then grouped by plant here: the number of
+    # queries must not grow with the number of plants (M5 AC-27).
+    day_rows = _day_rows_by_plant(session, started_ids, today)
+    undecided = _undecided_by_plant(session, started_ids, today.replace(day=1), today)
+    exception_counts = _exception_counts(
+        session,
+        started_ids,
+        yesterday,
+        today,
+        sees_flags=current_user.access(Capability.REVIEW_PUNCHES) is Access.ALL,
+    )
+    contractor_names = dict(session.execute(select(Contractor.id, Contractor.name)).all())
     result = []
     for plant in plant_rows.values():
+        started = plant.id in started_ids
+        here = [employee_id for employee_id, fact in types.items() if fact[2] == plant.id]
+        temporary = [employee_id for employee_id in here if types[employee_id][0] == "temporary"]
+        numbers = PlantNumbers(
+            inside_now=len(here),
+            inside_temporary=len(temporary),
+            on_outside_work=outside_by_plant.get(plant.id, 0),
+        )
+        shifts: list[ShiftLine] = []
+        if started:
+            shifts = _day_numbers(day_rows.get(plant.id, []), today, now, numbers)
+            numbers.undecided = undecided.get(plant.id, Undecided())
+            incomplete_yesterday, unchecked, pending = exception_counts(plant.id)
+            numbers.exceptions = (
+                incomplete_yesterday + numbers.undecided.short_hours + unchecked + pending
+            )
         result.append(
-            _plant_live(
-                session,
-                plant,
-                today,
-                yesterday,
-                month_start,
-                now,
-                inside,
-                types,
-                sees_flags,
-                outside_by_plant.get(plant.id, 0),
+            PlantLive(
+                **numbers.model_dump(),
+                plant=_dash_plant(plant),
+                attendance_started=started,
+                by_contractor=_by_contractor(temporary, types, contractor_names),
+                shifts=shifts,
             )
         )
-    return LiveResponse(
-        generated_at=now, date=today, plants=result, totals=_totals([item for item in result])
-    )
+    return LiveResponse(generated_at=now, date=today, plants=result, totals=_totals(result))
 
 
 def _people_facts(
@@ -200,54 +226,33 @@ def _count_by_home_plant(
     return counts
 
 
-def _plant_live(
-    session: Session,
-    plant: Plant,
-    today: date,
-    yesterday: date,
-    month_start: date,
-    now: datetime,
-    inside: dict[uuid.UUID, CountedForEmployee],
-    facts: dict[uuid.UUID, tuple[str, uuid.UUID | None, uuid.UUID]],
-    sees_flags: bool,
-    on_outside_work: int,
-) -> PlantLive:
-    started = plant.attendance_start_date is not None and plant.attendance_start_date <= today
-    here = [employee_id for employee_id, fact in facts.items() if fact[2] == plant.id]
-    temporary = [employee_id for employee_id in here if facts[employee_id][0] == "temporary"]
-    numbers = PlantNumbers(
-        inside_now=len(here),
-        inside_temporary=len(temporary),
-        on_outside_work=on_outside_work,
-    )
-    shifts: list[ShiftLine] = []
-    if started:
-        shifts = _day_numbers(session, plant, today, now, numbers)
-        numbers.undecided = _undecided(session, plant, month_start, today)
-        numbers.exceptions = _exceptions(session, plant, yesterday, today, numbers, sees_flags)
-    return PlantLive(
-        **numbers.model_dump(),
-        plant=_dash_plant(plant),
-        attendance_started=started,
-        by_contractor=_by_contractor(session, temporary, facts),
-        shifts=shifts,
-    )
+DayRow = tuple[AttendanceDay, ShiftRuleVersion | None, Shift | None]
 
 
-def _day_numbers(
-    session: Session, plant: Plant, today: date, now: datetime, numbers: PlantNumbers
-) -> list[ShiftLine]:
-    """Expected, arrived, late, not arrived, on leave and off today, from the stored days."""
+def _day_rows_by_plant(
+    session: Session, plant_ids: list[uuid.UUID], today: date
+) -> dict[uuid.UUID, list[DayRow]]:
+    """Today's stored days of these plants (with their shift rule and shift), in one query."""
     rows = session.execute(
         select(AttendanceDay, ShiftRuleVersion, Shift)
         .outerjoin(ShiftRuleVersion, ShiftRuleVersion.id == AttendanceDay.shift_rule_version_id)
         .outerjoin(Shift, Shift.id == AttendanceDay.shift_id)
         .where(
-            AttendanceDay.plant_id == plant.id,
+            AttendanceDay.plant_id.in_(plant_ids),
             AttendanceDay.attendance_date == today,
             AttendanceDay.status != "not_employed",
         )
     ).all()
+    by_plant: dict[uuid.UUID, list[DayRow]] = defaultdict(list)
+    for day, version, shift in rows:
+        by_plant[day.plant_id].append((day, version, shift))
+    return by_plant
+
+
+def _day_numbers(
+    rows: list[DayRow], today: date, now: datetime, numbers: PlantNumbers
+) -> list[ShiftLine]:
+    """Expected, arrived, late, not arrived, on leave and off today, from the stored days."""
     per_shift: dict[uuid.UUID, ShiftLine] = {}
     for day, version, shift in rows:
         if day.status == "leave":
@@ -292,86 +297,92 @@ def _grace_passed(today: date, version: ShiftRuleVersion, now: datetime) -> bool
     return now > start + timedelta(minutes=version.grace_min)
 
 
-def _undecided(session: Session, plant: Plant, month_start: date, today: date) -> Undecided:
-    counts = dict(
-        session.execute(
-            select(AttendanceDay.status, func.count())
-            .where(
-                AttendanceDay.plant_id == plant.id,
-                AttendanceDay.attendance_date.between(month_start, today),
-                AttendanceDay.status.in_(["short_hours", "incomplete"]),
-            )
-            .group_by(AttendanceDay.status)
-        ).all()
-    )
-    return Undecided(
-        short_hours=counts.get("short_hours", 0), incomplete=counts.get("incomplete", 0)
-    )
+def _undecided_by_plant(
+    session: Session, plant_ids: list[uuid.UUID], month_start: date, today: date
+) -> dict[uuid.UUID, Undecided]:
+    """This month's Short-hours and Incomplete days per plant, in one query."""
+    counts: dict[uuid.UUID, dict[str, int]] = defaultdict(dict)
+    for plant_id, status, count in session.execute(
+        select(AttendanceDay.plant_id, AttendanceDay.status, func.count())
+        .where(
+            AttendanceDay.plant_id.in_(plant_ids),
+            AttendanceDay.attendance_date.between(month_start, today),
+            AttendanceDay.status.in_(["short_hours", "incomplete"]),
+        )
+        .group_by(AttendanceDay.plant_id, AttendanceDay.status)
+    ).all():
+        counts[plant_id][status] = count
+    return {
+        plant_id: Undecided(
+            short_hours=by_status.get("short_hours", 0), incomplete=by_status.get("incomplete", 0)
+        )
+        for plant_id, by_status in counts.items()
+    }
 
 
-def _exceptions(
+def _exception_counts(
     session: Session,
-    plant: Plant,
+    plant_ids: list[uuid.UUID],
     yesterday: date,
     today: date,
-    numbers: PlantNumbers,
+    *,
     sees_flags: bool,
-) -> int:
-    """Yesterday's incomplete days + undecided Short-hours days + (Super Admin) days with an
-    unchecked flagged punch + pending corrections of the plant (spec §7 rule 17)."""
-    incomplete_yesterday = (
-        session.scalar(
-            select(func.count()).where(
-                AttendanceDay.plant_id == plant.id,
+) -> Callable[[uuid.UUID], tuple[int, int, int]]:
+    """For each plant: (yesterday's incomplete days, days with an unchecked flagged punch (Super
+    Admin only), pending corrections), each counted for all plants in one query. The caller adds
+    them to the undecided Short-hours days (spec §7 rule 17)."""
+    incomplete_yesterday = dict(
+        session.execute(
+            select(AttendanceDay.plant_id, func.count())
+            .where(
+                AttendanceDay.plant_id.in_(plant_ids),
                 AttendanceDay.attendance_date == yesterday,
                 AttendanceDay.status == "incomplete",
             )
-        )
-        or 0
+            .group_by(AttendanceDay.plant_id)
+        ).all()
     )
-    unchecked = 0
+    unchecked: dict[uuid.UUID, int] = {}
     if sees_flags:
-        unchecked = (
-            session.scalar(
-                select(func.count()).where(
-                    AttendanceDay.plant_id == plant.id,
+        unchecked = dict(
+            session.execute(
+                select(AttendanceDay.plant_id, func.count())
+                .where(
+                    AttendanceDay.plant_id.in_(plant_ids),
                     AttendanceDay.attendance_date.between(yesterday, today),
                     AttendanceDay.uses_unchecked_flag.is_(True),
                 )
-            )
-            or 0
+                .group_by(AttendanceDay.plant_id)
+            ).all()
         )
-    pending = (
-        session.scalar(
-            select(func.count())
+    pending = dict(
+        session.execute(
+            select(Employee.plant_id, func.count())
             .select_from(Regularisation)
             .join(Employee, Employee.id == Regularisation.employee_id)
             .outerjoin(
                 RegularisationDecision,
                 RegularisationDecision.regularisation_id == Regularisation.id,
             )
-            .where(RegularisationDecision.id.is_(None), Employee.plant_id == plant.id)
-        )
-        or 0
+            .where(RegularisationDecision.id.is_(None), Employee.plant_id.in_(plant_ids))
+            .group_by(Employee.plant_id)
+        ).all()
     )
-    return incomplete_yesterday + numbers.undecided.short_hours + unchecked + pending
+    return lambda plant_id: (
+        incomplete_yesterday.get(plant_id, 0),
+        unchecked.get(plant_id, 0),
+        pending.get(plant_id, 0),
+    )
 
 
 def _by_contractor(
-    session: Session,
     temporary: list[uuid.UUID],
     facts: dict[uuid.UUID, tuple[str, uuid.UUID | None, uuid.UUID]],
+    names: dict[uuid.UUID, str],
 ) -> list[ContractorCount]:
     counts: dict[uuid.UUID | None, int] = defaultdict(int)
     for employee_id in temporary:
         counts[facts[employee_id][1]] += 1
-    names = dict(
-        session.execute(
-            select(Contractor.id, Contractor.name).where(
-                Contractor.id.in_([key for key in counts if key is not None])
-            )
-        ).all()
-    )
     named = sorted(
         (
             ContractorCount(contractor={"id": key, "name": names.get(key, "")}, inside=count)
@@ -419,6 +430,9 @@ def muster(
     now: datetime,
 ) -> MusterResponse:
     """Who is inside each plant now, with names; by department, then name (spec §4.2)."""
+    if plant_id is not None:
+        # A plant of another plant's head looks like it does not exist (also for the file name).
+        ensure_plant_in_scope(current_user, Capability.VIEW_ATTENDANCE, plant_id)
     plants = visible_plant_ids(session, current_user, plant_id=plant_id, include_demo=include_demo)
     inside = people_inside(session, plants, now)
     employees = {

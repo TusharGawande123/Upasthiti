@@ -23,6 +23,8 @@ from tests.clock_helpers import frozen_at, ist
 from tests.kiosk_helpers import Device, make_active_kiosk
 from tests.people_helpers import client_for, create_plant, permanent_body
 
+pytestmark = pytest.mark.time_sensitive
+
 FRIDAY = date(2026, 10, 30)
 NOW = ist(FRIDAY, 18, 0)
 FORMULA_NAME = '=HYPERLINK("http://evil.example","click")'
@@ -266,7 +268,13 @@ def test_the_download_is_audited_without_names(world: dict) -> None:
         params={"date": FRIDAY.isoformat(), "plant_id": world["plant"].id},
     )
     rows = (
-        world["session"].scalars(select(AuditLog).where(AuditLog.action == "report.download")).all()
+        world["session"]
+        .scalars(
+            select(AuditLog)
+            .where(AuditLog.action == "report.download")
+            .order_by(AuditLog.at, AuditLog.id)
+        )
+        .all()
     )
     assert len(rows) == 1
     assert rows[0].after["kind"] == "daily-muster" and rows[0].after["plant"] == "K134"
