@@ -34,16 +34,18 @@ Notes:
 
 | Suite | Result | Coverage (floor, set to measured minus 1) |
 |---|---|---|
-| Backend (pytest, `uv run pytest -q`) | 1937 passed, 1 failed, 7 skipped | 91.34 % (floor 90 %) |
+| Backend (pytest, `uv run pytest -q`) | 1940 passed, 0 failed, 7 skipped (41 min on the quiet laptop) | 91.33 % (floor 90 %) |
 | Frontend (Vitest, `npm test`) | 120 files, 1059 tests passed | statements 89.77, branches 84.68, functions 85.79, lines 91.06 (floors 88, 83, 84, 90) |
 | End-to-end, existing specs (Playwright, headless like CI) | all green: 73 passed in the full run and the remaining 13 (`responsive`, `smoke`) in a second run, after one timeout was raised | not measured |
 | Journeys (Playwright, headed, `--project=journeys`) | J-03, J-04, J-11, J-12, J-13, J-14, J-15, J-18 pass | not measured |
 
-- **The one backend failure:** `test_m4b_phone_history.py::test_ac_51_...` failed in the full run (which took 3 h 15 min because
-  the laptop had about 1 GB of free memory, several agents and Playwright were running). Run alone it passes (4 passed). It is a
-  load-timing failure; the CI run on a clean runner decides. Not an app bug as far as we can tell.
+- **One backend failure in an earlier full run:** `test_m4b_phone_history.py::test_ac_51_...` failed once in a full run that took
+  3 h 15 min because the laptop had about 1 GB of free memory while agents and Playwright were running. Alone it passed, and the
+  last full run on the quiet laptop passed everything (1940 passed). It was a load-timing failure, not an app bug.
 - **Midnight clock:** `pytest -m time_sensitive` with `TEST_CLOCK_START_IST` 2026-11-04T23:59:30 gave 1201 passed and with
-  2026-11-05T00:00:30 gave 1200 passed, 1 skipped (before the M6 streams were merged). Not repeated after the merge; CI does it.
+  2026-11-05T00:00:30 gave 1200 passed, 1 skipped before the M6 streams were merged. Repeated at the end of M6 (all streams merged,
+  dashboard change in): 1323 passed with 23:59:30 and 1322 passed, 1 skipped with 00:00:30. The other three clock starts of the
+  nightly workflow (month end, year end, a Sunday) were not run locally.
 - **Flaky sweep (R-5):** the AST guard `test_m6_test_hygiene.py` fails on unordered list reads of the audit and attendance tables,
   on `date.today()` / `datetime.now()` in tests and on a clock-using file without the `time_sensitive` marker. Order-dependent reads
   and unpinned dates were fixed before the guard went in. `pytest-randomly` is installed but off by default (`-p randomly` turns it
@@ -82,8 +84,10 @@ Numbers in `backend/loadtest/README.md` (05/11/2026, image built from this branc
 - **Not run locally:** the 20 face punches and the phone rush through the real face models, and the one-year register and full export
   under 512 MB (`export_memory_check`). The first runs in the CI `docker` job; the second is in the nightly workflow.
 - **Dashboard (M5 AC-27):** `GET /dashboard/live` for 650 fake people took about 133 queries and 1.1 s for one plant and 5.7 s for
-  all seven plants on the busy laptop (the spec asks 0.5 s and 1.5 s). The test guards at 2 s and 10 s. Decision for the lead:
-  optimise (batch the per-plant queries) or relax the criterion.
+  all seven plants on the busy laptop (the spec asked 0.5 s and 1.5 s). The lead relaxed the criterion to 2 s and 10 s and asked for
+  an optimisation in M6 (decision 0038). Done: 133 queries became 41 for one plant and 748 became 44 for all seven plants
+  (the open days are now written with a few multi-row statements instead of one INSERT each; the computation is unchanged);
+  `test_m6_gaps_dashboard_queries.py` pins the counts. The time itself was not measured again.
 
 ## 6. Journeys, accessibility, texts (R-2, R-6)
 - `e2e/tests/page-list.ts` lists every route (guarded by a Vitest test that fails when `router.tsx` and the list differ);
