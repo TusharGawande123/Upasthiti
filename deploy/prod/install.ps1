@@ -19,6 +19,10 @@ param(
     # Moving from another computer: path of the .upsbak file. The .env of the old computer must
     # already be in this folder (same keys). See docs/guides/install-guide.md, section 10.
     [string]$RestoreFrom = "",
+    # Delivery without source code: path of upasthiti-images.tar made by make-images.ps1. The
+    # images are loaded instead of built. Also chosen automatically when the folders backend and
+    # frontend are not next to deploy (then the images must already be loaded).
+    [string]$ImagesFile = "",
     [switch]$SkipFirewall,
     [switch]$SkipScheduledTasks
 )
@@ -86,26 +90,58 @@ $freeGigabytes = [math]::Round((Get-PSDrive C).Free / 1GB, 1)
 if ($freeGigabytes -lt 20) { Stop-Install "Only $freeGigabytes GB free on C:. At least 20 GB is needed." }
 Write-Host "Docker works. Free disk on C: $freeGigabytes GB."
 
+# --- 1b. Ready-made images instead of building from source -------------------------------
+$imagesOnly = [bool]$ImagesFile -or -not (Test-Path (Join-Path $here "../../backend"))
+if ($imagesOnly) {
+    Write-Step "1b. Using ready-made images (no source code needed)"
+    if ($ImagesFile) {
+        if (-not (Test-Path $ImagesFile)) { Stop-Install "Images file not found: $ImagesFile" }
+        docker load -i $ImagesFile
+        if ($LASTEXITCODE -ne 0) { Stop-Install "docker load failed. Is the file complete?" }
+    }
+    docker image inspect upasthiti-backend:prod upasthiti-caddy:prod postgres:17 *> $null
+    if ($LASTEXITCODE -ne 0) { Stop-Install "The images are not loaded. Run again with -ImagesFile <path to upasthiti-images.tar>." }
+}
+# Compose reads these two lines from .env, so every later command (backup, update) uses the images too.
+function Add-ImagesOnlySettings {
+    $text = Get-Content $envFile -Raw
+    if ($text -notmatch "COMPOSE_FILE=") {
+        [IO.File]::AppendAllText($envFile, "COMPOSE_PATH_SEPARATOR=,`nCOMPOSE_FILE=docker-compose.yml,docker-compose.images.yml`n", (New-Object Text.UTF8Encoding($false)))
+    }
+}
+$buildFlag = "--build"
+if ($imagesOnly) { $buildFlag = "--no-build" }
+
 # --- 2. The .env file --------------------------------------------------------------------
 Write-Step "2. Settings and secret keys"
 $existingEnv = Test-Path $envFile
 if ($existingEnv) {
     Write-Host ".env already exists: keeping it (your keys stay the same)."
+    if ($imagesOnly) { Add-ImagesOnlySettings }
 } else {
     $siteName = Read-Host "Address name WITHOUT https:// (example: yourname.duckdns.org)"
     if ($siteName -notmatch '^[A-Za-z0-9.-]+\.[A-Za-z]{2,}$') { Stop-Install "That is not a valid name." }
     $port = Read-Answer "HTTPS port people will use (443, or 8443 if 443 is busy)" "443"
     $busy = Get-NetTCPConnection -State Listen -LocalPort ([int]$port) -ErrorAction SilentlyContinue
     if ($busy) { Stop-Install "Port $port is already in use on this computer. Run again and choose 8443." }
-    $duckToken = ConvertTo-PlainText (Read-Host "DuckDNS token (typing is hidden)" -AsSecureString)
-    if ([string]::IsNullOrWhiteSpace($duckToken)) { Stop-Install "The DuckDNS token is needed for the certificate." }
+    $duckToken = ConvertTo-PlainText (Read-Host "DuckDNS token (typing is hidden; press Enter to use certificate files you already have)" -AsSecureString)
+    $caddyFile = "Caddyfile.duckdns"
+    if ([string]::IsNullOrWhiteSpace($duckToken)) {
+        # Own-certificate mode: the certificate was made elsewhere and copied into the certs folder.
+        $caddyFile = "Caddyfile.own-certificate"
+        $certFolder = Join-Path $here "certs"
+        if (-not ((Test-Path (Join-Path $certFolder "fullchain.pem")) -and (Test-Path (Join-Path $certFolder "privkey.pem")))) {
+            Stop-Install "Put fullchain.pem and privkey.pem in $certFolder first, then run this again."
+        }
+        Write-Host "Using the certificate files in $certFolder (no DuckDNS token needed on this computer)."
+    }
     $backupFolder = Read-Answer "Folder for backup files (use another disk if there is one)" $BackupDir
     New-Item -ItemType Directory -Force -Path $backupFolder | Out-Null
 
     $origin = "https://$siteName"
     if ($port -ne "443") { $origin = "https://${siteName}:$port" }
 
-    # The images are built first, because the keys are made by our own backend image.
+    # The images are built (or loaded) first, because the keys are made by our own backend image.
     # Compose wants every secret present even to build, so a throw-away value is set for this one command.
     foreach ($name in "POSTGRES_PASSWORD", "APP_SECRET_KEY", "QR_SIGNING_KEY", "SNAPSHOT_ENCRYPTION_KEY",
              "FACE_TEMPLATE_KEY", "OFFLINE_EVIDENCE_KEY", "BACKUP_KEY") {
@@ -114,8 +150,10 @@ if ($existingEnv) {
     Set-Item -Path "Env:APP_PUBLIC_ORIGIN" -Value "https://build-only.invalid"
     Set-Item -Path "Env:SITE_ADDRESS" -Value "build-only.invalid"
     Write-Step "2b. Building the images (first time: 10 to 25 minutes, needs internet)"
-    docker compose build
-    if ($LASTEXITCODE -ne 0) { Stop-Install "The build failed. Read the last lines above; see troubleshooting in the install guide." }
+    if (-not $imagesOnly) {
+        docker compose build
+        if ($LASTEXITCODE -ne 0) { Stop-Install "The build failed. Read the last lines above; see troubleshooting in the install guide." }
+    }
     foreach ($name in "POSTGRES_PASSWORD", "APP_SECRET_KEY", "QR_SIGNING_KEY", "SNAPSHOT_ENCRYPTION_KEY",
              "FACE_TEMPLATE_KEY", "OFFLINE_EVIDENCE_KEY", "BACKUP_KEY", "APP_PUBLIC_ORIGIN", "SITE_ADDRESS") {
         Remove-Item -Path "Env:$name" -ErrorAction SilentlyContinue
@@ -131,7 +169,7 @@ if ($existingEnv) {
         "APP_PUBLIC_ORIGIN=$origin",
         "HTTPS_PORT=$port",
         "DUCKDNS_TOKEN=$duckToken",
-        "CADDYFILE=Caddyfile.duckdns",
+        "CADDYFILE=$caddyFile",
         "POSTGRES_PASSWORD=$(New-AlphanumericSecret 32)",
         "APP_SECRET_KEY=$appSecret",
         (New-KeyLine "app.scripts.make_qr_key"),
@@ -149,11 +187,15 @@ if ($existingEnv) {
     )
     # UTF-8 without a byte-order mark: Docker Compose reads it cleanly.
     [IO.File]::WriteAllText($envFile, (($lines -join "`n") + "`n"), (New-Object Text.UTF8Encoding($false)))
+    if ($imagesOnly) { Add-ImagesOnlySettings }
     # Only administrators and this user may read the secrets.
     icacls $envFile /inheritance:r /grant:r "Administrators:F" "$($env:USERNAME):F" | Out-Null
     Write-Host ".env written with new keys."
 
-    $answer = Read-Answer "Point $siteName to this computer's network address on DuckDNS now? (y/n)" "y"
+    $answer = "n"
+    if ($caddyFile -eq "Caddyfile.duckdns") {
+        $answer = Read-Answer "Point $siteName to this computer's network address on DuckDNS now? (y/n)" "y"
+    }
     $lan = Get-LanAddress
     if ($answer -eq "y" -and $lan) {
         $result = Invoke-RestMethod "https://www.duckdns.org/update?domains=$($siteName -replace '\.duckdns\.org$','')&token=$duckToken&ip=$lan"
@@ -172,7 +214,7 @@ if ($RestoreFrom) {
     New-Item -ItemType Directory -Force -Path $backupFolder | Out-Null
     Copy-Item $RestoreFrom $backupFolder -Force
     $restoreName = Split-Path -Leaf $RestoreFrom
-    docker compose build
+    if (-not $imagesOnly) { docker compose build }
     docker compose up -d postgres
     Start-Sleep -Seconds 15
     # The file name is part of the encryption: it must stay as the old computer made it.
@@ -185,7 +227,7 @@ if ($RestoreFrom) {
 
 # --- 3. Start ----------------------------------------------------------------------------
 Write-Step "3. Starting the system"
-docker compose up -d --build
+docker compose up -d $buildFlag
 if ($LASTEXITCODE -ne 0) { Stop-Install "docker compose could not start. Run: docker compose logs" }
 
 Write-Host "Waiting for the backend to become healthy (up to 5 minutes)..."

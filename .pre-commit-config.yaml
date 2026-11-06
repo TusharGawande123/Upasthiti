@@ -10,6 +10,7 @@ repos:
         args: [--markdown-linebreak-ext=md]
       - id: end-of-file-fixer
       - id: check-yaml
+        exclude: ^deploy/prod/docker-compose.images.yml$ # uses the Compose-only tag !reset
       - id: check-json
         exclude: ^(frontend|e2e)/tsconfig.*\.json$ # tsconfig allows comments
       - id: check-toml

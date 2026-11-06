@@ -139,6 +139,34 @@ At the very end the script prints the two addresses and reminds you about the ke
 
 The script is safe to run again. It never replaces an existing `.env`.
 
+### 5b. Install from ready-made images (delivery without source code)
+
+If you received a folder with `upasthiti-images.tar` and `deploy-prod` (and no `backend` or `frontend` folders), use this.
+Nothing is built: the images are loaded, so the install takes about 5 minutes once Docker works.
+
+1. Copy the whole delivery folder to the computer (for example `C:\upasthiti-delivery`).
+2. Optional check that the big file arrived whole (PowerShell): `Get-FileHash C:\upasthiti-delivery\upasthiti-images.tar`
+   must print the same text as the file `upasthiti-images.tar.sha256`.
+3. Run the install from `deploy-prod`, with the images file.
+
+   Windows (PowerShell, as administrator):
+
+       cd C:\upasthiti-delivery\deploy-prod
+       powershell -ExecutionPolicy Bypass -File .\install.ps1 -ImagesFile ..\upasthiti-images.tar
+
+   Linux:
+
+       cd /path/upasthiti-delivery/deploy-prod
+       sudo ./install.sh --images-file ../upasthiti-images.tar
+
+   Everything else (questions, firewall, tasks, preflight, first Super Admin) is the same as in section 5. The script
+   writes two extra lines into `.env` (`COMPOSE_FILE`, `COMPOSE_PATH_SEPARATOR`) so that every later `docker compose`
+   command (backup, restart) uses the images too. Do not delete them.
+4. **Updates** come as a new `upasthiti-images.tar`: make a backup, run `docker load -i <new file>`, then
+   `docker compose up -d --no-build` in `deploy-prod`. Database changes are applied at start.
+5. With this delivery, changes to the application code are not possible on your side. Problems must be reported to
+   whoever delivered the images (agree this in writing). Keep the `.env` keys and the backups safe: they protect your data.
+
 ## 6. Network, firewall and devices
 
 1. **Firewall.** Windows: the script made the rule "Upasthiti HTTPS" for the local network only. Linux: it asked for

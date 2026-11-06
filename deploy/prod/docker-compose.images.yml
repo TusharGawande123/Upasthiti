@@ -1,0 +1,13 @@
+# Delivery WITHOUT source code: use the ready-made images (loaded with `docker load`) instead of
+# building from backend/ and frontend/. install.ps1 / install.sh write
+#   COMPOSE_PATH_SEPARATOR=,   and   COMPOSE_FILE=docker-compose.yml,docker-compose.images.yml
+# into .env when they run in this mode, so every later `docker compose` command uses this file too.
+services:
+  backend:
+    build: !reset null
+    image: upasthiti-backend:prod
+    pull_policy: never
+  caddy:
+    build: !reset null
+    image: upasthiti-caddy:prod
+    pull_policy: never
