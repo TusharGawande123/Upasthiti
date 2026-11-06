@@ -197,6 +197,7 @@ company password manager (two people must know where):
 | `DUCKDNS_TOKEN` | Get it again from the DuckDNS page |
 
 Rules:
+
 - Keep the keys **apart from the backups** (not on the same drive). Whoever has both can read everything.
 - Never send keys by chat, email or photo. Never put `.env` in git.
 - To move the data to another computer you need **the same keys** plus a backup (section 10). With new keys the
