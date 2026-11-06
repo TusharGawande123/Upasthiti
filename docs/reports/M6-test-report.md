@@ -70,8 +70,8 @@ have no overtime column or total.
 - **Review agents (code quality, security, compliance, i18n):** no Critical and no High finding. The findings were fixed (data-request
   row lock, paging, translated table label, plural texts, backup file modes, export audit safety, orphan-export sweep every five
   minutes, client-IP warning, documents) or recorded in decision 0038 and the runbook.
-- **Not done:** the ZAP baseline scripts (S-58) and the licence lists were skipped; Lighthouse CI is configured (`npm run lighthouse`,
-  a step in the CI frontend job) but was not run locally.
+- **Done after the PR (2026-11-06):** the ZAP baseline (S-58: 0 failed, 2 low warnings, `docs/reports/M6-zap-baseline.md`, script `scripts/zap-baseline.mjs`) and the licence lists (`docs/reports/M6-licences.md`: all free). Lighthouse CI ran locally too (`npm run lighthouse`, also a step in the CI frontend
+  job): performance 98 to 100, accessibility 95 (`/admin/login`) and 100 (`/privacy`, `/attendance`, `/phone/login`), best practices 96.
 - **Open for the lead:** six npm audit items in `vite-plugin-pwa` / `workbox-build` (build time only; the suggested fix is an older
   major that would break the gate's service worker): sign-off pending in `M6-audit-exceptions.md`.
 
