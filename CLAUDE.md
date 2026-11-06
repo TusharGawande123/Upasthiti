@@ -273,8 +273,7 @@ Approved stack (versions and reasons: docs/decisions/0001-tech-stack.md):
       approval and planned dates, urgent "Face enrolment pending" notice (spec
       docs/specs/M5c-range-and-conversion.md, decision 0037), with the conversion preview, the conversion
       history report and no overtime for permanent staff (migration 0033). Still open: HR/legal
-      confirmation that "no punch until the face is enrolled" is acceptable, and the daily reminder
-      F-86.
+      confirmation that "no punch until the face is enrolled" is acceptable.
 - [x] M6 Testing, security review, documentation, handover findings (built on
       milestone/M6-testing-security-docs, merged with its PR). AC matrix of all earlier milestones, flaky-test
       sweep and `time_sensitive` marker, role matrix / plant scoping / CSRF / downloads / injection tests,
