@@ -1,0 +1,13 @@
+# Keeps the build context small: only frontend/ and deploy/prod/caddy/ are used.
+.git
+.github
+.claude
+e2e
+docs
+reports-local
+backend
+**/node_modules
+**/dist
+**/coverage
+.env
+.env.*

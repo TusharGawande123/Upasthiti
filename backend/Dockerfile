@@ -51,9 +51,17 @@ COPY . .
 COPY --from=face-models /models /app/models
 ENV FACE_MODELS_DIR=/app/models
 
+# Own server only (deploy/prod): the backup command needs pg_dump and pg_restore. Render never sets
+# this, so its image stays as small as before. Debian 13 carries PostgreSQL 17 client tools.
+ARG INSTALL_PG_TOOLS=false
+RUN if [ "$INSTALL_PG_TOOLS" = "true" ]; then       apt-get update       && apt-get install -y --no-install-recommends postgresql-client       && rm -rf /var/lib/apt/lists/*;     fi
+
 # Never run the server as root. The code stays owned by root, so the server cannot change
 # its own files; folders it must write to (e.g. a model cache in M3) get their own chown.
 RUN useradd --create-home --uid 10001 app
+# Folders the server may write to on an own server: punch photos and backups (deploy/prod mounts
+# volumes here; a volume copies this ownership the first time it is created).
+RUN mkdir -p /data/snapshots /backups && chown app:app /data/snapshots /backups
 USER app
 
 # Render sets PORT; 8000 is the default everywhere else.

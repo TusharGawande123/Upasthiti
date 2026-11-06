@@ -1,0 +1,11 @@
+# Entry file 2: the client's own domain with a certificate the client's IT already has
+# (company certificate authority, or a purchased/Let's Encrypt certificate made elsewhere).
+# Put the files in deploy/prod/certs/ as fullchain.pem and privkey.pem and set in .env:
+#   CADDYFILE=Caddyfile.own-certificate
+# Every attendance device and phone must trust the issuer of that certificate.
+import /etc/caddy/site-common.caddy
+
+{$SITE_ADDRESS} {
+	tls /certs/fullchain.pem /certs/privkey.pem
+	import upasthiti_site
+}

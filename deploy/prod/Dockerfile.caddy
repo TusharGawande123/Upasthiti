@@ -1,0 +1,21 @@
+# Web front door of the own-server install: Caddy (with the DuckDNS plugin) plus the built website.
+# Build context is the REPOSITORY ROOT (compose does this). Three stages:
+#   1. build the website (npm run build) - nothing to install on the server for this;
+#   2. build Caddy with the DuckDNS DNS plugin (xcaddy);
+#   3. the final small image: Caddy + the website files + our Caddy entry files.
+# Licences: Caddy Apache-2.0, caddy-dns/duckdns MIT, Node and xcaddy images as their projects.
+
+FROM node:24-alpine AS website
+WORKDIR /build
+COPY frontend/package.json frontend/package-lock.json ./
+RUN npm ci
+COPY frontend/ ./
+RUN npm run build
+
+FROM caddy:2-builder AS caddy-build
+RUN xcaddy build --with github.com/caddy-dns/duckdns
+
+FROM caddy:2
+COPY --from=caddy-build /usr/bin/caddy /usr/bin/caddy
+COPY --from=website /build/dist /srv/upasthiti
+COPY deploy/prod/caddy/ /etc/caddy/
