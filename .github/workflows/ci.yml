@@ -76,7 +76,7 @@ jobs:
           # (a guard test in test_m6_test_hygiene.py enforces it), so no file list is kept here.
           for START in 2026-11-04T23:59:30 2026-11-05T00:00:30; do
             echo "Clock starts at $START IST"
-            TEST_CLOCK_START_IST=$START uv run pytest -q --no-cov -m time_sensitive
+            TEST_CLOCK_START_IST=$START uv run pytest -q --no-cov -m "time_sensitive and not benchmark"
           done
       - name: Database migrations run on a real Postgres
         env:

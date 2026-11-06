@@ -21,7 +21,8 @@ from app.scripts.make_fake_data import make_fake_data
 from tests.clock_helpers import frozen_at, ist
 from tests.people_helpers import client_for
 
-pytestmark = pytest.mark.time_sensitive
+# `benchmark`: it measures speed here, so the repeated clock passes skip it.
+pytestmark = [pytest.mark.time_sensitive, pytest.mark.benchmark]
 
 NOW = ist(date(2026, 11, 2), 12, 0)
 EXCEL_SECONDS, PDF_SECONDS, MEMORY_MB = 20, 30, 450
