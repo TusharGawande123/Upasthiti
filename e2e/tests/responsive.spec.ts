@@ -75,7 +75,8 @@ async function measureListedPage(page: Page, entry: PageEntry, ids: PageIds, whe
 test("the admin pages fit a phone and a tablet, and the menu button reaches every page", async ({
   page,
 }) => {
-  test.setTimeout(180_000);
+  // About 30 admin routes at three sizes, each with an axe scan: on a slow laptop this needs minutes.
+  test.setTimeout(900_000);
   await logIn(page, SUPER_ADMIN_LOGIN);
   await expect(page.getByRole("heading", { name: /Welcome/ })).toBeVisible();
   const api = adminApi(page);
