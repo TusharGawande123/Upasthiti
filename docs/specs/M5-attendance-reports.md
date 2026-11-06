@@ -1507,7 +1507,8 @@ Dates are fixed (30/10/2026 is a Friday). "Office" and "Night" are the shifts of
   then days 29/10, 30/10 and 31/10 exist for every active employee (Absent / WO / H / Leave as
   applicable).
 - **AC-27 (dashboard)** Given 650 fake employees and a day of punches, the live answer for one plant
-  takes under 500 ms and for all plants under 1.5 s on the local test database; a new punch shows in
+  takes under 2 s and for all plants under 10 s on the local test database (changed in M6 from 500 ms and
+  1.5 s by the lead on 2026-11-06, decision 0038; the target is to get faster by batching queries); a new punch shows in
   "Inside now" on the next 30-second refresh (e2e with a shortened interval in test mode).
 - **AC-28 (muster offline)** Given the muster page loaded once, when the network is cut (Playwright
   offline), then the list and its time still show with the offline line, and Print opens; after logout

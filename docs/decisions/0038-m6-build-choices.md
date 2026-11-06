@@ -63,3 +63,13 @@ each. Every ACCEPTED call below was made by Claude and is proposed to the lead f
 - **Running agents in parallel:** each parallel agent works in its own git worktree with its own test database
   (`upasthiti_<letter>_test`); Playwright is run by one session only.
 - **Agent model:** all remaining M6 agents use Sonnet 5.5 at medium effort unless the lead says otherwise.
+
+## Decisions of the lead on 2026-11-06 (in chat)
+- **CLAUDE.md diff of M6 approved** (M6 ticked with its open list, M7 stays `[ ]` CANCELLED, new libraries, commands, variables,
+  coverage floors, the parallel test rule).
+- **The six npm audit exceptions are accepted** (build tool only), see docs/reports/M6-audit-exceptions.md.
+- **M5 AC-27 changed:** the live dashboard for 650 people must answer in under 2 s for one plant and under 10 s for all plants on
+  the local test database (was 500 ms and 1.5 s). Measured on a busy laptop: 1.1 s and 5.7 s. The lead also wants the dashboard
+  made faster inside M6 if possible (batch the per-plant queries); the criterion above is the floor.
+- **NFR-01 at 0.1 CPU:** the punch decision misses 2 s on Render Free's 0.1 CPU (one gate p95 2.9 s) and meets it from 1 CPU up
+  (backend/loadtest/README.md). Production on the client's server should have at least 1 CPU.

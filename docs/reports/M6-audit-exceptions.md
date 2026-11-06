@@ -20,7 +20,8 @@ No High or Critical item. Six items (2 low, 4 moderate), all one chain of build-
 | minimatch (via workbox-build) | moderate | GHSA-g3hv-75wg-m249 (DoS with crafted patterns) | Build-time only; the patterns are ours. | Same. |
 | workbox-build, vite-plugin-pwa | moderate | the chain above | `npm audit fix --force` would install `workbox-build@7.3.0`, an older major that breaks `vite-plugin-pwa` 2.0.0 and the gate's offline service worker. Not worth the risk for a build-only finding. | Same. |
 
-Sign-off of the lead: pending (to be written here by the lead).
+Sign-off of the lead: accepted by Tushar Gawande on 2026-11-06 (in chat). The six items are build-time only; the fix would need
+an older major version of `vite-plugin-pwa` that would break the gate's service worker.
 
 ## End-to-end tests (`npm audit` in `e2e/`)
 
