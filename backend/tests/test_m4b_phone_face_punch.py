@@ -192,7 +192,10 @@ def test_ac_22_outside_work_gives_a_flagged_outside_plant_punch_that_counts(
     out = punches(db_session)[-1]
     assert out.decision == "flagged" and out.reason_codes == ["OUTSIDE_PLANT"]
     assert out.location_plant_id is None and out.lat is not None  # the position is stored
-    listed = boss.get("/api/v1/reviews").json()["items"]
+    # The list shows only the last days from today by default: ask for the pinned day itself.
+    listed = boss.get(
+        "/api/v1/reviews", params={"date_from": MONDAY.isoformat(), "date_to": MONDAY.isoformat()}
+    ).json()["items"]
     assert str(out.id) in {item["punch"]["id"] for item in listed}
 
 
