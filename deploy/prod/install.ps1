@@ -124,8 +124,17 @@ if ($existingEnv) {
     $port = Read-Answer "HTTPS port people will use (443, or 8443 if 443 is busy)" "443"
     $busy = Get-NetTCPConnection -State Listen -LocalPort ([int]$port) -ErrorAction SilentlyContinue
     if ($busy) { Stop-Install "Port $port is already in use on this computer. Run again and choose 8443." }
-    $duckToken = ConvertTo-PlainText (Read-Host "DuckDNS token (typing is hidden)" -AsSecureString)
-    if ([string]::IsNullOrWhiteSpace($duckToken)) { Stop-Install "The DuckDNS token is needed for the certificate." }
+    $duckToken = ConvertTo-PlainText (Read-Host "DuckDNS token (typing is hidden; press Enter to use certificate files you already have)" -AsSecureString)
+    $caddyFile = "Caddyfile.duckdns"
+    if ([string]::IsNullOrWhiteSpace($duckToken)) {
+        # Own-certificate mode: the certificate was made elsewhere and copied into the certs folder.
+        $caddyFile = "Caddyfile.own-certificate"
+        $certFolder = Join-Path $here "certs"
+        if (-not ((Test-Path (Join-Path $certFolder "fullchain.pem")) -and (Test-Path (Join-Path $certFolder "privkey.pem")))) {
+            Stop-Install "Put fullchain.pem and privkey.pem in $certFolder first, then run this again."
+        }
+        Write-Host "Using the certificate files in $certFolder (no DuckDNS token needed on this computer)."
+    }
     $backupFolder = Read-Answer "Folder for backup files (use another disk if there is one)" $BackupDir
     New-Item -ItemType Directory -Force -Path $backupFolder | Out-Null
 
@@ -160,7 +169,7 @@ if ($existingEnv) {
         "APP_PUBLIC_ORIGIN=$origin",
         "HTTPS_PORT=$port",
         "DUCKDNS_TOKEN=$duckToken",
-        "CADDYFILE=Caddyfile.duckdns",
+        "CADDYFILE=$caddyFile",
         "POSTGRES_PASSWORD=$(New-AlphanumericSecret 32)",
         "APP_SECRET_KEY=$appSecret",
         (New-KeyLine "app.scripts.make_qr_key"),
@@ -183,7 +192,10 @@ if ($existingEnv) {
     icacls $envFile /inheritance:r /grant:r "Administrators:F" "$($env:USERNAME):F" | Out-Null
     Write-Host ".env written with new keys."
 
-    $answer = Read-Answer "Point $siteName to this computer's network address on DuckDNS now? (y/n)" "y"
+    $answer = "n"
+    if ($caddyFile -eq "Caddyfile.duckdns") {
+        $answer = Read-Answer "Point $siteName to this computer's network address on DuckDNS now? (y/n)" "y"
+    }
     $lan = Get-LanAddress
     if ($answer -eq "y" -and $lan) {
         $result = Invoke-RestMethod "https://www.duckdns.org/update?domains=$($siteName -replace '\.duckdns\.org$','')&token=$duckToken&ip=$lan"
