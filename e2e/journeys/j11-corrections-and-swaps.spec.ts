@@ -140,9 +140,9 @@ test("J-11 correction request and decision, bulk correction after an outage, one
       pending_corrections: 1,
     });
     // A Plant Head cannot decide a request, only the Super Admin can.
-    expect((await tryCall(head.page, "post", `/regularisations/${requestA.id}/approve`, {})).status).toBe(
-      403,
-    );
+    expect(
+      (await tryCall(head.page, "post", `/regularisations/${requestA.id}/approve`, {})).status,
+    ).toBe(403);
 
     // 3. The Super Admin approves the first one on the Corrections screen, and rejects the second
     //    with a reason.
@@ -201,10 +201,11 @@ test("J-11 correction request and decision, bulk correction after an outage, one
     ]);
 
     // 6. One-day shift swap: person C works a later shift today. Only the Super Admin may do it.
-    const lateShift = await api.post<{ id: string; name: string }>(
-      `/plants/${plant.id}/shifts`,
-      { name: "J11 Late", start_time: "11:00", end_time: "23:00" },
-    );
+    const lateShift = await api.post<{ id: string; name: string }>(`/plants/${plant.id}/shifts`, {
+      name: "J11 Late",
+      start_time: "11:00",
+      end_time: "23:00",
+    });
     const refused = await tryCall(head.page, "post", `/employees/${people["J11-C"]}/shift-swaps`, {
       date: isoDate(today),
       shift_id: lateShift.id,
@@ -233,7 +234,10 @@ test("J-11 correction request and decision, bulk correction after an outage, one
   }
 
   // 7. Read-back: the day status from the server and the "*" mark in the monthly register FILE.
-  expect((await readDay("J11-C", dayTwo)).day).toMatchObject({ status: "present", is_corrected: true });
+  expect((await readDay("J11-C", dayTwo)).day).toMatchObject({
+    status: "present",
+    is_corrected: true,
+  });
   const months = new Set([isoDate(dayOne).slice(0, 7), isoDate(dayTwo).slice(0, 7)]);
   for (const month of months) {
     const file = readBack<ReadXlsx>(

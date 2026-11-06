@@ -120,7 +120,12 @@ test("set-up: a plant, a temporary worker with phone punching on and a password"
       headers,
       data: {
         qr_payload: cardText(cardSerial),
-        location: { lat: INSIDE.latitude, lon: INSIDE.longitude, accuracy_m: INSIDE.accuracy, age_s: 0 },
+        location: {
+          lat: INSIDE.latitude,
+          lon: INSIDE.longitude,
+          accuracy_m: INSIDE.accuracy,
+          age_s: 0,
+        },
       },
     });
     expect(proof.ok(), `card proof: ${proof.status()} ${await proof.text()}`).toBe(true);

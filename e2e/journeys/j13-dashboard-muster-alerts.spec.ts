@@ -38,7 +38,11 @@ type Muster = {
     people: Array<{ employee: { code: string; name: string } }>;
   }>;
 };
-type Punctuality = { arrivals: number; late_count: number; top_late: Array<{ late_count: number }> };
+type Punctuality = {
+  arrivals: number;
+  late_count: number;
+  top_late: Array<{ late_count: number }>;
+};
 type Notices = {
   items: Array<{
     kind: string;
@@ -69,7 +73,9 @@ function momentForStillInsideAlert(): string {
   return moment.toISOString();
 }
 
-test("J-13 live numbers equal the rows, the muster lists who is inside, and the still-inside alert reaches the bell", async ({ browser }) => {
+test("J-13 live numbers equal the rows, the muster lists who is inside, and the still-inside alert reaches the bell", async ({
+  browser,
+}) => {
   test.setTimeout(420_000);
   const admin = await openAs(browser, SUPER_ADMIN_LOGIN, /Welcome/);
   const api = admin.api;
@@ -180,11 +186,15 @@ test("J-13 live numbers equal the rows, the muster lists who is inside, and the 
     //    shift ended 60 minutes ago. Nobody punched OUT.
     const before = await api.get<Notices>("/notifications?kind=still_inside&page_size=50");
     expect(before.items).toEqual([]);
-    execFileSync("uv", ["run", "python", "-m", "app.scripts.e2e_run_alerts", momentForStillInsideAlert()], {
-      cwd: BACKEND_FOLDER,
-      env: { ...process.env, ...BACKEND_ENV },
-      stdio: "pipe",
-    });
+    execFileSync(
+      "uv",
+      ["run", "python", "-m", "app.scripts.e2e_run_alerts", momentForStillInsideAlert()],
+      {
+        cwd: BACKEND_FOLDER,
+        env: { ...process.env, ...BACKEND_ENV },
+        stdio: "pipe",
+      },
+    );
     const alerts = await api.get<Notices>("/notifications?kind=still_inside&page_size=50");
     expect(alerts.items).toHaveLength(1);
     expect(alerts.items[0]).toMatchObject({
@@ -208,7 +218,9 @@ test("J-13 live numbers equal the rows, the muster lists who is inside, and the 
   await admin.page.getByRole("button", { name: /^Notifications, \d+ unread$/ }).click();
   await expect(admin.page.getByText(/2 people are still inside J13A/)).toBeVisible();
   await admin.page.getByRole("button", { name: "Mark all as read" }).click();
-  await expect(admin.page.getByRole("button", { name: "Notifications, none unread" })).toBeVisible();
+  await expect(
+    admin.page.getByRole("button", { name: "Notifications, none unread" }),
+  ).toBeVisible();
 
   // 9. The Corporate Head sees the same alert in the list of all plants.
   const corporate = await openAs(browser, CORPORATE_HEAD_LOGIN, "Welcome, E2E Corporate Head");

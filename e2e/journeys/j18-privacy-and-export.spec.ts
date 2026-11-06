@@ -106,8 +106,10 @@ test("J-18 privacy notice, data-request register and the full export read back",
   const secretColumns =
     /^(ciphertext|nonce|password_hash|credential_id|public_key|user_handle|token_hash)$/;
   for (const [file, columns] of Object.entries(zip.csv_headers)) {
-    expect(columns.filter((column) => secretColumns.test(column)), `${file} has no secret column`)
-      .toEqual([]);
+    expect(
+      columns.filter((column) => secretColumns.test(column)),
+      `${file} has no secret column`,
+    ).toEqual([]);
   }
   expect(Object.keys(zip.csv_headers).length).toBeGreaterThan(10);
 });
