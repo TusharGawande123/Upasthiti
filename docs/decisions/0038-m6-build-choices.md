@@ -29,8 +29,31 @@ Spec: docs/specs/M6-testing-security-docs.md, plan: docs/plans/M6-testing-securi
   exclusive lock. The CLAUDE.md wording is updated in the M6 CLAUDE.md diff. Lead, 2026-11-05.
 
 ## Carry-over items decided later in M6
-Added here one line each as they are decided (client IP, revoked-device audit flood, gate notice text in the audit,
-orphan-storage sweep, backdating window, leaked offline key cases).
+Items of spec section 7.3 rule 5. Earlier decisions (0010, 0012, 0028) are unchanged; this records how M6 handled
+each. Every ACCEPTED call below was made by Claude and is proposed to the lead for confirmation in the PR.
+1. Client IP (R-3): ALREADY DONE in M6 by `app/core/client_ip.py` and `CLIENT_IP_HEADER` (choice 1). The header can be
+   written by anyone who calls the Render address directly, so set it only when the backend accepts traffic from the
+   proxy alone (runbook section 8).
+2. Revoked device audit flood: FIXED. `kiosks/dependencies.py` writes a `DEVICE_REVOKED` audit row at most once per hour
+   per device (the log line stays per request; the audit log is still append-only). Test:
+   `test_a_revoked_device_that_keeps_polling_writes_one_audit_row_per_hour`.
+3. Gate notice text in full in the audit log: ACCEPTED. The text is public gate text and the notice form warns against
+   personal data; the audit row is what lets the admin see what was shown, and a hash would hide that.
+   Limited by the notice rights of the Super Admin and Plant Head only.
+4. Sweep for storage files without a row: ACCEPTED. `sweep_old_files` only cleans temporary report files. A crash
+   between the upload and the row leaves at most one orphan snapshot, never visible, never a wrong record; nothing
+   is deleted without a row on purpose. Limited by the snapshot bucket being private and encrypted (AES-256-GCM).
+5. Backdating inside the 72 h offline window (0028 B): ACCEPTED. The time is bounded by a server time anchor, counter
+   order and a drift check; a time after the server last heard from the device is unproven (decision 0029); doubtful
+   punches are flagged (`OFFLINE_TIME_UNPROVEN`, `LOCATION_STALE`) and the Super Admin reviews them. What is left is
+   about 5 minutes after each health sample (M4 spec section 8.3).
+6. Leaked offline key and stolen gate device (0028 incident cases): FIXED in the docs. Runbook section 14.1 says: revoke
+   the device at once, sync the others, change the key, write the incident note.
+7. Accepted risks of M4 section 8.3: ACCEPTED as written there (faked browser location, weaker offline liveness, a
+   compromised device picking a time within its outage, a revoked device losing waiting punches, reused stale
+   location): spec `docs/specs/M4-anti-proxy-offline.md` section 8.3 lists the mitigation of each.
+8. Offline key rotation (0028 E5): FIXED in the docs. Runbook section 3.1, `.env.example` and `make_offline_key` now
+   say "rotation is not supported; to change the key all waiting punches must be synced first".
 
 ## Scope trimmed by the lead's instruction "do not re-test what was tested before" (2026-11-05)
 - **Journeys J-01 to J-19 (AC-M6-5 to 8):** a journey is written only for what no existing e2e spec already proves.

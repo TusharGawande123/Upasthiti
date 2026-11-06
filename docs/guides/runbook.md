@@ -73,6 +73,10 @@ Run from the `backend` folder (needs `uv`). Each command prints one line for the
 
 Changing a key has a cost (see the "If lost" column). Plan it. Change a key only after a leak or on a planned day.
 
+**The offline key cannot be rotated.** The server opens offline punches with the current `OFFLINE_EVIDENCE_KEY` only,
+and `OFFLINE_EVIDENCE_KEY_ID` is just a label. To change the key, first make sure every attendance device has sent its
+waiting punches (**Attendance devices** shows 0 waiting), then change the key. Punches still waiting at that moment are lost.
+
 ### 3.2 First Super Admin
 Run `uv run python -m app.scripts.create_super_admin` and answer the questions. There is no default account.
 
@@ -218,6 +222,15 @@ Do these in order. Write the time of each step. The client's HR or legal adviser
 5. **Data Protection Board of India and each affected person:** HR or the lawyer informs them without delay. A detailed
    report to the Board follows (the DPDP rules mention 72 hours). To be confirmed by the client's lawyer.
 6. Keep the note and the dates of every notice.
+
+### 14.1 A stolen attendance device, or a leaked offline key
+- **Stolen or lost device:** **Revoke** it at once (section 5). A revoked device is refused by the server. Its waiting
+  punches are lost (the revoke dialog says how many). Check **Needs review** for punches from that device before the
+  revoke, and use a correction for honest ones.
+- **Leaked offline key (alone):** the key only opens punches waiting on devices, never sent ones. Ask each device to
+  sync (0 waiting), then change the key (section 3.1; rotation is not supported, so there is no key-id switch).
+- **Leaked key together with a stolen device:** revoke the device first, then change the key as above, then write the
+  incident note (above) because face pictures waiting on the device may have been readable.
 
 **Incident note template (copy, fill, keep on paper or a private drive)**
 ```text
