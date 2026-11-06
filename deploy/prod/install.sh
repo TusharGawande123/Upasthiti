@@ -9,7 +9,15 @@
 set -eu
 cd "$(dirname "$0")"
 RESTORE_FROM=""
-if [ "${1:-}" = "--restore-from" ]; then RESTORE_FROM="${2:-}"; fi
+IMAGES_FILE=""
+# Options: --restore-from <file.upsbak>   --images-file <upasthiti-images.tar> (delivery without source code)
+while [ $# -gt 0 ]; do
+  case "$1" in
+    --restore-from) RESTORE_FROM="${2:-}"; shift 2 ;;
+    --images-file) IMAGES_FILE="${2:-}"; shift 2 ;;
+    *) echo "Unknown option: $1"; exit 2 ;;
+  esac
+done
 
 step() { printf '\n== %s\n' "$1"; }
 stop() { printf '\nSTOP: %s\n' "$1"; exit 1; }
@@ -23,12 +31,33 @@ FREE_GB=$(df -P . | awk 'NR==2 {print int($4/1024/1024)}')
 [ "$FREE_GB" -ge 20 ] || stop "Only $FREE_GB GB free here. At least 20 GB is needed."
 echo "Docker works. Free disk: ${FREE_GB} GB."
 
+# Ready-made images instead of building from source (also chosen when backend/ is not next to deploy/).
+IMAGES_ONLY=0
+if [ -n "$IMAGES_FILE" ] || [ ! -d ../../backend ]; then IMAGES_ONLY=1; fi
+BUILD_FLAG="--build"
+if [ "$IMAGES_ONLY" = 1 ]; then
+  step "1b. Using ready-made images (no source code needed)"
+  BUILD_FLAG="--no-build"
+  if [ -n "$IMAGES_FILE" ]; then
+    [ -f "$IMAGES_FILE" ] || stop "Images file not found: $IMAGES_FILE"
+    docker load -i "$IMAGES_FILE" || stop "docker load failed. Is the file complete?"
+  fi
+  docker image inspect upasthiti-backend:prod upasthiti-caddy:prod postgres:17 >/dev/null 2>&1     || stop "The images are not loaded. Run again with --images-file <path to upasthiti-images.tar>."
+fi
+# Compose reads these two lines from .env, so every later command (backup, update) uses the images too.
+add_images_only_settings() {
+  grep -q '^COMPOSE_FILE=' .env || printf 'COMPOSE_PATH_SEPARATOR=,
+COMPOSE_FILE=docker-compose.yml,docker-compose.images.yml
+' >> .env
+}
+
 # Compose wants every secret present even to build: throw-away values for the build command only.
 BUILD_ONLY="POSTGRES_PASSWORD=x APP_SECRET_KEY=x QR_SIGNING_KEY=x SNAPSHOT_ENCRYPTION_KEY=x FACE_TEMPLATE_KEY=x OFFLINE_EVIDENCE_KEY=x BACKUP_KEY=x APP_PUBLIC_ORIGIN=https://build-only.invalid SITE_ADDRESS=build-only.invalid"
 
 step "2. Settings and secret keys"
 if [ -f .env ]; then
   echo ".env already exists: keeping it (your keys stay the same)."
+  [ "$IMAGES_ONLY" = 0 ] || add_images_only_settings
 else
   printf 'Address name WITHOUT https:// (example: yourname.duckdns.org): '; read -r SITE_NAME
   echo "$SITE_NAME" | grep -Eq '^[A-Za-z0-9.-]+\.[A-Za-z]{2,}$' || stop "That is not a valid name."
@@ -45,7 +74,7 @@ else
   CADDYFILE=Caddyfile.duckdns; [ -n "$DUCK_TOKEN" ] || CADDYFILE=Caddyfile.own-certificate
 
   step "2b. Building the images (first time: 10 to 25 minutes, needs internet)"
-  env $BUILD_ONLY docker compose build
+  if [ "$IMAGES_ONLY" = 0 ]; then env $BUILD_ONLY docker compose build; fi
   new_key() { docker run --rm upasthiti-backend:prod python -m "$1" | head -n 1; }
   POSTGRES_PASSWORD=$(head -c 96 /dev/urandom | base64 | tr -dc 'A-Za-z0-9' | head -c 32)
   APP_SECRET=$(head -c 48 /dev/urandom | base64 | tr '+/' '-_' | tr -d '=\n')
@@ -70,6 +99,7 @@ else
     echo "LOG_LEVEL=INFO"
   } > .env
   chmod 600 .env
+  [ "$IMAGES_ONLY" = 0 ] || add_images_only_settings
   echo ".env written with new keys."
   if [ -n "$DUCK_TOKEN" ]; then
     LAN_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{for(i=1;i<=NF;i++) if($i=="src") print $(i+1)}')
@@ -86,7 +116,7 @@ if [ -n "$RESTORE_FROM" ]; then
   mkdir -p "$BACKUP_FOLDER"
   cp "$RESTORE_FROM" "$BACKUP_FOLDER/"
   chown 10001 "$BACKUP_FOLDER" || stop "Could not give $BACKUP_FOLDER to user 10001 (run with sudo)."
-  docker compose build
+  [ "$IMAGES_ONLY" = 1 ] || docker compose build
   docker compose up -d postgres
   sleep 15
   # The file name is part of the encryption: it must stay as the old computer made it.
@@ -95,7 +125,7 @@ if [ -n "$RESTORE_FROM" ]; then
 fi
 
 step "3. Starting the system"
-docker compose up -d --build
+docker compose up -d $BUILD_FLAG
 echo "Waiting for the backend to become healthy (up to 5 minutes)..."
 i=0
 until [ "$(docker inspect --format '{{.State.Health.Status}}' upasthiti-prod-backend-1 2>/dev/null)" = "healthy" ]; do

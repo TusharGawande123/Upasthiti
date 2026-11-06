@@ -48,3 +48,12 @@ the client's IT can use alone.
 
 No spec, API or approved rule changed. No new paid thing. CLAUDE.md is not changed by this work (the lead approves any
 change first).
+
+## Addition (2026-11-06): delivery without source code
+
+12. The lead chose to deliver ready-made images, not the repository. `deploy/prod/make-images.ps1` builds the images and
+    saves them (backend, web front door, postgres:17) in `upasthiti-images.tar` plus an install folder without any source
+    folder. `docker-compose.images.yml` replaces the `build:` parts; `install.ps1 -ImagesFile` / `install.sh --images-file`
+    load the images and write `COMPOSE_FILE` and `COMPOSE_PATH_SEPARATOR` into `.env`. The backend `.py` files stay readable
+    inside the image: this is a delivery choice, not protection. Updates come as a new tar file. Who fixes problems is a
+    written agreement outside the repository.
