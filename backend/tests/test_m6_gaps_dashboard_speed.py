@@ -1,6 +1,6 @@
 """M6 gap test for M5 AC-27: the live dashboard of 650 fake people with a day of punches answers one
-plant in under 500 ms and all plants in under 1.5 s (spec S-42 style numbers). Real PostgreSQL,
-fake people (Faker), the clock pinned to Fri 30/10/2026 10:00 IST."""
+plant in under 2 s and all plants in under 10 s (M5 AC-27, lead decision of
+2026-11-06). Real PostgreSQL, fake people (Faker), the clock pinned to Fri 30/10/2026 10:00 IST."""
 
 import time
 import uuid
@@ -27,9 +27,8 @@ pytestmark = pytest.mark.time_sensitive
 
 FRIDAY = date(2026, 10, 30)
 NOW = ist(FRIDAY, 10, 0)
-# The spec target is 0.5 s and 1.5 s. On the shared development laptop the answer needs about 130
-# queries and takes about 1.1 s for one plant and 5.7 s for all seven (reported to the lead, the
-# decision is open), so this test only guards against getting much slower: limits of 2 s and 10 s.
+# M5 AC-27 as decided by the lead on 2026-11-06. Measured before the query reduction: about 133
+# queries and 1.1 s for one plant, 5.7 s for all seven on a busy laptop.
 ONE_PLANT_SECONDS, ALL_PLANTS_SECONDS = 2.0, 10.0
 TRIES = 3  # the best of three: a busy laptop or CI machine must not fail a correct answer
 
